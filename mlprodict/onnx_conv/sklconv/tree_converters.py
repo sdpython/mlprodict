@@ -5,8 +5,9 @@
 """
 import logging
 import numpy
+from onnx import TensorProto
 from onnx.helper import make_attribute
-from onnx.numpy_helper import from_array
+from onnx.numpy_helper import from_array, to_array
 from onnx.defs import onnx_opset_version
 from skl2onnx.operator_converters.decision_tree import (
     convert_sklearn_decision_tree_regressor,
@@ -58,6 +59,67 @@ def _op_type_domain_classifier(dtype, opsetml):
         "Unsupported dtype {}.".format(dtype))
 
 
+def _fix_tree_ensemble_node(scope, container, opsetml, node, dtype):
+    """
+    Fixes a node for old versionsof skl2onnx.
+    """
+    atts = {'base_values': 'base_values_as_tensor',
+            'nodes_hitrates': 'nodes_hitrates_as_tensor',
+            'nodes_values': 'nodes_values_as_tensor',
+            'target_weights': 'target_weights_as_tensor',
+            'class_weights': 'class_weights_as_tensor'}
+    logger.debug('postprocess %r name=%r opsetml=%r dtype=%r',
+                 node.op_type, node.name, opsetml, dtype)
+    if dtype == numpy.float64:
+        # Inserting a cast operator.
+        index = 0 if node.op_type == 'TreeEnsembleRegressor' else 1
+        new_name = scope.get_unique_variable_name('tree_ensemble_cast')
+        old_name = node.output[index]
+        node.output[index] = new_name
+        container.add_node(
+            'Cast', [new_name], [old_name], to=TensorProto.DOUBLE,  # pylint: disable=E1101
+            name=scope.get_unique_operator_name('tree_ensemble_cast'))
+    attributes = list(node.attribute)
+    del node.attribute[:]
+    for att in attributes:
+        if att.name in atts:
+            logger.debug('+ rewrite att %r into %r', att.name, atts[att.name])
+            if att.type == 6:
+                value = from_array(
+                    numpy.array(att.floats, dtype=dtype), atts[att.name])
+            elif att.type == 4:
+                value = from_array(
+                    numpy.array(att.t.double_data, dtype=dtype), atts[att.name])
+            else:
+                raise NotImplementedError(
+                    "Unable to postprocess attribute name=%r type=%r "
+                    "opsetml=%r op_type=%r (value=%r)." % (
+                        att.name, att.type, opsetml, node.op_type, att))
+            if to_array(value).shape[0] == 0:
+                raise RuntimeError(
+                    "Null value from attribute (dtype=%r): %r." % (dtype, att))
+            node.attribute.append(make_attribute(atts[att.name], value))
+        else:
+            node.attribute.append(att)
+
+
+def _fix_tree_ensemble(scope, container, opsetml, dtype):
+    if opsetml is None:
+        from ... import __max_supported_opsets__
+        if onnx_opset_version() >= 16:
+            opsetml = min(3, __max_supported_opsets__['ai.onnx.ml'])
+        else:
+            opsetml = min(1, __max_supported_opsets__['ai.onnx.ml'])
+    if opsetml < 3 or dtype == numpy.float32:
+        return False
+    for node in container.nodes:
+        if node.op_type not in {'TreeEnsembleRegressor', 'TreeEnsembleClassifier'}:
+            continue
+        _fix_tree_ensemble_node(scope, container, opsetml, node, dtype)
+    container.node_domain_version_pair_sets.add(('ai.onnx.ml', opsetml))
+    return True
+
+
 def new_convert_sklearn_decision_tree_classifier(scope, operator, container):
     """
     Rewrites the converters implemented in
@@ -74,7 +136,7 @@ def new_convert_sklearn_decision_tree_classifier(scope, operator, container):
     convert_sklearn_decision_tree_classifier(
         scope, operator, container, op_type=op_type, op_domain=op_domain,
         op_version=op_version)
-    _fix_tree_ensemble(container, opsetml, dtype)
+    _fix_tree_ensemble(scope, container, opsetml, dtype)
 
 
 def new_convert_sklearn_decision_tree_regressor(scope, operator, container):
@@ -91,7 +153,7 @@ def new_convert_sklearn_decision_tree_regressor(scope, operator, container):
     convert_sklearn_decision_tree_regressor(
         scope, operator, container, op_type=op_type, op_domain=op_domain,
         op_version=op_version)
-    _fix_tree_ensemble(container, opsetml, dtype)
+    _fix_tree_ensemble(scope, container, opsetml, dtype)
 
 
 def new_convert_sklearn_gradient_boosting_classifier(scope, operator, container):
@@ -110,7 +172,7 @@ def new_convert_sklearn_gradient_boosting_classifier(scope, operator, container)
     convert_sklearn_gradient_boosting_classifier(
         scope, operator, container, op_type=op_type, op_domain=op_domain,
         op_version=op_version)
-    _fix_tree_ensemble(container, opsetml, dtype)
+    _fix_tree_ensemble(scope, container, opsetml, dtype)
 
 
 def new_convert_sklearn_gradient_boosting_regressor(scope, operator, container):
@@ -127,7 +189,7 @@ def new_convert_sklearn_gradient_boosting_regressor(scope, operator, container):
     convert_sklearn_gradient_boosting_regressor(
         scope, operator, container, op_type=op_type, op_domain=op_domain,
         op_version=op_version)
-    _fix_tree_ensemble(container, opsetml, dtype)
+    _fix_tree_ensemble(scope, container, opsetml, dtype)
 
 
 def new_convert_sklearn_random_forest_classifier(scope, operator, container):
@@ -150,7 +212,7 @@ def new_convert_sklearn_random_forest_classifier(scope, operator, container):
     convert_sklearn_random_forest_classifier(
         scope, operator, container, op_type=op_type, op_domain=op_domain,
         op_version=op_version)
-    _fix_tree_ensemble(container, opsetml, dtype)
+    _fix_tree_ensemble(scope, container, opsetml, dtype)
 
 
 def new_convert_sklearn_random_forest_regressor(scope, operator, container):
@@ -169,48 +231,4 @@ def new_convert_sklearn_random_forest_regressor(scope, operator, container):
     convert_sklearn_random_forest_regressor_converter(
         scope, operator, container, op_type=op_type, op_domain=op_domain,
         op_version=op_version)
-    _fix_tree_ensemble(container, opsetml, dtype)
-
-
-def _fix_tree_ensemble_node(container, opsetml, node, dtype):
-    """
-    Fixes a node for old versionsof skl2onnx.
-    """
-    atts = {'base_values': 'base_values_as_tensor',
-            'nodes_hitrates': 'nodes_hitrates_as_tensor',
-            'nodes_values': 'nodes_values_as_tensor',
-            'target_weights': 'target_weights_as_tensor',
-            'class_weights': 'class_weights_as_tensor'}
-    logger.debug('postprocess %r name=%r opsetml=%r dtype=%r',
-                 node.op_type, node.name, opsetml, dtype)
-    attributes = list(node.attribute)
-    del node.attribute[:]
-    for att in attributes:
-        if att.name in atts:
-            logger.debug('+ rewrite att %r into %r', att.name, atts[att.name])
-            if dtype == numpy.float64:
-                value = from_array(
-                    numpy.array(att.t.double_data, dtype=dtype), att.name)
-            else:
-                raise NotImplementedError(
-                    "Unable to postprocess attribute name=%r opsetml=%r "
-                    "op_type=%r (value=%r)." % (
-                        att.name, opsetml, node.op_type, att))
-            node.attribute.append(make_attribute(atts[att.name], value))
-        else:
-            node.attribute.append(att)
-
-
-def _fix_tree_ensemble(container, opsetml, dtype):
-    if opsetml is None:
-        from ... import __max_supported_opsets__
-        if onnx_opset_version() >= 16:
-            opsetml = min(3, __max_supported_opsets__['ai.onnx.ml'])
-        else:
-            opsetml = min(1, __max_supported_opsets__['ai.onnx.ml'])
-    if opsetml < 3 or dtype == numpy.float32:
-        return False
-    for node in container.nodes:
-        if node.op_type not in {'TreeEnsembleRegressor', 'TreeEnsembleClassifier'}:
-            continue
-        _fix_tree_ensemble_node(container, opsetml, node, dtype)
+    _fix_tree_ensemble(scope, container, opsetml, dtype)

@@ -5,7 +5,7 @@ import unittest
 import numpy
 from onnx.checker import check_model
 from onnxruntime import __version__ as ort_version
-from pyquickhelper.pycode import ExtTestCase, skipif_circleci, ignore_warnings
+from pyquickhelper.pycode import ExtTestCase, ignore_warnings
 from pyquickhelper.texthelper.version_helper import compare_module_version
 from sklearn.datasets import load_iris
 from sklearn.model_selection import train_test_split
@@ -45,22 +45,34 @@ class TestOnnxConvTreeEnsemble(ExtTestCase):
             gbm.fit(X_train, y_train)
             exp = gbm.predict(X_test).ravel()
             for dtype in [numpy.float32, numpy.float64]:
-                decimal = {numpy.float32: 6, numpy.float64: 12}[dtype]
+                decimal = {numpy.float32: 5, numpy.float64: 12}[dtype]
                 if (dtype == numpy.float64 and gbm.__class__ in {
                         LGBMRegressor}):
                     decimal = 7
+                elif (dtype == numpy.float64 and gbm.__class__ in {
+                        XGBRegressor}):
+                    decimal = 7
                 xt = X_test.astype(dtype)
-                for opset in [3, 1]:
-                    if opset > __max_supported_opsets__['ai.onnx.ml']:
+                for opset in [(16, 3), (15, 1)]:
+                    if opset[1] > __max_supported_opsets__['ai.onnx.ml']:
                         continue
                     with self.subTest(runtime=runtime, dtype=dtype,
                                       model=gbm.__class__.__name__,
                                       opset=opset):
                         onx = to_onnx(gbm, xt,  # options={'zipmap': False},
                                       target_opset={
-                                          '': 16, 'ai.onnx.ml': opset},
+                                          '': opset[0], 'ai.onnx.ml': opset[1]},
                                       rewrite_ops=True)
-                        check_model(onx)
+                        if dtype == numpy.float64:
+                            sonx = str(onx)
+                            if 'double' not in sonx and "_as_tensor" not in sonx:
+                                raise AssertionError(
+                                    "Issue with %s." % str(onx))
+                        try:
+                            check_model(onx)
+                        except Exception as e:
+                            raise AssertionError(
+                                "Issue with %s." % str(onx)) from e
                         output = onx.graph.output[0].type.tensor_type.elem_type
                         self.assertEqual(
                             output, {numpy.float32: 1, numpy.float64: 11}[dtype])
@@ -69,8 +81,12 @@ class TestOnnxConvTreeEnsemble(ExtTestCase):
                                           numpy.float64: 'tensor(double)'}[dtype],
                                          oif.output_names_shapes_types[0][2])
                         got = oif.run({'X': xt})
-                        self.assertEqualArray(exp, got['variable'].ravel(),
-                                              decimal=decimal)
+                        try:
+                            self.assertEqualArray(exp, got['variable'].ravel(),
+                                                  decimal=decimal)
+                        except AssertionError as e:
+                            raise AssertionError(
+                                "Discrepancies %s." % str(onx)) from e
                         self.assertEqual(got['variable'].dtype, dtype)
 
     @ignore_warnings((RuntimeWarning, UserWarning))
@@ -80,12 +96,12 @@ class TestOnnxConvTreeEnsemble(ExtTestCase):
     @ignore_warnings((RuntimeWarning, UserWarning))
     def test_regressor_python_lgbm(self):
         self.common_test_regressor(
-            'python', [LGBMRegressor(max_iter=3, max_depth=2)])
+            'python', [LGBMRegressor(max_iter=3, max_depth=2, verbosity=-1)])
 
     @ignore_warnings((RuntimeWarning, UserWarning))
     def test_regressor_python_xgb(self):
         self.common_test_regressor(
-            'python', [XGBRegressor(max_iter=3, max_depth=2)])
+            'python', [XGBRegressor(max_iter=3, max_depth=2, verbosity=0)])
 
     @unittest.skipIf(compare_module_version(ort_version, '1.12') < 0,
                      reason="missing runtime")
@@ -99,8 +115,8 @@ class TestOnnxConvTreeEnsemble(ExtTestCase):
         X_train, X_test, y_train, _ = train_test_split(X, y)
         if models is None:
             models = [
-                RandomForestClassifier(n_estimators=3, max_depth=2),
                 DecisionTreeClassifier(max_depth=2),
+                RandomForestClassifier(n_estimators=3, max_depth=2),
                 HistGradientBoostingClassifier(max_iter=3, max_depth=2),
                 GradientBoostingClassifier(n_estimators=3, max_depth=2),
             ]
@@ -115,16 +131,22 @@ class TestOnnxConvTreeEnsemble(ExtTestCase):
                                           GradientBoostingClassifier}):
                     decimal = 12
                 xt = X_test.astype(dtype)
-                for opset in [3, 1]:
-                    if opset > __max_supported_opsets__['ai.onnx.ml']:
+                for opset in [(16, 3), (15, 1)]:
+                    if opset[1] > __max_supported_opsets__['ai.onnx.ml']:
                         continue
                     with self.subTest(runtime=runtime, dtype=dtype,
                                       model=gbm.__class__.__name__,
                                       opset=opset):
                         onx = to_onnx(gbm, xt, options={'zipmap': False},
                                       target_opset={
-                                          '': 16, 'ai.onnx.ml': opset},
+                                          '': opset[0],
+                                          'ai.onnx.ml': opset[1]},
                                       rewrite_ops=True)
+                        if dtype == numpy.float64:
+                            sonx = str(onx)
+                            if 'double' not in sonx and "_as_tensor" not in sonx:
+                                raise AssertionError(
+                                    "Issue with %s." % str(onx))
                         output = onx.graph.output[1].type.tensor_type.elem_type
                         self.assertEqual(
                             output, {numpy.float32: 1, numpy.float64: 11}[dtype])
@@ -133,8 +155,14 @@ class TestOnnxConvTreeEnsemble(ExtTestCase):
                                           numpy.float64: 'tensor(double)'}[dtype],
                                          oif.output_names_shapes_types[1][2])
                         got = oif.run({'X': xt})
-                        self.assertEqualArray(exp, got['probabilities'].ravel(),
-                                              decimal=decimal)
+                        try:
+                            self.assertEqualArray(
+                                exp, got['probabilities'].ravel(), decimal=decimal)
+                        except AssertionError as e:
+                            raise AssertionError(
+                                "Discrepancies with onx=%s\n%s." % (
+                                    onnx_simple_text_plot(onx),
+                                    str(onx))) from e
                         self.assertEqual(got['probabilities'].dtype, dtype)
 
     @ignore_warnings((RuntimeWarning, UserWarning))
@@ -150,12 +178,12 @@ class TestOnnxConvTreeEnsemble(ExtTestCase):
     @ignore_warnings((RuntimeWarning, UserWarning))
     def test_classifier_python_lgbm(self):
         self.common_test_classifier(
-            'python', [LGBMClassifier(max_iter=3, max_depth=2)])
+            'python', [LGBMClassifier(max_iter=3, max_depth=2, verbosity=-1)])
 
     @ignore_warnings((RuntimeWarning, UserWarning))
     def test_classifier_python_xgb(self):
         self.common_test_classifier(
-            'python', [XGBClassifier(max_iter=3, max_depth=2)])
+            'python', [XGBClassifier(max_iter=2, max_depth=2, verbosity=0)])
 
 
 if __name__ == "__main__":
@@ -163,5 +191,5 @@ if __name__ == "__main__":
     # logger = logging.getLogger('mlprodict.onnx_conv')
     # logger.setLevel(logging.DEBUG)
     # logging.basicConfig(level=logging.DEBUG)
-    # TestOnnxConvTreeEnsemble().test_classifier_python()
+    # TestOnnxConvTreeEnsemble().test_classifier_python_xgb()
     unittest.main(verbosity=2)

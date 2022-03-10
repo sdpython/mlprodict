@@ -11,7 +11,8 @@ __max_supported_opset__ = 15  # Converters are tested up to this version.
 __max_supported_opsets__ = {
     '': __max_supported_opset__,
     'ai.onnx.ml': 2}
-__max_supported_opset_experimental__ = 16  # Converters are tested up to this version.
+# Converters are tested up to this version.
+__max_supported_opset_experimental__ = 16
 __max_supported_opsets_experimental__ = {
     '': __max_supported_opset_experimental__,
     'ai.onnx.ml': 3}
