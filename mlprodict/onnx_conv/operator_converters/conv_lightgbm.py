@@ -122,7 +122,6 @@ def _parse_tree_structure(tree_id, class_id, learning_rate,
         try:  # pragma: no cover
             th = float(tree_structure['threshold'])  # pragma: no cover
         except ValueError as e:  # pragma: no cover
-            import pprint
             text = pprint.pformat(tree_structure)
             if len(text) > 99999:
                 text = text[:99999] + "\n..."
