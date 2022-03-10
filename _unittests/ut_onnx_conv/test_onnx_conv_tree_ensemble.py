@@ -1,5 +1,5 @@
 """
-@brief      test log(time=82s)
+@brief      test log(time=20s)
 """
 import unittest
 import numpy
@@ -20,9 +20,9 @@ from xgboost import XGBRegressor, XGBClassifier
 from mlprodict.onnxrt import OnnxInference
 from mlprodict.onnx_conv import to_onnx
 from mlprodict.plotting.text_plot import onnx_simple_text_plot
-from mlprodict import (
-    __max_supported_opsets_experimental__ as __max_supported_opsets__)
-
+# from mlprodict import (
+#     __max_supported_opsets_experimental__ as __max_supported_opsets__)
+from mlprodict import __max_supported_opsets__
 
 ort_version = ".".join(ort_version.split('.')[:2])
 
@@ -36,13 +36,13 @@ class TestOnnxConvTreeEnsemble(ExtTestCase):
         if models is None:
             models = [
                 DecisionTreeRegressor(max_depth=2),
-                HistGradientBoostingRegressor(max_iter=3, max_depth=2),
-                GradientBoostingRegressor(n_estimators=3, max_depth=2),
-                RandomForestRegressor(n_estimators=3, max_depth=2),
+                HistGradientBoostingRegressor(max_iter=2, max_depth=2),
+                GradientBoostingRegressor(n_estimators=2, max_depth=2),
+                RandomForestRegressor(n_estimators=2, max_depth=2),
             ]
 
         if dtypes is None:
-            dtypes = [numpy.float32, numpy.float64]
+            dtypes = [numpy.float64, numpy.float32]
         for gbm in models:
             gbm.fit(X_train, y_train)
             exp = gbm.predict(X_test).ravel()
@@ -119,9 +119,9 @@ class TestOnnxConvTreeEnsemble(ExtTestCase):
         if models is None:
             models = [
                 DecisionTreeClassifier(max_depth=2),
-                RandomForestClassifier(n_estimators=3, max_depth=2),
-                HistGradientBoostingClassifier(max_iter=3, max_depth=2),
-                GradientBoostingClassifier(n_estimators=3, max_depth=2),
+                RandomForestClassifier(n_estimators=2, max_depth=2),
+                HistGradientBoostingClassifier(max_iter=2, max_depth=2),
+                GradientBoostingClassifier(n_estimators=2, max_depth=2),
             ]
 
         if dtypes is None:
@@ -147,7 +147,11 @@ class TestOnnxConvTreeEnsemble(ExtTestCase):
                                           '': opset[0],
                                           'ai.onnx.ml': opset[1]},
                                       rewrite_ops=True)
-                        if dtype == numpy.float64:
+                        if dtype == numpy.float64 and (
+                                opset[1] >= 3 or
+                                gbm.__class__ not in {
+                                    RandomForestClassifier,
+                                    HistGradientBoostingClassifier}):
                             sonx = str(onx)
                             if 'double' not in sonx and "_as_tensor" not in sonx:
                                 raise AssertionError(
@@ -200,5 +204,5 @@ if __name__ == "__main__":
     # logger = logging.getLogger('mlprodict.onnx_conv')
     # logger.setLevel(logging.DEBUG)
     # logging.basicConfig(level=logging.DEBUG)
-    # TestOnnxConvTreeEnsemble().test_classifier_python()
+    # TestOnnxConvTreeEnsemble().test_regressor_python_lgbm()
     unittest.main(verbosity=2)

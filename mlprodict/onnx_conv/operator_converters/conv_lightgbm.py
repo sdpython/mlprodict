@@ -7,6 +7,7 @@ lightgbm/operator_converters/LightGbm.py>`_.
 from collections import Counter
 import copy
 import numbers
+import pprint
 import numpy
 from onnx import TensorProto
 from skl2onnx.common._apply_operation import apply_div, apply_reshape, apply_sub  # pylint: disable=E0611
@@ -197,7 +198,6 @@ def _parse_node(tree_id, class_id, node_id, node_id_pool, node_pyid_pool,
                 attrs['nodes_values'].append(  # pragma: no cover
                     float(node['threshold']))
             except ValueError as e:  # pragma: no cover
-                import pprint
                 text = pprint.pformat(node)
                 if len(text) > 99999:
                     text = text[:99999] + "\n..."
@@ -411,6 +411,13 @@ def convert_lightgbm(scope, operator, container):  # pylint: disable=R0914
     dtype = guess_numpy_type(operator.inputs[0].type)
     if dtype != numpy.float64:
         dtype = numpy.float32
+
+    if dtype == numpy.float64:
+        for key in ['nodes_values', 'nodes_hitrates', 'target_weights',
+                    'class_weights', 'base_values']:
+            if key not in attrs:
+                continue
+            attrs[key] = numpy.array(attrs[key], dtype=dtype)
 
     # Create ONNX object
     if (gbm_text['objective'].startswith('binary') or
