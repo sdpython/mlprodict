@@ -29,7 +29,7 @@ ort_version = ".".join(ort_version.split('.')[:2])
 
 class TestOnnxConvTreeEnsemble(ExtTestCase):
 
-    def common_test_regressor(self, runtime, models=None):
+    def common_test_regressor(self, runtime, models=None, dtypes=None):
         iris = load_iris()
         X, y = iris.data, iris.target
         X_train, X_test, y_train, _ = train_test_split(X, y)
@@ -41,10 +41,12 @@ class TestOnnxConvTreeEnsemble(ExtTestCase):
                 RandomForestRegressor(n_estimators=3, max_depth=2),
             ]
 
+        if dtypes is None:
+            dtypes = [numpy.float32, numpy.float64]
         for gbm in models:
             gbm.fit(X_train, y_train)
             exp = gbm.predict(X_test).ravel()
-            for dtype in [numpy.float32, numpy.float64]:
+            for dtype in dtypes:
                 decimal = {numpy.float32: 5, numpy.float64: 12}[dtype]
                 if (dtype == numpy.float64 and gbm.__class__ in {
                         LGBMRegressor}):
@@ -109,7 +111,7 @@ class TestOnnxConvTreeEnsemble(ExtTestCase):
     def test_regressor_onnxruntime(self):
         self.common_test_regressor('onnxruntime1')
 
-    def common_test_classifier(self, runtime, models=None):
+    def common_test_classifier(self, runtime, models=None, dtypes=None):
         iris = load_iris()
         X, y = iris.data, iris.target
         X_train, X_test, y_train, _ = train_test_split(X, y)
@@ -121,17 +123,19 @@ class TestOnnxConvTreeEnsemble(ExtTestCase):
                 GradientBoostingClassifier(n_estimators=3, max_depth=2),
             ]
 
+        if dtypes is None:
+            dtypes = [numpy.float64, numpy.float32]
         for gbm in models:
             gbm.fit(X_train, y_train)
             exp = gbm.predict_proba(X_test).ravel()
-            for dtype in [numpy.float64, numpy.float32]:
+            for dtype in dtypes:
                 decimal = {numpy.float32: 6, numpy.float64: 7}[dtype]
                 if (dtype == numpy.float64 and
                         gbm.__class__ in {DecisionTreeClassifier,
                                           GradientBoostingClassifier}):
                     decimal = 12
                 xt = X_test.astype(dtype)
-                for opset in [(16, 3), (15, 1)]:
+                for opset in [(15, 1), (16, 3)]:
                     if opset[1] > __max_supported_opsets__['ai.onnx.ml']:
                         continue
                     with self.subTest(runtime=runtime, dtype=dtype,
@@ -177,13 +181,17 @@ class TestOnnxConvTreeEnsemble(ExtTestCase):
 
     @ignore_warnings((RuntimeWarning, UserWarning))
     def test_classifier_python_lgbm(self):
+        # xgboost is implemented with floats
         self.common_test_classifier(
-            'python', [LGBMClassifier(max_iter=3, max_depth=2, verbosity=-1)])
+            'python', [LGBMClassifier(max_iter=3, max_depth=2, verbosity=-1)],
+            dtypes=[numpy.float32])
 
     @ignore_warnings((RuntimeWarning, UserWarning))
     def test_classifier_python_xgb(self):
+        # xgboost is implemented with floats
         self.common_test_classifier(
-            'python', [XGBClassifier(max_iter=2, max_depth=2, verbosity=0)])
+            'python', [XGBClassifier(max_iter=2, max_depth=2, verbosity=0)],
+            dtypes=[numpy.float32])
 
 
 if __name__ == "__main__":
@@ -191,5 +199,5 @@ if __name__ == "__main__":
     # logger = logging.getLogger('mlprodict.onnx_conv')
     # logger.setLevel(logging.DEBUG)
     # logging.basicConfig(level=logging.DEBUG)
-    # TestOnnxConvTreeEnsemble().test_classifier_python_xgb()
+    # TestOnnxConvTreeEnsemble().test_classifier_python()
     unittest.main(verbosity=2)
