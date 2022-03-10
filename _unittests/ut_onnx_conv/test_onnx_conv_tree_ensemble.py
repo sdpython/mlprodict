@@ -103,7 +103,8 @@ class TestOnnxConvTreeEnsemble(ExtTestCase):
     @ignore_warnings((RuntimeWarning, UserWarning))
     def test_regressor_python_xgb(self):
         self.common_test_regressor(
-            'python', [XGBRegressor(max_iter=3, max_depth=2, verbosity=0)])
+            'python', [XGBRegressor(max_iter=3, max_depth=2, verbosity=0)],
+            dtypes=[numpy.float32])
 
     @unittest.skipIf(compare_module_version(ort_version, '1.12') < 0,
                      reason="missing runtime")
