@@ -5,9 +5,12 @@
 History
 =======
 
-current - 2022-03-05 - 0.00Mb
+current - 2022-03-10 - 0.00Mb
 =============================
 
+* #377: Implements TreeEnsemble* for opsetml==3 (2022-03-10)
+* #376: Avoids one circular import. (2022-03-07)
+* #375: Adds code to turn onnx example into python unit test (2022-03-05)
 * #374: Implements onnx backend with python runtime (2022-03-05)
 * #372: Improves importing time (2022-03-05)
 * #373: Adds support for Expand in python runtime (2022-03-04)
