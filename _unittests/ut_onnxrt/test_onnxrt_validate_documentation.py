@@ -38,7 +38,8 @@ class TestOnnxrtValidateDocumentation(ExtTestCase):
 
     @skipif_circleci('too long')
     @ignore_warnings(category=(UserWarning, ConvergenceWarning,
-                               RuntimeWarning, SyntaxWarning))
+                               RuntimeWarning, SyntaxWarning,
+                               ConvergenceWarning))
     def test_write_documentation_converters(self):
         fLOG(__file__, self._testMethodName, OutputPrint=__name__ == "__main__")
         subs = []

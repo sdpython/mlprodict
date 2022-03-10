@@ -7,6 +7,7 @@ lightgbm/operator_converters/LightGbm.py>`_.
 from collections import Counter
 import copy
 import numbers
+import pprint
 import numpy
 from onnx import TensorProto
 from skl2onnx.common._apply_operation import apply_div, apply_reshape, apply_sub  # pylint: disable=E0611
@@ -17,6 +18,7 @@ from skl2onnx.common.shape_calculator import (
     calculate_linear_classifier_output_shapes)
 from skl2onnx.common.data_types import guess_numpy_type
 from skl2onnx.common.tree_ensemble import sklearn_threshold
+from ..sklconv.tree_converters import _fix_tree_ensemble
 from ..helpers.lgbm_helper import (
     dump_lgbm_booster, modify_tree_for_rule_in_set)
 
@@ -120,7 +122,6 @@ def _parse_tree_structure(tree_id, class_id, learning_rate,
         try:  # pragma: no cover
             th = float(tree_structure['threshold'])  # pragma: no cover
         except ValueError as e:  # pragma: no cover
-            import pprint
             text = pprint.pformat(tree_structure)
             if len(text) > 99999:
                 text = text[:99999] + "\n..."
@@ -196,7 +197,6 @@ def _parse_node(tree_id, class_id, node_id, node_id_pool, node_pyid_pool,
                 attrs['nodes_values'].append(  # pragma: no cover
                     float(node['threshold']))
             except ValueError as e:  # pragma: no cover
-                import pprint
                 text = pprint.pformat(node)
                 if len(text) > 99999:
                     text = text[:99999] + "\n..."
@@ -328,6 +328,9 @@ def convert_lightgbm(scope, operator, container):  # pylint: disable=R0914
         if verbose >= 2:
             print("[convert_lightgbm] dump_model")  # pragma: no cover
         gbm_text, info = dump_lgbm_booster(gbm_model.booster_, verbose=verbose)
+    opsetml = container.target_opset_all.get('ai.onnx.ml', None)
+    if opsetml is None:
+        opsetml = 3 if container.target_opset >= 16 else 1
     if verbose >= 2:
         print(  # pragma: no cover
             "[convert_lightgbm] modify_tree_for_rule_in_set")
@@ -408,6 +411,13 @@ def convert_lightgbm(scope, operator, container):  # pylint: disable=R0914
     if dtype != numpy.float64:
         dtype = numpy.float32
 
+    if dtype == numpy.float64:
+        for key in ['nodes_values', 'nodes_hitrates', 'target_weights',
+                    'class_weights', 'base_values']:
+            if key not in attrs:
+                continue
+            attrs[key] = numpy.array(attrs[key], dtype=dtype)
+
     # Create ONNX object
     if (gbm_text['objective'].startswith('binary') or
             gbm_text['objective'].startswith('multiclass')):
@@ -434,7 +444,7 @@ def convert_lightgbm(scope, operator, container):  # pylint: disable=R0914
             'probability_tensor')
         label_tensor_name = scope.get_unique_variable_name('label_tensor')
 
-        if dtype == numpy.float64:
+        if dtype == numpy.float64 and opsetml < 3:
             container.add_node('TreeEnsembleClassifierDouble', operator.input_full_names,
                                [label_tensor_name, probability_tensor_name],
                                op_domain='mlprodict', op_version=1, **attrs)
@@ -524,7 +534,7 @@ def convert_lightgbm(scope, operator, container):  # pylint: disable=R0914
         options = container.get_options(gbm_model, dict(split=-1))
         split = options['split']
         if split == -1:
-            if dtype == numpy.float64:
+            if dtype == numpy.float64 and opsetml < 3:
                 container.add_node(
                     'TreeEnsembleRegressorDouble', operator.input_full_names,
                     output_name, op_domain='mlprodict', op_version=1, **attrs)
@@ -583,6 +593,7 @@ def convert_lightgbm(scope, operator, container):  # pylint: disable=R0914
             container.add_node('Identity', output_name,
                                operator.output_full_names,
                                name=scope.get_unique_operator_name('Identity'))
-
+    if opsetml >= 3:
+        _fix_tree_ensemble(scope, container, opsetml, dtype)
     if verbose >= 2:
         print("[convert_lightgbm] end")  # pragma: no cover

@@ -271,6 +271,11 @@ void RuntimeTreeEnsembleCommonP<NTYPE>::init_c(
             const std::vector<int64_t>& target_class_treeids,
             const std::vector<NTYPE>& target_class_weights) {
 
+    if (target_class_weights.size() == 0)
+        throw std::runtime_error("target_class_weights cannot be empty.");
+    if (nodes_values.size() == 0)
+        throw std::runtime_error("nodes_values cannot be empty.");
+
     sizeof_ = sizeof(RuntimeTreeEnsembleCommonP<NTYPE>);
     aggregate_function_ = to_AGGREGATE_FUNCTION(aggregate_function);
     post_transform_ = to_POST_EVAL_TRANSFORM(post_transform);

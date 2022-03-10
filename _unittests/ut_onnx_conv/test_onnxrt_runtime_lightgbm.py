@@ -65,7 +65,7 @@ class TestOnnxrtRuntimeLightGbm(ExtTestCase):
         cat_cols_actual = ["A", "B", "C", "D"]
         X[cat_cols_actual] = X[cat_cols_actual].astype('category')
         X_test[cat_cols_actual] = X_test[cat_cols_actual].astype('category')
-        gbm0 = LGBMClassifier().fit(X, y)
+        gbm0 = LGBMClassifier(verbosity=-1).fit(X, y)
         exp = gbm0.predict(X_test, raw_scores=False)
         self.assertNotEmpty(exp)
 
@@ -77,7 +77,7 @@ class TestOnnxrtRuntimeLightGbm(ExtTestCase):
 
         X = X[['C']].values.astype(numpy.float32)
         X_test = X_test[['C']].values.astype(numpy.float32)
-        gbm0 = LGBMClassifier().fit(X, y, categorical_feature=[0])
+        gbm0 = LGBMClassifier(verbosity=-1).fit(X, y, categorical_feature=[0])
         exp = gbm0.predict_proba(X_test, raw_scores=False)
         model_def = to_onnx(gbm0, X)
         self.assertIn('ZipMap', str(model_def))
@@ -118,7 +118,7 @@ class TestOnnxrtRuntimeLightGbm(ExtTestCase):
         cat_cols_actual = ["A", "B", "C", "D"]
         X[cat_cols_actual] = X[cat_cols_actual].astype('category')
         X_test[cat_cols_actual] = X_test[cat_cols_actual].astype('category')
-        gbm0 = LGBMClassifier().fit(X, y)
+        gbm0 = LGBMClassifier(verbosity=-1).fit(X, y)
         exp = gbm0.predict(X_test, raw_scores=False)
         self.assertNotEmpty(exp)
 
@@ -132,7 +132,7 @@ class TestOnnxrtRuntimeLightGbm(ExtTestCase):
 
         X = X[['C']].values.astype(numpy.float32)
         X_test = X_test[['C']].values.astype(numpy.float32)
-        gbm0 = LGBMClassifier().fit(X, y, categorical_feature=[0])
+        gbm0 = LGBMClassifier(verbosity=-1).fit(X, y, categorical_feature=[0])
         exp = gbm0.predict_proba(X_test, raw_scores=False)
         model_def = to_onnx(gbm0, X, target_opset=TARGET_OPSET)
         self.assertIn('ZipMap', str(model_def))
@@ -167,7 +167,7 @@ class TestOnnxrtRuntimeLightGbm(ExtTestCase):
         y_train = y_train % 2
 
         # Classic
-        gbm = LGBMClassifier()
+        gbm = LGBMClassifier(verbosity=-1)
         gbm.fit(X_train, y_train)
         exp = gbm.predict_proba(X_test)
         onx = to_onnx(gbm, initial_types=[
@@ -223,7 +223,7 @@ class TestOnnxrtRuntimeLightGbm(ExtTestCase):
         self.assertEqual(y_train.shape, (X_train.shape[0], ))
 
         # Classic
-        gbm = LGBMClassifier()
+        gbm = LGBMClassifier(verbosity=-1)
         gbm.fit(X_train, y_train)
         exp = gbm.predict_proba(X_test)
         onx = to_onnx(gbm, initial_types=[
@@ -272,7 +272,7 @@ class TestOnnxrtRuntimeLightGbm(ExtTestCase):
             X, y, random_state=11)
 
         # Classic
-        gbm = LGBMClassifier()
+        gbm = LGBMClassifier(verbosity=-1)
         gbm.fit(X_train, y_train)
         exp = gbm.predict_proba(X_test)
         onx = to_onnx(gbm.booster_, initial_types=[
@@ -390,7 +390,8 @@ class TestOnnxrtRuntimeLightGbm(ExtTestCase):
         model = lgb_train({'boosting_type': 'rf', 'objective': 'binary',
                            'n_estimators': 3, 'min_child_samples': 1,
                            'subsample_freq': 1, 'bagging_fraction': 0.5,
-                           'feature_fraction': 0.5, 'average_output': True},
+                           'feature_fraction': 0.5, 'average_output': True,
+                           'verbosity': -1},
                           data)
         model_onnx = to_onnx(model, X, verbose=0, rewrite_ops=True,
                              target_opset=TARGET_OPSET)
@@ -441,7 +442,7 @@ class TestOnnxrtRuntimeLightGbm(ExtTestCase):
 
         regressor = LGBMRegressor(
             objective="regression", min_data_in_bin=1, min_data_in_leaf=1,
-            n_estimators=1, learning_rate=1)
+            n_estimators=1, learning_rate=1, verbosity=-1)
         regressor.fit(_X_train, _y)
         regressor_onnx = to_onnx(
             regressor, initial_types=_INITIAL_TYPES, rewrite_ops=True,
@@ -471,7 +472,7 @@ class TestOnnxrtRuntimeLightGbm(ExtTestCase):
             ("input", FloatTensorType([None, _X_train.shape[1]]))]
 
         regressor = LGBMRegressor(
-            objective="regression", boosting_type='rf',
+            objective="regression", boosting_type='rf', verbosity=-2,
             n_estimators=10, bagging_freq=1, bagging_fraction=0.5)
         regressor.fit(_X_train, _y)
         regressor_onnx = to_onnx(
@@ -531,7 +532,7 @@ class TestOnnxrtRuntimeLightGbm(ExtTestCase):
         for objective in _objectives:
             with self.subTest(X=_X, objective=objective):
                 initial_types = self._calc_initial_types(_X)
-                regressor = LGBMRegressor(objective=objective)
+                regressor = LGBMRegressor(objective=objective, verbosity=-1)
                 regressor.fit(_X, _Y)
                 regressor_onnx = to_onnx(
                     regressor, initial_types=initial_types,
@@ -564,7 +565,8 @@ class TestOnnxrtRuntimeLightGbm(ExtTestCase):
                 initial_types = self._calc_initial_types(_X)
                 regressor = LGBMRegressor(
                     objective=objective, boosting='rf', bagging_freq=3,
-                    bagging_fraction=0.5, n_estimators=10)
+                    bagging_fraction=0.5, n_estimators=10,
+                    verbosity=-1)
                 regressor.fit(_X, _Y)
                 regressor_onnx = to_onnx(
                     regressor, initial_types=initial_types,
@@ -582,7 +584,7 @@ class TestOnnxrtRuntimeLightGbm(ExtTestCase):
         X, y = data.data, data.target
         X = X.astype(numpy.float32)
         X_train, X_test, y_train, _ = train_test_split(X, y, random_state=0)
-        reg = LGBMRegressor(max_depth=2, n_estimators=4, seed=0)
+        reg = LGBMRegressor(max_depth=2, n_estimators=4, seed=0, verbosity=-1)
         reg.fit(X_train, y_train)
         expected = reg.predict(X_test)
 
@@ -608,7 +610,8 @@ class TestOnnxrtRuntimeLightGbm(ExtTestCase):
         X, y = data.data, data.target
         X = X.astype(numpy.float32)
         X_train, X_test, y_train, _ = train_test_split(X, y, random_state=0)
-        reg = LGBMRegressor(max_depth=2, n_estimators=100, seed=0)
+        reg = LGBMRegressor(max_depth=2, n_estimators=100,
+                            seed=0, verbosity=-1)
         reg.fit(X_train, y_train)
         expected = reg.predict(X_test)
 
@@ -648,4 +651,4 @@ class TestOnnxrtRuntimeLightGbm(ExtTestCase):
 
 
 if __name__ == "__main__":
-    unittest.main()
+    unittest.main(verbosity=2)

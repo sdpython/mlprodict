@@ -16,6 +16,9 @@ def _get_typed_class_attribute(self, k, atts):
     if isinstance(ty, bytes):
         return getattr(self, k).decode()
     if isinstance(ty, list):
+        v = getattr(self, k)
+        if isinstance(v, numpy.ndarray):
+            return v
         return [_.decode() for _ in getattr(self, k)]
     if isinstance(ty, int):
         return getattr(self, k)

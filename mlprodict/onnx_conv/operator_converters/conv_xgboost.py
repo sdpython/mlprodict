@@ -9,6 +9,7 @@ from pprint import pformat
 import numpy
 from xgboost import XGBClassifier
 from skl2onnx.common.data_types import guess_numpy_type  # pylint: disable=C0411
+from ..sklconv.tree_converters import _fix_tree_ensemble
 
 
 class XGBConverter:
@@ -193,6 +194,9 @@ class XGBRegressorConverter(XGBConverter):
         dtype = guess_numpy_type(operator.inputs[0].type)
         if dtype != numpy.float64:
             dtype = numpy.float32
+        opsetml = container.target_opset_all.get('ai.onnx.ml', None)
+        if opsetml is None:
+            opsetml = 3 if container.target_opset >= 16 else 1
         xgb_node = operator.raw_operator
         inputs = operator.inputs
         objective, base_score, js_trees = XGBConverter.common_members(
@@ -217,7 +221,7 @@ class XGBRegressorConverter(XGBConverter):
             js_trees, attr_pairs, [1 for _ in js_trees], False)
 
         # add nodes
-        if dtype == numpy.float64:
+        if dtype == numpy.float64 and opsetml < 3:
             container.add_node(
                 'TreeEnsembleRegressorDouble', operator.input_full_names,
                 operator.output_full_names,
@@ -230,6 +234,8 @@ class XGBRegressorConverter(XGBConverter):
                 operator.output_full_names,
                 name=scope.get_unique_operator_name('TreeEnsembleRegressor'),
                 op_domain='ai.onnx.ml', op_version=1, **attr_pairs)
+            if opsetml >= 3:
+                _fix_tree_ensemble(scope, container, opsetml, dtype)
 
 
 class XGBClassifierConverter(XGBConverter):
@@ -248,6 +254,9 @@ class XGBClassifierConverter(XGBConverter):
     @staticmethod
     def convert(scope, operator, container):
         "convert method"
+        opsetml = container.target_opset_all.get('ai.onnx.ml', None)
+        if opsetml is None:
+            opsetml = 3 if container.target_opset >= 16 else 1
         dtype = guess_numpy_type(operator.inputs[0].type)
         if dtype != numpy.float64:
             dtype = numpy.float32
@@ -303,7 +312,7 @@ class XGBClassifierConverter(XGBConverter):
             classes = numpy.array([s.encode('utf-8') for s in classes])
             attr_pairs['classlabels_strings'] = classes
 
-        if dtype == numpy.float64:
+        if dtype == numpy.float64 and opsetml < 3:
             op_name = "TreeEnsembleClassifierDouble"
         else:
             op_name = "TreeEnsembleClassifier"
@@ -335,6 +344,9 @@ class XGBClassifierConverter(XGBConverter):
         else:
             raise RuntimeError(  # pragma: no cover
                 "Unexpected objective: {0}".format(objective))
+
+        if opsetml >= 3:
+            _fix_tree_ensemble(scope, container, opsetml, dtype)
 
 
 def convert_xgboost(scope, operator, container):

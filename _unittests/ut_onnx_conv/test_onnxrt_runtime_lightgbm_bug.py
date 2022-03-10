@@ -83,7 +83,7 @@ class TestOnnxrtRuntimeLightGbmBug(ExtTestCase):
         from lightgbm import LGBMRegressor
         regressor = LGBMRegressor(
             objective="regression", min_data_in_bin=1, min_data_in_leaf=1,
-            n_estimators=1, learning_rate=1)
+            n_estimators=1, learning_rate=1, verbosity=-1)
 
         y = numpy.array([0, 0, 1, 1, 1])
         X_train = numpy.array(
@@ -121,7 +121,7 @@ class TestOnnxrtRuntimeLightGbmBug(ExtTestCase):
                     break
                 model = LGBMRegressor(
                     max_depth=mx, n_estimators=ne, min_child_samples=1,
-                    learning_rate=0.0000001)
+                    learning_rate=0.0000001, verbosity=-1)
                 model.fit(X, y)
                 expected = model.predict(X)
 
@@ -166,7 +166,7 @@ class TestOnnxrtRuntimeLightGbmBug(ExtTestCase):
                     break
                 model = LGBMRegressor(
                     max_depth=mx, n_estimators=ne, min_child_samples=1,
-                    learning_rate=0.0000001)
+                    learning_rate=0.0000001, verbosity=-1)
                 model.fit(X, y)
                 expected = model.predict(X)
                 model_onnx = to_onnx(
@@ -198,4 +198,4 @@ class TestOnnxrtRuntimeLightGbmBug(ExtTestCase):
 
 
 if __name__ == "__main__":
-    unittest.main()
+    unittest.main(verbosity=2)
