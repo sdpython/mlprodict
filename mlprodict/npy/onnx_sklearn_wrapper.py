@@ -73,7 +73,7 @@ def _skl2onnx_add_to_container(onx, scope, container, outputs):
             elif att.type == 8:  # .strings
                 value = list(att.strings)
             else:
-                raise NotImplementedError(
+                raise NotImplementedError(  # pragma: no cover
                     "Unable to copy attribute type %r (%r)." % (
                         att.type, att))
             atts[att.name] = value

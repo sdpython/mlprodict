@@ -234,11 +234,11 @@ def cst(x, dtype=None):
         return OnnxVar(x, op=OnnxIdentity)
     if hasattr(x, 'dtype'):
         if dtype is not None:
-            raise RuntimeError(
+            raise RuntimeError(  # pragma: no cover
                 "dtype is not used because x is of type %r." % type(x))
         return OnnxVar(numpy.array([x], dtype=x.dtype),
                        op=OnnxIdentity)
-    raise NotImplementedError(
+    raise NotImplementedError(  # pragma: no cover
         "Unable to convert type %r into a constant." % type(x))
 
 

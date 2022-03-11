@@ -609,7 +609,8 @@ class OnnxOperatorTuple(OnnxOperatorBase):
         "Returns the only inputs in a list."
         if self.values is None:
             return [self.unique]
-        raise NotImplementedError("OnnxOperatorTuple.inputs is missing.")
+        raise NotImplementedError(  # pragma: no cover
+            "OnnxOperatorTuple.inputs is missing.")
 
     def add_to(self, builder):
         """
@@ -1888,7 +1889,7 @@ class _GraphBuilder:
             logger.debug("_GraphBuilder.add_initializer:2(%r, %r, %r)",
                          name, init.dtype, init.shape)
         else:
-            raise NotImplementedError(
+            raise NotImplementedError(  # pragma: no cover
                 "Unsupported initializer type %r." % type(init))
         self.initializer.append(val)
         return val

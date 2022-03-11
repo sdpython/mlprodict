@@ -109,7 +109,7 @@ class OnnxSubOnnx(OnnxOperator):
                 if isinstance(att, onnx.AttributeProto):
                     dtype = att.type
                 else:
-                    raise NotImplementedError(
+                    raise NotImplementedError(  # pragma: no cover
                         "Unable to copy attribute type %r." % type(att))
                 if dtype == 1:  # .f
                     value = att.f
@@ -128,7 +128,7 @@ class OnnxSubOnnx(OnnxOperator):
                 elif dtype == 11:  # .double_data
                     value = list(att.double_data)
                 else:
-                    raise NotImplementedError(
+                    raise NotImplementedError(  # pragma: no cover
                         "Unable to copy attribute type %r (%r)." % (
                             dtype, att))
                 atts[att.name] = value

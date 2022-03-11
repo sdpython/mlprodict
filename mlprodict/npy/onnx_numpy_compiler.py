@@ -401,7 +401,7 @@ class OnnxNumpyCompiler:
                 #     print("*", type(v.alg_), dir(v.alg_))
                 #     #import pprint
                 #     #pprint.pprint(dir(v.alg_))
-                raise NotImplementedError(
+                raise NotImplementedError(  # pragma: no cover
                     "Subgraphs only support constants (operator If, Loop, "
                     "Scan). hidden_algebras=%r var_graphs=%r" % (
                         hidden_algebras, var_graphs))

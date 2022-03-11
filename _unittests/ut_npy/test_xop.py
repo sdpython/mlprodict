@@ -4,7 +4,7 @@
 import unittest
 import numpy
 from scipy.spatial.distance import squareform, pdist
-from onnx import TensorProto
+from onnx import TensorProto, ValueInfoProto
 from pyquickhelper.pycode import ExtTestCase
 from mlprodict.onnxrt import OnnxInference
 from mlprodict.plotting.text_plot import onnx_simple_text_plot
@@ -82,6 +82,14 @@ class TestXOps(ExtTestCase):
         self.assertEqual(var == Variable('X', numpy.float32), False)
         self.assertEqual(
             var == Variable('X', added_dtype=numpy.float32), True)
+
+    def test_variable_from_pb(self):
+        var = Variable('X', numpy.float32)
+        info = var.make_value_info()
+        self.assertIsInstance(info, ValueInfoProto)
+        var2 = Variable.from_pb(info)
+        self.assertEqual(var2.name, 'X')
+        self.assertEqual(var2.dtype, numpy.float32)
 
     def test_detected_variable(self):
         var = Variable('X', numpy.float32)
@@ -709,6 +717,19 @@ class TestXOps(ExtTestCase):
                 got = oinf.run({'X': x})
                 self.assertEqualArray(x.sum(axis=1, keepdims=1), got['Y'])
 
+    def test_opset_reduce_sum_no_axis(self):
+        for opv in range(10, max_supported_opset() + 1):
+            with self.subTest(opv=opv):
+                node = OnnxReduceSumApi11(
+                    'X', op_version=opv, output_names=['Y'])
+                onx = node.to_onnx(numpy.float32, numpy.float32,
+                                   target_opset=opv)
+                self.assertNotIn("elem_type: 0", str(onx))
+                oinf = OnnxInference(onx)
+                x = numpy.array([[4, 5], [5.5, -6]], dtype=numpy.float32)
+                got = oinf.run({'X': x})
+                self.assertEqualArray(x.sum(), got['Y'])
+
     def test_opset_squeeze(self):
         for opv in range(10, max_supported_opset() + 1):
             with self.subTest(opv=opv):
@@ -776,6 +797,33 @@ class TestXOps(ExtTestCase):
                     node_split = OnnxSplitApi11(
                         'X', split=numpy.array([1, 1], dtype=numpy.int64),
                         axis=1, op_version=opv)
+                    node1 = node_split[0]
+                    node2 = node_split[1]
+                    node = OnnxSub(node1, node2, op_version=opv,
+                                   output_names=['Y'])
+                    onx = node.to_onnx(numpy.float32, numpy.float32,
+                                       target_opset=opv)
+                    oinf = OnnxInference(onx, runtime='python_compiled')
+                    x = numpy.array([[4, 5], [6.7, 7.8]], dtype=numpy.float32)
+                    x_copy = x.copy()
+                    expected = (x[:, :1] - x[:, 1:]).copy()
+                    got = oinf.run({'X': x})
+                    self.assertEqualArray(expected, got['Y'])
+                    self.assertEqualArray(x, x_copy)
+                    oinf = OnnxInference(onx, runtime='python')
+                    x = numpy.array([[4, 5], [6.7, 7.8]], dtype=numpy.float32)
+                    got = oinf.run({'X': x})
+                    self.assertEqualArray(expected, got['Y'])
+                    # This not always hold, computation may happen in place.
+                    # self.assertEqualArray(x, x_copy)
+
+    def test_opset_split_no_split(self):
+        OnnxSub = loadop("Sub")
+        for dtype in [numpy.float32, numpy.float64]:
+            for opv in range(10, max_supported_opset() + 1):
+                with self.subTest(opv=opv, dtype=dtype):
+                    node_split = OnnxSplitApi11(
+                        'X', axis=1, op_version=opv)
                     node1 = node_split[0]
                     node2 = node_split[1]
                     node = OnnxSub(node1, node2, op_version=opv,
