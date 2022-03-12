@@ -43,7 +43,8 @@ def select_attribute(ens, att, sort=False, unique=False):
     return atts
 
 
-def export_template(model_onnx, templates, opset=None, verbose=True, name=None,
+def export_template(model_onnx, templates, opset=None,  # pylint: disable=R0914
+                    verbose=True, name=None,
                     rename=False, use_onnx_tensor=False,
                     autopep_options=None, function_name='create_model'):
     """
