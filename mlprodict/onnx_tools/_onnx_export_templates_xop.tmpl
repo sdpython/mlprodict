@@ -1,4 +1,5 @@
 import numpy
+from mlprodict.npy.xop_variable import Variable
 from mlprodict.npy.xop import loadop
 
 
@@ -14,10 +15,27 @@ def {{ function_name }}():
     {%- endfor %}
     '''
     
-    {% for op in sorted(op.op_type for op in nodes): %}
-    Onnx{{ op }} = loadop('{{ op }}')
-    {% endfor %}
+    print('[operators]')   # verbose
+    OnnxIdentity = loadop('Identity')
+    {% for name in select_attribute(nodes, 'op_type', unique=True, sort=True): -%}
+    {%- if name != 'Identity': %}Onnx{{ name }} = loadop('{{ name }}')
+    {% endif %}{% endfor %}
     
+    # inputs
+    print('[inputs]')   # verbose
+    var_inputs = []
+    {% for name, typ, shape in inputs: %}
+    {{ name }} = '{{ name }}'
+    var_inputs.append(Variable({{ name }}, numpy.{{ TENSOR_TYPE_TO_NP_TYPE[typ] }}, {{ shape }}))
+    {%- endfor %}
+
+    # outputs
+    print('[outputs]')   # verbose
+    var_outputs = []
+    {% for name, typ, shape in outputs: -%}
+    var_outputs.append(Variable('{{ name }}', numpy.{{ TENSOR_TYPE_TO_NP_TYPE[typ] }}, {{ shape }}))
+    {%- endfor %}
+
     # subgraphs
     {%- for code, name in subgraphs: -%}
     {{ indent(code, '    ') }}
@@ -41,35 +59,37 @@ def {{ function_name }}():
 
     # initializers
     print('[initializers]')   # verbose
-    {% for name, value in initializers: %}
-    {% if len(value.shape) == 0: %}
-    {{ name }} = OnnxIdentity(numpy.array({{ value }}, dtype=numpy.{{ value.dtype }}))
-    {% else %}
+    {% for name, value in initializers: %}{% if len(value.shape) == 0: %}
+    {{ name }} = OnnxIdentity(numpy.array({{ value }}, dtype=numpy.{{ value.dtype }}), op_version={{ target_opset }})
+    {%- else %}{% if value.size < 6: %}
+    {{ name }} = OnnxIdentity(numpy.array({{ value.tolist() }}, dtype=numpy.{{ value.dtype }}){% if len(value.shape) > 1: %}.reshape({{ value.shape }}){% endif %}, op_version={{ target_opset }})
+    {%- else %}
     list_value = {{ value.ravel().tolist() }}
-    {{ name }} = OnnxIdentity(numpy.array(list_value, dtype=numpy.{{ value.dtype }}){% if len(value.shape) > 1: %}.reshape({{ value.shape }})){% endif %}
-    {% endif %}
-    {% endfor %}
+    {{ name }} = OnnxIdentity(numpy.array(list_value, dtype=numpy.{{ value.dtype }}){% if len(value.shape) > 1: %}.reshape({{ value.shape }}){% endif %}, op_version={{ target_opset }})
+    {% endif %}{% endif %}{% endfor %}
 
     # nodes
     print('[nodes]')   # verbose
     {% for node in nodes: %}
-    node = Onnx{{ node['op_type'] }}(
-        {{ ', '.jjoin(node['inputs'] }}),
-        {% if node['name']: %}name='{{ node['name'] }}',{% endif %}
+    {{ ', '.join(node['outputs']) }} = Onnx{{ node['op_type'] }}({{ ', '.join(node['inputs']) }},        
         {%- for name, value in node['attributes']: -%}
         {{ name }}={{ value }},
-        {%- endfor -%}
-        domain='{{ node['domain'] }}',
-        op_version={{ target_opset }})
+        {%- endfor -%}{%- if len(node['output_names']) > 0 -%}
+        output_names={{ repr(node['output_names']) }},
+        {%- endif -%}
+        {% if node['domain'] != '' %}domain='{{ node['domain'] }}', {% endif %}op_version={{ opsets[node['domain']] }})
     {% endfor %}
 
     # graph
     {% if len(outputs) == 1 %}
-    return {{ outputs[0].name }}.to_onnx(target_opset={{ target_opset }})
+    return {{ outputs[0][0] }}.to_onnx(
+        target_opset={{ opsets }},
+        inputs=var_inputs, outputs=var_outputs)
     {% else %}
-    return {{ outputs[0].name }}.to_onnx(
-        target_opset={{ target_opset }},
-        other_outputs=[{{ ', '.join(o.name for o in outputs) }}])
+    return {{ outputs[0][0] }}.to_onnx(
+        target_opset={{ opsets }},
+        inputs=var_inputs, outputs=var_outputs,
+        other_outputs=[{{ outputs[1][0] }}{% for o in outputs[2:] %}, {{ o[0] }}{% endfor %}])
     {% endif %}
 
 {% if ir_version %}

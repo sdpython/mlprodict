@@ -1907,6 +1907,8 @@ class _GraphBuilder:
         :param opset: node opset
         :return: created node
         """
+        if domain is None:
+            domain = ''
         logger.debug("_GraphBuilder.add_node(%r, %r, "
                      "inputs=%r, outputs=%r, domain=%r, opset=%r)",
                      op_type, name, inputs, outputs, domain, opset)
@@ -2083,10 +2085,15 @@ class _GraphBuilder:
                      len(onnx_model.graph.output))
 
         del onnx_model.opset_import[:]  # pylint: disable=E1101
+        seen_opset = set()
         for k, v in self.opsets.items():
+            if (k or '') in seen_opset:
+                raise RuntimeError(
+                    "Duplicated opset (%r, %r)." % (k, v))
             op_set = onnx_model.opset_import.add()  # pylint: disable=E1101
             op_set.domain = k or ''
             op_set.version = v
+            seen_opset.add(op_set.domain)
 
         # optimisation, remove redundant constant, unnecessary
         # identity nodes.
