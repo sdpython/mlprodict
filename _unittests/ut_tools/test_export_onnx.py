@@ -42,8 +42,7 @@ from mlprodict.npy import onnxnumpy_np
 from mlprodict.npy.onnx_numpy_annotation import NDArrayType
 from mlprodict.onnx_tools.optim import onnx_remove_node_unused
 from mlprodict.plotting.text_plot import onnx_simple_text_plot
-from mlprodict.npy.xop_variable import (
-    Variable as XopVariable, guess_numpy_type)
+from mlprodict.npy.xop_variable import Variable as XopVariable
 from mlprodict.npy.xop import loadop
 
 
