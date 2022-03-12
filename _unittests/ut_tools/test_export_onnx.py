@@ -24,7 +24,7 @@ from skl2onnx.algebra.onnx_ops import (  # pylint: disable=E0611
 from skl2onnx.common._topology import Variable
 from skl2onnx.common.data_types import FloatTensorType
 from mlprodict.onnx_tools.onnx_export import (
-    export2onnx, export2tf2onnx, export2numpy)
+    export2onnx, export2tf2onnx, export2numpy, export2xop)
 from mlprodict.testing.verify_code import verify_code
 from mlprodict.onnxrt import OnnxInference
 from mlprodict.onnx_tools.exports.tf2onnx_helper import (
@@ -1347,6 +1347,92 @@ class TestExportOnnx(ExtTestCase):
         oinf = OnnxInference(model)
         y2 = oinf.run({'input': x})['variable']
         self.assertEqual(y1, y2)
+
+    def verify_xop(self, content):
+        try:
+            left, __ = verify_code(content, exc=False)
+        except SyntaxError as e:
+            raise AssertionError(
+                "Unable to analyse a script due to %r. "
+                "\n--CODE--\n%s"
+                "" % (e, content)) from e
+
+        # execution
+        try:
+            obj = compile(content, '<string>', 'exec')
+        except SyntaxError as e:
+            raise AssertionError(
+                "Unable to compile a script due to %r. "
+                "\n--CODE--\n%s"
+                "" % (e, print_code(content))) from e
+        glo = globals().copy()
+        loc = {'loadop': loadop,
+               'print': print, 'sorted': sorted, 'len': len}
+        out = StringIO()
+        err = StringIO()
+        if len(left) >= 5:
+            raise AssertionError(
+                "Too many unknown symbols: %r." % left)
+
+        with redirect_stdout(out):
+            with redirect_stderr(err):
+                try:
+                    exec(obj, glo, loc)  # pylint: disable=W0122
+                except Exception as e:
+                    raise AssertionError(
+                        "Unable to execute a script due to %r. "
+                        "\n--OUT--\n%s\n--ERR--\n%s\n--CODE--\n%s"
+                        "" % (e, out.getvalue(), err.getvalue(),
+                              print_code(content))) from e
+        return glo, loc
+
+    def test_export_xop(self):
+        this = os.path.dirname(__file__)
+        folder = os.path.join(this, "data")
+        names = ["fft2d_any.onnx", "slice.onnx"]
+        for rt in ['python', 'onnxruntime1']:
+            for name in names:
+                with self.subTest(name=name, rt=rt):
+                    oinf0 = OnnxInference(
+                        os.path.join(folder, name), runtime=rt)
+
+                    x = numpy.random.randn(3, 1, 4).astype(numpy.float32)
+
+                    new_onnx = export2xop(
+                        os.path.join(folder, name), name="FFT2D")
+                    _, loc = self.verify(new_onnx)
+                    model = loc['onnx_model']
+
+                    if name == 'fft2d_any.onnx':
+                        oinf = OnnxInference(
+                            model, runtime=rt, new_outputs=['Sh_shape0'],
+                            new_opset=10)
+                        rr = oinf.run({'x': x})
+                        if rr['Sh_shape0'].shape != (3, ):
+                            self.assertEqual(rr['Sh_shape0'].shape, (3, ))
+
+                    oinf = OnnxInference(model, runtime=rt)
+                    if rt == 'python':
+                        y = oinf0.run({'x': x})
+                        y1 = oinf.run({'x': x})
+                    else:
+                        y = oinf0.run({'x': x})
+                        y1 = oinf.run({'x': x})
+
+                    new_onnx = export2xop(
+                        os.path.join(folder, name), verbose=False)
+                    _, loc = self.verify(new_onnx)
+                    model = loc['onnx_model']
+                    oinf = OnnxInference(model, runtime=rt)
+                    y2 = oinf.run({'x': x})
+
+                    if y1['y'].shape[0] > 0 and y['y'].shape[0] > 0:
+                        self.assertEqualArray(y['y'], y1['y'])
+                    if name == 'fft2d_any.onnx':
+                        self.assertEqualArray(y['y'], y2['y'])
+
+                    code2 = oinf.to_onnx_code()
+                    self.assertEqual(new_onnx, code2)
 
 
 if __name__ == "__main__":

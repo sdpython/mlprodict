@@ -1,0 +1,77 @@
+import numpy
+from mlprodict.npy.xop import loadop
+
+
+def {{ function_name }}():
+    '''
+    Converted ``{{ name }}``.
+
+    * producer: {{ producer_name }}
+    * version: {{ model_version }}
+    * description: {{ doc_string }}
+    {%- for key, val in sorted(metadata.items()): -%}
+    * {{ key }}: {{ val }}
+    {%- endfor %}
+    '''
+    
+    {% for op in sorted(op.op_type for op in nodes): %}
+    Onnx{{ op }} = loadop('{{ op }}')
+    {% endfor %}
+    
+    # subgraphs
+    {%- for code, name in subgraphs: -%}
+    {{ indent(code, '    ') }}
+    {%- endfor %}
+
+    # containers
+    print('[containers]')   # verbose
+
+    {% if ir_version %}
+    # opsets
+    print('[opsets]')   # verbose
+    opsets = {{ opsets }}
+    target_opset = {{ target_opset }}
+    {%- endif -%}
+
+    # subgraphs
+    print('[subgraphs]')   # verbose
+    {%- for code, name in subgraphs: -%}
+    {{ name }} = subgraph_{{ name }}
+    {%- endfor %}
+
+    # initializers
+    print('[initializers]')   # verbose
+    {% for name, value in initializers: %}
+    {% if len(value.shape) == 0: %}
+    {{ name }} = OnnxIdentity(numpy.array({{ value }}, dtype=numpy.{{ value.dtype }}))
+    {% else %}
+    list_value = {{ value.ravel().tolist() }}
+    {{ name }} = OnnxIdentity(numpy.array(list_value, dtype=numpy.{{ value.dtype }}){% if len(value.shape) > 1: %}.reshape({{ value.shape }})){% endif %}
+    {% endif %}
+    {% endfor %}
+
+    # nodes
+    print('[nodes]')   # verbose
+    {% for node in nodes: %}
+    node = Onnx{{ node['op_type'] }}(
+        {{ ', '.jjoin(node['inputs'] }}),
+        {% if node['name']: %}name='{{ node['name'] }}',{% endif %}
+        {%- for name, value in node['attributes']: -%}
+        {{ name }}={{ value }},
+        {%- endfor -%}
+        domain='{{ node['domain'] }}',
+        op_version={{ target_opset }})
+    {% endfor %}
+
+    # graph
+    {% if len(outputs) == 1 %}
+    return {{ outputs[0].name }}.to_onnx(target_opset={{ target_opset }})
+    {% else %}
+    return {{ outputs[0].name }}.to_onnx(
+        target_opset={{ target_opset }},
+        other_outputs=[{{ ', '.join(o.name for o in outputs) }}])
+    {% endif %}
+
+{% if ir_version %}
+onnx_model = {{ function_name }}()
+{% endif %}

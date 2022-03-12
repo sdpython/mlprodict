@@ -12,7 +12,8 @@ from onnx import numpy_helper
 from .onnx2py_helper import (
     _var_as_dict, guess_proto_dtype, guess_proto_dtype_name)
 from .onnx_export_templates import (
-    get_onnx_template, get_tf2onnx_template, get_numpy_template)
+    get_onnx_template, get_tf2onnx_template, get_numpy_template,
+    get_xop_template)
 from .exports.numpy_helper import make_numpy_code
 from .exports.tf2onnx_helper import make_tf2onnx_code
 
@@ -416,4 +417,49 @@ def export2numpy(model_onnx, opset=None, verbose=True, name=None,
     for i in range(-6, 6):
         code = code.replace("axis=tuple([%d])" % i, "axis=%d" % i)
         code = code.replace("tuple([%d])" % i, "(%d, )" % i)
+    return code
+
+
+def export2xop(model_onnx, opset=None, verbose=True, name=None, rename=False,
+               autopep_options=None):
+    """
+    Exports an ONNX model to the :epkg:`onnx` syntax.
+
+    :param model_onnx: string or ONNX graph
+    :param opset: opset to export to
+        (None to select the one from the graph)
+    :param verbose: inserts prints
+    :param name: to overwrite onnx name
+    :param rename: rename the names to get shorter names
+    :param autopep_options: :epkg:`autopep8` options
+    :return: python code
+
+    The following example shows what a python code creating a graph
+    implementing the KMeans would look like.
+
+    .. runpython::
+        :showcode:
+        :process:
+
+        import numpy
+        from sklearn.cluster import KMeans
+        from mlprodict.onnx_conv import to_onnx
+        from mlprodict.onnx_tools.onnx_export import export2xop
+
+        X = numpy.arange(20).reshape(10, 2).astype(numpy.float32)
+        tr = KMeans(n_clusters=2)
+        tr.fit(X)
+
+        onx = to_onnx(tr, X, target_opset=14)
+        code = export2xop(onx)
+
+        print(code)
+    """
+    if isinstance(model_onnx, str):
+        model_onnx = onnx.load(model_onnx)
+
+    code = export_template(model_onnx, templates=get_xop_template(),
+                           opset=opset, verbose=verbose, name=name,
+                           rename=rename, use_onnx_tensor=True,
+                           autopep_options=autopep_options)
     return code

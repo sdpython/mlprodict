@@ -62,3 +62,10 @@ def get_numpy_template():
     Template to export :epkg:`ONNX` into :epkg:`numpy` code.
     """
     return _get_file('numpy')
+
+
+def get_xop_template():
+    """
+    Template to export :epkg:`ONNX` into a code based on XOP API.
+    """
+    return _get_file('xop')
