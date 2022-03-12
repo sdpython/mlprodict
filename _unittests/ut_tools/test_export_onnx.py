@@ -21,10 +21,11 @@ from skl2onnx.common.data_types import Int64TensorType
 from skl2onnx.algebra.onnx_ops import (  # pylint: disable=E0611
     OnnxGather, OnnxIdentity, OnnxReshape, OnnxFlatten,
     OnnxSlice, OnnxSqueeze)
-from skl2onnx.common._topology import Variable
+from skl2onnx.common._topology import Variable as SklVariable
 from skl2onnx.common.data_types import FloatTensorType
 from mlprodict.onnx_tools.onnx_export import (
-    export2onnx, export2tf2onnx, export2numpy)
+    export2onnx, export2tf2onnx, export2numpy, export2xop,
+    select_attribute)
 from mlprodict.testing.verify_code import verify_code
 from mlprodict.onnxrt import OnnxInference
 from mlprodict.onnx_tools.exports.tf2onnx_helper import (
@@ -40,6 +41,9 @@ import mlprodict.npy.numpy_onnx_impl as npnx
 from mlprodict.npy import onnxnumpy_np
 from mlprodict.npy.onnx_numpy_annotation import NDArrayType
 from mlprodict.onnx_tools.optim import onnx_remove_node_unused
+from mlprodict.plotting.text_plot import onnx_simple_text_plot
+from mlprodict.npy.xop_variable import Variable as XopVariable
+from mlprodict.npy.xop import loadop
 
 
 class ConvertFFT2DOp:
@@ -680,8 +684,8 @@ class TestExportOnnx(ExtTestCase):
     def test_model_data_slice(self):
         opv = 14
 
-        var = Variable('x', 'x', type=FloatTensorType([None, None, 4]),
-                       scope=None)
+        var = SklVariable('x', 'x', type=FloatTensorType([None, None, 4]),
+                          scope=None)
 
         op = OnnxSlice(var,
                        numpy.array([0], dtype=numpy.int64),
@@ -808,11 +812,11 @@ class TestExportOnnx(ExtTestCase):
                'make_tensor_value_info': make_tensor_value_info,
                'print': print, 'sorted': sorted,
                'collections': collections, 'inspect': inspect}
-        out = StringIO()
-        err = StringIO()
+        out, err = StringIO(), StringIO()
         if len(left) >= 5:
             raise AssertionError(
-                "Too many unknown symbols: %r." % left)
+                "Too many unknown symbols: %r in\n%s" % (
+                    left, content))
 
         with redirect_stdout(out):
             with redirect_stderr(err):
@@ -901,8 +905,7 @@ class TestExportOnnx(ExtTestCase):
                "make_name": make_name,
                'map_onnx_to_numpy_type': map_onnx_to_numpy_type,
                'GraphBuilder': GraphBuilder}
-        out = StringIO()
-        err = StringIO()
+        out, err = StringIO(), StringIO()
         if len(left) >= 14:
             raise AssertionError(
                 "Too many unknown symbols: %r." % left)
@@ -1002,8 +1005,7 @@ class TestExportOnnx(ExtTestCase):
             'ConvertFFT2DOp': ConvertFFT2DOp, "make_name": make_name,
             'argmin_use_numpy_select_last_index': argmin_use_numpy_select_last_index,
             'make_slice': make_slice}
-        out = StringIO()
-        err = StringIO()
+        out, err = StringIO(), StringIO()
         if len(left) > 14:
             raise AssertionError(
                 "Too many unknown symbols: %r." % left)
@@ -1082,8 +1084,7 @@ class TestExportOnnx(ExtTestCase):
             'ConvertFFT2DOp': ConvertFFT2DOp, "make_name": make_name,
             'argmin_use_numpy_select_last_index': argmin_use_numpy_select_last_index,
             'map_onnx_to_numpy_type': map_onnx_to_numpy_type, 'make_slice': make_slice}
-        out = StringIO()
-        err = StringIO()
+        out, err = StringIO(), StringIO()
         if len(left) > 14:
             raise AssertionError(
                 "Too many unknown symbols: %r." % left)
@@ -1348,6 +1349,114 @@ class TestExportOnnx(ExtTestCase):
         y2 = oinf.run({'input': x})['variable']
         self.assertEqual(y1, y2)
 
+    def test_select_attribute(self):
+        class A:
+            def __init__(self, i):
+                self.i = i
+
+            def __repr__(self):
+                return 'A(%r)' % self.i
+        ens = [A("a"), A("b"), A("c"), A("a")]
+        self.assertEqual(['a', 'b', 'c', 'a'], select_attribute(ens, 'i'))
+        self.assertEqual(['a', 'a', 'b', 'c'],
+                         select_attribute(ens, 'i', sort=True))
+        self.assertEqual(['a', 'b', 'c'],
+                         select_attribute(ens, 'i', sort=True, unique=True))
+
+    def test_select_attribute_dict(self):
+        self.assertEqual([], select_attribute([], 'i'))
+        ens = [{'i': "a"}, {'i': "b"}, {'i': "c"}, {'i': "a"}]
+        self.assertEqual(['a', 'b', 'c', 'a'], select_attribute(ens, 'i'))
+        self.assertEqual(['a', 'a', 'b', 'c'],
+                         select_attribute(ens, 'i', sort=True))
+        self.assertEqual(['a', 'b', 'c'],
+                         select_attribute(ens, 'i', sort=True, unique=True))
+
+    def verify_xop(self, content, onx_graph):
+        try:
+            left, __ = verify_code(content, exc=False)
+        except SyntaxError as e:
+            raise AssertionError(
+                "Unable to analyse a script due to %r. "
+                "\n--CODE--\n%s"
+                "" % (e, content)) from e
+
+        # execution
+        try:
+            obj = compile(content, '<string>', 'exec')
+        except SyntaxError as e:
+            raise AssertionError(
+                "Unable to compile a script due to %r. "
+                "\n--CODE--\n%s"
+                "" % (e, print_code(content))) from e
+        glo = globals().copy()
+        loc = {'loadop': loadop, 'Variable': XopVariable,
+               'print': print, 'sorted': sorted, 'len': len}
+        glo.update(loc)
+        out, err = StringIO(), StringIO()
+        if len(left) >= 5:
+            raise AssertionError(
+                "Too many unknown symbols: %r in\n%s\n-----\n%s" % (
+                    left, onnx_simple_text_plot(onx_graph), content))
+
+        with redirect_stdout(out):
+            with redirect_stderr(err):
+                try:
+                    exec(obj, glo, loc)  # pylint: disable=W0122
+                except Exception as e:
+                    raise AssertionError(
+                        "Unable to execute a script due to %r. "
+                        "\n--OUT--\n%s\n--ERR--\n%s\n--CODE--\n%s"
+                        "" % (e, out.getvalue(), err.getvalue(),
+                              print_code(content))) from e
+        return glo, loc
+
+    def test_export_xop(self):
+        this = os.path.dirname(__file__)
+        folder = os.path.join(this, "data")
+        names = ["slice.onnx", "fft2d_any.onnx"]
+        for rt in ['onnxruntime1', 'python']:
+            for name in names:
+                with self.subTest(name=name, rt=rt):
+                    with open(os.path.join(folder, name), 'rb') as f:
+                        onx_graph = onnx_load(f)
+                    oinf0 = OnnxInference(
+                        os.path.join(folder, name), runtime=rt)
+
+                    x = numpy.random.randn(3, 1, 4).astype(numpy.float32)
+
+                    new_onnx = export2xop(
+                        os.path.join(folder, name), name="FFT2D")
+                    _, loc = self.verify_xop(new_onnx, onx_graph)
+                    model = loc['onnx_model']
+
+                    try:
+                        oinf = OnnxInference(model, runtime=rt)
+                    except RuntimeError as e:
+                        raise AssertionError(
+                            "Issue with\n-----\n%s\n--CODE--\n%s\n--GOT--\n%s" % (
+                                onnx_simple_text_plot(onx_graph), new_onnx,
+                                onnx_simple_text_plot(model))) from e
+                    if rt == 'python':
+                        y = oinf0.run({'x': x})
+                        y1 = oinf.run({'x': x})
+                    else:
+                        y = oinf0.run({'x': x})
+                        y1 = oinf.run({'x': x})
+
+                    new_onnx = export2xop(
+                        os.path.join(folder, name), verbose=False)
+                    _, loc = self.verify_xop(new_onnx, onx_graph)
+                    model = loc['onnx_model']
+                    oinf = OnnxInference(model, runtime=rt)
+                    y2 = oinf.run({'x': x})
+
+                    if y1['y'].shape[0] > 0 and y['y'].shape[0] > 0:
+                        self.assertEqualArray(y['y'], y1['y'])
+                    if name == 'fft2d_any.onnx':
+                        self.assertEqualArray(y['y'], y2['y'])
+
 
 if __name__ == "__main__":
+    # TestExportOnnx().test_export_xop()
     unittest.main(verbosity=2)

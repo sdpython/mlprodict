@@ -9,15 +9,42 @@ from textwrap import indent
 import numpy
 import onnx
 from onnx import numpy_helper
+from onnx.mapping import TENSOR_TYPE_TO_NP_TYPE
 from .onnx2py_helper import (
     _var_as_dict, guess_proto_dtype, guess_proto_dtype_name)
 from .onnx_export_templates import (
-    get_onnx_template, get_tf2onnx_template, get_numpy_template)
+    get_onnx_template, get_tf2onnx_template, get_numpy_template,
+    get_xop_template)
 from .exports.numpy_helper import make_numpy_code
 from .exports.tf2onnx_helper import make_tf2onnx_code
 
 
-def export_template(model_onnx, templates, opset=None, verbose=True, name=None,
+def select_attribute(ens, att, sort=False, unique=False):
+    """
+    Returns the list of the same attribute.
+    `[el.att for el in ens]`.
+
+    :param ens: list
+    :param att: attribute name
+    :param sort: sort the array
+    :param unique: returns the unique values
+    :return: something like `[el.att for el in ens]`
+    """
+    if len(ens) == 0:
+        return []
+    if isinstance(ens[0], dict):
+        atts = [el[att] for el in ens]
+    else:
+        atts = [getattr(el, att) for el in ens]
+    if unique:
+        atts = list(set(atts))
+    if sort:
+        atts.sort()
+    return atts
+
+
+def export_template(model_onnx, templates, opset=None,  # pylint: disable=R0914
+                    verbose=True, name=None,
                     rename=False, use_onnx_tensor=False,
                     autopep_options=None, function_name='create_model'):
     """
@@ -139,6 +166,7 @@ def export_template(model_onnx, templates, opset=None, verbose=True, name=None,
     context['outputs'] = outputs
 
     # node
+    output_names = set(o.name for o in graph.output)
     subgraphs = []
     nodes = []
     for node in graph.node:
@@ -155,7 +183,8 @@ def export_template(model_onnx, templates, opset=None, verbose=True, name=None,
                 fname = "_create_" + node.name + "_body"
                 body = export_template(
                     value, templates, opset=opset, verbose=verbose,
-                    name=name, rename=rename, use_onnx_tensor=use_onnx_tensor,
+                    name=name, rename=rename,
+                    use_onnx_tensor=use_onnx_tensor,
                     autopep_options=autopep_options,
                     function_name=fname)
                 subgraphs.append((body, node.name + "_body"))
@@ -192,6 +221,8 @@ def export_template(model_onnx, templates, opset=None, verbose=True, name=None,
                  domain=node.domain,
                  inputs=[rename_name(n) for n in node.input],
                  outputs=[rename_name(n) for n in node.output],
+                 output_names=[rename_name(n) for n in node.output
+                               if n in output_names],
                  attributes=attributes, attributes_str=attributes_str)
         nodes.append(d)
     context['nodes'] = nodes
@@ -229,6 +260,8 @@ def export_template(model_onnx, templates, opset=None, verbose=True, name=None,
     template = Template(templates)
     final = template.render(
         enumerate=enumerate, sorted=sorted, len=len,
+        select_attribute=select_attribute, repr=repr,
+        TENSOR_TYPE_TO_NP_TYPE=TENSOR_TYPE_TO_NP_TYPE,
         make_numpy_code=lambda *args, **kwargs: make_numpy_code(
             *args, context=context, used=used, mark_inits=mark_inits,
             **kwargs),
@@ -416,4 +449,49 @@ def export2numpy(model_onnx, opset=None, verbose=True, name=None,
     for i in range(-6, 6):
         code = code.replace("axis=tuple([%d])" % i, "axis=%d" % i)
         code = code.replace("tuple([%d])" % i, "(%d, )" % i)
+    return code
+
+
+def export2xop(model_onnx, opset=None, verbose=True, name=None, rename=False,
+               autopep_options=None):
+    """
+    Exports an ONNX model to the :epkg:`onnx` syntax.
+
+    :param model_onnx: string or ONNX graph
+    :param opset: opset to export to
+        (None to select the one from the graph)
+    :param verbose: inserts prints
+    :param name: to overwrite onnx name
+    :param rename: rename the names to get shorter names
+    :param autopep_options: :epkg:`autopep8` options
+    :return: python code
+
+    The following example shows what a python code creating a graph
+    implementing the KMeans would look like.
+
+    .. runpython::
+        :showcode:
+        :process:
+
+        import numpy
+        from sklearn.cluster import KMeans
+        from mlprodict.onnx_conv import to_onnx
+        from mlprodict.onnx_tools.onnx_export import export2xop
+
+        X = numpy.arange(20).reshape(10, 2).astype(numpy.float32)
+        tr = KMeans(n_clusters=2)
+        tr.fit(X)
+
+        onx = to_onnx(tr, X, target_opset=14)
+        code = export2xop(onx)
+
+        print(code)
+    """
+    if isinstance(model_onnx, str):
+        model_onnx = onnx.load(model_onnx)
+
+    code = export_template(model_onnx, templates=get_xop_template(),
+                           opset=opset, verbose=verbose, name=name,
+                           rename=rename, use_onnx_tensor=True,
+                           autopep_options=autopep_options)
     return code

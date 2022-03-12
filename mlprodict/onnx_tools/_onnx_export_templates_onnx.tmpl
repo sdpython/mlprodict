@@ -46,10 +46,12 @@ def {{ function_name }}():
     {% for name, value in initializers: %}
     {% if len(value.shape) == 0: %}
     value = numpy.array({{ value }}, dtype=numpy.{{ value.dtype }})
-    {% else %}
+    {% else %}{% if value.size < 6: %}
+    value = numpy.array({{ value.ravel().tolist() }}, dtype=numpy.{{ value.dtype }}){% if len(value.shape) > 1: %}.reshape({{ value.shape }}){% endif %}
+    {%- else %}
     list_value = {{ value.ravel().tolist() }}
     value = numpy.array(list_value, dtype=numpy.{{ value.dtype }}){% if len(value.shape) > 1: %}.reshape({{ value.shape }}){% endif %}
-    {% endif %}
+    {% endif %}{% endif %}
     tensor = numpy_helper.from_array(value, name='{{ name }}')
     initializers.append(tensor)
     {% endfor %}
