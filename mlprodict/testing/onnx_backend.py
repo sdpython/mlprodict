@@ -176,7 +176,6 @@ class OnnxBackendTest:
             function, the inputs, and returns the outputs
         :param index: index of the test to run or all.
         """
-        from numpy import object as dtype_object
         if index is None:
             for i in range(len(self)):
                 self.run(load_fct, run_fct, index=i)
