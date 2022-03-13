@@ -18,6 +18,29 @@ class OnnxShapeInference:
     It does not implements all the operator types.
 
     :param model_onnx: ONNX model
+
+    .. runpython::
+        :showcode:
+
+        import pprint
+        import numpy
+        from mlprodict.onnxrt.onnx_shape_inference import OnnxShapeInference
+        from mlprodict.npy.xop_variable import Variable
+        from mlprodict.npy.xop import loadop
+
+        opset = 15
+        OnnxAdd = loadop('Add')
+        dtype = numpy.float32
+
+        cop = OnnxAdd('X', numpy.array(
+            [[1]], dtype=dtype), op_version=opset)
+        cop4 = OnnxAdd(cop, numpy.array([[2]], dtype=dtype),
+                       output_names=['Y'])
+        vari = Variable('X', numpy.float32, [None, 3])
+        model_def = cop4.to_onnx([vari], run_shape=False)
+        rt = OnnxShapeInference(model_def)
+        out = rt.run()
+        pprint.pprint(out.get())
     """
 
     def __init__(self, model_onnx):
@@ -26,6 +49,16 @@ class OnnxShapeInference:
                 "model_onnx is not an ONNX graph but %r." % type(model_onnx))
         self.model_onnx = model_onnx
         self.known_shapes_ = self._run_empty()
+
+    @property
+    def input_names(self):
+        "Returns input names."
+        return [i.name for i in self.model_onnx.graph.input]
+
+    @property
+    def output_names(self):
+        "Returns output names."
+        return [i.name for i in self.model_onnx.graph.output]
 
     def __repr__(self):
         "Usual"

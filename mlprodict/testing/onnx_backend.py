@@ -5,6 +5,7 @@
 import os
 import textwrap
 import numpy
+from numpy import object as dtype_object
 from numpy.testing import assert_almost_equal
 import onnx
 from onnx.numpy_helper import to_array
@@ -117,6 +118,53 @@ class OnnxBackendTest:
         "Returns the number of tests."
         return len(self.tests)
 
+    def _compare_results(self, index, i, e, o):
+        """
+        Compares the expected output and the output produced
+        by the runtime. Raises an exception if not equal.
+
+        :param index: test index
+        :param i: output index
+        :param e: expected output
+        :param o: output
+        """
+        decimal = 7
+        if isinstance(e, numpy.ndarray):
+            if isinstance(o, numpy.ndarray):
+                if e.dtype == numpy.float32:
+                    decimal = 6
+                elif e.dtype == numpy.float64:
+                    decimal = 12
+                if e.dtype == dtype_object:
+                    try:
+                        assert_almost_equal_string(e, o)
+                    except AssertionError as ex:
+                        raise AssertionError(
+                            "Output %d of test %d in folder %r failed." % (
+                                i, index, self.folder)) from ex
+                else:
+                    try:
+                        assert_almost_equal(e, o, decimal=decimal)
+                    except AssertionError as ex:
+                        raise AssertionError(
+                            "Output %d of test %d in folder %r failed." % (
+                                i, index, self.folder)) from ex
+            elif hasattr(o, 'is_compatible'):
+                # A shape
+                if e.dtype != o.dtype:
+                    raise AssertionError(
+                        "Output %d of test %d in folder %r failed "
+                        "(e.dtype=%r, o=%r)." % (
+                            i, index, self.folder, e.dtype, o))
+                if not o.is_compatible(e.shape):
+                    raise AssertionError(
+                        "Output %d of test %d in folder %r failed "
+                        "(e.shape=%r, o=%r)." % (
+                            i, index, self.folder, e.shape, o))
+        else:
+            raise NotImplementedError(
+                "Comparison not implemented for type %r." % type(e))
+
     def run(self, load_fct, run_fct, index=None, decimal=5):
         """
         Executes a tests or all tests if index is None.
@@ -144,28 +192,7 @@ class OnnxBackendTest:
                 "got %r, expected %r." % (
                     index, self.folder, len(got), len(expected)))
         for i, (e, o) in enumerate(zip(expected, got)):
-            decimal = 7
-            if isinstance(e, numpy.ndarray):
-                if e.dtype == numpy.float32:
-                    decimal = 6
-                elif e.dtype == numpy.float64:
-                    decimal = 12
-                if e.dtype == dtype_object:
-                    try:
-                        assert_almost_equal_string(e, o)
-                    except AssertionError as ex:
-                        raise AssertionError(
-                            "Output %d of test %d in folder %r failed." % (
-                                i, index, self.folder)) from ex
-                else:
-                    try:
-                        assert_almost_equal(e, o, decimal=decimal)
-                    except AssertionError as ex:
-                        raise AssertionError(
-                            "Output %d of test %d in folder %r failed." % (
-                                i, index, self.folder)) from ex
-            else:
-                raise NotImplementedError()
+            self._compare_results(index, i, e, o)
 
     def to_python(self):
         """

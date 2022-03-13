@@ -6,14 +6,14 @@ import unittest
 from onnx.helper import __file__ as onnx_file
 from pyquickhelper.pycode import ExtTestCase
 from mlprodict.testing.onnx_backend import enumerate_onnx_tests
-from mlprodict.onnxrt.onnx_micro_runtime import OnnxMicroRuntime
+from mlprodict.onnxrt import OnnxShapeInference
 
 
-class TestOnnxBackEndMicro(ExtTestCase):
+class TestOnnxBackEndShape(ExtTestCase):
 
     @staticmethod
     def load_fct(obj):
-        return OnnxMicroRuntime(obj)
+        return OnnxShapeInference(obj)
 
     @staticmethod
     def run_fct(obj, *inputs):
@@ -33,7 +33,7 @@ class TestOnnxBackEndMicro(ExtTestCase):
         for te in enumerate_onnx_tests('node', lambda folder: folder == 'test_abs'):
             self.assertIn(te.name, repr(te))
             self.assertGreater(len(te), 0)
-            te.run(TestOnnxBackEndMicro.load_fct, TestOnnxBackEndMicro.run_fct)
+            te.run(TestOnnxBackEndShape.load_fct, TestOnnxBackEndShape.run_fct)
             done += 1
         self.assertEqual(done, 1)
 
@@ -48,8 +48,8 @@ class TestOnnxBackEndMicro(ExtTestCase):
             self.assertIn(te.name, repr(te))
             self.assertGreater(len(te), 0)
             try:
-                te.run(TestOnnxBackEndMicro.load_fct,
-                       TestOnnxBackEndMicro.run_fct)
+                te.run(TestOnnxBackEndShape.load_fct,
+                       TestOnnxBackEndShape.run_fct)
             except NotImplementedError as e:
                 missed.append((te, e))
                 continue

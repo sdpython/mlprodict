@@ -1,9 +1,9 @@
 
-Tiny ONNX Backends for Python/Numpy runtime
-===========================================
+ONNX Backends for Shape Inference
+=================================
 
-Backend class: :class:`OnnxInferenceBackendMicro
-<mlprodict.onnxrt.backend.OnnxInferenceBackendMicro>`.
+Backend class: :class:`OnnxInferenceBackendShape
+<mlprodict.onnxrt.backend.OnnxInferenceBackendShape>`.
 
 .. runpython::
     :showcode:
@@ -18,7 +18,7 @@ Backend class: :class:`OnnxInferenceBackendMicro
     from onnx import __version__ as onnx_version
     from onnxruntime import __version__ as ort_version
     from numpy import __version__ as npy_version
-    import mlprodict.onnxrt.backend_micropy as backend
+    import mlprodict.onnxrt.backend_shape as backend
 
     back_test = BackendTest(backend, __name__)
     back_test.include('.*_cpu')

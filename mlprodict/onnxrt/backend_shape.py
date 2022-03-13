@@ -1,27 +1,16 @@
+"""
+@file
+@brief ONNX Backend for @see cl OnnxInference.
 
-Tiny ONNX Backends for Python/Numpy runtime
-===========================================
-
-Backend class: :class:`OnnxInferenceBackendMicro
-<mlprodict.onnxrt.backend.OnnxInferenceBackendMicro>`.
-
-.. runpython::
-    :showcode:
-    :process:
+::
 
     import unittest
-    import sys
-    from datetime import datetime
     from contextlib import redirect_stdout, redirect_stderr
     from io import StringIO
     from onnx.backend.test import BackendTest
-    from onnx import __version__ as onnx_version
-    from onnxruntime import __version__ as ort_version
-    from numpy import __version__ as npy_version
-    import mlprodict.onnxrt.backend_micropy as backend
+    import mlprodict.onnxrt.backend_shape as backend
 
     back_test = BackendTest(backend, __name__)
-    back_test.include('.*_cpu')
     back_test.exclude('.*_blvc_.*')
     back_test.exclude('.*_densenet_.*')
     back_test.exclude('.*_densenet121_.*')
@@ -32,17 +21,9 @@ Backend class: :class:`OnnxInferenceBackendMicro
     back_test.exclude('.*_vgg19_.*')
     back_test.exclude('.*_zfnet512_.*')
     globals().update(back_test.enable_report().test_cases)
-
-    print('---------------------------------')
-    print('python', sys.version)
-    print('onnx', onnx_version)
-    print('onnxruntime', ort_version)
-    print('numpy', npy_version)
-    print('---------------------------------')
-    print(datetime.now(), "BEGIN")
-    print('---------------------------------')
-
     buffer = StringIO()
+    print('---------------------------------')
+
     if True:
         with redirect_stdout(buffer):
             with redirect_stderr(buffer):
@@ -55,15 +36,19 @@ Backend class: :class:`OnnxInferenceBackendMicro
     skipped = len(res.result.skipped)
     unexpectedSuccesses = len(res.result.unexpectedSuccesses)
     expectedFailures = len(res.result.expectedFailures)
-
     print('---------------------------------')
-    print(datetime.now(), "END")
-    print('---------------------------------')
-
-    print("testsRun=%d errors=%d skipped=%d" % (testsRun, errors, skipped))
-    print("unexpectedSuccesses=%d expectedFailures=%d" % (
-        unexpectedSuccesses, expectedFailures))
+    print("testsRun=%d errors=%d skipped=%d unexpectedSuccesses=%d "
+          "expectedFailures=%d" % (
+        testsRun, errors, skipped, unexpectedSuccesses,
+        expectedFailures))
     ran = testsRun - skipped
     print("ratio=%f" % (1 - errors * 1.0 / ran))
     print('---------------------------------')
     print(buffer.getvalue())
+"""
+from .backend import OnnxInferenceBackendShape
+
+is_compatible = OnnxInferenceBackendShape.is_compatible
+prepare = OnnxInferenceBackendShape.prepare
+run = OnnxInferenceBackendShape.run_model
+supports_device = OnnxInferenceBackendShape.supports_device

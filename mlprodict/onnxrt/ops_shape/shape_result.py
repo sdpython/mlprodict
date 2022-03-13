@@ -3,6 +3,7 @@
 @brief Class ShapeResult
 """
 from enum import Enum
+import numpy
 from .shape_excs import ShapeInferenceException
 
 
@@ -145,6 +146,19 @@ class ShapeResult:
             raise TypeError(  # pragma: no cover
                 "constraints must be of type(ShapeConstraintList).")
 
+    def is_compatible(self, shape):
+        """
+        Tells if this shape is compatible with the given tuple.
+
+        :param shape: tuple
+        :return: boolean
+        """
+        if isinstance(shape, numpy.ndarray):
+            shape = shape.shape
+        if all(map(lambda x: isinstance(x, int), self.shape)):
+            return tuple(self.shape) == tuple(shape)
+        raise NotImplementedError("%r ? %r" % (self, shape))
+
     def copy(self, deep=False):
         """
         Returns a copy for the result.
@@ -279,6 +293,12 @@ class ShapeResult:
             raise TypeError(  # pragma: no cover
                 "sh2 must be a tensor not %r." % sh2.mtype)
         if sh1.n_dims() != sh2.n_dims():
+            if sh1.n_dims() == 1 and sh1.shape[0] == 1:
+                return ShapeResult(
+                    name, sh2.shape, sh2.dtype, sh2.sparse, sh2.mtype)
+            if sh2.n_dims() == 1 and sh2.shape[0] == 1:
+                return ShapeResult(
+                    name, sh1.shape, sh1.dtype, sh1.sparse, sh1.mtype)
             raise ShapeInferenceException(  # pragma: no cover
                 "Broadcasting is only implemented for shape of the same "
                 "size, shapes are %r and %r." % (sh1, sh2))

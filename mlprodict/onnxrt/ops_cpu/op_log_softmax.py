@@ -5,8 +5,6 @@
 @brief Runtime operator.
 """
 import numpy
-from ._op import OpRunUnaryNum, OpRunBinaryNum
-from ._new_ops import OperatorSchema
 from .op_softmax import Softmax
 
 
