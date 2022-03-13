@@ -11,12 +11,14 @@
     globals().update(backend_test.enable_report().test_cases)
     unittest.main()
 """
+from io import BytesIO
 import unittest
 import numpy
-from onnx import version
+from onnx import version, load as onnx_load
 from onnx.checker import check_model
 from onnx.backend.base import Backend, BackendRep
 from .onnx_inference import OnnxInference
+from .onnx_micro_runtime import OnnxMicroRuntime
 
 
 class OnnxInferenceBackendRep(BackendRep):
@@ -158,7 +160,7 @@ class OnnxInferenceBackend(Backend):
         """
         if isinstance(model, OnnxInferenceBackendRep):
             return model
-        if isinstance(model, OnnxInference):
+        if isinstance(model, (OnnxInference, OnnxMicroRuntime)):
             return OnnxInferenceBackendRep(model)
         if isinstance(model, (str, bytes)):
             inf = cls.create_inference_session(model)
@@ -212,3 +214,21 @@ class OnnxInferenceBackendOrt(OnnxInferenceBackend):
     @classmethod
     def create_inference_session(cls, model):
         return OnnxInference(model, runtime='onnxruntime1')
+
+
+class OnnxInferenceBackendMicro(OnnxInferenceBackend):
+    """
+    Same backend as @see cl OnnxInferenceBackend but runtime
+    is `onnxruntime1`.
+    """
+
+    @classmethod
+    def create_inference_session(cls, model):
+        if isinstance(model, str):
+            with open(model, 'rb') as f:
+                content = onnx_load(model)
+        elif isinstance(model, bytes):
+            content = onnx_load(BytesIO(model))
+        else:
+            content = model
+        return OnnxMicroRuntime(content)

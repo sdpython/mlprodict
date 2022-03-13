@@ -4,10 +4,33 @@
 """
 import os
 import textwrap
+import numpy
 from numpy.testing import assert_almost_equal
 import onnx
 from onnx.numpy_helper import to_array
 from onnx.backend.test import __file__ as backend_folder
+
+
+def assert_almost_equal_string(expected, value):
+    """
+    Compares two arrays knowing they contain strings.
+    Raises an exception if the test fails.
+
+    :param expected: expected array
+    :param value: value
+    """
+    def is_float(x):
+        try:
+            return True
+        except ValueError:
+            return False
+
+    if all(map(is_float, expected.ravel())):
+        expected_float = expected.astype(numpy.float32)
+        value_float = value.astype(numpy.float32)
+        assert_almost_equal(expected_float, value_float)
+    else:
+        assert_almost_equal(expected, value)
 
 
 class OnnxBackendTest:
@@ -105,6 +128,7 @@ class OnnxBackendTest:
             function, the inputs, and returns the outputs
         :param index: index of the test to run or all.
         """
+        from numpy import object as dtype_object
         if index is None:
             for i in range(len(self)):
                 self.run(load_fct, run_fct, index=i)
@@ -120,12 +144,28 @@ class OnnxBackendTest:
                 "got %r, expected %r." % (
                     index, self.folder, len(got), len(expected)))
         for i, (e, o) in enumerate(zip(expected, got)):
-            try:
-                assert_almost_equal(e, o)
-            except AssertionError as ex:
-                raise AssertionError(
-                    "Output %d of test %d in folder %r failed." % (
-                        i, index, self.folder)) from ex
+            decimal = 7
+            if isinstance(e, numpy.ndarray):
+                if e.dtype == numpy.float32:
+                    decimal = 6
+                elif e.dtype == numpy.float64:
+                    decimal = 12
+                if e.dtype == dtype_object:
+                    try:
+                        assert_almost_equal_string(e, o)
+                    except AssertionError as ex:
+                        raise AssertionError(
+                            "Output %d of test %d in folder %r failed." % (
+                                i, index, self.folder)) from ex
+                else:
+                    try:
+                        assert_almost_equal(e, o, decimal=decimal)
+                    except AssertionError as ex:
+                        raise AssertionError(
+                            "Output %d of test %d in folder %r failed." % (
+                                i, index, self.folder)) from ex
+            else:
+                raise NotImplementedError()
 
     def to_python(self):
         """
@@ -195,4 +235,3 @@ def enumerate_onnx_tests(series, fct_filter=None):
         onx = [c for c in content if os.path.splitext(c)[-1] in {'.onnx'}]
         if len(onx) == 1:
             yield OnnxBackendTest(folder)
-            continue

@@ -48,7 +48,7 @@ from skl2onnx.algebra.onnx_ops import (  # pylint: disable=E0611
     OnnxGreater, OnnxGreaterOrEqual, OnnxGemm, OnnxGlobalAveragePool,
     OnnxIdentity, OnnxIsNaN,
     OnnxLeakyRelu, OnnxLess, OnnxLessOrEqual,
-    OnnxLog, OnnxLpNormalization,
+    OnnxLog, OnnxLogSoftmax, OnnxLpNormalization,
     OnnxMatMul, OnnxMax, OnnxMaxPool, OnnxMean, OnnxMin, OnnxMod, OnnxMul,
     OnnxNeg, OnnxNot,
     OnnxOr,
@@ -2476,6 +2476,13 @@ class TestOnnxrtPythonRuntime(ExtTestCase):  # pylint: disable=R0904
     @wraplog()
     def test_onnxt_runtime_log(self):
         self.common_test_onnxt_runtime_unary(OnnxLog, numpy.log)
+
+    @wraplog()
+    def test_onnxt_runtime_logsoftmax(self):
+        def log_softmax(*args, **kwargs):
+            return numpy.log(softmax(*args, **kwargs))
+
+        self.common_test_onnxt_runtime_unary(OnnxLogSoftmax, log_softmax)
 
     @wraplog()
     def test_onnxt_runtime_lp_normalization(self):

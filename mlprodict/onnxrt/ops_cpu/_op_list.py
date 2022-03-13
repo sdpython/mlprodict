@@ -72,6 +72,7 @@ from .op_less import Less, LessOrEqual
 from .op_linear_classifier import LinearClassifier
 from .op_linear_regressor import LinearRegressor
 from .op_log import Log
+from .op_log_softmax import LogSoftmax
 from .op_loop import Loop
 from .op_lp_normalization import LpNormalization
 from .op_matmul import MatMul

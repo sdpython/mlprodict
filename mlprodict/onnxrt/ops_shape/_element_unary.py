@@ -134,6 +134,11 @@ def shape_log(known_shapes, node):
     return _element_unary(known_shapes, node)
 
 
+def shape_logsoftmax(known_shapes, node):
+    "Infers shape for operator LogSoftmax."
+    return shape_softmax(known_shapes, node)
+
+
 def shape_identity(known_shapes, node):
     "Infers shape for operator Identity."
     return _element_unary(known_shapes, node)
