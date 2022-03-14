@@ -165,7 +165,6 @@ class TestOnnxShapeInference(ExtTestCase):
                     self.assertEqual(get['X'].shape, ['d0', {1, 2}])
                     self.assertEqual(len(get['Ad_C0'].shape), 2)
                     self.assertIsInstance(get['Ad_C0'].shape[0], str)
-                    print(out)
 
     def test_onnx_shape_inference_exc(self):
         dtype = numpy.float32
