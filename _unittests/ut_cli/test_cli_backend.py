@@ -11,7 +11,9 @@ from sklearn.linear_model import LogisticRegression
 from pyquickhelper.pycode import ExtTestCase, get_temp_folder
 from mlprodict.onnxrt.backend_py import OnnxInferenceBackend
 from mlprodict.onnx_conv import to_onnx
-from mlprodict.onnxrt import backend_py, backend_ort
+from mlprodict.npy.xop import loadop
+from mlprodict.onnxrt import (
+    backend_py, backend_ort, backend_micropy, backend_shape)
 
 
 class TestCliBackend(ExtTestCase):
@@ -78,6 +80,54 @@ class TestCliBackend(ExtTestCase):
         label, proba = rep.run(x)
         self.assertEqualArray(label, numpy.array([1, 1, 1]))
         self.assertEqual((3, 3), proba.shape)
+
+    def test_backend_onnx_micro(self):
+        temp = get_temp_folder(__file__, 'temp_backend_micro')
+        model_file = os.path.join(temp, "model.onnx")
+
+        opset = 15
+        dtype = numpy.float32
+        OnnxAdd = loadop('Add')
+        x = numpy.array([1, 2, 4, 5, 5, 4]).astype(
+            numpy.float32).reshape((3, 2))
+        cop = OnnxAdd('X', numpy.array([1], dtype=dtype), op_version=opset)
+        cop4 = OnnxAdd(cop, numpy.array([2], dtype=dtype), op_version=opset,
+                       output_names=['Y'])
+        model_def = cop4.to_onnx({'X': x}, target_opset=opset)
+        with open(model_file, "wb") as f:
+            f.write(model_def.SerializeToString())
+
+        rep = backend_micropy.prepare(model_file, 'CPU')
+        x = numpy.array([[-1.0, -2.0, -3.0, -4.0],
+                         [-1.0, -2.0, -3.0, -4.0],
+                         [-1.0, -2.0, -3.0, -4.0]],
+                        dtype=numpy.float32)
+        res = rep.run(x)[0]
+        self.assertEqual((3, 4), res.shape)
+
+    def test_backend_onnx_shape(self):
+        temp = get_temp_folder(__file__, 'temp_backend_shape')
+        model_file = os.path.join(temp, "model.onnx")
+
+        opset = 15
+        dtype = numpy.float32
+        OnnxAdd = loadop('Add')
+        x = numpy.array([1, 2, 4, 5, 5, 4, 1, 2, 4, 5, 5, 4]).astype(
+            numpy.float32).reshape((3, 4))
+        cop = OnnxAdd('X', numpy.array([1], dtype=dtype), op_version=opset)
+        cop4 = OnnxAdd(cop, numpy.array([2], dtype=dtype), op_version=opset,
+                       output_names=['Y'])
+        model_def = cop4.to_onnx({'X': x}, target_opset=opset)
+        with open(model_file, "wb") as f:
+            f.write(model_def.SerializeToString())
+
+        rep = backend_shape.prepare(model_file, 'CPU')
+        x = numpy.array([[-1.0, -2.0, -3.0, -4.0],
+                         [-1.0, -2.0, -3.0, -4.0],
+                         [-1.0, -2.0, -3.0, -4.0]],
+                        dtype=numpy.float32)
+        res = rep.run(x)[0]
+        self.assertEqual((3, 4), tuple(res.shape))
 
 
 if __name__ == "__main__":

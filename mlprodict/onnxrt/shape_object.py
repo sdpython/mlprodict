@@ -669,6 +669,8 @@ class ShapeObject(BaseDimensionShape):
             return ShapeObjectFct(
                 drop_axis, self, axis, name="DropAxis", dtype=self.dtype)
 
+        if axis < 0:
+            axis = len(self._shape) + axis
         if 0 <= axis < len(self._shape):
             cp = self._shape.copy()
             if keepdims:

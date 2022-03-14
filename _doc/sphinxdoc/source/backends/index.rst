@@ -19,3 +19,5 @@ tests.
 
     backend_python
     backend_onnxruntime1
+    backend_micro_runtime
+    backend_shape_inference

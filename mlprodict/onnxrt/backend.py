@@ -11,12 +11,43 @@
     globals().update(backend_test.enable_report().test_cases)
     unittest.main()
 """
+from io import BytesIO
 import unittest
 import numpy
-from onnx import version
+from onnx import version, load as onnx_load
 from onnx.checker import check_model
 from onnx.backend.base import Backend, BackendRep
 from .onnx_inference import OnnxInference
+from .onnx_micro_runtime import OnnxMicroRuntime
+from .onnx_shape_inference import OnnxShapeInference
+
+
+class _CombineModels:
+
+    def __init__(self, onnx_inference, shape_inference):
+        self.onnx_inference = onnx_inference
+        self.shape_inference = shape_inference
+
+    @property
+    def input_names(self):
+        "Returns the input names."
+        return self.onnx_inference.input_names
+
+    @property
+    def output_names(self):
+        "Returns the output names."
+        return self.onnx_inference.output_names
+
+    def run(self, inputs, **kwargs):
+        "Runs shape inferance and onnx inference."
+        shapes = self.shape_inference.run(**kwargs)
+        results = self.onnx_inference.run(inputs, **kwargs)
+        for k, v in results.items():
+            if not shapes[k].is_compatible(v):
+                raise RuntimeError(
+                    "Incompatible shapes %r and %r for output %r." % (
+                        shapes[k], v.shape, k))
+        return results
 
 
 class OnnxInferenceBackendRep(BackendRep):
@@ -158,7 +189,8 @@ class OnnxInferenceBackend(Backend):
         """
         if isinstance(model, OnnxInferenceBackendRep):
             return model
-        if isinstance(model, OnnxInference):
+        if isinstance(model, (OnnxInference, OnnxMicroRuntime,
+                              OnnxShapeInference, _CombineModels)):
             return OnnxInferenceBackendRep(model)
         if isinstance(model, (str, bytes)):
             inf = cls.create_inference_session(model)
@@ -212,3 +244,64 @@ class OnnxInferenceBackendOrt(OnnxInferenceBackend):
     @classmethod
     def create_inference_session(cls, model):
         return OnnxInference(model, runtime='onnxruntime1')
+
+
+class OnnxInferenceBackendMicro(OnnxInferenceBackend):
+    """
+    Same backend as @see cl OnnxInferenceBackend but runtime
+    is @see cl OnnxMicroRuntime.
+    """
+
+    @classmethod
+    def create_inference_session(cls, model):
+        if isinstance(model, str):
+            with open(model, 'rb') as f:
+                content = onnx_load(f)
+        elif isinstance(model, bytes):
+            content = onnx_load(BytesIO(model))
+        else:
+            content = model
+        return OnnxMicroRuntime(content)
+
+
+class OnnxInferenceBackendShape(OnnxInferenceBackend):
+    """
+    Same backend as @see cl OnnxInferenceBackend but runtime
+    is @see cl OnnxShapeInference.
+    """
+
+    @classmethod
+    def create_inference_session(cls, model):
+        if isinstance(model, str):
+            with open(model, 'rb') as f:
+                content = onnx_load(f)
+        elif isinstance(model, bytes):
+            content = onnx_load(BytesIO(model))
+        else:
+            content = model
+        return _CombineModels(OnnxInference(content),
+                              OnnxShapeInference(content))
+
+    @classmethod
+    def run_model(cls, model, inputs, device=None, **kwargs):
+        """
+        Computes the prediction.
+
+        :param model: see @see cl OnnxShapeInference returned by
+            function *prepare*
+        :param inputs: inputs
+        :param device: requested device for the computation,
+            None means the default one which depends on
+            the compilation settings
+        :param kwargs: see @see cl OnnxInference
+        :return: predictions
+        """
+        rep = cls.prepare(model, device, **kwargs)
+        shapes = rep.shape_inference.run(**kwargs)
+        results = rep.onnx_inference.run(inputs, **kwargs)
+        for k, v in results.items():
+            if not shapes[k].is_compatible(v):
+                raise RuntimeError(
+                    "Incompatible shapes %r and %r for output %r." % (
+                        shapes[k], v.shape, k))
+        return results

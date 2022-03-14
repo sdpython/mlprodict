@@ -14,6 +14,28 @@ class OnnxMicroRuntime:
     It does not implements all the operator types.
 
     :param model_onnx: ONNX model
+
+    .. runpython::
+        :showcode:
+
+        import pprint
+        import numpy
+        from mlprodict.onnxrt.onnx_micro_runtime import OnnxMicroRuntime
+        from mlprodict.npy.xop import loadop
+
+        OnnxAdd = loadop('Add')
+
+        dtype = numpy.float32
+        opset = 15
+        x = numpy.array([1, 2, 4, 5, 5, 4]).astype(
+            numpy.float32).reshape((3, 2))
+        cop = OnnxAdd('X', numpy.array([1], dtype=dtype), op_version=opset)
+        cop4 = OnnxAdd(cop, numpy.array([2], dtype=dtype), op_version=opset,
+                       output_names=['Y'])
+        model_def = cop4.to_onnx({'X': x}, target_opset=opset)
+        rt = OnnxMicroRuntime(model_def)
+        out = rt.run({'X': x})
+        pprint.pprint(out)
     """
 
     def __init__(self, model_onnx):
@@ -21,6 +43,16 @@ class OnnxMicroRuntime:
             raise TypeError(
                 "model_onnx is not an ONNX graph but %r." % type(model_onnx))
         self.model_onnx = model_onnx
+
+    @property
+    def input_names(self):
+        "Returns input names."
+        return [i.name for i in self.model_onnx.graph.input]
+
+    @property
+    def output_names(self):
+        "Returns output names."
+        return [i.name for i in self.model_onnx.graph.output]
 
     def run(self, inputs):
         """
@@ -59,6 +91,10 @@ class OnnxMicroRuntime:
     ########################
     # Runtime for operators
     ########################
+
+    def _op_abs(self, x):
+        "Runtime for operator :epkg:`Op:Abs`."
+        return (numpy.abs(x), )
 
     def _op_add(self, x, y):
         "Runtime for operator :epkg:`Op:Add`."

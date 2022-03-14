@@ -23,6 +23,10 @@ class ShapeContainer:
         self.names = dict()
         self.names_rev = dict()
 
+    def __repr__(self):
+        "usual"
+        return "%s()" % self.__class__.__name__
+
     def __len__(self):
         "usual"
         return len(self.shapes)
