@@ -558,15 +558,6 @@ class OnnxOperatorItem(OnnxOperatorBase):
                 "Can only return the first item.")
         return self.onx_op.get_output_result(self.index)
 
-    def get_output(self, i=0):
-        """
-        Returns the output.
-        """
-        if i != 0:
-            raise IndexError(  # pragma: no cover
-                "Can only return the first item.")
-        return self.onx_op.get_output(self.index)
-
 
 class OnnxOperatorTuple(OnnxOperatorBase):
     """
@@ -1212,7 +1203,7 @@ class OnnxOperator(OnnxOperatorBase):
                 return None
             return outputs[n]
         if isinstance(outputs, list):
-            raise NotImplementedError(
+            raise NotImplementedError(  # pragma: no cover
                 "Unexpected type for name=%r, outputs=%r." % (
                     name, outputs))
         if is_numpy_dtype(outputs):
@@ -1798,8 +1789,8 @@ class _GraphBuilder:
             raise TypeError(  # pragma: no cover
                 "name must be a string not %r." % type(name))
         if reserved and name in self.reserved_names:
-            logger.debug("_GraphBuilder.get_unique_name(%r) 1-> %r",
-                         name, name)
+            logger.debug(  # pragma: no cover
+                "_GraphBuilder.get_unique_name(%r) 1-> %r", name, name)
             return name
         if name not in self.names:
             self._add_name(name)
