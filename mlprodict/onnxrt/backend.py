@@ -30,13 +30,16 @@ class _CombineModels:
 
     @property
     def input_names(self):
+        "Returns the input names."
         return self.onnx_inference.input_names
 
     @property
     def output_names(self):
+        "Returns the output names."
         return self.onnx_inference.output_names
 
     def run(self, inputs, **kwargs):
+        "Runs shape inferance and onnx inference."
         shapes = self.shape_inference.run(**kwargs)
         results = self.onnx_inference.run(inputs, **kwargs)
         for k, v in results.items():

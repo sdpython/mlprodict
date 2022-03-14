@@ -27,10 +27,6 @@ class ShapeContainer:
         "usual"
         return "%s()" % self.__class__.__name__
 
-    def __str__(self):
-        "usual"
-        return "ShapeContainer(%s)" % pprint.pformat(self.shape)
-
     def __len__(self):
         "usual"
         return len(self.shapes)
