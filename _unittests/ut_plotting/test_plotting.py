@@ -11,6 +11,8 @@ from mlprodict.plotting.plotting import plot_benchmark_metrics
 
 class TestPlotBenchScatter(ExtTestCase):
 
+    @unittest.skipIf(platform.platform == 'win32' and __name__ != '__main__',
+                     reason="Message: 'generated new fontManager'")
     def test_plot_logreg_xtime(self):
         temp = get_temp_folder(__file__, "temp_plot_benchmark_metrics")
         img = os.path.join(temp, "plot_bench.png")
