@@ -5,14 +5,16 @@
 import os
 import platform
 import unittest
-from pyquickhelper.pycode import ExtTestCase, get_temp_folder
+from pyquickhelper.pycode import (
+    ExtTestCase, get_temp_folder, is_travis_or_appveyor)
 from mlprodict.plotting.plotting import plot_benchmark_metrics
 
 
 class TestPlotBenchScatter(ExtTestCase):
 
-    @unittest.skipIf(platform.platform() == 'win32' and __name__ != '__main__',
-                     reason="Message: 'generated new fontManager'")
+    @unittest.skipIf(
+        platform.platform() == 'win32' and is_travis_or_appveyor() == 'azurepipe',
+        reason="Message: 'generated new fontManager'")
     def test_plot_logreg_xtime(self):
         temp = get_temp_folder(__file__, "temp_plot_benchmark_metrics")
         img = os.path.join(temp, "plot_bench.png")
