@@ -21,13 +21,18 @@ class TestPlotBenchScatter(ExtTestCase):
                 (10, 10): 100, (100, 1): 100, (100, 10): 1000}
         import matplotlib
         if __name__ != "__main__":
-            back = matplotlib.get_backend()
+            try:
+                back = matplotlib.get_backend()
+            except Exception as e:
+                raise AssertionError(
+                    "Failure (1) due to %r (platform=%r, __name__=%r)." % (
+                        e, platform.platform(), __name__)) from e
             matplotlib.use('Agg')
         try:
             import matplotlib.pyplot as plt
         except Exception as e:
             raise AssertionError(
-                "Failure due to %r (platform=%r, __name__=%r)." % (
+                "Failure (2) due to %r (platform=%r, __name__=%r)." % (
                     e, platform.platform(), __name__)) from e
         fig, ax = plt.subplots(1, 2, figsize=(10, 4))
         plot_benchmark_metrics(data, ax=ax[0], cbar_kw={'shrink': 0.6})
