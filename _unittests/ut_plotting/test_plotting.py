@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 """
-@brief      test log(time=2s)
+@brief      test log(time=4s)
 """
 import os
 import platform
@@ -28,14 +28,14 @@ class TestPlotBenchScatter(ExtTestCase):
             except Exception as e:
                 raise AssertionError(
                     "Failure (1) due to %r (platform=%r, __name__=%r)." % (
-                        e, platform.platform(), __name__)) from e
+                        e, platform.platform(), __name__))
             matplotlib.use('Agg')
         try:
             import matplotlib.pyplot as plt
         except Exception as e:
             raise AssertionError(
                 "Failure (2) due to %r (platform=%r, __name__=%r)." % (
-                    e, platform.platform(), __name__)) from e
+                    e, platform.platform(), __name__))
         fig, ax = plt.subplots(1, 2, figsize=(10, 4))
         plot_benchmark_metrics(data, ax=ax[0], cbar_kw={'shrink': 0.6})
         plot_benchmark_metrics(data, ax=ax[1], transpose=True, xlabel='X', ylabel='Y',
