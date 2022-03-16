@@ -26,14 +26,14 @@ class TestPlotBenchScatter(ExtTestCase):
             try:
                 back = matplotlib.get_backend()
             except Exception as e:
-                raise AssertionError(
+                raise AssertionError(  # pylint: disable=W0707
                     "Failure (1) due to %r (platform=%r, __name__=%r)." % (
                         e, platform.platform(), __name__))
             matplotlib.use('Agg')
         try:
             import matplotlib.pyplot as plt
         except Exception as e:
-            raise AssertionError(
+            raise AssertionError(  # pylint: disable=W0707
                 "Failure (2) due to %r (platform=%r, __name__=%r)." % (
                     e, platform.platform(), __name__))
         fig, ax = plt.subplots(1, 2, figsize=(10, 4))
