@@ -115,7 +115,7 @@ class TestOnnxConvTreeEnsemble(ExtTestCase):
     def common_test_classifier(self, runtime, models=None, dtypes=None):
         iris = load_iris()
         X, y = iris.data, iris.target
-        X_train, X_test, y_train, _ = train_test_split(X, y)
+        X_train, X_test, y_train, _ = train_test_split(X, y, random_state=0)
         if models is None:
             models = [
                 DecisionTreeClassifier(max_depth=2),

@@ -445,6 +445,11 @@ class TestXOps(ExtTestCase):
         onx = OnnxTopK('X', numpy.array([2], dtype=numpy.int64), axis=1,
                        op_version=opv)
         vals, inds = onx
+        text = str(vals)
+        self.assertIn('[0]', text)
+        text = repr(vals)
+        self.assertNotEmpty(vals.get_output_result(0))
+        self.assertIn('OnnxOperatorItem', text)
         id1 = OnnxIdentity(vals, output_names=['Y'], op_version=opv)
         id2 = OnnxIdentity(inds, output_names=['Yi'], op_version=opv)
         model_def = id1.to_onnx(numpy.float32, other_outputs=[id2],
