@@ -195,13 +195,15 @@ class TestOnnxComplexScenario(ExtTestCase):
 
         def tf_fft(x):
             import tensorflow as tf  # pylint: disable=E0401
+            if tf.__file__ is None:
+                raise ImportError("tf.__file__ is None, something is wrong.")
             xc = tf.cast(x, tf.complex64)  # pylint: disable=E1101
             xcf = tf.signal.fft(xc)  # pylint: disable=E1101
             return tf.abs(xcf)  # pylint: disable=E1101
 
         try:
             tfx = tf_fft(x)
-        except ImportError:
+        except (ImportError, AttributeError):
             # tensorflow not installed.
             tfx = None
 
