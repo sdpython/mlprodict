@@ -102,7 +102,7 @@ def _pool(padded, x_shape, kernel_shape, strides_shape,
     spatial_size = len(x_shape) - 2
     y = numpy.zeros([x_shape[0], x_shape[1]] + list(out_shape))
     round_fct = numpy.ceil if ceil_mode else numpy.floor
-    
+
     def loop_range():
         return [range(int(round_fct(
                 float(x_shape[i + 2] + pad_shape[i] - kernel_shape[i]) /
