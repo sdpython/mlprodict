@@ -430,7 +430,7 @@ class TestOnnxBackEnd(ExtTestCase):
         self.assertIn('for y, gy in zip(ys, goty):', code[0])
         # if __name__ == '__main__':
         #     print(code[0])
-        
+
     def test_averagepool_2d_ceil(self):
 
         def create_model():
@@ -482,7 +482,6 @@ class TestOnnxBackEnd(ExtTestCase):
         goty = [got[k] for k in oinf.output_names]
         for y, gy in zip(ys, goty):
             self.assertEqualArray(y, gy)
-
 
 
 if __name__ == "__main__":

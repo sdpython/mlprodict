@@ -205,6 +205,11 @@ class AveragePool(OpRun):
     def _infer_shapes(self, x):  # pylint: disable=W0221
         kernel_shape = list(self.kernel_shape)
         auto_pad = 'VALID' if self.auto_pad == 'NOTSET' else self.auto_pad
+        if len(self.pads) == 0:
+            pad_shape = [0] * (len(x.shape) - 2)
+        elif len(self.pads) == 4:
+            pad_top, pad_bottom, pad_left, pad_right = self.pads
+            pad_shape = [pad_top + pad_bottom, pad_left + pad_right]
 
         def compute_shape(xshape):
             if len(self.strides) == 0:
