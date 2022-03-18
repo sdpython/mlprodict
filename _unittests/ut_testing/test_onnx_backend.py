@@ -419,7 +419,72 @@ class TestOnnxBackEnd(ExtTestCase):
         for y, gy in zip(ys, goty):
             self.assertEqualArray(y, gy, decimal=6)
 
+    def test_onnx_backend_test_averagepool_2d_ceil(self):
+        name = 'test_averagepool_2d_ceil'
+        code = []
+        for te in enumerate_onnx_tests('node', lambda folder: folder == name):
+            code.append(te.to_python())
+        self.assertEqual(len(code), 1)
+        self.assertIn('def test_averagepool_2d_ceil(self):', code[0])
+        self.assertIn('from onnx.helper', code[0])
+        self.assertIn('for y, gy in zip(ys, goty):', code[0])
+        # if __name__ == '__main__':
+        #     print(code[0])
+        
+    def test_averagepool_2d_ceil(self):
+
+        def create_model():
+            initializers = []
+            nodes = []
+            inputs = []
+            outputs = []
+
+            opsets = {'': 10}
+            inputs.append(make_tensor_value_info('x', 1, [1, 1, 4, 4]))
+            outputs.append(make_tensor_value_info('y', 1, [1, 1, 2, 2]))
+
+            node = make_node(
+                'AveragePool', ['x'], ['y'],
+                ceil_mode=1, kernel_shape=[3, 3], strides=[2, 2], domain='')
+            nodes.append(node)
+
+            graph = make_graph(nodes, 'test_averagepool_2d_ceil',
+                               inputs, outputs, initializers)
+
+            onnx_model = make_model(graph)
+            onnx_model.ir_version = 4
+            onnx_model.producer_name = 'backend-test'
+            onnx_model.producer_version = ''
+            onnx_model.domain = ''
+            onnx_model.model_version = 0
+            onnx_model.doc_string = ''
+            set_model_props(onnx_model, {})
+
+            del onnx_model.opset_import[:]  # pylint: disable=E1101
+            for dom, value in opsets.items():
+                op_set = onnx_model.opset_import.add()
+                op_set.domain = dom
+                op_set.version = value
+
+            return onnx_model
+
+        onnx_model = create_model()
+
+        oinf = OnnxInference(onnx_model)
+        xs = [array([[[[1., 2., 3., 4.],
+                       [5., 6., 7., 8.],
+                       [9., 10., 11., 12.],
+                       [13., 14., 15., 16.]]]], dtype=float32)]
+        ys = [array([[[[6., 7.5],
+                       [12., 13.5]]]], dtype=float32)]
+        feeds = {n: x for n, x in zip(oinf.input_names, xs)}
+        got = oinf.run(feeds)
+        goty = [got[k] for k in oinf.output_names]
+        for y, gy in zip(ys, goty):
+            self.assertEqualArray(y, gy)
+
+
 
 if __name__ == "__main__":
-    # TestOnnxBackEnd().test_cast_FLOAT_to_STRING()
+    # TestOnnxBackEnd().test_averagepool_2d_ceil()
     unittest.main()
