@@ -4,7 +4,7 @@
 import unittest
 import numpy
 from onnx.checker import check_model
-from onnxruntime import __version__ as ort_version
+from onnxruntime import __version__ as ort_version, InferenceSession
 from pyquickhelper.pycode import ExtTestCase, ignore_warnings
 from pyquickhelper.texthelper.version_helper import compare_module_version
 from sklearn.datasets import load_iris
@@ -99,6 +99,42 @@ class TestOnnxConvTreeEnsemble(ExtTestCase):
     def test_regressor_python_lgbm(self):
         self.common_test_regressor(
             'python', [LGBMRegressor(max_iter=3, max_depth=2, verbosity=-1)])
+
+    @ignore_warnings((RuntimeWarning, UserWarning))
+    def test_regressor_python_lgbm16(self):
+        iris = load_iris()
+        X, y = iris.data, iris.target
+        X_train, X_test, y_train, _ = train_test_split(X, y)
+        reg = LGBMRegressor(max_iter=3, max_depth=2, verbosity=-1)
+        reg.fit(X_train, y_train)
+        try:
+            onx = to_onnx(reg, X_train.astype(numpy.float64),
+                          target_opset={'': 16, 'ai.onnx.ml': 3},
+                          rewrite_ops=True)
+        except RuntimeError as e:
+            msg = "version 16 of domain '' not supported yet by this library"
+            if msg in str(e):
+                return
+            raise e
+        node = onx.graph.node[0]
+        self.assertEqual(node.op_type, 'TreeEnsembleRegressor')
+        self.assertEqual(node.domain, 'ai.onnx.ml')
+        set_names = set()
+        for att in node.attribute:
+            if 'values' in att.name or 'target' in att.name:
+                set_names.add(att.name)
+        self.assertIn("nodes_values_as_tensor", set_names)
+        check_model(onx)
+        with open("debug.onnx", "wb") as f:
+            f.write(onx.SerializeToString())
+        # python
+        oinf = OnnxInference(onx)
+        got = oinf.run({'X': X_test.astype(numpy.float64)})
+        self.assertEqual(got['variable'].dtype, numpy.float64)
+        # onnxruntime
+        sess = InferenceSession(onx.SerializeToString())
+        got2 = sess.run(None, {'X': X_test.astype(numpy.float64)})
+        self.assertEqual(got2[0].dtype, numpy.float64)
 
     @ignore_warnings((RuntimeWarning, UserWarning))
     def test_regressor_python_xgb(self):
@@ -204,5 +240,5 @@ if __name__ == "__main__":
     # logger = logging.getLogger('mlprodict.onnx_conv')
     # logger.setLevel(logging.DEBUG)
     # logging.basicConfig(level=logging.DEBUG)
-    # TestOnnxConvTreeEnsemble().test_regressor_python_lgbm()
+    # TestOnnxConvTreeEnsemble().test_regressor_python_lgbm16()
     unittest.main(verbosity=2)
