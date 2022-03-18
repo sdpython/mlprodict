@@ -30,20 +30,48 @@ def _get_pad_shape(auto_pad, input_spatial_shape, kernel_spatial_shape,
     return pad_shape
 
 
-def _get_output_shape(auto_pad, input_spatial_shape, kernel_spatial_shape,
-                      strides_spatial, pad_shape, ceil_mode):
-    round_fct = numpy.ceil if ceil_mode else numpy.floor
+def _get_output_shape_no_ceil(auto_pad, input_spatial_shape, kernel_spatial_shape,
+                              strides_spatial):
     out_shape = [0] * len(input_spatial_shape)
     if auto_pad in ('SAME_UPPER', 'SAME_LOWER'):
         for i in range(len(input_spatial_shape)):  # pylint: disable=C0200
             out_shape[i] = int(
-                round_fct(float(input_spatial_shape[i]) / float(strides_spatial[i])))
+                numpy.ceil(
+                    float(input_spatial_shape[i]) /
+                    float(strides_spatial[i])))
     elif auto_pad == 'VALID':
         for i in range(len(input_spatial_shape)):  # pylint: disable=C0200
             out_shape[i] = int(
-                round_fct(
-                    float(input_spatial_shape[i] + pad_shape[i] - kernel_spatial_shape[i]) /
-                    float(strides_spatial[i]) + 1))
+                numpy.ceil(
+                    float(input_spatial_shape[i] -
+                          (kernel_spatial_shape[i] - 1)) /
+                    float(strides_spatial[i])))
+    return out_shape
+
+
+def _get_output_shape(auto_pad, input_spatial_shape, kernel_spatial_shape,
+                      strides_spatial, pad_shape=None, ceil_mode=0):
+    if not ceil_mode:
+        out_shape = _get_output_shape_no_ceil(
+            auto_pad, input_spatial_shape, kernel_spatial_shape,
+            strides_spatial)
+    else:
+        round_fct = numpy.ceil if ceil_mode else numpy.floor
+        out_shape = [0] * len(input_spatial_shape)
+        if auto_pad in ('SAME_UPPER', 'SAME_LOWER'):
+            for i in range(len(input_spatial_shape)):  # pylint: disable=C0200
+                out_shape[i] = int(
+                    round_fct(float(input_spatial_shape[i]) / float(strides_spatial[i])))
+        elif auto_pad == 'VALID':
+            if pad_shape is None:
+                raise ValueError(  # pragma: no cover
+                    "pad_shape cannot be None if auto_pad is "
+                    "'VALID' and ceil_mode is 1.")
+            for i in range(len(input_spatial_shape)):  # pylint: disable=C0200
+                out_shape[i] = int(
+                    round_fct(
+                        float(input_spatial_shape[i] + pad_shape[i] - kernel_spatial_shape[i]) /
+                        float(strides_spatial[i]) + 1))
     if len(out_shape) == 0:
         raise RuntimeError(  # pragma: no cover
             "Unable to compute output shape, auto_pad=%r, "
