@@ -108,7 +108,7 @@ class TestOnnxConvTreeEnsemble(ExtTestCase):
         reg = LGBMRegressor(max_iter=3, max_depth=2, verbosity=-1)
         reg.fit(X_train, y_train)
         onx = to_onnx(reg, X_train.astype(numpy.float64),
-                      target_opset={'':16, 'ai.onnx.ml': 3},
+                      target_opset={'': 16, 'ai.onnx.ml': 3},
                       rewrite_ops=True)
         node = onx.graph.node[0]
         self.assertEqual(node.op_type, 'TreeEnsembleRegressor')
