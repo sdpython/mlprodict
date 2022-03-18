@@ -6,7 +6,7 @@
 """
 import itertools
 import numpy
-from ..shape_object import ShapeObjectFct
+from ..shape_object import ShapeObjectFct, ShapeObject
 from ._op import OpRun
 
 
@@ -206,6 +206,8 @@ class AveragePool(OpRun):
         kernel_shape = list(self.kernel_shape)
         auto_pad = 'VALID' if self.auto_pad == 'NOTSET' else self.auto_pad
         if len(self.pads) == 0:
+            if x.shape is None:
+                return (ShapeObject(None, dtype=x.dtype), )
             pad_shape = [0] * (len(x.shape) - 2)
         elif len(self.pads) == 4:
             pad_top, pad_bottom, pad_left, pad_right = self.pads
