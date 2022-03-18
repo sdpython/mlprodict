@@ -107,9 +107,15 @@ class TestOnnxConvTreeEnsemble(ExtTestCase):
         X_train, X_test, y_train, _ = train_test_split(X, y)
         reg = LGBMRegressor(max_iter=3, max_depth=2, verbosity=-1)
         reg.fit(X_train, y_train)
-        onx = to_onnx(reg, X_train.astype(numpy.float64),
-                      target_opset={'': 16, 'ai.onnx.ml': 3},
-                      rewrite_ops=True)
+        try:
+            onx = to_onnx(reg, X_train.astype(numpy.float64),
+                          target_opset={'': 16, 'ai.onnx.ml': 3},
+                          rewrite_ops=True)
+        except RuntimeError as e:
+            if ("version 16 of domain '' not supported yet by "
+                "this library") in str(e):
+                return
+            raise e
         node = onx.graph.node[0]
         self.assertEqual(node.op_type, 'TreeEnsembleRegressor')
         self.assertEqual(node.domain, 'ai.onnx.ml')
