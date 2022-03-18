@@ -112,8 +112,8 @@ class TestOnnxConvTreeEnsemble(ExtTestCase):
                           target_opset={'': 16, 'ai.onnx.ml': 3},
                           rewrite_ops=True)
         except RuntimeError as e:
-            if ("version 16 of domain '' not supported yet by "
-                "this library") in str(e):
+            msg = "version 16 of domain '' not supported yet by this library"
+            if msg in str(e):
                 return
             raise e
         node = onx.graph.node[0]
