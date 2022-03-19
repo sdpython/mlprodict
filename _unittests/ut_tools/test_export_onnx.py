@@ -9,7 +9,7 @@ import traceback
 from io import StringIO
 from contextlib import redirect_stdout, redirect_stderr
 import numpy
-from onnx import numpy_helper, load as onnx_load
+from onnx import helper, numpy_helper, load as onnx_load
 from onnx.helper import (
     make_model, make_node, set_model_props, make_tensor, make_graph,
     make_tensor_value_info, make_opsetid)
