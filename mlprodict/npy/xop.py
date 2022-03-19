@@ -1132,8 +1132,9 @@ class OnnxOperator(OnnxOperatorBase):
 
     @staticmethod
     def _node_to_graph_process_input(inputs, set_inputs, node, inp,
-                                     new_inputs, new_stack, inputs_dtype):
-        if inputs is None and inputs_dtype is None:
+                                     new_inputs, new_stack, inputs_dtype,
+                                     as_function=False):
+        if not as_function and inputs is None and inputs_dtype is None:
             raise RuntimeError(  # pragma: no cover
                 "Both inputs and inputs_dtype cannot be None at the same time "
                 "for inp=%r." % (inp, ))
@@ -1231,7 +1232,8 @@ class OnnxOperator(OnnxOperatorBase):
             result.append(v)
         return result
 
-    def _node_to_graph(self, other_outputs=None, inputs=None, outputs=None):
+    def _node_to_graph(self, other_outputs=None, inputs=None, outputs=None,
+                       as_function=False):
         """
         Builds a graph as a list of nodes to walk through in that order.
         """
@@ -1310,7 +1312,7 @@ class OnnxOperator(OnnxOperatorBase):
                     for inp in obj.inputs:
                         self._node_to_graph_process_input(
                             inputs_dict, set_inputs, obj, inp, new_inputs,
-                            new_stack, inputs_dtype)
+                            new_stack, inputs_dtype, as_function=as_function)
                 else:
                     raise TypeError(  # pragma: no cover
                         "Unexpected type %r." % type(obj))
@@ -1388,7 +1390,8 @@ class OnnxOperator(OnnxOperatorBase):
 
     def to_onnx(self, inputs=None, outputs=None,
                 other_outputs=None, target_opset=None,
-                optim=True, verbose=0, run_shape=True):
+                optim=True, verbose=0, run_shape=True,
+                as_function=False):
         """
         Converts this operator into an ONNX graph.
 
@@ -1408,11 +1411,15 @@ class OnnxOperator(OnnxOperatorBase):
             to guess them, False would disable that
             default behaviour
         :param verbose: prints information
+        :param as_function: returns a :epkg:`FunctionProto` instead of
+            :epkg:`ModelProto`
+        :return ONNX stucture
         """
         # opsets
-        logger.debug("%s.to_onnx(%r, %r, other_outputs=%r, target_opset=%r)",
-                     self.__class__.__name__, inputs, outputs,
-                     other_outputs, target_opset)
+        logger.debug(
+            "%s.to_onnx(%r, %r, other_outputs=%r, target_opset=%r, as_function=%r)",
+            self.__class__.__name__, inputs, outputs,
+            other_outputs, target_opset, as_function)
         if isinstance(target_opset, dict):
             dom = self.domain or ''
             target_opset = target_opset.get(dom, None)
@@ -1438,7 +1445,7 @@ class OnnxOperator(OnnxOperatorBase):
 
         # get the graph
         nodes, graph_inputs, graph_outputs, run_shape2 = self._node_to_graph(
-            other_outputs, inputs, outputs)
+            other_outputs, inputs, outputs, as_function=as_function)
         logger.debug("%s.to_onnx:graph_inputs=%r",
                      self.__class__.__name__, graph_inputs)
         logger.debug("%s.to_onnx:graph_outputs=%r",
@@ -1479,6 +1486,14 @@ class OnnxOperator(OnnxOperatorBase):
             inputs=graph_inputs, outputs=graph_outputs,
             target_opset=target_opset, verbose=verbose,
             optim=optim, run_shape=run_shape and run_shape2)
+
+    def __call__(self, *args, **kwargs):
+        """
+        Creates an instance of class @see cl OnnxOperatorFunction.
+        Equivalent to `OnnxOperatorFunction(proto, *args, **kwargs)`.
+        """
+        onx = self.to_onnx(as_function=True)
+        return OnnxOperatorFunction(onx, *args, **kwargs)
 
     @staticmethod
     def _merge_op_version(n1, n2):
@@ -1673,6 +1688,141 @@ class OnnxOperator(OnnxOperatorBase):
         """
         OnnxCast = loadop('Cast')
         return OnnxCast(self, to=to, op_version=self.op_version)
+
+
+class OnnxOperatorFunction(OnnxOperator):
+    """
+    This operator is used to insert existing ONNX function into
+    the ONNX graph being built.
+    """
+
+    domain = 'mlprodict'
+    since_version = 1
+    expected_inputs = None
+    expected_outputs = None
+    input_range = [1, 1e9]
+    output_range = [1, 1e9]
+    op_type = 'Function'
+    domain = 'mlprodict.xop'
+
+    @staticmethod
+    def attribute_to_value(att):
+        if isinstance(att, onnx.AttributeProto):
+            dtype = att.type
+        else:
+            raise NotImplementedError(  # pragma: no cover
+                "Unable to copy attribute type %r." % type(att))
+        if dtype == 1:  # .f
+            value = att.f
+        elif dtype == 2:  # .i
+            value = att.i
+        elif dtype == 3:  # .s
+            value = att.s
+        elif dtype == 4:  # .t
+            value = att.t
+        elif dtype == 6:  # .floats
+            value = list(att.floats)
+        elif dtype == 7:  # .ints
+            value = list(att.ints)
+        elif dtype == 8:  # .strings
+            value = list(att.strings)
+        elif dtype == 11:  # .double_data
+            value = list(att.double_data)
+        else:
+            raise NotImplementedError(  # pragma: no cover
+                "Unable to copy attribute type %r (%r)." % (
+                    dtype, att))
+        return value
+
+    def __init__(self, function_proto, *inputs, output_names=None):
+        logger.debug("Function(ONNX, %d in, output_names=%r)",
+                     len(inputs), output_names)
+        if function_proto is None:
+            raise ValueError(
+                "function_proto cannot be None.")  # pragma: no cover
+        if not isinstance(function_proto, onnx.FunctionProto):
+            raise TypeError(
+                "function_proto must be of type FunctionProto not %r." %
+                type(function_proto))
+        if len(inputs) > len(model.graph.input):
+            raise RuntimeError(  # pragma: no cover
+                "Unexpected number of inputs %r > expected %r." % (
+                    len(inputs), len(model.graph.input)))
+        if (output_names is not None and
+                len(output_names) != len(model.graph.output)):
+            raise RuntimeError(  # pragma: no cover
+                "Unexpected number of outputs %r != expected %r." % (
+                    len(output_names), len(model.graph.output)))
+        OnnxOperator.__init__(self, *inputs, output_names=output_names)
+        self.model = model
+
+    def __repr__(self):
+        "usual"
+        atts = {}
+        for att in ['output_names']:
+            value = getattr(self, att, None)
+            if value is not None:
+                atts[att] = value
+        atts.update(self.kwargs)
+        msg = ", ".join("%s=%r" % (k, v) for k, v in atts.items())
+        if len(atts) > 0:
+            msg = ", " + msg
+        return "%s(...%s)" % (
+            self.__class__.__name__, msg)
+
+    def add_to(self, builder):
+        """
+        Adds to graph builder.
+
+        :param builder: instance of @see cl _GraphBuilder,
+            it must have a method `add_node`
+        """
+        logger.debug("Function.add_to(builder)")
+        inputs = builder.get_input_names(self, self.inputs)
+        n_outputs = len(self.model.graph.output)
+        outputs = [builder.get_unique_output_name(NodeResultName(self, i))
+                   for i in range(n_outputs)]
+
+        mapped_names = {}
+
+        # linking inputs
+        for inp, name in zip(self.model.input, inputs):
+            new_name = builder.get_unique_name(inp.name, reserved=False)
+            mapped_names[inp.name] = new_name
+            builder.add_node(
+                'Identity', builder.get_unique_name(
+                    '_sub_' + name, reserved=False),
+                [name], [new_name])
+
+        # adding nodes
+        for node in self.graph.node:
+            new_inputs = []
+            for i in node.input:
+                if i not in mapped_names:
+                    raise RuntimeError(  # pragma: no cover
+                        "Unable to find input %r in %r." % (i, mapped_names))
+                new_inputs.append(mapped_names[i])
+            new_outputs = []
+            for o in node.output:
+                new_name = builder.get_unique_name(o, reserved=False)
+                mapped_names[o] = new_name
+                new_outputs.append(new_name)
+
+            atts = {}
+            for att in node.attribute:
+                atts[att.name] = OnnxFunction.attribute_to_value(value)
+
+            builder.add_node(
+                node.op_type,
+                builder.get_unique_name('_sub_' + node.name, reserved=False),
+                new_inputs, new_outputs, domain=node.domain, **atts)
+
+        # linking outputs
+        for out, name in zip(self.model.graph.output, outputs):
+            builder.add_node(
+                'Identity', builder.get_unique_name(
+                    '_sub_' + out.name, reserved=False),
+                [mapped_names[out.name]], [name])
 
 
 class _GraphBuilder:

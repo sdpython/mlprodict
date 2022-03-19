@@ -168,6 +168,8 @@ epkg_dictionary.update({
     'Contrib Operators':
         'http://www.xavierdupre.fr/app/onnxcustom/helpsphinx/onnxmd/'
         'onnxruntime_docs/ContribOperators.html',
+    'FunctionProto':
+        'http://www.xavierdupre.fr/app/onnxcustom/helpsphinx/api/onnx_python/classes.html#functionproto',
     'Gemm':
         'http://www.xavierdupre.fr/app/onnxcustom/helpsphinx/onnxmd/'
         'onnx_docs/Operators.html#a-name-gemm-a-a-name-gemm-gemm-a',
@@ -187,6 +189,8 @@ epkg_dictionary.update({
     'Loop':
         'http://www.xavierdupre.fr/app/onnxcustom/helpsphinx/onnxmd/'
         'onnx_docs/Operators.html#a-name-loop-a-a-name-loop-loop-a',
+    'ModelProto':
+        'http://www.xavierdupre.fr/app/onnxcustom/helpsphinx/api/onnx_python/classes.html#modelproto',
     'OnnxPipeline':
         'http://www.xavierdupre.fr/app/mlprodict/helpsphinx/mlprodict/'
         'sklapi/onnx_pipeline.html',
