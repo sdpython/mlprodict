@@ -170,7 +170,14 @@ def export_template(model_onnx, templates, opset=None,  # pylint: disable=R0914
     subgraphs = []
     nodes = []
     for node in graph.node:
-        for i_raw_name in node.input:
+        for index_input, i_raw_name in enumerate(node.input):
+            if len(i_raw_name) == 0:
+                # This means the input is optional.
+                if any(map(lambda s: len(s) > 0, node.input[index_input:])):
+                    raise NotImplementedError(
+                        "Input cannot be placed after an unused optional input "
+                        "in node %r." % (node, ))
+                break
             i = rename_name(i_raw_name)
             if i not in used:
                 used[i] = []
@@ -219,7 +226,7 @@ def export_template(model_onnx, templates, opset=None,  # pylint: disable=R0914
         attributes_str = ", ".join("%s=%s" % (k, v) for k, v in attributes)
         d = dict(name=node.name, op_type=node.op_type,
                  domain=node.domain,
-                 inputs=[rename_name(n) for n in node.input],
+                 inputs=[rename_name(n) for n in node.input if len(n) > 0],
                  outputs=[rename_name(n) for n in node.output],
                  output_names=[rename_name(n) for n in node.output
                                if n in output_names],

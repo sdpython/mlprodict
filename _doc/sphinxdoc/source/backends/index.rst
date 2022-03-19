@@ -18,6 +18,7 @@ tests.
     :maxdepth: 1
 
     backend_python
+    backend_python_compiled
     backend_onnxruntime1
     backend_micro_runtime
     backend_shape_inference
