@@ -462,7 +462,12 @@ class OnnxLoadFactory:
 
     def __getattr__(self, name):
         """
+        Enables expressions such as:
 
+        ::
+
+            ops = OnnxLoadFactory()
+            op = ops.Abs('X')
         """
         if name == '_loaded_classes':
             return self._loaded_classes
