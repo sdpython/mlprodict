@@ -505,6 +505,8 @@ class OpRunUnaryNum(OpRunUnary):
         Calls method ``_run``.
         """
         res = OpRunUnary.run(self, x)
+        if len(res) == 0 or res[0] is None:
+            return res
         if not isinstance(res[0], list) and res[0].dtype != x.dtype:
             raise RuntimeTypeError(  # pragma: no cover
                 "Output type mismatch: input '{}' != output '{}' "

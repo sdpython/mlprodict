@@ -65,6 +65,8 @@ class Clip_11(OpRunUnaryNum):
         le = len(minmax)
         amin = minmax[0] if le > 0 else None  # -3.4028234663852886e+38
         amax = minmax[1] if le > 1 else None  # 3.4028234663852886e+38
+        if amin is None and amax is None:
+            amin = -numpy.inf
         res = numpy.clip(data, amin, amax)
         return (res, ) if res.dtype == data.dtype else (res.astype(data.dtype), )
 

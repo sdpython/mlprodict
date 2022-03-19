@@ -877,7 +877,6 @@ class TestOnnxrtPythonRuntime(ExtTestCase):  # pylint: disable=R0904
         python_tested.append(OnnxAveragePool)
 
     @wraplog()
-    @unittest.skipIf(True, "not implemented yet")
     def test_onnxt_runtime_average_pool_ceil(self):
         node = onnx.helper.make_node(
             'AveragePool', inputs=['x'], outputs=['y'],

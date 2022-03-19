@@ -495,7 +495,7 @@ class ShapeObject(BaseDimensionShape):
 
         def _dtype_again():
             if self._dtype is None:
-                raise ValueError(
+                raise TypeError(
                     "dtype cannot be None, shape type is {}\n{}".format(
                         type(shape), shape))
             if isinstance(self._dtype, numpy.dtype):
@@ -542,7 +542,7 @@ class ShapeObject(BaseDimensionShape):
                     numpy.str_, numpy.bool_, numpy.float16, None,
                     numpy.complex64, numpy.complex128,
                     'map', 'sequence'}:
-                raise ValueError(  # pragma: no cover
+                raise TypeError(  # pragma: no cover
                     "dtype has an unexpected value: '{}'.".format(self._dtype))
         try:
             _dtype_again()
@@ -928,6 +928,9 @@ class ShapeObject(BaseDimensionShape):
         for inp in inputs:
             if inp.shape is None:
                 return inp
+        if b"->" not in equation:
+            raise RuntimeError(  # pragma: no cover
+                "Equation %r does not have '->'.")
         inp, out = [_.strip() for _ in equation.split(b"->")]
         inps = [_.strip() for _ in inp.split(b',')]
         if len(inputs) != len(inps):

@@ -8,7 +8,7 @@ import numpy
 from numpy import object as dtype_object
 from numpy.testing import assert_almost_equal
 import onnx
-from onnx.numpy_helper import to_array
+from onnx.numpy_helper import to_array, to_list
 from onnx.backend.test import __file__ as backend_folder
 
 
@@ -56,19 +56,41 @@ class OnnxBackendTest:
         return [_[1] for _ in temp]
 
     @staticmethod
+    def _read_proto_from_file(full):
+        if not os.path.exists(full):
+            raise FileNotFoundError(  # pragma: no cover
+                "File not found: %r." % full)
+        with open(full, 'rb') as f:
+            serialized = f.read()
+        try:
+            loaded = to_array(onnx.load_tensor_from_string(serialized))
+        except Exception as e:  # pylint: disable=W0703
+            seq = onnx.SequenceProto()
+            try:
+                seq.ParseFromString(serialized)
+                loaded = to_list(seq)
+            except Exception:  # pylint: disable=W0703
+                try:
+                    loaded = onnx.load_model_from_string(serialized)
+                except Exception:
+                    raise RuntimeError(
+                        "Unable to read %r, error is %s, content is %r." % (
+                            full, e, serialized[:100])) from e
+        return loaded
+
+    @staticmethod
     def _load(folder, names):
         res = []
         for name in names:
             full = os.path.join(folder, name)
-            new_tensor = onnx.TensorProto()
-            with open(full, 'rb') as f:
-                new_tensor.ParseFromString(f.read())
-            try:
+            new_tensor = OnnxBackendTest._read_proto_from_file(full)
+            if isinstance(new_tensor, (numpy.ndarray, onnx.ModelProto, list)):
+                t = new_tensor
+            elif isinstance(new_tensor, onnx.TensorProto):
                 t = to_array(new_tensor)
-            except (ValueError, TypeError) as e:
+            else:
                 raise RuntimeError(
-                    "Unexpected format for %r. This may be not a tensor."
-                    "" % full) from e
+                    "Unexpected type %r for %r." % (type(new_tensor), full))
             res.append(t)
         return res
 
@@ -100,13 +122,9 @@ class OnnxBackendTest:
                 outputs = OnnxBackendTest._sort(
                     c for c in pb if c.startswith('output_'))
 
-                try:
-                    t = dict(
-                        inputs=OnnxBackendTest._load(full, inputs),
-                        outputs=OnnxBackendTest._load(full, outputs))
-                except RuntimeError:
-                    # No tensors
-                    t = dict(inputs=inputs, outputs=outputs)
+                t = dict(
+                    inputs=OnnxBackendTest._load(full, inputs),
+                    outputs=OnnxBackendTest._load(full, outputs))
                 self.tests.append(t)
 
     @property
@@ -211,13 +229,11 @@ class OnnxBackendTest:
         for test in self.tests:
             rows.append("xs = [")
             for inp in test['inputs']:
-                rows.append(textwrap.indent(repr(inp) + ',',
-                                            '    ' * 2))
+                rows.append(textwrap.indent(repr(inp) + ',', '    ' * 2))
             rows.append("]")
             rows.append("ys = [")
             for out in test['outputs']:
-                rows.append(textwrap.indent(repr(out) + ',',
-                                            '    ' * 2))
+                rows.append(textwrap.indent(repr(out) + ',', '    ' * 2))
             rows.append("]")
             rows.append("feeds = {n: x for n, x in zip(oinf.input_names, xs)}")
             rows.append("got = oinf.run(feeds)")
@@ -232,7 +248,7 @@ class OnnxBackendTest:
             from pyquickhelper.pycode.code_helper import remove_extra_spaces_and_pep8
         except ImportError:
             return final
-        return remove_extra_spaces_and_pep8(final)
+        return remove_extra_spaces_and_pep8(final, aggressive=True)
 
 
 def enumerate_onnx_tests(series, fct_filter=None):

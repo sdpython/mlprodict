@@ -67,7 +67,7 @@ class ReduceSum_13(OpRunReduceNumpy):
             else:
                 axes = tuple(axes.ravel().tolist()) if len(axes) > 0 else None
         try:
-            return (numpy.sum(data, axis=axes,
+            return (numpy.sum(data, axis=axes if axes else None,
                               keepdims=self.keepdims,
                               dtype=data.dtype), )
         except TypeError as e:  # pragma: no cover

@@ -6,7 +6,7 @@
 """
 import itertools
 import numpy
-from ..shape_object import ShapeObjectFct
+from ..shape_object import ShapeObjectFct, ShapeObject
 from ._op import OpRun
 
 
@@ -30,8 +30,8 @@ def _get_pad_shape(auto_pad, input_spatial_shape, kernel_spatial_shape,
     return pad_shape
 
 
-def _get_output_shape(auto_pad, input_spatial_shape, kernel_spatial_shape,
-                      strides_spatial):
+def _get_output_shape_no_ceil(auto_pad, input_spatial_shape, kernel_spatial_shape,
+                              strides_spatial):
     out_shape = [0] * len(input_spatial_shape)
     if auto_pad in ('SAME_UPPER', 'SAME_LOWER'):
         for i in range(len(input_spatial_shape)):  # pylint: disable=C0200
@@ -46,53 +46,87 @@ def _get_output_shape(auto_pad, input_spatial_shape, kernel_spatial_shape,
                     float(input_spatial_shape[i] -
                           (kernel_spatial_shape[i] - 1)) /
                     float(strides_spatial[i])))
+    return out_shape
+
+
+def _get_output_shape(auto_pad, input_spatial_shape, kernel_spatial_shape,
+                      strides_spatial, pad_shape=None, ceil_mode=0):
+    if not ceil_mode:
+        out_shape = _get_output_shape_no_ceil(
+            auto_pad, input_spatial_shape, kernel_spatial_shape,
+            strides_spatial)
+    else:
+        round_fct = numpy.ceil if ceil_mode else numpy.floor
+        out_shape = [0] * len(input_spatial_shape)
+        if auto_pad in ('SAME_UPPER', 'SAME_LOWER'):
+            for i in range(len(input_spatial_shape)):  # pylint: disable=C0200
+                out_shape[i] = int(
+                    round_fct(float(input_spatial_shape[i]) / float(strides_spatial[i])))
+        elif auto_pad == 'VALID':
+            if pad_shape is None:
+                raise ValueError(  # pragma: no cover
+                    "pad_shape cannot be None if auto_pad is "
+                    "'VALID' and ceil_mode is 1.")
+            for i in range(len(input_spatial_shape)):  # pylint: disable=C0200
+                out_shape[i] = int(
+                    round_fct(
+                        float(input_spatial_shape[i] + pad_shape[i] - kernel_spatial_shape[i]) /
+                        float(strides_spatial[i]) + 1))
     if len(out_shape) == 0:
         raise RuntimeError(  # pragma: no cover
             "Unable to compute output shape, auto_pad=%r, "
             "input_spatial_shape=%r, kernel_spatial_shape=%r, "
-            "strides_spatial=%r." % (
+            "strides_spatial=%r, ceil_mode=%r." % (
                 auto_pad, input_spatial_shape, kernel_spatial_shape,
-                strides_spatial))
+                strides_spatial, ceil_mode))
     if min(out_shape) <= 0:
         raise RuntimeError(  # pragma: no cover
             "output shape cannot be null or negative, out_shape=%r, "
             "auto_pad=%r, input_spatial_shape=%r, "
-            "kernel_spatial_shape=%r, strides_spatial=%r." % (
+            "kernel_spatial_shape=%r, strides_spatial=%r, ceil_mode=%r." % (
                 out_shape, auto_pad, input_spatial_shape,
-                kernel_spatial_shape, strides_spatial))
+                kernel_spatial_shape, strides_spatial, ceil_mode))
     return out_shape
 
 
 def _pool(padded, x_shape, kernel_shape, strides_shape,
-          out_shape, pad_shape, pooling_type, count_include_pad=0):
+          out_shape, pad_shape, pooling_type, count_include_pad=0, ceil_mode=0):
+    if pooling_type == 'AVG':
+        fpool = numpy.average
+    elif pooling_type == 'MAX':
+        fpool = numpy.max
+    else:
+        raise NotImplementedError(  # pragma: no cover
+            'Pooling type {} does not support. Should be AVG, MAX.'
+            ''.format(pooling_type))
     spatial_size = len(x_shape) - 2
     y = numpy.zeros([x_shape[0], x_shape[1]] + list(out_shape))
+    round_fct = numpy.ceil if ceil_mode else numpy.floor
 
-    for shape in itertools.product(
-            range(x_shape[0]),
-            range(x_shape[1]),
-            *[range(int(
-                (x_shape[i + 2] + pad_shape[i] - kernel_shape[i]) /
-                strides_shape[i] + 1)) for i in range(spatial_size)]):
+    def loop_range():
+        return [range(int(round_fct(
+                float(x_shape[i + 2] + pad_shape[i] - kernel_shape[i]) /
+                float(strides_shape[i]) + 1))) for i in range(spatial_size)]
+
+    for shape in itertools.product(range(x_shape[0]), range(x_shape[1]), *loop_range()):
         window = padded[shape[0], shape[1]]
-        window_vals = numpy.array([window[i] for i in list(
-            itertools.product(
-                *[range(strides_shape[i] * shape[i + 2],
-                        strides_shape[i] * shape[i + 2] + kernel_shape[i])
-                  for i in range(spatial_size)]))])
-        if pooling_type == 'AVG':
-            f = numpy.average
-        elif pooling_type == 'MAX':
-            f = numpy.max
-        else:
-            raise NotImplementedError(  # pragma: no cover
-                'Pooling type {} does not support. Should be AVG, MAX.'
-                ''.format(pooling_type))
+        listi = [range(strides_shape[i] * shape[i + 2],
+                       strides_shape[i] * shape[i + 2] + kernel_shape[i])
+                 for i in range(spatial_size)]
+        listi2 = list(itertools.product(*listi))
+        values = []
+        for i in listi2:
+            try:
+                values.append(window[i])
+            except IndexError:
+                continue
+        window_vals = numpy.array(values)
 
         if count_include_pad == 1 and pooling_type == 'AVG':
-            y[shape] = f(window_vals)
+            y[shape] = fpool(window_vals)
         else:
-            y[shape] = f(window_vals[numpy.where(~numpy.isnan(window_vals))])
+            y[shape] = fpool(
+                window_vals[numpy.where(~numpy.isnan(window_vals))])
     return y.astype(numpy.float32)
 
 
@@ -111,9 +145,6 @@ class AveragePool(OpRun):
                        **options)
 
     def _run(self, x):  # pylint: disable=W0221
-        if self.ceil_mode != 0:
-            raise RuntimeError(
-                "ceil_mode != 0, runtime not implemented yet.")
         if len(self.strides) == 0:
             strides = [1] * (len(x.shape) - 2)
         else:
@@ -144,7 +175,7 @@ class AveragePool(OpRun):
         if auto_pad in ('SAME_LOWER', 'SAME_UPPER'):
             const = numpy.nan if self.count_include_pad == 0 else 0
             out_shape = _get_output_shape(
-                auto_pad, x_shape, kernel_shape, strides)
+                auto_pad, x_shape, kernel_shape, strides, pad_shape, self.ceil_mode)
             pad_shape = _get_pad_shape(
                 auto_pad, x_shape, kernel_shape, strides, out_shape)
             if auto_pad == 'SAME_LOWER':
@@ -163,17 +194,25 @@ class AveragePool(OpRun):
                 mode='constant', constant_values=const)
         else:
             out_shape = _get_output_shape(
-                auto_pad, x_shape, kernel_shape, strides)
+                auto_pad, x_shape, kernel_shape, strides, pad_shape, self.ceil_mode)
 
         pooling_type = 'AVG'
         res = _pool(padded, x.shape, kernel_shape, strides,
                     out_shape, pad_shape, pooling_type,
-                    count_include_pad=self.count_include_pad)
+                    count_include_pad=self.count_include_pad,
+                    ceil_mode=self.ceil_mode)
         return (res, )
 
     def _infer_shapes(self, x):  # pylint: disable=W0221
         kernel_shape = list(self.kernel_shape)
         auto_pad = 'VALID' if self.auto_pad == 'NOTSET' else self.auto_pad
+        if len(self.pads) == 0:
+            if x.shape is None:
+                return (ShapeObject(None, dtype=x.dtype), )
+            pad_shape = [0] * (len(x.shape) - 2)
+        elif len(self.pads) == 4:
+            pad_top, pad_bottom, pad_left, pad_right = self.pads
+            pad_shape = [pad_top + pad_bottom, pad_left + pad_right]
 
         def compute_shape(xshape):
             if len(self.strides) == 0:
@@ -181,7 +220,7 @@ class AveragePool(OpRun):
             else:
                 strides = self.strides
             out_shape = _get_output_shape(
-                auto_pad, xshape[2:], kernel_shape, strides)
+                auto_pad, xshape[2:], kernel_shape, strides, pad_shape, self.ceil_mode)
             return out_shape
 
         return (ShapeObjectFct(

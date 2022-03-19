@@ -14,6 +14,8 @@ class Identity(OpRunUnaryNum):
                                **options)
 
     def _run(self, a):  # pylint: disable=W0221
+        if a is None:
+            return (None, )
         if self.inplaces.get(0, False):
             return (a, )
         return (a.copy(), )

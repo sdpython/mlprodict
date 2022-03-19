@@ -45,8 +45,9 @@ def gather_numpy(self, dim, index):
             "index and self should be the same size".format(dim))
     data_swaped = numpy.swapaxes(self, 0, dim)
     index_swaped = numpy.swapaxes(index, 0, dim)
+
     try:
-        gathered = numpy.choose(index_swaped, data_swaped)
+        gathered = numpy.choose(index_swaped, data_swaped, mode='wrap')
     except ValueError as e:
         if len(index_swaped.shape) == 2 and len(data_swaped.shape) == 2:
             return gather_numpy_2(self, dim, index)
