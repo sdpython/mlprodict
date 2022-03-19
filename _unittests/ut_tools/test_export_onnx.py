@@ -811,6 +811,7 @@ class TestExportOnnx(ExtTestCase):
                'make_graph': make_graph,
                'make_tensor_value_info': make_tensor_value_info,
                'print': print, 'sorted': sorted,
+               'make_opsetid': make_opsetid,
                'collections': collections, 'inspect': inspect}
         out, err = StringIO(), StringIO()
         if len(left) >= 5:
