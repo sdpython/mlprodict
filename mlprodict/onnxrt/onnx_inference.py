@@ -10,6 +10,7 @@ from time import perf_counter
 import warnings
 import textwrap
 import pprint
+from keyword import iskeyword
 import numpy
 from scipy.sparse import coo_matrix
 from onnx import load, load_model, checker, shape_inference
@@ -630,7 +631,7 @@ class OnnxInference:
                     continue
                 if v[0] == 'O':
                     continue
-                if all((inp, 0) in order for inp in v[1].inputs):
+                if all((inp, 0) in order for inp in v[1].inputs if inp != ''):
                     # If all inputs are available,
                     # We tell the operator node is processed.
                     order[k, 1] = len(order)
@@ -1468,6 +1469,8 @@ class OnnxInference:
             values[k] = dict(inplace=False, to=[], fr=[])
         for node in self.sequence_:
             for n in node.inputs:
+                if n == '':
+                    continue
                 values[n]['to'].append(node)
             for n in node.outputs:
                 if node.op_type == 'Constant':
@@ -1551,8 +1554,12 @@ class OnnxInference:
                 # to the onnx graph
                 print(oinf2)
         """
+
         def clean_name(name):
-            return name.replace(":", "_").replace('.', '_').replace('/', '_')
+            res = name.replace(":", "_").replace('.', '_').replace('/', '_')
+            if iskeyword(res):
+                res += '_'
+            return res
 
         # inits
         inputs = self.input_names

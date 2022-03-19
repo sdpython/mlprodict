@@ -191,8 +191,7 @@ class OnnxInferenceNode:
         if self.ops_ is None:
             # Then a function.
             feeds = {name: val
-                     for name, val in zip(self.function_.obj.input,
-                                          values)}
+                     for name, val in zip(self.function_.obj.input, values)}
             outputs = self.function_.run(feeds)
             res = [outputs[k] for k in self.function_.obj.output]
 
@@ -280,7 +279,7 @@ class OnnxInferenceNode:
             for name in self.outputs:
                 values[name] = None
             return values
-        args = [values[k] for k in self.inputs]
+        args = [values[k] for k in self.inputs if k != '']
         try:
             res = self.ops_.infer_shapes(*args)
         except (TypeError, ValueError) as e:  # pragma: no cover

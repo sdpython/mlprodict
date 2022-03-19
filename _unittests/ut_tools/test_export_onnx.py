@@ -9,14 +9,14 @@ import traceback
 from io import StringIO
 from contextlib import redirect_stdout, redirect_stderr
 import numpy
-from onnx import numpy_helper, helper, load as onnx_load
+from onnx import numpy_helper, load as onnx_load
 from onnx.helper import (
     make_model, make_node, set_model_props, make_tensor, make_graph,
-    make_tensor_value_info)
+    make_tensor_value_info, make_opsetid)
 from onnxruntime import SessionOptions, GraphOptimizationLevel
 from sklearn.cluster import KMeans
 import autopep8
-from pyquickhelper.pycode import ExtTestCase
+from pyquickhelper.pycode import ExtTestCase, ignore_warnings
 from skl2onnx.common.data_types import Int64TensorType
 from skl2onnx.algebra.onnx_ops import (  # pylint: disable=E0611
     OnnxGather, OnnxIdentity, OnnxReshape, OnnxFlatten,
@@ -1040,6 +1040,7 @@ class TestExportOnnx(ExtTestCase):
                 _, loc = self.verify_numpy(code)
                 self.assertEqualArray(y['y'], loc['y'])
 
+    @ignore_warnings(UserWarning)
     def test_export2numpy_kmeans(self):
         X = numpy.arange(20).reshape(10, 2).astype(numpy.float32)
         X[:5] = - X[:5]

@@ -73,7 +73,7 @@ class BatchNormalization_14(OpRun):
             res = _batchnorm_test_mode(
                 x, scale, bias, mean, var, epsilon=self.epsilon)
             return (res, )
-        res, saved_mean, saved_var, output_mean, output_var = (
+        res, __, _, output_mean, output_var = (
             _batchnorm_training_mode(x, scale, bias, mean, var,
                                      self.momentum, self.epsilon))
         return res, output_mean, output_var

@@ -3,11 +3,12 @@
 """
 import os
 import unittest
-from numpy import array, float32, int64, int8
+from numpy import array, float32, int64, int8, int32
 from onnx import TensorProto
 from onnx.helper import (
     make_model, make_node, set_model_props, make_graph,
-    make_tensor_value_info, __file__ as onnx_file)
+    make_tensor_value_info, make_opsetid, make_tensor,
+    __file__ as onnx_file)
 from pyquickhelper.pycode import ExtTestCase, ignore_warnings
 from mlprodict.testing.onnx_backend import (
     enumerate_onnx_tests, assert_almost_equal_string)
@@ -631,52 +632,6 @@ class TestOnnxBackEnd(ExtTestCase):
         # if __name__ == '__main__':
         #     print(code[0])
 
-    def test_clip_default_inbounds(self):
-
-        def create_model():
-            initializers = []
-            nodes = []
-            inputs = []
-            outputs = []
-
-            opsets = {'': 12}
-
-            inputs.append(make_tensor_value_info('x', 1, [3]))
-            outputs.append(make_tensor_value_info('y', 1, [3]))
-            node = make_node('Clip', ['x'], ['y'], domain='')
-            nodes.append(node)
-
-            graph = make_graph(nodes, 'test_clip_default_inbounds',
-                               inputs, outputs, initializers)
-
-            onnx_model = make_model(graph)
-            onnx_model.ir_version = 6
-            onnx_model.producer_name = 'backend-test'
-            onnx_model.producer_version = ''
-            onnx_model.domain = ''
-            onnx_model.model_version = 0
-            onnx_model.doc_string = ''
-            set_model_props(onnx_model, {})
-
-            del onnx_model.opset_import[:]  # pylint: disable=E1101
-            for dom, value in opsets.items():
-                op_set = onnx_model.opset_import.add()
-                op_set.domain = dom
-                op_set.version = value
-
-            return onnx_model
-
-        onnx_model = create_model()
-
-        oinf = OnnxInference(onnx_model)
-        xs = [array([-1., 0., 1.], dtype=float32)]
-        ys = [array([-1., 0., 1.], dtype=float32)]
-        feeds = {n: x for n, x in zip(oinf.input_names, xs)}
-        got = oinf.run(feeds)
-        goty = [got[k] for k in oinf.output_names]
-        for y, gy in zip(ys, goty):
-            self.assertEqualArray(y, gy)
-
     def test_clip_default_int8_inbounds(self):
 
         def create_model():
@@ -799,7 +754,6 @@ class TestOnnxBackEnd(ExtTestCase):
             outputs = []
 
             opsets = {'': 16}
-            target_opset = 16  # subgraphs
 
             inputs.append(make_tensor_value_info('opt_in', 0, None))
             outputs.append(make_tensor_value_info('opt_out', 0, None))
@@ -828,15 +782,244 @@ class TestOnnxBackEnd(ExtTestCase):
         onnx_model = create_model()
 
         oinf = OnnxInference(onnx_model)
-        xs = ['input_0.pb']
-        ys = ['output_0.pb']
+        xs = []
+        ys = []
         feeds = {n: x for n, x in zip(oinf.input_names, xs)}
         got = oinf.run(feeds)
         goty = [got[k] for k in oinf.output_names]
         for y, gy in zip(ys, goty):
             self.assertEqualArray(y, gy)
 
+    def test_onnx_backend_test_identity_sequence(self):
+        name = 'test_identity_sequence'
+        code = []
+        for te in enumerate_onnx_tests('node', lambda folder: folder == name):
+            code.append(te.to_python())
+        self.assertEqual(len(code), 1)
+        self.assertIn('def test_identity_sequence(self):', code[0])
+        self.assertIn('from onnx.helper', code[0])
+        self.assertIn('for y, gy in zip(ys, goty):', code[0])
+        # if __name__ == '__main__':
+        #    print(code[0])
+
+    def test_identity_sequence(self):
+
+        def create_model():
+            initializers = []
+            nodes = []
+            inputs = []
+            outputs = []
+
+            opsets = {'': 16}
+            inputs.append(make_tensor_value_info('x', 0, None))
+            outputs.append(make_tensor_value_info('y', 0, None))
+            nodes.append(make_node('Identity', ['x'], ['y'], domain=''))
+            opset_imports = [make_opsetid(domain, version)
+                             for domain, version in opsets.items()]
+            graph = make_graph(nodes, 'test_identity_sequence',
+                               inputs, outputs, initializers)
+            onnx_model = make_model(graph, opset_imports=opset_imports)
+            onnx_model.ir_version = 8
+            onnx_model.producer_name = 'backend-test'
+            onnx_model.producer_version = ''
+            onnx_model.domain = ''
+            onnx_model.model_version = 0
+            onnx_model.doc_string = ''
+            set_model_props(onnx_model, {})
+
+            return onnx_model
+
+        onnx_model = create_model()
+
+        oinf = OnnxInference(onnx_model)
+        xs = [[array([[[[1., 2.], [3., 4.]]]], dtype=float32),
+               array([[[[2., 3.], [1., 5.]]]], dtype=float32)]]
+        ys = [[array([[[[1., 2.], [3., 4.]]]], dtype=float32),
+               array([[[[2., 3.], [1., 5.]]]], dtype=float32)]]
+        feeds = {n: x for n, x in zip(oinf.input_names, xs)}
+        got = oinf.run(feeds)
+        goty = [got[k] for k in oinf.output_names]
+        for y, gy in zip(ys, goty):
+            self.assertEqualArray(y, gy)
+
+    def test_onnx_backend_test_gather_elements_negative_indices(self):
+        name = 'test_gather_elements_negative_indices'
+        code = []
+        for te in enumerate_onnx_tests('node', lambda folder: folder == name):
+            code.append(te.to_python())
+        self.assertEqual(len(code), 1)
+        self.assertIn(
+            'def test_gather_elements_negative_indices(self):', code[0])
+        self.assertIn('from onnx.helper', code[0])
+        self.assertIn('for y, gy in zip(ys, goty):', code[0])
+        # if __name__ == '__main__':
+        #   print(code[0])
+
+    def test_gather_elements_negative_indices(self):
+
+        def create_model():
+            initializers = []
+            nodes = []
+            inputs = []
+            outputs = []
+
+            opsets = {'': 11}
+            inputs.append(make_tensor_value_info('data', 1, [3, 3]))
+            inputs.append(make_tensor_value_info('indices', 7, [2, 3]))
+            outputs.append(make_tensor_value_info('y', 1, [2, 3]))
+            node = make_node(
+                'GatherElements', ['data', 'indices'], ['y'], axis=0, domain='')
+            nodes.append(node)
+            opset_imports = [make_opsetid(domain, version)
+                             for domain, version in opsets.items()]
+            graph = make_graph(
+                nodes, 'test_gather_elements_negative_indices', inputs, outputs, initializers)
+            onnx_model = make_model(graph, opset_imports=opset_imports)
+            onnx_model.ir_version = 6
+            onnx_model.producer_name = 'backend-test'
+            onnx_model.producer_version = ''
+            onnx_model.domain = ''
+            onnx_model.model_version = 0
+            onnx_model.doc_string = ''
+            set_model_props(onnx_model, {})
+            return onnx_model
+
+        onnx_model = create_model()
+        oinf = OnnxInference(onnx_model)
+        xs = [array([[1., 2., 3.],
+                     [4., 5., 6.],
+                     [7., 8., 9.]], dtype=float32),
+              array([[-1, -2, 0],
+                     [-2, 0, 0]], dtype=int64)]
+        ys = [array([[7., 5., 3.],
+                     [4., 2., 3.]], dtype=float32)]
+        feeds = {n: x for n, x in zip(oinf.input_names, xs)}
+        got = oinf.run(feeds)
+        goty = [got[k] for k in oinf.output_names]
+        for y, gy in zip(ys, goty):
+            self.assertEqualArray(y, gy)
+
+    def test_onnx_backend_test_constantofshape_int_shape_zero(self):
+        name = 'test_constantofshape_int_shape_zero'
+        code = []
+        for te in enumerate_onnx_tests('node', lambda folder: folder == name):
+            code.append(te.to_python())
+        self.assertEqual(len(code), 1)
+        self.assertIn(
+            'def test_constantofshape_int_shape_zero(self):', code[0])
+        self.assertIn('from onnx.helper', code[0])
+        self.assertIn('for y, gy in zip(ys, goty):', code[0])
+        # if __name__ == '__main__':
+        #    print(code[0])
+
+    def test_constantofshape_int_shape_zero(self):
+
+        def create_model():
+            initializers = []
+            nodes = []
+            inputs = []
+            outputs = []
+
+            opsets = {'': 12}
+            inputs.append(make_tensor_value_info('x', 7, [1]))
+            outputs.append(make_tensor_value_info('y', 6, [None]))
+            node = make_node(
+                'ConstantOfShape', ['x'], ['y'],
+                value=make_tensor("value", TensorProto.INT32,
+                                  dims=[1], vals=[0]),
+                domain='')
+            nodes.append(node)
+            opset_imports = [make_opsetid(domain, version)
+                             for domain, version in opsets.items()]
+            graph = make_graph(
+                nodes, 'test_constantofshape_int_shape_zero',
+                inputs, outputs, initializers)
+
+            onnx_model = make_model(graph, opset_imports=opset_imports)
+            onnx_model.ir_version = 6
+            onnx_model.producer_name = 'backend-test'
+            onnx_model.producer_version = ''
+            onnx_model.domain = ''
+            onnx_model.model_version = 0
+            onnx_model.doc_string = ''
+            set_model_props(onnx_model, {})
+            return onnx_model
+
+        onnx_model = create_model()
+        oinf = OnnxInference(onnx_model)
+        xs = [array([0], dtype=int64)]
+        ys = [array([], dtype=int32)]
+        feeds = {n: x for n, x in zip(oinf.input_names, xs)}
+        got = oinf.run(feeds)
+        goty = [got[k] for k in oinf.output_names]
+        for y, gy in zip(ys, goty):
+            self.assertEqualArray(y, gy)
+
+    def test_onnx_backend_test_reduce_sum_default_axes_keepdims_example(self):
+        name = 'test_reduce_sum_default_axes_keepdims_example'
+        code = []
+        for te in enumerate_onnx_tests('node', lambda folder: folder == name):
+            code.append(te.to_python())
+        self.assertEqual(len(code), 1)
+        self.assertIn(
+            'def test_reduce_sum_default_axes_keepdims_example(self):', code[0])
+        self.assertIn('from onnx.helper', code[0])
+        self.assertIn('for y, gy in zip(ys, goty):', code[0])
+        # if __name__ == '__main__':
+        #    print(code[0])
+
+    def test_reduce_sum_default_axes_keepdims_example(self):
+
+        def create_model():
+            initializers = []
+            nodes = []
+            inputs = []
+            outputs = []
+
+            opsets = {'': 13}
+            inputs.append(make_tensor_value_info('data', 1, [3, 2, 2]))
+            inputs.append(make_tensor_value_info('axes', 7, [None]))
+            outputs.append(make_tensor_value_info('reduced', 1, [1, 1, 1]))
+            node = make_node('ReduceSum', ['data', 'axes'], ['reduced'],
+                             keepdims=1, domain='')
+            nodes.append(node)
+            opset_imports = [make_opsetid(domain, version)
+                             for domain, version in opsets.items()]
+            graph = make_graph(
+                nodes, 'test_reduce_sum_default_axes_keepdims_example', inputs, outputs, initializers)
+            onnx_model = make_model(graph, opset_imports=opset_imports)
+            onnx_model.ir_version = 7
+            onnx_model.producer_name = 'backend-test'
+            onnx_model.producer_version = ''
+            onnx_model.domain = ''
+            onnx_model.model_version = 0
+            onnx_model.doc_string = ''
+            set_model_props(onnx_model, {})
+            return onnx_model
+
+        onnx_model = create_model()
+        oinf = OnnxInference(onnx_model)
+        xs = [array([[[1., 2.], [3., 4.]], [[5., 6.], [7., 8.]],
+                     [[9., 10.], [11., 12.]]], dtype=float32),
+              array([], dtype=int64)]
+        ys = [array([[[78.]]], dtype=float32)]
+        feeds = {n: x for n, x in zip(oinf.input_names, xs)}
+        got = oinf.run(feeds)
+        goty = [got[k] for k in oinf.output_names]
+        for y, gy in zip(ys, goty):
+            self.assertEqualArray(y, gy)
+
+    def test_enumerate_onnx_tests_test_clip_default_inbounds(self):
+        done = 0
+        for te in enumerate_onnx_tests(
+                'node', lambda folder: folder == 'test_clip_default_inbounds'):
+            self.assertIn(te.name, repr(te))
+            self.assertGreater(len(te), 0)
+            te.run(TestOnnxBackEnd.load_fct, TestOnnxBackEnd.run_fct)
+            done += 1
+        self.assertEqual(done, 1)
+
 
 if __name__ == "__main__":
-    # TestOnnxBackEnd().test_identity_opt()
+    # TestOnnxBackEnd().test_enumerate_onnx_tests_test_clip_default_inbounds()
     unittest.main()

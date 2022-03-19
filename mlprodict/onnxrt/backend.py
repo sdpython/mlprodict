@@ -235,6 +235,17 @@ class OnnxInferenceBackend(Backend):
         raise NotImplementedError("Unable to run the model node by node.")
 
 
+class OnnxInferenceBackendPyC(OnnxInferenceBackend):
+    """
+    Same backend as @see cl OnnxInferenceBackend but runtime
+    is `python_compiled`.
+    """
+
+    @classmethod
+    def create_inference_session(cls, model):
+        return OnnxInference(model, runtime='python_compiled')
+
+
 class OnnxInferenceBackendOrt(OnnxInferenceBackend):
     """
     Same backend as @see cl OnnxInferenceBackend but runtime

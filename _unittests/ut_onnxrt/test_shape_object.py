@@ -205,7 +205,7 @@ class TestShapeObject(ExtTestCase):
             1) * DimensionObject((1, )), TypeError)
 
     def test_shape_object(self):
-        self.assertRaise(lambda: ShapeObject((1, 2, 3)), ValueError)
+        self.assertRaise(lambda: ShapeObject((1, 2, 3)), TypeError)
         sh = ShapeObject((1, 2, 3), dtype=numpy.float32)
         self.assertEqual(
             repr(sh), "ShapeObject((1, 2, 3), dtype=numpy.float32)")
