@@ -1287,8 +1287,13 @@ class OnnxInference:
             try:
                 values[k] = ShapeObject(v, use_n1=True, name=k)
             except TypeError as e:  # pragma: no cover
+                if v['type']['elem'] == 'unk':
+                    impossible = True
+                    values[k] = None
+                    continue
                 raise TypeError(
-                    "Unable to guess shape for %r (shape=%r)." % (k, v)) from e
+                    "Unable to guess shape for %r (shape=%r)." % (
+                        k, v)) from e
 
         impossible = False
         for k, v in self.statics_.items():

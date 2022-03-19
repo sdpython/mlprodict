@@ -76,12 +76,12 @@ class BatchNormalization_14(OpRun):
         res, saved_mean, saved_var, output_mean, output_var = (
             _batchnorm_training_mode(x, scale, bias, mean, var,
                                      self.momentum, self.epsilon))
-        return res, saved_mean, saved_var, output_mean, output_var
+        return res, output_mean, output_var
 
     def _infer_shapes(self, x, scale, bias, mean, var):  # pylint: disable=W0221
         if self.training_mode == 0:
             return (x, )
-        return (x, scale, bias, mean, var)
+        return (x, mean, var)
 
     def _infer_types(self, x, scale, bias, mean, var):  # pylint: disable=W0221
         if self.training_mode == 0:

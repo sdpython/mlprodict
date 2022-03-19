@@ -45,29 +45,27 @@ def {{ function_name }}():
     print('[initializers]')   # verbose
     {% for name, value in initializers: %}
     {% if len(value.shape) == 0: %}
-    value = numpy.array({{ value }}, dtype=numpy.{{ value.dtype }})
+    tensor = numpy_helper.from_array(numpy.array({{ value }}, dtype=numpy.{{ value.dtype }}), name='{{ name }}')
     {% else %}{% if value.size < 6: %}
-    value = numpy.array({{ value.ravel().tolist() }}, dtype=numpy.{{ value.dtype }}){% if len(value.shape) > 1: %}.reshape({{ value.shape }}){% endif %}
+    tensor = numpy_helper.from_array(numpy.array({{ value.ravel().tolist() }}, dtype=numpy.{{ value.dtype }}){% if len(value.shape) > 1: %}.reshape({{ value.shape }}){% endif %}, name='{{ name }}')
     {%- else %}
     list_value = {{ value.ravel().tolist() }}
     value = numpy.array(list_value, dtype=numpy.{{ value.dtype }}){% if len(value.shape) > 1: %}.reshape({{ value.shape }}){% endif %}
-    {% endif %}{% endif %}
     tensor = numpy_helper.from_array(value, name='{{ name }}')
+    {% endif %}{% endif %}
     initializers.append(tensor)
     {% endfor %}
 
     # inputs
     print('[inputs]')   # verbose
     {% for name, type, shape in inputs: %}
-    value = make_tensor_value_info('{{ name }}', {{ type }}, {{ shape }})
-    inputs.append(value)
+    inputs.append(make_tensor_value_info('{{ name }}', {{ type }}, {{ shape }}))
     {% endfor %}
 
     # outputs
     print('[outputs]')   # verbose
     {% for name, type, shape in outputs: %}
-    value = make_tensor_value_info('{{ name }}', {{ type }}, {{ shape }})
-    outputs.append(value)
+    outputs.append(make_tensor_value_info('{{ name }}', {{ type }}, {{ shape }}))
     {% endfor %}
 
     # nodes

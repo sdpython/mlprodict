@@ -7,7 +7,7 @@ import pprint
 import warnings
 import numpy
 from scipy.sparse import coo_matrix
-from onnx.mapping import NP_TYPE_TO_TENSOR_TYPE
+from onnx.mapping import NP_TYPE_TO_TENSOR_TYPE, TENSOR_TYPE_TO_NP_TYPE
 from onnx import TensorProto, ValueInfoProto
 from onnx.helper import make_tensor_type_proto
 from onnx.numpy_helper import to_array, from_array as onnx_from_array
@@ -248,6 +248,17 @@ def _elem_type_as_str(elem_type):
             dims = '?'
         return {'kind': 'tensor', 'elem': et, 'shape': shape}
 
+    if selem.startswith("optional_type"):
+        this = elem_type.optional_type
+        et = _elem_type_as_str(this.elem_type)
+        shape = this.shape
+        dim = shape.dim
+        dims = [d.dim_value for d in dim]
+        if len(dims) == 0:
+            dims = '?'
+        return {'kind': 'tensor', 'elem': et, 'shape': shape,
+                'optional_type': True}
+
     if selem.startswith("map_type"):
         this = elem_type.map_type
         kt = _elem_type_as_str(this.key_type)
@@ -306,7 +317,8 @@ def _var_as_dict(var):
                 values = _var_as_dict(t.values)
                 dims = list(t.dims)
                 dtype = dict(kind='sparse_tensor', shape=tuple(dims), elem=1)
-            elif hasattr(var.type, 'tensor_type') and var.type.tensor_type.elem_type > 0:
+            elif (hasattr(var.type, 'tensor_type') and
+                    var.type.tensor_type.elem_type > 0):
                 t = var.type.tensor_type
                 elem_type = _elem_type_as_str(t.elem_type)
                 shape = t.shape
@@ -316,25 +328,45 @@ def _var_as_dict(var):
                     dims = '?'
                 dtype = dict(kind='tensor', elem=elem_type,
                              shape=tuple(dims))
-            elif hasattr(var.type, 'real') and var.type.real == 5 and hasattr(var, 'g'):
+            elif (hasattr(var.type, 'optional_type') and
+                    var.type.tensor_type.elem_type > 0):
+                t = var.type.optional_type
+                elem_type = _elem_type_as_str(t.elem_type)
+                shape = t.shape
+                dim = shape.dim
+                dims = [d.dim_value for d in dim]
+                if len(dims) == 0:
+                    dims = '?'
+                dtype = dict(kind='tensor', elem=elem_type,
+                             shape=tuple(dims), optional_type=True)
+            elif (hasattr(var.type, 'real') and var.type.real == 5 and
+                    hasattr(var, 'g')):
                 dtype = dict(kind='graph', elem=var.type.real)
-            elif hasattr(var.type, 'real') and var.type.real == 4 and hasattr(var, 't'):
+            elif (hasattr(var.type, 'real') and var.type.real == 4 and
+                    hasattr(var, 't')):
                 dtype = dict(kind='tensor', elem=var.type.real)
             elif hasattr(var.type, 'real'):
                 dtype = dict(kind='real', elem=var.type.real)
-            elif (hasattr(var.type, "sequence_type") and var.type.sequence_type is not None and
+            elif (hasattr(var.type, "sequence_type") and
+                    var.type.sequence_type is not None and
                     str(var.type.sequence_type.elem_type) != ''):
                 t = var.type.sequence_type
                 elem_type = _elem_type_as_str(t.elem_type)
                 dtype = dict(kind='sequence', elem=elem_type)
-            elif (hasattr(var.type, "map_type") and var.type.map_type is not None and
+            elif (hasattr(var.type, "map_type") and
+                    var.type.map_type is not None and
                     str(var.type.map_type.key_type) != '' and
                     str(var.type.map_type.value_type) != ''):
                 t = var.type.map_type
                 key_type = _elem_type_as_str(t.key_type)
                 value_type = _elem_type_as_str(t.value_type)
                 dtype = dict(kind='map', key=key_type, value=value_type)
-            elif hasattr(var.type, 'tensor_type') and var.type.tensor_type.elem_type == 0:
+            elif (hasattr(var.type, 'tensor_type') and
+                    var.type.tensor_type.elem_type == 0):
+                if hasattr(var.type, 'optional_type'):
+                    optional = var.type.optional_type
+                else:
+                    optional = None
                 t = var.type.tensor_type
                 elem_type = _elem_type_as_str(t.elem_type)
                 shape = t.shape
@@ -344,6 +376,8 @@ def _var_as_dict(var):
                     dims = '?'
                 dtype = dict(kind='tensor', elem=elem_type,
                              shape=tuple(dims))
+                if optional is not None:
+                    dtype['optional'] = _var_as_dict(optional)
             else:
                 raise NotImplementedError(  # pragma: no cover
                     "Unable to convert a type into a dictionary for '{}'. "
@@ -410,9 +444,11 @@ def _var_as_dict(var):
         return dict(name=var.name, value=data)
     if isinstance(var, str):
         return dict(name=var)
+    if str(var) == '':
+        return None
     raise NotImplementedError(  # pragma: no cover
         "Unable to guess which object it is type is %r value is %r."
-        "" % (type(var), var))
+        "" % (type(var), str(var)))
 
 
 def get_dtype_shape(obj):
@@ -677,26 +713,11 @@ def from_pb(obj):
         tt = obj.type.tensor_type
         elem = tt.elem_type
         shape = get_shape(tt)
-        if elem == TensorProto.FLOAT:  # pylint: disable=E1101
-            ty = numpy.float32
-        elif elem == TensorProto.BOOL:  # pylint: disable=E1101
-            ty = numpy.bool_
-        elif elem == TensorProto.DOUBLE:  # pylint: disable=E1101
-            ty = numpy.float64
-        elif elem == TensorProto.STRING:  # pylint: disable=E1101
-            ty = numpy.str_
-        elif elem == TensorProto.INT64:  # pylint: disable=E1101
-            ty = numpy.int64
-        elif elem == TensorProto.INT32:  # pylint: disable=E1101
-            ty = numpy.int32
-        elif elem == TensorProto.UINT8:  # pylint: disable=E1101
-            ty = numpy.uint8
-        elif elem == TensorProto.INT8:  # pylint: disable=E1101
-            ty = numpy.int8
-        else:
+        if elem not in TENSOR_TYPE_TO_NP_TYPE:
             raise NotImplementedError(
                 "Unsupported type '{}' (elem_type={}).".format(
                     type(obj.type.tensor_type), elem))
+        ty = TENSOR_TYPE_TO_NP_TYPE[elem].type
     else:
         raise NotImplementedError("Unsupported type '{}' as "
                                   "a string ({}).".format(

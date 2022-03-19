@@ -3,7 +3,7 @@
 """
 import os
 import unittest
-from numpy import array, float32, int64
+from numpy import array, float32, int64, int8
 from onnx import TensorProto
 from onnx.helper import (
     make_model, make_node, set_model_props, make_graph,
@@ -483,7 +483,360 @@ class TestOnnxBackEnd(ExtTestCase):
         for y, gy in zip(ys, goty):
             self.assertEqualArray(y, gy)
 
+    def test_onnx_backend_test_batchnorm_epsilon_training_mode(self):
+        name = 'test_batchnorm_epsilon_training_mode'
+        code = []
+        for te in enumerate_onnx_tests('node', lambda folder: folder == name):
+            code.append(te.to_python())
+        self.assertEqual(len(code), 1)
+        self.assertIn(
+            'def test_batchnorm_epsilon_training_mode(self):', code[0])
+        self.assertIn('from onnx.helper', code[0])
+        self.assertIn('for y, gy in zip(ys, goty):', code[0])
+        # if __name__ == '__main__':
+        #     print(code[0])
+
+    def test_batchnorm_epsilon_training_mode(self):
+
+        def create_model():
+            initializers = []
+            nodes = []
+            inputs = []
+            outputs = []
+
+            opsets = {'': 14}
+
+            inputs.append(make_tensor_value_info('x', 1, [2, 3, 4, 5]))
+            inputs.append(make_tensor_value_info('s', 1, [3]))
+            inputs.append(make_tensor_value_info('bias', 1, [3]))
+            inputs.append(make_tensor_value_info('mean', 1, [3]))
+            inputs.append(make_tensor_value_info('var', 1, [3]))
+            outputs.append(make_tensor_value_info('y', 1, [2, 3, 4, 5]))
+            outputs.append(make_tensor_value_info('output_mean', 1, [3]))
+            outputs.append(make_tensor_value_info('output_var', 1, [3]))
+
+            node = make_node(
+                'BatchNormalization',
+                ['x', 's', 'bias', 'mean', 'var'],
+                ['y', 'output_mean', 'output_var'],
+                epsilon=0.009999999776482582, training_mode=1, domain='')
+            nodes.append(node)
+
+            graph = make_graph(
+                nodes, 'test_batchnorm_epsilon_training_mode', inputs, outputs, initializers)
+
+            onnx_model = make_model(graph)
+            onnx_model.ir_version = 7
+            onnx_model.producer_name = 'backend-test'
+            onnx_model.producer_version = ''
+            onnx_model.domain = ''
+            onnx_model.model_version = 0
+            onnx_model.doc_string = ''
+            set_model_props(onnx_model, {})
+
+            del onnx_model.opset_import[:]  # pylint: disable=E1101
+            for dom, value in opsets.items():
+                op_set = onnx_model.opset_import.add()
+                op_set.domain = dom
+                op_set.version = value
+
+            return onnx_model
+
+        onnx_model = create_model()
+
+        oinf = OnnxInference(onnx_model)
+        xs = [
+            array([[[[0.40746182, 1.3439544, -0.818221, 0.08270994, -1.2910584],
+                     [-0.6611042, -1.180191, 0.19764264, 0.4139, 1.197322],
+                     [1.8833538, 0.7142238, 2.2843335, 1.5641025, 0.6111037],
+                     [-0.8773633, -1.6210876, -0.581673, -0.5378339, -1.5560237]],
+
+                    [[-0.05446484, -1.8112788, -0.6311752, -0.9281592, 1.490722],
+                     [0.19549933, -0.47160435, 1.8123547, -2.2941375, 0.65120935],
+                     [-1.1304965, -0.7773467, 1.1159384, 1.339453, -1.7674336],
+                     [0.42441246, 1.0893091, -0.38418567, 0.6322014, -0.5496559]],
+
+                    [[0.52112573, 0.10834955, 0.26166847, -0.91475534, 0.8582378],
+                     [0.09433429, -1.4859039, -1.9005842, -1.1375792, -1.7620388],
+                     [-0.2886232, 1.0479822, 0.24995755, 0.04690446, -1.032243],
+                     [0.4031857, -0.68405926, 1.2623222, -2.0055566, -0.3320304]]],
+
+                   [[[-0.2961004, -2.2183607, -0.18350288, 0.39230806, 0.2416348],
+                     [0.10393591, -0.8295712, 0.49275938, 0.09011279, -0.99756753],
+                     [-0.8000382, 0.20707558, 0.523463, -0.6993948, 0.9137058],
+                     [-0.6727848, 0.1333245, 0.426896, -0.01284939, -0.3522483]],
+
+                    [[0.8194666, 0.52198774, 1.1972599, -0.38248622, 0.6916619],
+                     [0.35388502, 1.0475854, -0.42389622, -3.5147681, -1.3431567],
+                     [1.4255061, 0.22858201, -0.25766376, 0.05037072, -1.3802109],
+                     [-0.26167208, -0.17937969, -0.6927706, 1.1378269, -0.16915725]],
+
+                    [[-0.7639137, -0.4980731, -0.3628911, 0.2639603, -0.6296419],
+                     [-0.47225842, -1.5133611, 1.1076247, 0.17623875, -0.9403535],
+                     [0.92959434, -1.0627949, -0.88640624, 1.9213469, -0.4597805],
+                     [-1.0890344, 0.98411727, -1.1592063, -0.4365371, 1.0092446]]]], dtype=float32),
+            array([0.7133896, -0.72805774, 0.83951646], dtype=float32),
+            array([1.239021, -1.7848039, -0.79618585], dtype=float32),
+            array([-1.4005413, -0.18435058, -1.3911932], dtype=float32),
+            array([0.0446123, 0.79979587, 0.07695644], dtype=float32),
+        ]
+        ys = [
+            array([[[[1.578124, 2.2737765, 0.6676531, 1.3368894, 0.31641638],
+                     [0.78436375, 0.3987717, 1.4222646, 1.5829065, 2.164854],
+                     [2.6744573, 1.8059952, 2.972316, 2.4373088, 1.7293949],
+                     [0.62372047, 0.07126164, 0.8433674, 0.8759323, 0.11959279]],
+
+                    [[-1.8009548, -0.66743493, -1.4288535, -1.2372355, -2.7979298],
+                     [-1.962235, -1.5318108, -3.0054517, -0.3558879, -2.2562652],
+                     [-1.1066847, -1.3345418, -2.5561147, -2.7003293, -0.69572437],
+                     [-2.109933, -2.538933, -1.5882145, -2.244001, -1.4814509]],
+
+                    [[-0.10020548, -0.46598074, -0.33011955, -1.3725895, 0.19852114],
+                     [-0.47840014, -1.878704, -2.2461667, -1.5700414, -2.1233969],
+                     [-0.81775206, 0.36666036, -0.340497, -0.5204294, -1.4766994],
+                     [-0.2047162, -1.1681616, 0.5565944, -2.3391862, -0.85621667]]],
+
+                   [[[1.0554986, -0.37240934, 1.1391392, 1.5668674, 1.4549432],
+                     [1.3526566, 0.6592218, 1.6414853, 1.3423884, 0.5344295],
+                     [0.68115973, 1.4292716, 1.6642929, 0.7559204, 1.9541761],
+                     [0.7756871, 1.3744873, 1.5925603, 1.2659053, 1.0137904]],
+
+                    [[-2.364827, -2.1728897, -2.6085844, -1.589311, -2.2823658],
+                     [-2.0644276, -2.5120122, -1.5625927, 0.43167925, -0.96947354],
+                     [-2.7558517, -1.9835804, -1.6698481, -1.8685961, -0.9455657],
+                     [-1.6672618, -1.720358, -1.3891113, -2.5702374, -1.7269537]],
+
+                    [[-1.2389234, -1.0033529, -0.8835634, -0.32808864, -1.1199405],
+                     [-0.9804776, -1.9030348, 0.41951156, -0.4058218, -1.395273],
+                     [0.26175272, -1.5037725, -1.3474684, 1.1405791, -0.9694205],
+                     [-1.5270243, 0.31006742, -1.589206, -0.9488237, 0.33233356]]]], dtype=float32),
+            array([-1.2653913, -0.17386518, -1.2785023], dtype=float32),
+            array([0.1313822, 0.84614456, 0.15801588], dtype=float32),
+        ]
+        feeds = {n: x for n, x in zip(oinf.input_names, xs)}
+        got = oinf.run(feeds)
+        goty = [got[k] for k in oinf.output_names]
+        for y, gy in zip(ys, goty):
+            self.assertEqualArray(y, gy)
+
+    def test_onnx_backend_test_clip_default_int8_inbounds(self):
+        name = 'test_clip_default_int8_inbounds'
+        code = []
+        for te in enumerate_onnx_tests('node', lambda folder: folder == name):
+            code.append(te.to_python())
+        self.assertEqual(len(code), 1)
+        self.assertIn('def test_clip_default_int8_inbounds(self):', code[0])
+        self.assertIn('from onnx.helper', code[0])
+        self.assertIn('for y, gy in zip(ys, goty):', code[0])
+        # if __name__ == '__main__':
+        #     print(code[0])
+
+    def test_clip_default_inbounds(self):
+
+        def create_model():
+            initializers = []
+            nodes = []
+            inputs = []
+            outputs = []
+
+            opsets = {'': 12}
+
+            inputs.append(make_tensor_value_info('x', 1, [3]))
+            outputs.append(make_tensor_value_info('y', 1, [3]))
+            node = make_node('Clip', ['x'], ['y'], domain='')
+            nodes.append(node)
+
+            graph = make_graph(nodes, 'test_clip_default_inbounds',
+                               inputs, outputs, initializers)
+
+            onnx_model = make_model(graph)
+            onnx_model.ir_version = 6
+            onnx_model.producer_name = 'backend-test'
+            onnx_model.producer_version = ''
+            onnx_model.domain = ''
+            onnx_model.model_version = 0
+            onnx_model.doc_string = ''
+            set_model_props(onnx_model, {})
+
+            del onnx_model.opset_import[:]  # pylint: disable=E1101
+            for dom, value in opsets.items():
+                op_set = onnx_model.opset_import.add()
+                op_set.domain = dom
+                op_set.version = value
+
+            return onnx_model
+
+        onnx_model = create_model()
+
+        oinf = OnnxInference(onnx_model)
+        xs = [array([-1., 0., 1.], dtype=float32)]
+        ys = [array([-1., 0., 1.], dtype=float32)]
+        feeds = {n: x for n, x in zip(oinf.input_names, xs)}
+        got = oinf.run(feeds)
+        goty = [got[k] for k in oinf.output_names]
+        for y, gy in zip(ys, goty):
+            self.assertEqualArray(y, gy)
+
+    def test_clip_default_int8_inbounds(self):
+
+        def create_model():
+            initializers = []
+            nodes = []
+            inputs = []
+            outputs = []
+
+            opsets = {'': 12}
+            inputs.append(make_tensor_value_info('x', 3, [3]))
+            outputs.append(make_tensor_value_info('y', 3, [3]))
+            nodes.append(make_node('Clip', ['x'], ['y'], domain=''))
+            graph = make_graph(nodes, 'test_clip_default_int8_inbounds',
+                               inputs, outputs, initializers)
+            onnx_model = make_model(graph)
+            onnx_model.ir_version = 6
+            onnx_model.producer_name = 'backend-test'
+            onnx_model.producer_version = ''
+            onnx_model.domain = ''
+            onnx_model.model_version = 0
+            onnx_model.doc_string = ''
+            set_model_props(onnx_model, {})
+
+            del onnx_model.opset_import[:]  # pylint: disable=E1101
+            for dom, value in opsets.items():
+                op_set = onnx_model.opset_import.add()
+                op_set.domain = dom
+                op_set.version = value
+
+            return onnx_model
+
+        onnx_model = create_model()
+
+        oinf = OnnxInference(onnx_model)
+        xs = [array([-1, 0, 1], dtype=int8)]
+        ys = [array([-1, 0, 1], dtype=int8)]
+        feeds = {n: x for n, x in zip(oinf.input_names, xs)}
+        got = oinf.run(feeds)
+        goty = [got[k] for k in oinf.output_names]
+        for y, gy in zip(ys, goty):
+            self.assertEqualArray(y, gy)
+
+    def test_onnx_backend_test_einsum_inner_prod(self):
+        name = 'test_einsum_inner_prod'
+        code = []
+        for te in enumerate_onnx_tests('node', lambda folder: folder == name):
+            code.append(te.to_python())
+        self.assertEqual(len(code), 1)
+        self.assertIn('def test_einsum_inner_prod(self):', code[0])
+        self.assertIn('from onnx.helper', code[0])
+        self.assertIn('for y, gy in zip(ys, goty):', code[0])
+        # if __name__ == '__main__':
+        #    print(code[0])
+
+    def test_einsum_inner_prod(self):
+
+        def create_model():
+            initializers = []
+            nodes = []
+            inputs = []
+            outputs = []
+
+            opsets = {'': 12}
+            inputs.append(make_tensor_value_info('x', 11, [5]))
+            inputs.append(make_tensor_value_info('y', 11, [5]))
+            outputs.append(make_tensor_value_info('z', 11, None))
+            node = make_node('Einsum', ['x', 'y'], ['z'], equation=b'i,i',
+                             domain='')
+            nodes.append(node)
+            graph = make_graph(nodes, 'test_einsum_inner_prod',
+                               inputs, outputs, initializers)
+
+            onnx_model = make_model(graph)
+            onnx_model.ir_version = 7
+            onnx_model.producer_name = 'backend-test'
+            onnx_model.producer_version = ''
+            onnx_model.domain = ''
+            onnx_model.model_version = 0
+            onnx_model.doc_string = ''
+            set_model_props(onnx_model, {})
+
+            del onnx_model.opset_import[:]  # pylint: disable=E1101
+            for dom, value in opsets.items():
+                op_set = onnx_model.opset_import.add()
+                op_set.domain = dom
+                op_set.version = value
+
+            return onnx_model
+
+        onnx_model = create_model()
+
+        oinf = OnnxInference(onnx_model)
+        xs = [array([1.76405235, 0.40015721, 0.97873798, 2.2408932, 1.86755799]),
+              array([-0.97727788, 0.95008842, -0.15135721, -0.10321885, 0.4105985])]
+        ys = [array(-0.95640957)]
+        feeds = {n: x for n, x in zip(oinf.input_names, xs)}
+        got = oinf.run(feeds)
+        goty = [got[k] for k in oinf.output_names]
+        for y, gy in zip(ys, goty):
+            self.assertEqualArray(y, gy)
+
+    def test_onnx_backend_test_identity_opt(self):
+        name = 'test_identity_opt'
+        code = []
+        for te in enumerate_onnx_tests('node', lambda folder: folder == name):
+            code.append(te.to_python())
+        self.assertEqual(len(code), 1)
+        self.assertIn('def test_identity_opt(self):', code[0])
+        self.assertIn('from onnx.helper', code[0])
+        self.assertIn('for y, gy in zip(ys, goty):', code[0])
+        # if __name__ == '__main__':
+        #     print(code[0])
+
+    def test_identity_opt(self):
+
+        def create_model():
+            initializers = []
+            nodes = []
+            inputs = []
+            outputs = []
+
+            opsets = {'': 16}
+            target_opset = 16  # subgraphs
+
+            inputs.append(make_tensor_value_info('opt_in', 0, None))
+            outputs.append(make_tensor_value_info('opt_out', 0, None))
+            node = make_node('Identity', ['opt_in'], ['opt_out'], domain='')
+            nodes.append(node)
+            graph = make_graph(nodes, 'test_identity_opt',
+                               inputs, outputs, initializers)
+
+            onnx_model = make_model(graph)
+            onnx_model.ir_version = 8
+            onnx_model.producer_name = 'backend-test'
+            onnx_model.producer_version = ''
+            onnx_model.domain = ''
+            onnx_model.model_version = 0
+            onnx_model.doc_string = ''
+            set_model_props(onnx_model, {})
+
+            del onnx_model.opset_import[:]  # pylint: disable=E1101
+            for dom, value in opsets.items():
+                op_set = onnx_model.opset_import.add()
+                op_set.domain = dom
+                op_set.version = value
+
+            return onnx_model
+
+        onnx_model = create_model()
+
+        oinf = OnnxInference(onnx_model)
+        xs = ['input_0.pb']
+        ys = ['output_0.pb']
+        feeds = {n: x for n, x in zip(oinf.input_names, xs)}
+        got = oinf.run(feeds)
+        goty = [got[k] for k in oinf.output_names]
+        for y, gy in zip(ys, goty):
+            self.assertEqualArray(y, gy)
+
 
 if __name__ == "__main__":
-    # TestOnnxBackEnd().test_averagepool_2d_ceil()
+    # TestOnnxBackEnd().test_identity_opt()
     unittest.main()

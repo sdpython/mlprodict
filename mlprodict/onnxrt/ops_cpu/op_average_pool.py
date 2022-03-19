@@ -125,7 +125,8 @@ def _pool(padded, x_shape, kernel_shape, strides_shape,
         if count_include_pad == 1 and pooling_type == 'AVG':
             y[shape] = fpool(window_vals)
         else:
-            y[shape] = fpool(window_vals[numpy.where(~numpy.isnan(window_vals))])
+            y[shape] = fpool(
+                window_vals[numpy.where(~numpy.isnan(window_vals))])
     return y.astype(numpy.float32)
 
 
