@@ -53,6 +53,25 @@ class TestXOpsFunction(ExtTestCase):
         got = oinf.run({'X': x})
         self.assertEqualArray((x + numpy.abs(x)) / 2, got['Y'])
 
+    def test_onnx_function_initializer(self):
+        OnnxAbs, OnnxAdd, OnnxDiv, OnnxIdentity = loadop(
+            "Abs", "Add", "Div", "Identity")
+        ov = OnnxAbs('X')
+        ad = OnnxAdd(ov, numpy.array([1], dtype=numpy.float32),
+                     output_names=['Y'])
+
+        a = OnnxIdentity('X')
+        op = OnnxDiv(ad('X'), numpy.array([2], dtype=numpy.float32),
+                     output_names=['Y'])
+        onx = op.to_onnx(numpy.float32, numpy.float32)
+        self.assertNotIn('op_type: "AbsAdd"', str(onx))
+        self.assertIn('function', str(onx))
+
+        oinf = OnnxInference(onx)
+        x = numpy.array([-2, 2], dtype=numpy.float32)
+        got = oinf.run({'X': x})
+        self.assertEqualArray((numpy.abs(x) + 1) / 2, got['Y'])
+
 
 if __name__ == "__main__":
     unittest.main(verbosity=2)

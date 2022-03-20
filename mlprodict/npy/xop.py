@@ -1419,10 +1419,9 @@ class OnnxOperator(OnnxOperatorBase):
         """
         # opsets
         logger.debug(
-            "%s.to_onnx(%r, %r, other_outputs=%r, target_opset=%r, "
-            "function_name=%r)",
+            "%s.to_onnx(%r, %r, other_outputs=%r, target_opset=%r, as_function=%r)",
             self.__class__.__name__, inputs, outputs,
-            other_outputs, target_opset, function_name)
+            other_outputs, target_opset, as_function=function_name is not None)
         if isinstance(target_opset, dict):
             dom = self.domain or ''
             target_opset = target_opset.get(dom, None)
@@ -1824,6 +1823,8 @@ class OnnxOperatorFunction(OnnxOperator):
         n_outputs = len(self.model.output)
         outputs = [builder.get_unique_output_name(NodeResultName(self, i))
                    for i in range(n_outputs)]
+
+        mapped_names = {}
 
         # linking inputs
         builder.add_function(self.model)
@@ -2267,12 +2268,18 @@ class _GraphBuilder:
             if function_domain is None:
                 function_domain = 'mlprodict'
             if len(self.initializer) > 0:
-                raise NotImplementedError('yet')
+                nodes = self.node.copy()
+                for init in self.initializer:
+                    nodes.append(
+                        make_node('Constant', [], [init.name], value=init,
+                                  name='_init_%s' % init.name))
+            else:
+                nodes = self.node
             fct = make_function(
                 function_domain, function_name,
                 [_.name for _ in self.input],
                 [_.name for _ in self.output],
-                self.node,
+                nodes,
                 [make_opsetid(k, v) for k, v in self.opsets.items()])
             if optim:
                 from ..onnx_tools.optim import onnx_optimisations
