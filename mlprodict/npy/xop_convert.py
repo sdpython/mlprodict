@@ -106,7 +106,7 @@ class OnnxSubOnnx(OnnxOperator):
 
             atts = {}
             for att in node.attribute:
-                atts[att.name] = OnnxFunction.attribute_to_value(value)
+                atts[att.name] = OnnxOperatorFunction.attribute_to_value(att)
 
             builder.add_node(
                 node.op_type,

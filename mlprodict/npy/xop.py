@@ -15,7 +15,7 @@ import onnx
 from onnx import GraphProto, TensorProto
 from onnx.helper import (
     make_node, make_graph, make_model,
-    make_tensor_value_info)
+    make_tensor_value_info, make_function, make_opsetid)
 from onnx.numpy_helper import from_array, to_array
 from onnx.shape_inference import infer_shapes
 from ._cache import cache_folder
@@ -1391,7 +1391,7 @@ class OnnxOperator(OnnxOperatorBase):
     def to_onnx(self, inputs=None, outputs=None,
                 other_outputs=None, target_opset=None,
                 optim=True, verbose=0, run_shape=True,
-                as_function=False):
+                function_name=None, function_domain=None):
         """
         Converts this operator into an ONNX graph.
 
@@ -1411,15 +1411,16 @@ class OnnxOperator(OnnxOperatorBase):
             to guess them, False would disable that
             default behaviour
         :param verbose: prints information
-        :param as_function: returns a :epkg:`FunctionProto` instead of
-            :epkg:`ModelProto`
+        :param function_name: if not None, returns a :epkg:`FunctionProto`
+        :param function_domain: in case of a function, declares the function
+            as part of this domain
         :return ONNX stucture
         """
         # opsets
         logger.debug(
             "%s.to_onnx(%r, %r, other_outputs=%r, target_opset=%r, as_function=%r)",
             self.__class__.__name__, inputs, outputs,
-            other_outputs, target_opset, as_function)
+            other_outputs, target_opset, as_function=function_name is not None)
         if isinstance(target_opset, dict):
             dom = self.domain or ''
             target_opset = target_opset.get(dom, None)
@@ -1445,7 +1446,7 @@ class OnnxOperator(OnnxOperatorBase):
 
         # get the graph
         nodes, graph_inputs, graph_outputs, run_shape2 = self._node_to_graph(
-            other_outputs, inputs, outputs, as_function=as_function)
+            other_outputs, inputs, outputs, as_function=function_name is not None)
         logger.debug("%s.to_onnx:graph_inputs=%r",
                      self.__class__.__name__, graph_inputs)
         logger.debug("%s.to_onnx:graph_outputs=%r",
@@ -1485,14 +1486,15 @@ class OnnxOperator(OnnxOperatorBase):
         return builder.to_onnx(
             inputs=graph_inputs, outputs=graph_outputs,
             target_opset=target_opset, verbose=verbose,
-            optim=optim, run_shape=run_shape and run_shape2)
+            optim=optim, run_shape=run_shape and run_shape2,
+            function_name=function_name, function_domain=function_domain)
 
     def __call__(self, *args, **kwargs):
         """
         Creates an instance of class @see cl OnnxOperatorFunction.
         Equivalent to `OnnxOperatorFunction(proto, *args, **kwargs)`.
         """
-        onx = self.to_onnx(as_function=True)
+        onx = self.to_onnx(function_name=self.get_function_name())
         return OnnxOperatorFunction(onx, *args, **kwargs)
 
     @staticmethod
@@ -1744,17 +1746,17 @@ class OnnxOperatorFunction(OnnxOperator):
             raise TypeError(
                 "function_proto must be of type FunctionProto not %r." %
                 type(function_proto))
-        if len(inputs) > len(model.graph.input):
+        if len(inputs) > len(function_proto.input):
             raise RuntimeError(  # pragma: no cover
                 "Unexpected number of inputs %r > expected %r." % (
-                    len(inputs), len(model.graph.input)))
+                    len(inputs), len(function_proto.input)))
         if (output_names is not None and
-                len(output_names) != len(model.graph.output)):
+                len(output_names) != len(function_proto.output)):
             raise RuntimeError(  # pragma: no cover
                 "Unexpected number of outputs %r != expected %r." % (
-                    len(output_names), len(model.graph.output)))
+                    len(output_names), len(function_proto.output)))
         OnnxOperator.__init__(self, *inputs, output_names=output_names)
-        self.model = model
+        self.model = function_proto
 
     def __repr__(self):
         "usual"
@@ -1779,7 +1781,7 @@ class OnnxOperatorFunction(OnnxOperator):
         """
         logger.debug("Function.add_to(builder)")
         inputs = builder.get_input_names(self, self.inputs)
-        n_outputs = len(self.model.graph.output)
+        n_outputs = len(self.model.output)
         outputs = [builder.get_unique_output_name(NodeResultName(self, i))
                    for i in range(n_outputs)]
 
@@ -1787,15 +1789,15 @@ class OnnxOperatorFunction(OnnxOperator):
 
         # linking inputs
         for inp, name in zip(self.model.input, inputs):
-            new_name = builder.get_unique_name(inp.name, reserved=False)
-            mapped_names[inp.name] = new_name
+            new_name = builder.get_unique_name(inp, reserved=False)
+            mapped_names[inp] = new_name
             builder.add_node(
                 'Identity', builder.get_unique_name(
                     '_sub_' + name, reserved=False),
                 [name], [new_name])
 
         # adding nodes
-        for node in self.graph.node:
+        for node in self.model.node:
             new_inputs = []
             for i in node.input:
                 if i not in mapped_names:
@@ -1818,11 +1820,11 @@ class OnnxOperatorFunction(OnnxOperator):
                 new_inputs, new_outputs, domain=node.domain, **atts)
 
         # linking outputs
-        for out, name in zip(self.model.graph.output, outputs):
+        for out, name in zip(self.model.output, outputs):
             builder.add_node(
                 'Identity', builder.get_unique_name(
-                    '_sub_' + out.name, reserved=False),
-                [mapped_names[out.name]], [name])
+                    '_sub_' + out, reserved=False),
+                [mapped_names[out]], [name])
 
 
 class _GraphBuilder:
@@ -2180,7 +2182,8 @@ class _GraphBuilder:
 
     def to_onnx(self, inputs=None, outputs=None,
                 target_opset=None, run_shape=False,
-                optim=True, verbose=0):
+                optim=True, function_name=None,
+                function_domain=None, verbose=0):
         """
         Converts this operator into an ONNX graph.
 
@@ -2192,6 +2195,10 @@ class _GraphBuilder:
         :param run_shape: run shape inference before returning the model
         :param optim: optimize the model with function
             @see fn onnx_optimisations
+        :param function_name: if not None builds a :epkg:`FunctionProto`
+            use this name
+        :param function_domain: in case of a function, declares the function
+            as part of this domain
         :param verbose: prints information
         :return: onnx graph
         """
@@ -2215,57 +2222,70 @@ class _GraphBuilder:
                      len(self.input), len(self.initializer), len(self.node),
                      len(self.output))
 
-        graph = make_graph(
-            self.node, 'XOP', self.input, self.output, self.initializer)
-        onnx_model = make_model(graph)
-        opv = self.opsets.get('', max_supported_opset())
-        opset2ir = _default_OPSET_TO_IR_VERSION()
-        irv = opset2ir.get(opv, max(opset2ir.values()))
-        onnx_model.ir_version = irv
+        if function_name is not None:
+            if function_domain is None:
+                function_domain = 'mlprodict'
+            if len(self.initializer) > 0:
+                raise NotImplementedError('yet')
+            fct = make_function(
+                function_domain, function_name,
+                [_.name for _ in self.input],
+                [_.name for _ in self.output],
+                self.node,
+                [make_opsetid(k, v) for k, v in self.opsets.items()])
+            return fct
+        else:
+            graph = make_graph(
+                self.node, 'XOP', self.input, self.output, self.initializer)
+            onnx_model = make_model(graph)
+            opv = self.opsets.get('', max_supported_opset())
+            opset2ir = _default_OPSET_TO_IR_VERSION()
+            irv = opset2ir.get(opv, max(opset2ir.values()))
+            onnx_model.ir_version = irv
 
-        logger.debug("_GraphBuilder.to_onnx:2onnx:n_inputs=%r n_inits=%r "
-                     "n_nodes=%r n_outputs=%r",
-                     len(onnx_model.graph.input),
-                     len(onnx_model.graph.initializer),
-                     len(onnx_model.graph.node),
-                     len(onnx_model.graph.output))
+            logger.debug("_GraphBuilder.to_onnx:2onnx:n_inputs=%r n_inits=%r "
+                         "n_nodes=%r n_outputs=%r",
+                         len(onnx_model.graph.input),
+                         len(onnx_model.graph.initializer),
+                         len(onnx_model.graph.node),
+                         len(onnx_model.graph.output))
 
-        del onnx_model.opset_import[:]  # pylint: disable=E1101
-        seen_opset = set()
-        for k, v in self.opsets.items():
-            if (k or '') in seen_opset:
-                raise RuntimeError(
-                    "Duplicated opset (%r, %r)." % (k, v))
-            op_set = onnx_model.opset_import.add()  # pylint: disable=E1101
-            op_set.domain = k or ''
-            op_set.version = v
-            seen_opset.add(op_set.domain)
+            del onnx_model.opset_import[:]  # pylint: disable=E1101
+            seen_opset = set()
+            for k, v in self.opsets.items():
+                if (k or '') in seen_opset:
+                    raise RuntimeError(
+                        "Duplicated opset (%r, %r)." % (k, v))
+                op_set = onnx_model.opset_import.add()  # pylint: disable=E1101
+                op_set.domain = k or ''
+                op_set.version = v
+                seen_opset.add(op_set.domain)
 
-        # optimisation, remove redundant constant, unnecessary
-        # identity nodes.
-        if optim:
-            from ..onnx_tools.optim import onnx_optimisations
-            onnx_model = onnx_optimisations(onnx_model)
+            # optimisation, remove redundant constant, unnecessary
+            # identity nodes.
+            if optim:
+                from ..onnx_tools.optim import onnx_optimisations
+                onnx_model = onnx_optimisations(onnx_model)
 
-        logger.debug("_GraphBuilder.to_onnx:optim:n_inputs=%r n_inits=%r "
-                     "n_nodes=%r n_outputs=%r",
-                     len(onnx_model.graph.input),
-                     len(onnx_model.graph.initializer),
-                     len(onnx_model.graph.node),
-                     len(onnx_model.graph.output))
+            logger.debug("_GraphBuilder.to_onnx:optim:n_inputs=%r n_inits=%r "
+                         "n_nodes=%r n_outputs=%r",
+                         len(onnx_model.graph.input),
+                         len(onnx_model.graph.initializer),
+                         len(onnx_model.graph.node),
+                         len(onnx_model.graph.output))
 
-        if run_shape:
-            with_shape = infer_shapes(onnx_model)
-            logger.debug("_GraphBuilder.to_onnx:shape:n_inputs=%r "
-                         "n_inits=%r n_nodes=%r n_outputs=%r",
-                         len(with_shape.graph.input),
-                         len(with_shape.graph.initializer),
-                         len(with_shape.graph.node),
-                         len(with_shape.graph.output))
-            return with_shape
+            if run_shape:
+                with_shape = infer_shapes(onnx_model)
+                logger.debug("_GraphBuilder.to_onnx:shape:n_inputs=%r "
+                             "n_inits=%r n_nodes=%r n_outputs=%r",
+                             len(with_shape.graph.input),
+                             len(with_shape.graph.initializer),
+                             len(with_shape.graph.node),
+                             len(with_shape.graph.output))
+                return with_shape
 
-        logger.debug("_GraphBuilder.to_onnx() -> done")
-        return onnx_model
+            logger.debug("_GraphBuilder.to_onnx() -> done")
+            return onnx_model
 
 
 _all_schemas, _all_schemas_versions, _all_domains = _populate_schemas()

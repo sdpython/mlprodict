@@ -20,12 +20,14 @@ class TestXOpsFunction(ExtTestCase):
             "Abs", "Add", "Div", "Identity")
         ov = OnnxAbs('X')
         ad = OnnxAdd('X', ov, output_names=['Y'])
-        proto = ad.to_onnx(as_function=True)
+        proto = ad.to_onnx(function_name='AddAbs')
 
         a = OnnxIdentity('X')
-        onx = OnnxDiv(a, OnnxOperatorFunction(proto, 'X'),
+        op = OnnxDiv(OnnxOperatorFunction(proto, 'X'),
                       numpy.array([2], dtype=numpy.float32),
-                      output_names['Y'])
+                      output_names=['Y'])
+        onx = op.to_onnx(numpy.float32, numpy.float32)
+        self.assertIn('function', str(onx))
 
         oinf = OnnxInference(onx)
         x = numpy.array([-2, 2], dtype=numpy.float32)
@@ -39,8 +41,10 @@ class TestXOpsFunction(ExtTestCase):
         ad = OnnxAdd('X', ov, output_names=['Y'])
 
         a = OnnxIdentity('X')
-        onx = OnnxDiv(a, ad('X'), numpy.array([2], dtype=numpy.float32),
-                      output_names['Y'])
+        op = OnnxDiv(ad('X'), numpy.array([2], dtype=numpy.float32),
+                     output_names['Y'])
+        onx = op.to_onnx(numpy.float32, numpy.float32)
+        self.assertIn('function', str(onx))
 
         oinf = OnnxInference(onx)
         x = numpy.array([-2, 2], dtype=numpy.float32)
