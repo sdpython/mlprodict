@@ -17,10 +17,25 @@ def {{ function_name }}():
     
     print('[operators]')   # verbose
     OnnxIdentity = loadop('Identity')
-    {% for name in select_attribute(nodes, 'op_type', unique=True, sort=True): -%}
+    {% for name in select_attribute(nodes, 'op_type', unique=True, sort=True, skip=functions_dict): -%}
     {%- if name != 'Identity': %}Onnx{{ name }} = loadop('{{ name }}')
     {% endif %}{% endfor %}
-    
+
+    {% for domain, name, fct in functions: %}
+    # function: '{{ domain }}', '{{ name }}'
+    print("[functions] domain='{{ domain }}', name='{{ name }}")  # verbose
+    {% for node in fct['nodes']: -%}
+    {{ ', '.join(node['outputs']) }} = Onnx{{ node['op_type'] }}({{ ', '.join(node['inputs']) }}{% if len(node['inputs']) > 0 %},{% endif %}
+        {%- for name, value in node['attributes']: -%}
+        {{ name }}={{ value }},
+        {%- endfor -%}{%- if len(node['output_names']) > 0 -%}
+        output_names={{ repr(node['output_names']) }},
+        {%- endif -%}
+        {% if node['domain'] != '' %}domain='{{ node['domain'] }}', {% endif %}op_version={{ opsets[node['domain']] }})
+    {% endfor %}
+    Onnx{{ fct['proto'].name }} = {{ fct['proto'].output[0] }}({{ ', '.join(fct['proto'].input) }})
+    {% endfor %}
+
     # inputs
     print('[inputs]')   # verbose
     var_inputs = []
@@ -70,8 +85,8 @@ def {{ function_name }}():
 
     # nodes
     print('[nodes]')   # verbose
-    {% for node in nodes: %}
-    {{ ', '.join(node['outputs']) }} = Onnx{{ node['op_type'] }}({{ ', '.join(node['inputs']) }},        
+    {% for node in nodes: -%}
+    {{ ', '.join(node['outputs']) }} = Onnx{{ node['op_type'] }}({{ ', '.join(node['inputs']) }}{% if len(node['inputs']) > 0 %},{% endif %}
         {%- for name, value in node['attributes']: -%}
         {{ name }}={{ value }},
         {%- endfor -%}{%- if len(node['output_names']) > 0 -%}

@@ -1421,7 +1421,7 @@ class OnnxOperator(OnnxOperatorBase):
         logger.debug(
             "%s.to_onnx(%r, %r, other_outputs=%r, target_opset=%r, as_function=%r)",
             self.__class__.__name__, inputs, outputs,
-            other_outputs, target_opset, as_function=function_name is not None)
+            other_outputs, target_opset, function_name)
         if isinstance(target_opset, dict):
             dom = self.domain or ''
             target_opset = target_opset.get(dom, None)
@@ -1824,8 +1824,6 @@ class OnnxOperatorFunction(OnnxOperator):
         outputs = [builder.get_unique_output_name(NodeResultName(self, i))
                    for i in range(n_outputs)]
 
-        mapped_names = {}
-
         # linking inputs
         builder.add_function(self.model)
         builder.add_node(
@@ -2054,7 +2052,8 @@ class _GraphBuilder:
         return val
 
     def add_function(self, function_proto,
-                     raise_if_exist=False, check_unique=True):
+                     raise_if_exist=False, check_unique=True,
+                     opset=1):
         """
         Adds a function to the graph.
 
@@ -2063,6 +2062,7 @@ class _GraphBuilder:
             same name was already added
         :param check_unique: checks if a function was added twice,
             it is the same
+        :param opset: opset for the domain the function belongs to
         """
         def _hash(p):
             m = hashlib.sha256()
@@ -2083,6 +2083,12 @@ class _GraphBuilder:
                 return
         self.functions[key] = function_proto
         self.function_hashes[key] = _hash(function_proto)
+
+        if function_proto.domain not in self.opsets:
+            self.opsets[function_proto.domain] = opset
+        else:
+            self.opsets[function_proto.domain] = max(
+                opset, self.opsets[function_proto.domain])
 
     def add_node(self, op_type, name, inputs, outputs, domain='',
                  opset=None, **attributes):
@@ -2268,11 +2274,12 @@ class _GraphBuilder:
             if function_domain is None:
                 function_domain = 'mlprodict'
             if len(self.initializer) > 0:
-                nodes = self.node.copy()
+                nodes = []
                 for init in self.initializer:
                     nodes.append(
                         make_node('Constant', [], [init.name], value=init,
                                   name='_init_%s' % init.name))
+                nodes.extend(self.node)
             else:
                 nodes = self.node
             fct = make_function(

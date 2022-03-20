@@ -1458,7 +1458,46 @@ class TestExportOnnx(ExtTestCase):
                     if name == 'fft2d_any.onnx':
                         self.assertEqualArray(y['y'], y2['y'])
 
+    def test_export_function(self):
+        # ONNX
+        OnnxAbs, OnnxAdd, OnnxDiv, OnnxIdentity = loadop(
+            "Abs", "Add", "Div", "Identity")
+        ov = OnnxAbs('X')
+        ad = OnnxAdd(ov, numpy.array([1], dtype=numpy.float32),
+                     output_names=['Y'])
+
+        a = OnnxIdentity('X')
+        op = OnnxDiv(ad('X'), numpy.array([2], dtype=numpy.float32),
+                     output_names=['Y'])
+        onx = op.to_onnx(numpy.float32, numpy.float32)
+        
+        for rt in ['onnxruntime1', 'python']:
+            with self.subTest(rt=rt):
+                oinf0 = OnnxInference(onx, runtime=rt)
+                x = numpy.random.randn(3, 1, 4).astype(numpy.float32)
+                new_onnx = export2xop(onx, name="TEST")
+                _, loc = self.verify_xop(new_onnx, onx)
+                model = loc['onnx_model']
+
+                try:
+                    oinf = OnnxInference(model, runtime=rt)
+                except RuntimeError as e:
+                    raise AssertionError(
+                        "Issue with\n-----\n%s\n--CODE--\n%s\n--GOT--\n%s" % (
+                            onnx_simple_text_plot(onx_graph), new_onnx,
+                            onnx_simple_text_plot(model))) from e
+                y = oinf0.run({'X': x})
+                y1 = oinf.run({'X': x})
+
+                new_onnx = export2xop(onx, name="TEST")
+                _, loc = self.verify_xop(new_onnx, onx_graph)
+                model = loc['onnx_model']
+                oinf = OnnxInference(model, runtime=rt)
+                y2 = oinf.run({'X': x})
+                self.assertEqual(y['Y'], y1['Y'])
+                self.assertEqual(y['Y'], y2['Y'])
+
 
 if __name__ == "__main__":
-    # TestExportOnnx().test_export_xop()
+    # TestExportOnnx().test_export_function()
     unittest.main(verbosity=2)
