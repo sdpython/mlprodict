@@ -211,6 +211,8 @@ class OpRun:
                     "\n".join(str(_) for _ in args),
                     pprint.pformat(args),
                     pprint.pformat(kwargs))) from e
+        if res is None:
+            return res
         if not isinstance(res, tuple):
             raise TypeError(  # pragma: no cover
                 "res must be tuple not {} (operator '{}')".format(
@@ -622,6 +624,8 @@ class OpRunBinary(OpRun):
         We assume the operator returns the biggest
         shapes as the operator could be using broacasting.
         """
+        if x is None or y is None:
+            return None
         try:
             res = x.broadcast(y)
             add = "broadcast"

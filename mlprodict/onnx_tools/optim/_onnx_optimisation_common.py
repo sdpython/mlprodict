@@ -28,7 +28,7 @@ def _apply_optimisation_on_graph(fct, onnx_model, recursive=True, debug_info=Non
         graph = fct(
             onnx_model.graph, debug_info=debug_info + ['GRAPH'],
             **kwargs)
-        new_model = make_model(graph)
+        new_model = make_model(graph, functions=onnx_model.functions)
         new_model.ir_version = onnx_model.ir_version
         new_model.producer_name = onnx_model.producer_name
         new_model.producer_version = onnx_model.producer_version

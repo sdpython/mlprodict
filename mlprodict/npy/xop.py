@@ -8,6 +8,7 @@
 import os
 import pprint
 import logging
+import hashlib
 from collections import OrderedDict
 import numpy
 from scipy.sparse.coo import coo_matrix
@@ -1489,12 +1490,50 @@ class OnnxOperator(OnnxOperatorBase):
             optim=optim, run_shape=run_shape and run_shape2,
             function_name=function_name, function_domain=function_domain)
 
-    def __call__(self, *args, **kwargs):
+    def predecessors(self):
+        """
+        Returns the list of predecessors.
+
+        :return: list of @see cl OnnxOperator
+        """
+        stack = [self]
+        last = 0
+        while True:
+            end = len(stack)
+            if end == last:
+                break
+            for i in range(last, end):
+                node = stack[i]
+                for inp in node.inputs:
+                    if isinstance(inp, OnnxOperatorBase):
+                        stack.append(inp)
+            last = end
+        return stack
+
+    def __call__(self, *args, function_name=None, function_domain=None,
+                 **kwargs):
         """
         Creates an instance of class @see cl OnnxOperatorFunction.
         Equivalent to `OnnxOperatorFunction(proto, *args, **kwargs)`.
+
+        :param args: see @see cl OnnxOperatorFunction
+        :param function_name: name to be given to the function
+        :param function_domain: function domain, if None,
+            it is given a default value
+        :param kwargs: see @see cl OnnxOperatorFunction
+        :return: instance of type @see cl OnnxOperatorFunction
         """
-        onx = self.to_onnx(function_name=self.get_function_name())
+        if function_name is None:
+            def clean(name):
+                if name.startswith("Onnx"):
+                    name = name[4:]
+                return name
+
+            pred = self.predecessors()
+            cls = [clean(p.__class__.__name__) for p in pred]
+            function_name = "".join(cls)
+        onx = self.to_onnx(function_name=function_name,
+                           function_domain=function_domain)
         return OnnxOperatorFunction(onx, *args, **kwargs)
 
     @staticmethod
@@ -1788,43 +1827,11 @@ class OnnxOperatorFunction(OnnxOperator):
         mapped_names = {}
 
         # linking inputs
-        for inp, name in zip(self.model.input, inputs):
-            new_name = builder.get_unique_name(inp, reserved=False)
-            mapped_names[inp] = new_name
-            builder.add_node(
-                'Identity', builder.get_unique_name(
-                    '_sub_' + name, reserved=False),
-                [name], [new_name])
-
-        # adding nodes
-        for node in self.model.node:
-            new_inputs = []
-            for i in node.input:
-                if i not in mapped_names:
-                    raise RuntimeError(  # pragma: no cover
-                        "Unable to find input %r in %r." % (i, mapped_names))
-                new_inputs.append(mapped_names[i])
-            new_outputs = []
-            for o in node.output:
-                new_name = builder.get_unique_name(o, reserved=False)
-                mapped_names[o] = new_name
-                new_outputs.append(new_name)
-
-            atts = {}
-            for att in node.attribute:
-                atts[att.name] = OnnxFunction.attribute_to_value(value)
-
-            builder.add_node(
-                node.op_type,
-                builder.get_unique_name('_sub_' + node.name, reserved=False),
-                new_inputs, new_outputs, domain=node.domain, **atts)
-
-        # linking outputs
-        for out, name in zip(self.model.output, outputs):
-            builder.add_node(
-                'Identity', builder.get_unique_name(
-                    '_sub_' + out, reserved=False),
-                [mapped_names[out]], [name])
+        builder.add_function(self.model)
+        builder.add_node(
+            self.model.name, builder.get_unique_name(
+                '_fct_' + self.model.name, reserved=False),
+            inputs, outputs, domain=self.model.domain)
 
 
 class _GraphBuilder:
@@ -1846,6 +1853,8 @@ class _GraphBuilder:
     * `reserved_names`: dictionary `{ name : (node, index) }`,
         name which should remain unchanged in the ONNX graph
     * `names`: list of uniques names
+    * `functions`: dictionary `{ domain, name: function_proto }`
+    * `function_hashes`: dictionary `{ domain, name: hash of function_proto }`
     """
 
     def __init__(self):
@@ -1858,6 +1867,8 @@ class _GraphBuilder:
         self.node_output_names = {}
         self.reserved_names = {}
         self.names = set()
+        self.functions = {}
+        self.function_hashes = {}
 
     def _add_name(self, name):
         self.names.add(name)
@@ -2042,6 +2053,37 @@ class _GraphBuilder:
         self.initializer.append(val)
         return val
 
+    def add_function(self, function_proto,
+                     raise_if_exist=False, check_unique=True):
+        """
+        Adds a function to the graph.
+
+        :param function_proto: instance of type :epkg:`FunctionProto`
+        :param raise_if_exist: raises an exception if a function of the
+            same name was already added
+        :param check_unique: checks if a function was added twice,
+            it is the same
+        """
+        def _hash(p):
+            m = hashlib.sha256()
+            m.update(p.SerializeToString())
+            return m.hexdigest()[:64]
+
+        key = function_proto.domain, function_proto.name
+        if key in self.functions:
+            if raise_if_exist:
+                raise RuntimeError(
+                    "Function %r is added for the second time." % (key, ))
+            if check_unique:
+                hs = _hash(function_proto)
+                if hs != self.function_hashes[key]:
+                    raise RuntimeError(
+                        "Function %r is added for the second time "
+                        "and the content is not the same." % (key, ))
+                return
+        self.functions[key] = function_proto
+        self.function_hashes[key] = _hash(function_proto)
+
     def add_node(self, op_type, name, inputs, outputs, domain='',
                  opset=None, **attributes):
         """
@@ -2198,7 +2240,7 @@ class _GraphBuilder:
         :param function_name: if not None builds a :epkg:`FunctionProto`
             use this name
         :param function_domain: in case of a function, declares the function
-            as part of this domain
+            as part of this domain, `'mlprodict'` if None
         :param verbose: prints information
         :return: onnx graph
         """
@@ -2233,11 +2275,15 @@ class _GraphBuilder:
                 [_.name for _ in self.output],
                 self.node,
                 [make_opsetid(k, v) for k, v in self.opsets.items()])
+            if optim:
+                from ..onnx_tools.optim import onnx_optimisations
+                fct = onnx_optimisations(fct)
             return fct
         else:
             graph = make_graph(
                 self.node, 'XOP', self.input, self.output, self.initializer)
-            onnx_model = make_model(graph)
+            onnx_model = make_model(
+                graph, functions=list(self.functions.values()))
             opv = self.opsets.get('', max_supported_opset())
             opset2ir = _default_OPSET_TO_IR_VERSION()
             irv = opset2ir.get(opv, max(opset2ir.values()))

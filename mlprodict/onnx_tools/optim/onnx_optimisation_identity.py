@@ -3,7 +3,8 @@
 @brief Optimisation of :epkg:`ONNX` graphs.
 """
 import logging
-from onnx.helper import make_graph
+from onnx import FunctionProto
+from onnx.helper import make_graph, make_function
 from ._onnx_optimisation_common import (  # pylint: disable=E0611
     _rename_node_input,
     _rename_node_output,
@@ -42,11 +43,16 @@ def onnx_remove_node_identity(onnx_model, recursive=True, debug_info=None, **opt
             recursive=recursive, debug_info=debug_info, **options)
 
     graph = onnx_model
+    is_function = isinstance(graph, FunctionProto)
 
-    inputs = set(i.name for i in graph.input)
-    inits = set(i.name for i in graph.initializer)
-    inputs_inits = inputs.union(inits)
-    outputs = set(o.name for o in graph.output)
+    if is_function:
+        inputs = set(graph.input)
+        outputs = set(graph.output)
+    else:
+        inputs = set(i.name for i in graph.input)
+        inits = set(i.name for i in graph.initializer)
+        inputs_inits = inputs.union(inits)
+        outputs = set(o.name for o in graph.output)
 
     def retrieve_idnodes(graph, existing_nodes):
         idnodes = []
@@ -132,6 +138,14 @@ def onnx_remove_node_identity(onnx_model, recursive=True, debug_info=None, **opt
 
     # Finally create the new graph.
     nodes = list(filter(lambda n: n is not None, nodes))
+    if is_function:
+        return make_function(
+            onnx_model.domain, onnx_model.name,
+            onnx_model.input, onnx_model.output, nodes,
+            opset_imports=onnx_model.opset_import,
+            attributes=onnx_model.attribute,
+            doc_string=onnx_model.doc_string)
+
     graph = make_graph(nodes, onnx_model.name,
                        onnx_model.input, onnx_model.output,
                        onnx_model.initializer)
