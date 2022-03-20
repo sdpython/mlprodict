@@ -6,7 +6,6 @@
 """
 import logging
 import numpy
-import onnx
 from .xop import OnnxOperator, OnnxOperatorFunction
 from .xop_variable import NodeResultName, Variable
 

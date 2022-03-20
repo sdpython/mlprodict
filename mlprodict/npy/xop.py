@@ -1419,9 +1419,10 @@ class OnnxOperator(OnnxOperatorBase):
         """
         # opsets
         logger.debug(
-            "%s.to_onnx(%r, %r, other_outputs=%r, target_opset=%r, as_function=%r)",
+            "%s.to_onnx(%r, %r, other_outputs=%r, target_opset=%r, "
+            "function_name=%r)",
             self.__class__.__name__, inputs, outputs,
-            other_outputs, target_opset, as_function=function_name is not None)
+            other_outputs, target_opset, function_name)
         if isinstance(target_opset, dict):
             dom = self.domain or ''
             target_opset = target_opset.get(dom, None)
@@ -1823,8 +1824,6 @@ class OnnxOperatorFunction(OnnxOperator):
         n_outputs = len(self.model.output)
         outputs = [builder.get_unique_output_name(NodeResultName(self, i))
                    for i in range(n_outputs)]
-
-        mapped_names = {}
 
         # linking inputs
         builder.add_function(self.model)
