@@ -9,19 +9,29 @@ from pyquickhelper.pycode import ExtTestCase
 from mlprodict.onnxrt import OnnxInference
 from mlprodict.plotting.text_plot import onnx_simple_text_plot
 from mlprodict.onnx_tools.onnx2py_helper import get_dtype_shape
-from mlprodict.npy.xop import loadop
+from mlprodict.npy.xop import (
+    loadop, OnnxLoadFactory, _GraphBuilder, _domain_to_class_name)
 from mlprodict.npy.xop_auto import get_domain_list
 from mlprodict.npy.xop_variable import (
     Variable, max_supported_opset,
     numpy_type_prototype, is_numpy_dtype,
     InputDetectedVariable, OutputDetectedVariable)
-from mlprodict.npy.xop import _GraphBuilder
 from mlprodict.npy.xop_opset import (
     OnnxReduceSumApi11, OnnxSplitApi11, OnnxSqueezeApi11,
     OnnxUnsqueezeApi11, OnnxReduceL2_typed, OnnxReshapeApi13)
 
 
 class TestXOps(ExtTestCase):
+
+    def test_private(self):
+        v = _domain_to_class_name('ai.onnx')
+        self.assertEqual(v, '')
+        v = _domain_to_class_name('o')
+        self.assertEqual(v, 'O')
+
+    def test_private2(self):
+        v = OnnxLoadFactory()
+        self.assertIsInstance(v._loaded_classes, dict)
 
     def test_square_error_no_output_names(self):
         OnnxSub, OnnxMul = loadop('Sub', 'Mul')

@@ -276,31 +276,33 @@ class OnnxInferenceNode:
         :param values: container for shapes
         """
         if self.ops_ is None:
+            # A function, unknown types.
             for name in self.outputs:
                 values[name] = None
             return values
         args = [values[k] for k in self.inputs if k != '']
         try:
             res = self.ops_.infer_shapes(*args)
-        except (TypeError, ValueError) as e:  # pragma: no cover
+        except (TypeError, ValueError, AttributeError) as e:  # pragma: no cover
             raise TypeError(
                 "Unable to call infer_shapes with {} arguments for class"
                 " '{}' ({})".format(
                     len(args), self.ops_.__class__.__name__,
                     self.ops_.infer_shapes)) from e
-        if not isinstance(res, tuple):
-            raise RuntimeError(  # pragma: no cover
-                "Results of an operator should be a tuple for operator '{}'"
-                ".".format(type(self.ops_)))
-        if len(self.outputs) != len(res):
-            raise RuntimeError(  # pragma: no cover
-                "Mismatch number of outputs got {} != {} for names {} "
-                "(node='{}').\n{}".format(
-                    len(res), len(self.outputs), list(self.outputs),
-                    self.ops_.__class__.__name__,
-                    pprint.pformat(self.desc, depth=2)))
-        for name, value in zip(self.outputs, res):
-            values[name] = value
+        if res is not None:
+            if not isinstance(res, tuple):
+                raise RuntimeError(  # pragma: no cover
+                    "Results of an operator should be a tuple for operator "
+                    "'{}'.".format(type(self.ops_)))
+            if len(self.outputs) != len(res):
+                raise RuntimeError(  # pragma: no cover
+                    "Mismatch number of outputs got {} != {} for names {} "
+                    "(node='{}').\n{}".format(
+                        len(res), len(self.outputs), list(self.outputs),
+                        self.ops_.__class__.__name__,
+                        pprint.pformat(self.desc, depth=2)))
+            for name, value in zip(self.outputs, res):
+                values[name] = value
         return values
 
     def _set_type_inference_runtime(self, values):

@@ -115,6 +115,9 @@ class TestOnnxConvTreeEnsemble(ExtTestCase):
             msg = "version 16 of domain '' not supported yet by this library"
             if msg in str(e):
                 return
+            msg = "version 3 of domain 'ai.onnx.ml' not supported yet"
+            if msg in str(e):
+                return
             raise e
         node = onx.graph.node[0]
         self.assertEqual(node.op_type, 'TreeEnsembleRegressor')

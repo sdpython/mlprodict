@@ -2,7 +2,7 @@ import numpy
 from onnx import numpy_helper, TensorProto
 from onnx.helper import (
     make_model, make_node, set_model_props, make_tensor, make_graph,
-    make_tensor_value_info, make_opsetid)
+    make_tensor_value_info, make_opsetid, make_function)
 
 
 def {{ function_name }}():
@@ -27,6 +27,7 @@ def {{ function_name }}():
     nodes = []
     inputs = []
     outputs = []
+    functions = []
 
     {% if ir_version %}
     # opsets
@@ -40,6 +41,30 @@ def {{ function_name }}():
     {%- for code, name in subgraphs: -%}
     {{ name }} = subgraph_{{ name }}
     {%- endfor %}
+
+    {% for domain, name, fct in functions: %}
+    # function: '{{ domain }}', '{{ name }}'
+    print("[functions] domain='{{ domain }}', name='{{ name }}")  # verbose
+    nodes_fct = []
+    {% for node in fct['nodes']: -%}
+    node = make_node(
+        '{{ node['op_type'] }}',
+        {{ node['inputs'] }},
+        {{ node['outputs'] }},
+        {% if node['name']: %}name='{{ node['name'] }}',{% endif %}
+        {%- for name, value in node['attributes']: -%}
+        {{ name }}={{ value }},
+        {%- endfor -%}
+        domain='{{ node['domain'] }}')
+    nodes_fct.append(node)
+    {% endfor %}
+    opset_imports_fct = [make_opsetid(domain, 1 if version is None else version)
+                         for domain, version in opsets.items()]
+    fct = make_function(
+        '{{ domain }}', '{{ name }}', {{ fct['proto'].input }}, {{ fct['proto'].output }},
+        nodes_fct, opset_imports_fct, doc_string="""{{ fct['proto'].doc_string }}""")
+    functions.append(fct)
+    {% endfor %}
 
     # initializers
     print('[initializers]')   # verbose
@@ -85,7 +110,7 @@ def {{ function_name }}():
 
     # opsets
     print('[opset]')   # verbose
-    opset_imports = [make_opsetid(domain, version)
+    opset_imports = [make_opsetid(domain, 1 if version is None else version)
                      for domain, version in opsets.items()]
 
     # graph
@@ -95,7 +120,7 @@ def {{ function_name }}():
     {% if not ir_version %}
     return graph
     {% else %}
-    onnx_model = make_model(graph, opset_imports=opset_imports)
+    onnx_model = make_model(graph, opset_imports=opset_imports, functions=functions)
     onnx_model.ir_version = {{ ir_version }}
     onnx_model.producer_name = '{{ producer_name }}'
     onnx_model.producer_version = '{{ producer_version }}'

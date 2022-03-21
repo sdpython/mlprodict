@@ -28,7 +28,7 @@ class TestNumpyOnnxFunctionSkl(ExtTestCase):
         got = nxfct[key](x)
         compiled = nxfct[key].compiled
         self.assertEqualArray(expected[0], got[0])
-        self.assertEqualArray(expected[1], got[1])
+        self.assertEqualArray(expected[1], got[1], decimal=5)
         if ort:
             onx = compiled.onnx_
             rt2 = OnnxInference(onx, runtime="onnxruntime1")

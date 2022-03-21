@@ -9,10 +9,10 @@ import traceback
 from io import StringIO
 from contextlib import redirect_stdout, redirect_stderr
 import numpy
-from onnx import helper, numpy_helper, load as onnx_load
+from onnx import helper, numpy_helper, load as onnx_load, TensorProto
 from onnx.helper import (
     make_model, make_node, set_model_props, make_tensor, make_graph,
-    make_tensor_value_info, make_opsetid)
+    make_tensor_value_info, make_opsetid, make_function)
 from onnxruntime import SessionOptions, GraphOptimizationLevel
 from sklearn.cluster import KMeans
 import autopep8
@@ -43,7 +43,7 @@ from mlprodict.npy.onnx_numpy_annotation import NDArrayType
 from mlprodict.onnx_tools.optim import onnx_remove_node_unused
 from mlprodict.plotting.text_plot import onnx_simple_text_plot
 from mlprodict.npy.xop_variable import Variable as XopVariable
-from mlprodict.npy.xop import loadop
+from mlprodict.npy.xop import loadop, OnnxOperatorFunction
 
 
 class ConvertFFT2DOp:
@@ -809,12 +809,13 @@ class TestExportOnnx(ExtTestCase):
                'set_model_props': set_model_props,
                'make_tensor': make_tensor,
                'make_graph': make_graph,
+               'make_function': make_function,
                'make_tensor_value_info': make_tensor_value_info,
                'print': print, 'sorted': sorted,
                'make_opsetid': make_opsetid,
                'collections': collections, 'inspect': inspect}
         out, err = StringIO(), StringIO()
-        if len(left) >= 5:
+        if len(left) >= 10:
             raise AssertionError(
                 "Too many unknown symbols: %r in\n%s" % (
                     left, content))
@@ -1393,7 +1394,9 @@ class TestExportOnnx(ExtTestCase):
                 "" % (e, print_code(content))) from e
         glo = globals().copy()
         loc = {'loadop': loadop, 'Variable': XopVariable,
-               'print': print, 'sorted': sorted, 'len': len}
+               'print': print, 'sorted': sorted, 'len': len,
+               'TensorProto': TensorProto, 'make_tensor': make_tensor,
+               'OnnxOperatorFunction': OnnxOperatorFunction}
         glo.update(loc)
         out, err = StringIO(), StringIO()
         if len(left) >= 5:
@@ -1458,7 +1461,80 @@ class TestExportOnnx(ExtTestCase):
                     if name == 'fft2d_any.onnx':
                         self.assertEqualArray(y['y'], y2['y'])
 
+    def test_export_function_xop(self):
+        # ONNX
+        OnnxAbs, OnnxAdd, OnnxDiv = loadop(  # pylint: disable=W0621
+            "Abs", "Add", "Div")
+        ov = OnnxAbs('X')
+        ad = OnnxAdd(ov, numpy.array([1], dtype=numpy.float32),
+                     output_names=['Y'])
+        op = OnnxDiv(ad('X'), numpy.array([2], dtype=numpy.float32),
+                     output_names=['Y'])
+        onx = op.to_onnx(numpy.float32, numpy.float32)
+
+        for rt in ['onnxruntime1', 'python']:
+            with self.subTest(rt=rt):
+                oinf0 = OnnxInference(onx, runtime=rt)
+                x = numpy.random.randn(3, 1, 4).astype(numpy.float32)
+                new_onnx = export2xop(onx, name="TEST")
+                _, loc = self.verify_xop(new_onnx, onx)
+                model = loc['onnx_model']
+
+                try:
+                    oinf = OnnxInference(model, runtime=rt)
+                except RuntimeError as e:
+                    raise AssertionError(
+                        "Issue with\n-----\n%s\n--CODE--\n%s\n--GOT--\n%s" % (
+                            onnx_simple_text_plot(onx), new_onnx,
+                            onnx_simple_text_plot(model))) from e
+                y = oinf0.run({'X': x})
+                y1 = oinf.run({'X': x})
+
+                new_onnx = export2xop(onx, name="TEST")
+                _, loc = self.verify_xop(new_onnx, onx)
+                model = loc['onnx_model']
+                oinf = OnnxInference(model, runtime=rt)
+                y2 = oinf.run({'X': x})
+                self.assertEqual(y['Y'], y1['Y'])
+                self.assertEqual(y['Y'], y2['Y'])
+
+    def test_export_function_onnx(self):
+        # ONNX
+        OnnxAbs, OnnxAdd, OnnxDiv = loadop(  # pylint: disable=W0621
+            "Abs", "Add", "Div")
+        ov = OnnxAbs('X')
+        ad = OnnxAdd(ov, numpy.array([1], dtype=numpy.float32),
+                     output_names=['Y'])
+        op = OnnxDiv(ad('X'), numpy.array([2], dtype=numpy.float32),
+                     output_names=['Y'])
+        onx = op.to_onnx(numpy.float32, numpy.float32)
+
+        for rt in ['onnxruntime1', 'python']:
+            with self.subTest(rt=rt):
+                oinf0 = OnnxInference(onx, runtime=rt)
+                x = numpy.random.randn(3, 1, 4).astype(numpy.float32)
+                new_onnx = export2onnx(onx, name="TEST")
+                _, loc = self.verify(new_onnx)
+                model = loc['onnx_model']
+
+                try:
+                    oinf = OnnxInference(model, runtime=rt)
+                except RuntimeError as e:
+                    raise AssertionError(
+                        "Issue with\n-----\n%s\n--CODE--\n%s\n--GOT--\n%s" % (
+                            onnx_simple_text_plot(onx), new_onnx,
+                            onnx_simple_text_plot(model))) from e
+                y = oinf0.run({'X': x})
+                y1 = oinf.run({'X': x})
+
+                new_onnx = export2onnx(onx, name="TEST")
+                _, loc = self.verify_xop(new_onnx, onx)
+                model = loc['onnx_model']
+                oinf = OnnxInference(model, runtime=rt)
+                y2 = oinf.run({'X': x})
+                self.assertEqual(y['Y'], y1['Y'])
+                self.assertEqual(y['Y'], y2['Y'])
+
 
 if __name__ == "__main__":
-    # TestExportOnnx().test_export_xop()
     unittest.main(verbosity=2)

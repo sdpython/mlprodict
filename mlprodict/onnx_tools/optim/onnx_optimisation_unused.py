@@ -2,7 +2,8 @@
 @file
 @brief Optimisation of :epkg:`ONNX` graphs.
 """
-from onnx.helper import make_graph
+from onnx import FunctionProto
+from onnx.helper import make_graph, make_function
 from ._onnx_optimisation_common import (  # pylint: disable=E0611
     _apply_optimisation_on_graph, _apply_remove_node_fct_node)
 
@@ -32,12 +33,14 @@ def onnx_remove_node_unused(onnx_model, recursive=True, debug_info=None, **optio
             **options)
 
     graph = onnx_model
+    is_function = isinstance(graph, FunctionProto)
     data = {}
     valid = {}
     edges = {}
 
-    for init in graph.initializer:
-        data[init.name, 0] = init
+    if not is_function:
+        for init in graph.initializer:
+            data[init.name, 0] = init
 
     for node in graph.node:
         data[node.name, 1] = node
@@ -49,7 +52,7 @@ def onnx_remove_node_unused(onnx_model, recursive=True, debug_info=None, **optio
             edges[(node.name, 1), (out, 0)] = node
 
     for out in graph.output:
-        valid[out.name, 0] = True
+        valid[out if is_function else out.name, 0] = True
 
     modif = 1
     while modif > 0:
@@ -60,7 +63,8 @@ def onnx_remove_node_unused(onnx_model, recursive=True, debug_info=None, **optio
                 modif += 1
 
     new_nodes = [n for n in graph.node if (n.name, 1) in valid]
-    new_inits = [n for n in graph.initializer if (n.name, 0) in valid]
+    if not is_function:
+        new_inits = [n for n in graph.initializer if (n.name, 0) in valid]
 
     if recursive:
         # Handles subgraphs.
@@ -74,9 +78,15 @@ def onnx_remove_node_unused(onnx_model, recursive=True, debug_info=None, **optio
 
     # Finally create the new graph.
     nodes = list(filter(lambda n: n is not None, new_nodes))
+    if is_function:
+        return make_function(
+            onnx_model.domain, onnx_model.name,
+            onnx_model.input, onnx_model.output, nodes,
+            opset_imports=onnx_model.opset_import,
+            attributes=onnx_model.attribute,
+            doc_string=onnx_model.doc_string)
     graph = make_graph(nodes, onnx_model.name,
                        onnx_model.input, onnx_model.output,
                        new_inits)
-
     graph.value_info.extend(onnx_model.value_info)  # pylint: disable=E1101
     return graph

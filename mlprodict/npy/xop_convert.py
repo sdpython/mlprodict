@@ -6,8 +6,7 @@
 """
 import logging
 import numpy
-import onnx
-from .xop import OnnxOperator
+from .xop import OnnxOperator, OnnxOperatorFunction
 from .xop_variable import NodeResultName, Variable
 
 
@@ -106,32 +105,7 @@ class OnnxSubOnnx(OnnxOperator):
 
             atts = {}
             for att in node.attribute:
-                if isinstance(att, onnx.AttributeProto):
-                    dtype = att.type
-                else:
-                    raise NotImplementedError(  # pragma: no cover
-                        "Unable to copy attribute type %r." % type(att))
-                if dtype == 1:  # .f
-                    value = att.f
-                elif dtype == 2:  # .i
-                    value = att.i
-                elif dtype == 3:  # .s
-                    value = att.s
-                elif dtype == 4:  # .t
-                    value = att.t
-                elif dtype == 6:  # .floats
-                    value = list(att.floats)
-                elif dtype == 7:  # .ints
-                    value = list(att.ints)
-                elif dtype == 8:  # .strings
-                    value = list(att.strings)
-                elif dtype == 11:  # .double_data
-                    value = list(att.double_data)
-                else:
-                    raise NotImplementedError(  # pragma: no cover
-                        "Unable to copy attribute type %r (%r)." % (
-                            dtype, att))
-                atts[att.name] = value
+                atts[att.name] = OnnxOperatorFunction.attribute_to_value(att)
 
             builder.add_node(
                 node.op_type,

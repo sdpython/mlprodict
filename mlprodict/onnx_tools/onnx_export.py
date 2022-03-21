@@ -19,7 +19,7 @@ from .exports.numpy_helper import make_numpy_code
 from .exports.tf2onnx_helper import make_tf2onnx_code
 
 
-def select_attribute(ens, att, sort=False, unique=False):
+def select_attribute(ens, att, sort=False, unique=False, skip=None):
     """
     Returns the list of the same attribute.
     `[el.att for el in ens]`.
@@ -28,6 +28,7 @@ def select_attribute(ens, att, sort=False, unique=False):
     :param att: attribute name
     :param sort: sort the array
     :param unique: returns the unique values
+    :param skip: to skip some names
     :return: something like `[el.att for el in ens]`
     """
     if len(ens) == 0:
@@ -40,7 +41,84 @@ def select_attribute(ens, att, sort=False, unique=False):
         atts = list(set(atts))
     if sort:
         atts.sort()
-    return atts
+    if skip is None:
+        return atts
+    return [a for a in atts if a not in skip]
+
+
+def _nodes(graph, rename_name, used, output_names, use_onnx_tensor,
+           templates, verbose, opset, rename, autopep_options, name,
+           subgraphs, unique_operators):
+    from ..npy.xop import loadop
+    nodes = []
+    for node in graph.node:
+        if node.domain in ('', 'ai.onnx.ml'):
+            clname = loadop((node.domain, node.op_type))
+            unique_operators.add(
+                (node.domain, node.op_type, clname.__name__))
+        for index_input, i_raw_name in enumerate(node.input):
+            if len(i_raw_name) == 0:
+                # This means the input is optional.
+                if any(map(lambda s: len(s) > 0, node.input[index_input:])):
+                    raise NotImplementedError(
+                        "Input cannot be placed after an unused optional input "
+                        "in node %r." % (node, ))
+                break
+            i = rename_name(i_raw_name)
+            if i not in used:
+                used[i] = []
+            used[i].append(node)
+        attributes = []
+        for at in node.attribute:
+            temp = _var_as_dict(at)
+            value = temp['value']
+            if node.op_type == 'Scan' and at.name == 'body':
+                fname = "_create_" + node.name + "_body"
+                body = export_template(
+                    value, templates, opset=opset, verbose=verbose,
+                    name=name, rename=rename,
+                    use_onnx_tensor=use_onnx_tensor,
+                    autopep_options=autopep_options,
+                    function_name=fname)
+                subgraphs.append((body, node.name + "_body"))
+                attributes.append((at.name, fname + "()"))
+                continue
+            if node.op_type in {'Loop', 'If'}:
+                raise NotImplementedError(
+                    "Subgraphs are not yet implemented (operator=%r)."
+                    "" % node.op_type)
+            if use_onnx_tensor:
+                if node.op_type == 'Cast' and at.name == 'to':
+                    attributes.append(
+                        (at.name, guess_proto_dtype_name(int(value))))
+                    continue
+            if isinstance(value, str):
+                attributes.append((at.name, "%r" % value))
+            else:
+                if isinstance(value, numpy.ndarray):
+                    if use_onnx_tensor and at.name == 'value':
+                        onnx_dtype = guess_proto_dtype_name(
+                            guess_proto_dtype(value.dtype))
+                        value = (
+                            'make_tensor("value", %s, dims=%r, vals=%r)'
+                            '' % (onnx_dtype, list(value.shape),
+                                  value.tolist()))
+                        attributes.append((at.name, value))
+                    else:
+                        attributes.append((at.name, repr(value.tolist())))
+                else:
+                    attributes.append((at.name, repr(value)))
+
+        attributes_str = ", ".join("%s=%s" % (k, v) for k, v in attributes)
+        d = dict(name=node.name, op_type=node.op_type,
+                 domain=node.domain,
+                 inputs=[rename_name(n) for n in node.input if len(n) > 0],
+                 outputs=[rename_name(n) for n in node.output],
+                 output_names=[rename_name(n) for n in node.output
+                               if n in output_names],
+                 attributes=attributes, attributes_str=attributes_str)
+        nodes.append(d)
+    return nodes
 
 
 def export_template(model_onnx, templates, opset=None,  # pylint: disable=R0914
@@ -124,6 +202,7 @@ def export_template(model_onnx, templates, opset=None,  # pylint: disable=R0914
             dict_names[o.name] = o.name
 
     # inits
+    unique_operators = set()
     initializers = []
     for init in graph.initializer:
         init_name = rename_name(init.name)
@@ -131,6 +210,28 @@ def export_template(model_onnx, templates, opset=None,  # pylint: disable=R0914
         initializers.append((init_name, value))
     context['initializers'] = initializers
     context['initializers_dict'] = {k: v for k, v in initializers}
+
+    # functions
+    functions = []
+    fct_dict = {}
+    if hasattr(model_onnx, 'functions'):
+        from ..npy.xop import OnnxOperatorFunction
+        for fct in model_onnx.functions:
+            used = {}
+            functions.append(
+                (fct.domain, fct.name,
+                 {'proto': fct,
+                  'nodes': _nodes(fct, rename_name, used, fct.output,
+                                  use_onnx_tensor, templates, verbose,
+                                  opset, rename, autopep_options,
+                                  fct.name, [], unique_operators)}))
+            if fct.name in fct_dict:
+                fct_dict[fct.name].append(fct)
+            else:
+                fct_dict[fct.name] = [fct]
+        context['OnnxOperatorFunction'] = OnnxOperatorFunction
+    context['functions'] = functions
+    context['functions_dict'] = fct_dict
 
     # inputs
     inputs = []
@@ -168,71 +269,10 @@ def export_template(model_onnx, templates, opset=None,  # pylint: disable=R0914
     # node
     output_names = set(o.name for o in graph.output)
     subgraphs = []
-    nodes = []
-    for node in graph.node:
-        for index_input, i_raw_name in enumerate(node.input):
-            if len(i_raw_name) == 0:
-                # This means the input is optional.
-                if any(map(lambda s: len(s) > 0, node.input[index_input:])):
-                    raise NotImplementedError(
-                        "Input cannot be placed after an unused optional input "
-                        "in node %r." % (node, ))
-                break
-            i = rename_name(i_raw_name)
-            if i not in used:
-                used[i] = []
-            used[i].append(node)
-        attributes = []
-        for at in node.attribute:
-            temp = _var_as_dict(at)
-            value = temp['value']
-            if node.op_type == 'Scan' and at.name == 'body':
-                fname = "_create_" + node.name + "_body"
-                body = export_template(
-                    value, templates, opset=opset, verbose=verbose,
-                    name=name, rename=rename,
-                    use_onnx_tensor=use_onnx_tensor,
-                    autopep_options=autopep_options,
-                    function_name=fname)
-                subgraphs.append((body, node.name + "_body"))
-                attributes.append((at.name, fname + "()"))
-                continue
-            if node.op_type in {'Loop', 'If'}:
-                raise NotImplementedError(
-                    "Subgraphs are not yet implemented (operator=%r)."
-                    "" % node.op_type)
-            if use_onnx_tensor:
-                if node.op_type == 'Cast' and at.name == 'to':
-                    attributes.append(
-                        (at.name, guess_proto_dtype_name(int(value))))
-                    continue
-            if isinstance(value, str):
-                attributes.append((at.name, "%r" % value))
-            else:
-                if isinstance(value, numpy.ndarray):
-                    if use_onnx_tensor and at.name == 'value':
-                        onnx_dtype = guess_proto_dtype_name(
-                            guess_proto_dtype(value.dtype))
-                        value = (
-                            'make_tensor("value", %s, dims=%r, vals=%r)'
-                            '' % (onnx_dtype, list(value.shape),
-                                  value.tolist()))
-                        attributes.append((at.name, value))
-                    else:
-                        attributes.append((at.name, repr(value.tolist())))
-                else:
-                    attributes.append((at.name, repr(value)))
-
-        attributes_str = ", ".join("%s=%s" % (k, v) for k, v in attributes)
-        d = dict(name=node.name, op_type=node.op_type,
-                 domain=node.domain,
-                 inputs=[rename_name(n) for n in node.input if len(n) > 0],
-                 outputs=[rename_name(n) for n in node.output],
-                 output_names=[rename_name(n) for n in node.output
-                               if n in output_names],
-                 attributes=attributes, attributes_str=attributes_str)
-        nodes.append(d)
-    context['nodes'] = nodes
+    context['nodes'] = _nodes(
+        graph, rename_name, used, output_names, use_onnx_tensor,
+        templates, verbose, opset, rename, autopep_options, name,
+        subgraphs, unique_operators)
 
     # graph
     context['name'] = name or graph.name
@@ -247,8 +287,6 @@ def export_template(model_onnx, templates, opset=None,  # pylint: disable=R0914
         context['doc_string'] = model_onnx.doc_string
         context['metadata'] = {
             p.key: p.value for p in model_onnx.metadata_props}
-        context['skip_inits'] = {}
-        context['subgraphs'] = subgraphs
     else:
         # subgraph
         context['ir_version'] = None
@@ -257,8 +295,12 @@ def export_template(model_onnx, templates, opset=None,  # pylint: disable=R0914
         context['model_version'] = None
         context['doc_string'] = ""
         context['metadata'] = {}
-        context['skip_inits'] = {}
-        context['subgraphs'] = subgraphs
+
+    # common context
+    context['unique_operators'] = [dict(domain=o[0], name=o[1], classname=o[2])
+                                   for o in sorted(unique_operators)]
+    context['skip_inits'] = {}
+    context['subgraphs'] = subgraphs
 
     mark_inits = {}
 

@@ -9,7 +9,7 @@ from onnx import TensorProto
 from onnx.helper import (
     make_model, make_node, make_function,
     make_graph, make_tensor_value_info, make_opsetid)
-from pyquickhelper.pycode import ExtTestCase
+from pyquickhelper.pycode import ExtTestCase, ignore_warnings
 from sklearn.datasets import load_iris
 from sklearn.tree import DecisionTreeRegressor
 from sklearn.cluster import KMeans
@@ -25,7 +25,7 @@ from mlprodict.plotting.plotting import (
     onnx_text_plot_io)
 from mlprodict.onnxrt import OnnxInference
 from mlprodict.npy.xop_variable import Variable
-from mlprodict.npy.xop import loadop
+from mlprodict.npy.xop import loadop, OnnxOperatorFunction
 
 
 class TestPlotTextPlotting(ExtTestCase):
@@ -50,6 +50,7 @@ class TestPlotTextPlotting(ExtTestCase):
         self.assertIn("treeid=0", res)
         self.assertIn("         T y=", res)
 
+    @ignore_warnings(UserWarning)
     def test_onnx_simple_text_plot_kmeans(self):
         x = numpy.random.randn(10, 3)
         model = KMeans(3)
@@ -193,6 +194,7 @@ class TestPlotTextPlotting(ExtTestCase):
         text2 = oinf.to_text(kind="seq")
         self.assertEqual(text, text2)
 
+    @ignore_warnings(UserWarning)
     def test_onnx_simple_text_plot_kmeans_links(self):
         x = numpy.random.randn(10, 3)
         model = KMeans(3)
@@ -275,6 +277,20 @@ class TestPlotTextPlotting(ExtTestCase):
         self.assertIn("function name=LinearRegression domain=custom", text)
         self.assertIn("MatMul(X, A) -> XA", text)
         self.assertIn("type=? shape=?", text)
+
+    def test_onnx_function_init(self):
+        OnnxAbs, OnnxAdd, OnnxDiv = loadop(  # pylint: disable=W0621
+            "Abs", "Add", "Div")
+        ov = OnnxAbs('X')
+        ad = OnnxAdd('X', ov, output_names=['Y'])
+        proto = ad.to_onnx(function_name='AddAbs')
+
+        op = OnnxDiv(OnnxOperatorFunction(proto, 'X'),
+                     numpy.array([2], dtype=numpy.float32),
+                     output_names=['Y'])
+        onx = op.to_onnx(numpy.float32, numpy.float32)
+        text = onnx_simple_text_plot(onx)
+        self.assertIn("----- function name=AddAbs domain=mlprodict", text)
 
 
 if __name__ == "__main__":
