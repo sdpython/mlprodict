@@ -1748,6 +1748,9 @@ class OnnxOperatorFunction(OnnxOperator):
 
     @staticmethod
     def attribute_to_value(att):
+        """
+        Converts an attribute into a value using python structures.
+        """
         if isinstance(att, onnx.AttributeProto):
             dtype = att.type
         else:

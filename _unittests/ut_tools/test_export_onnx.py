@@ -1463,8 +1463,8 @@ class TestExportOnnx(ExtTestCase):
 
     def test_export_function_xop(self):
         # ONNX
-        OnnxAbs, OnnxAdd, OnnxDiv, OnnxIdentity = loadop(  # pylint: disable=W0621
-            "Abs", "Add", "Div", "Identity")
+        OnnxAbs, OnnxAdd, OnnxDiv = loadop(  # pylint: disable=W0621
+            "Abs", "Add", "Div")
         ov = OnnxAbs('X')
         ad = OnnxAdd(ov, numpy.array([1], dtype=numpy.float32),
                      output_names=['Y'])
@@ -1500,8 +1500,8 @@ class TestExportOnnx(ExtTestCase):
 
     def test_export_function_onnx(self):
         # ONNX
-        OnnxAbs, OnnxAdd, OnnxDiv, OnnxIdentity = loadop(  # pylint: disable=W0621
-            "Abs", "Add", "Div", "Identity")
+        OnnxAbs, OnnxAdd, OnnxDiv = loadop(  # pylint: disable=W0621
+            "Abs", "Add", "Div")
         ov = OnnxAbs('X')
         ad = OnnxAdd(ov, numpy.array([1], dtype=numpy.float32),
                      output_names=['Y'])
