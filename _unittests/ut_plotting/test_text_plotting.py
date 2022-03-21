@@ -279,8 +279,8 @@ class TestPlotTextPlotting(ExtTestCase):
         self.assertIn("type=? shape=?", text)
 
     def test_onnx_function_init(self):
-        OnnxAbs, OnnxAdd, OnnxDiv, OnnxIdentity = loadop(  # pylint: disable=W0621
-            "Abs", "Add", "Div", "Identity")
+        OnnxAbs, OnnxAdd, OnnxDiv = loadop(  # pylint: disable=W0621
+            "Abs", "Add", "Div")
         ov = OnnxAbs('X')
         ad = OnnxAdd('X', ov, output_names=['Y'])
         proto = ad.to_onnx(function_name='AddAbs')
