@@ -48,9 +48,14 @@ def select_attribute(ens, att, sort=False, unique=False, skip=None):
 
 def _nodes(graph, rename_name, used, output_names, use_onnx_tensor,
            templates, verbose, opset, rename, autopep_options, name,
-           subgraphs):
+           subgraphs, unique_operators):
+    from ..npy.xop import loadop
     nodes = []
     for node in graph.node:
+        if node.domain in ('', 'ai.onnx.ml'):
+            clname = loadop((node.domain, node.op_type))
+            unique_operators.add(
+                (node.domain, node.op_type, clname.__name__))
         for index_input, i_raw_name in enumerate(node.input):
             if len(i_raw_name) == 0:
                 # This means the input is optional.
@@ -197,6 +202,7 @@ def export_template(model_onnx, templates, opset=None,  # pylint: disable=R0914
             dict_names[o.name] = o.name
 
     # inits
+    unique_operators = set()
     initializers = []
     for init in graph.initializer:
         init_name = rename_name(init.name)
@@ -209,6 +215,7 @@ def export_template(model_onnx, templates, opset=None,  # pylint: disable=R0914
     functions = []
     fct_dict = {}
     if hasattr(model_onnx, 'functions'):
+        from ..npy.xop import OnnxOperatorFunction
         for fct in model_onnx.functions:
             used = {}
             functions.append(
@@ -217,11 +224,12 @@ def export_template(model_onnx, templates, opset=None,  # pylint: disable=R0914
                   'nodes': _nodes(fct, rename_name, used, fct.output,
                                   use_onnx_tensor, templates, verbose,
                                   opset, rename, autopep_options,
-                                  fct.name, [])}))
+                                  fct.name, [], unique_operators)}))
             if fct.name in fct_dict:
                 fct_dict[fct.name].append(fct)
             else:
                 fct_dict[fct.name] = [fct]
+        context['OnnxOperatorFunction'] = OnnxOperatorFunction
     context['functions'] = functions
     context['functions_dict'] = fct_dict
 
@@ -264,7 +272,7 @@ def export_template(model_onnx, templates, opset=None,  # pylint: disable=R0914
     context['nodes'] = _nodes(
         graph, rename_name, used, output_names, use_onnx_tensor,
         templates, verbose, opset, rename, autopep_options, name,
-        subgraphs)
+        subgraphs, unique_operators)
 
     # graph
     context['name'] = name or graph.name
@@ -279,8 +287,6 @@ def export_template(model_onnx, templates, opset=None,  # pylint: disable=R0914
         context['doc_string'] = model_onnx.doc_string
         context['metadata'] = {
             p.key: p.value for p in model_onnx.metadata_props}
-        context['skip_inits'] = {}
-        context['subgraphs'] = subgraphs
     else:
         # subgraph
         context['ir_version'] = None
@@ -289,8 +295,12 @@ def export_template(model_onnx, templates, opset=None,  # pylint: disable=R0914
         context['model_version'] = None
         context['doc_string'] = ""
         context['metadata'] = {}
-        context['skip_inits'] = {}
-        context['subgraphs'] = subgraphs
+
+    # common context
+    context['unique_operators'] = [dict(domain=o[0], name=o[1], classname=o[2])
+                                  for o in sorted(unique_operators)]
+    context['skip_inits'] = {}
+    context['subgraphs'] = subgraphs
 
     mark_inits = {}
 

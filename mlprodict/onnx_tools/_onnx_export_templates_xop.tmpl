@@ -1,6 +1,8 @@
 import numpy
+from onnx import TensorProto
+from onnx.helper import make_tensor
 from mlprodict.npy.xop_variable import Variable
-from mlprodict.npy.xop import loadop
+from mlprodict.npy.xop import loadop, OnnxOperatorFunction
 
 
 def {{ function_name }}():
@@ -16,14 +18,19 @@ def {{ function_name }}():
     '''
     
     print('[operators]')   # verbose
+    OnnxConstant = loadop('Constant')
     OnnxIdentity = loadop('Identity')
-    {% for name in select_attribute(nodes, 'op_type', unique=True, sort=True, skip=functions_dict): -%}
-    {%- if name != 'Identity': %}Onnx{{ name }} = loadop('{{ name }}')
-    {% endif %}{% endfor %}
+    {% for op in unique_operators: -%}
+    {% if op['name'] != 'Identity': -%}{% if op['domain'] == '': %}{{ op['classname'] }} = loadop('{{ op['name'] }}')
+    {% else -%}{{ op['classname'] }} = loadop(('{{ op['domain'] }}', '{{ op['name'] }}'))
+    {% endif %}{% endif %}{% endfor %}
 
     {% for domain, name, fct in functions: %}
     # function: '{{ domain }}', '{{ name }}'
     print("[functions] domain='{{ domain }}', name='{{ name }}")  # verbose
+    {% for name in fct['proto'].input: -%}
+    {{ name }} = '{{ name }}'
+    {%- endfor %}
     {% for node in fct['nodes']: -%}
     {{ ', '.join(node['outputs']) }} = Onnx{{ node['op_type'] }}({{ ', '.join(node['inputs']) }}{% if len(node['inputs']) > 0 %},{% endif %}
         {%- for name, value in node['attributes']: -%}
@@ -32,8 +39,11 @@ def {{ function_name }}():
         output_names={{ repr(node['output_names']) }},
         {%- endif -%}
         {% if node['domain'] != '' %}domain='{{ node['domain'] }}', {% endif %}op_version={{ opsets[node['domain']] }})
-    {% endfor %}
-    Onnx{{ fct['proto'].name }} = {{ fct['proto'].output[0] }}({{ ', '.join(fct['proto'].input) }})
+    {% endfor -%}
+    onnx_{{ name }} = {{ fct['proto'].output[0] }}.to_onnx(function_name='{{ name }}', function_domain='{{ domain }}')
+    Onnx{{ fct['proto'].name }} = (
+        lambda *args, domain=None, op_version=None, **kwargs:
+            OnnxOperatorFunction(onnx_{{ name }}, *args, **kwargs))
     {% endfor %}
 
     # inputs

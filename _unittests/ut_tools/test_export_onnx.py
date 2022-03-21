@@ -9,7 +9,7 @@ import traceback
 from io import StringIO
 from contextlib import redirect_stdout, redirect_stderr
 import numpy
-from onnx import helper, numpy_helper, load as onnx_load
+from onnx import helper, numpy_helper, load as onnx_load, TensorProto
 from onnx.helper import (
     make_model, make_node, set_model_props, make_tensor, make_graph,
     make_tensor_value_info, make_opsetid)
@@ -43,7 +43,7 @@ from mlprodict.npy.onnx_numpy_annotation import NDArrayType
 from mlprodict.onnx_tools.optim import onnx_remove_node_unused
 from mlprodict.plotting.text_plot import onnx_simple_text_plot
 from mlprodict.npy.xop_variable import Variable as XopVariable
-from mlprodict.npy.xop import loadop
+from mlprodict.npy.xop import loadop, OnnxOperatorFunction
 
 
 class ConvertFFT2DOp:
@@ -1393,7 +1393,9 @@ class TestExportOnnx(ExtTestCase):
                 "" % (e, print_code(content))) from e
         glo = globals().copy()
         loc = {'loadop': loadop, 'Variable': XopVariable,
-               'print': print, 'sorted': sorted, 'len': len}
+               'print': print, 'sorted': sorted, 'len': len,
+               'TensorProto': TensorProto, 'make_tensor': make_tensor,
+               'OnnxOperatorFunction': OnnxOperatorFunction}
         glo.update(loc)
         out, err = StringIO(), StringIO()
         if len(left) >= 5:
@@ -1484,13 +1486,13 @@ class TestExportOnnx(ExtTestCase):
                 except RuntimeError as e:
                     raise AssertionError(
                         "Issue with\n-----\n%s\n--CODE--\n%s\n--GOT--\n%s" % (
-                            onnx_simple_text_plot(onx_graph), new_onnx,
+                            onnx_simple_text_plot(onx), new_onnx,
                             onnx_simple_text_plot(model))) from e
                 y = oinf0.run({'X': x})
                 y1 = oinf.run({'X': x})
 
                 new_onnx = export2xop(onx, name="TEST")
-                _, loc = self.verify_xop(new_onnx, onx_graph)
+                _, loc = self.verify_xop(new_onnx, onx)
                 model = loc['onnx_model']
                 oinf = OnnxInference(model, runtime=rt)
                 y2 = oinf.run({'X': x})
