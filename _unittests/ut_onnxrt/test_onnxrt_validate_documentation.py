@@ -20,6 +20,9 @@ from mlprodict.onnxrt.doc.doc_write_helper import enumerate_visual_onnx_represen
 class TestOnnxrtValidateDocumentation(ExtTestCase):
 
     @skipif_circleci('too long')
+    @ignore_warnings(category=(UserWarning, ConvergenceWarning,
+                               RuntimeWarning, SyntaxWarning,
+                               ConvergenceWarning))
     def test_validate_sklearn_store_models(self):
         fLOG(__file__, self._testMethodName, OutputPrint=__name__ == "__main__")
         logger = getLogger('skl2onnx')
