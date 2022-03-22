@@ -113,8 +113,13 @@ class TestGrammarSklearnLinear(ExtTestCase):
         def myprint(*args, **kwargs):
             rows.append(' '.join(map(str, args)))
 
-        check_model_representation(
-            LinearRegression, X, y, verbose=True, fLOG=myprint, suffix='A')
+        try:
+            check_model_representation(
+                LinearRegression, X, y, verbose=True, fLOG=myprint, suffix='A')
+        except (RuntimeError, CompilationError) as e:
+            if "Visual Studio is not installed" in str(e):
+                return
+            raise e
         check_model_representation(
             LinearRegression, X.tolist(), y.tolist(), verbose=True,
             fLOG=myprint, suffix='B')

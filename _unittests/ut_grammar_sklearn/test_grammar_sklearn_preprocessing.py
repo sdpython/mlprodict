@@ -20,7 +20,7 @@ class TestGrammarSklearnPreprocessing(ExtTestCase):
         try:
             check_model_representation(
                 StandardScaler, data, verbose=False)
-        except CompilationError as e:
+        except (CompilationError, RuntimeError) as e:
             if "Visual Studio is not installed" in str(e):
                 return
             raise e
