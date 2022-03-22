@@ -1075,7 +1075,7 @@ class TestOnnxrtPythonRuntime(ExtTestCase):  # pylint: disable=R0904
         self.assertEqualArray(got['Z'], x << y)
 
         onx = OnnxBitShift('X', 'Y', direction=b'RIGHT',
-                          op_version=14, output_names=['Z'])
+                           op_version=14, output_names=['Z'])
         model_def = onx.to_onnx({'X': x, 'Y': y}, {'Z': x},
                                 target_opset=14)
         oinf = OnnxInference(model_def)
