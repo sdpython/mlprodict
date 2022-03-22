@@ -212,3 +212,8 @@ def shape_tan(known_shapes, node):
 def shape_tanh(known_shapes, node):
     "Infers shape for operator Tanh."
     return _element_unary(known_shapes, node)
+
+
+def shape_trilu(known_shapes, node):
+    "Infers shape for operator Trilu."
+    return _element_unary(known_shapes, node)

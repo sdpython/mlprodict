@@ -143,6 +143,7 @@ from .op_tree_ensemble_classifier import (
 from .op_tree_ensemble_regressor import (
     TreeEnsembleRegressorDouble,
     TreeEnsembleRegressor_1, TreeEnsembleRegressor_3, TreeEnsembleRegressor)
+from .op_trilu import Trilu
 from .op_unsqueeze import Unsqueeze, Unsqueeze_1, Unsqueeze_11, Unsqueeze_13
 from .op_where import Where
 from .op_yield_op import YieldOp

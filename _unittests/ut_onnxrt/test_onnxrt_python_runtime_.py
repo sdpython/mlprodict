@@ -72,7 +72,7 @@ from skl2onnx.algebra.onnx_ops import (  # pylint: disable=E0611
     OnnxSplit, OnnxSplitApi11,
     OnnxSqrt, OnnxSub, OnnxSum,
     OnnxSqueeze, OnnxSqueezeApi11,
-    OnnxTan, OnnxTanh, OnnxTopK, OnnxTranspose,
+    OnnxTan, OnnxTanh, OnnxTopK, OnnxTranspose, OnnxTrilu,
     OnnxUnsqueeze, OnnxUnsqueezeApi11
 )
 try:
@@ -4143,6 +4143,11 @@ class TestOnnxrtPythonRuntime(ExtTestCase):  # pylint: disable=R0904
                 got = OnnxInference(model_def).run({'X': x})
                 self.assertEqualArray(y, got['Y'])
         python_tested.append(OnnxUnsqueeze)
+
+    @wraplog()
+    def test_onnxt_runtime_trilu(self):
+        self.common_test_onnxt_runtime_unary(
+            OnnxTrilu, lambda x: numpy.triu(x, 0))
 
     @wraplog()
     def test_cpp_topk_min_1(self):
