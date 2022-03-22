@@ -1067,7 +1067,7 @@ class TestOnnxrtPythonRuntime(ExtTestCase):  # pylint: disable=R0904
         y = numpy.array([1, 2, 3]).astype(numpy.uint32)
 
         onx = OnnxBitShift('X', 'Y', direction=b'LEFT',
-                          op_version=14, output_names=['Z'])
+                           op_version=14, output_names=['Z'])
         model_def = onx.to_onnx({'X': x, 'Y': y}, {'Z': x},
                                 target_opset=14)
         oinf = OnnxInference(model_def)
