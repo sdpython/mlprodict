@@ -46,6 +46,7 @@ from .op_dict_vectorizer import DictVectorizer
 from .op_div import Div
 from .op_dropout import Dropout, Dropout_7, Dropout_12
 from .op_einsum import Einsum
+from .op_elu import Elu
 from .op_equal import Equal
 from .op_erf import Erf
 from .op_exp import Exp
