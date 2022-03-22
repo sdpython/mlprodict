@@ -980,6 +980,14 @@ class OnnxOperator(OnnxOperatorBase):
                     self.kwargs['value'] = from_array(
                         numpy.array([val], dtype=value.dtype))
                     return
+                if isinstance(value, TensorProto):
+                    return
+                if isinstance(value, bytes):
+                    # A serialized TensorProto
+                    t = TensorProto()
+                    t.ParseFromString(value)
+                    self.kwargs['value'] = t
+                    return
                 raise TypeError(  # pragma: no cover
                     "Unexpected type %r for value. It should be an array "
                     "of one element." % type(value))

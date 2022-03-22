@@ -41,6 +41,15 @@ class TestNumpyOnnxCustom(ExtTestCase):
         self.assertEqualArray(numpy.real(expected), mat[0])
         self.assertEqualArray(numpy.imag(expected), mat[1])
 
+    def test_fft(self):
+        mat = numpy.array([[0, 1, 2, 3], [4, 5, 6, 7]], dtype=numpy.float32)
+        fft_length = numpy.array([3], dtype=numpy.int64)
+        axes = numpy.array([1], dtype=numpy.int64)
+        res = nxnpyc.fft(mat, fft_length, axes)
+        expected = numpy.fft(mat, fft_length, axes)
+        self.assertEqualArray(numpy.real(expected), res[0])
+        self.assertEqualArray(numpy.imag(expected), res[1])
+
     @staticmethod
     def numpy_fftn(x, fft_length, axes, fft_type='FFT'):
         if fft_type == 'FFT':

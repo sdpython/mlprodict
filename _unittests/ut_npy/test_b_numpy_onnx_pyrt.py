@@ -4,6 +4,7 @@
 """
 import unittest
 import numpy
+from onnx.numpy_helper import from_array
 import scipy.special as sp
 from pyquickhelper.pycode import ExtTestCase, ignore_warnings
 from pyquickhelper.texthelper import compare_module_version
@@ -457,11 +458,23 @@ class TestNumpyOnnxFunction(ExtTestCase):
         self.common_testn((cond, x, y), npc, nxnpy.where,  # pylint: disable=E1101
                           (numpy.bool_, numpy.float32, numpy.float32))
 
+    def test_zeros(self):
+        x = numpy.array([10, 4], dtype=numpy.int64)
+        res1 = numpy.zeros(x)
+        res2 = nxnpy.zeros(x)
+        self.assertEqualArray(res1, res2)
+        res2 = nxnpy.zeros(
+            x, value=from_array(numpy.array([0], dtype=numpy.int32)))
+        self.assertEqualArray(res1.astype(numpy.int32), res2)
+        res2 = nxnpy.zeros(
+            x, value=numpy.array([0], dtype=numpy.int32))
+        self.assertEqualArray(res1.astype(numpy.int32), res2)
+
 
 if __name__ == "__main__":
     # import logging
     # logger = logging.getLogger('xop')
     # logger.setLevel(logging.DEBUG)
     # logging.basicConfig(level=logging.DEBUG)
-    # TestNumpyOnnxFunction().test_clip_float32()
+    # TestNumpyOnnxFunction().test_zeros()
     unittest.main()

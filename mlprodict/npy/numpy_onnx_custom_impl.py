@@ -6,7 +6,8 @@
 
 """
 import numpy
-from .numpy_onnx_impl import arange, cos, sin, concat
+from .numpy_onnx_impl import (
+    arange, cos, sin, concat, zeros, transpose, onnx_if)
 
 
 def dft(N, fft_length):
@@ -29,46 +30,54 @@ def dft(N, fft_length):
 
 def fft(x, length, axis, fft_type):
     "One dimensional FFT."
-    if fft_type == 'FFT':
-        if x.shape[axis] > length:
-            # fft_length > shape on the same axis
-            # the matrix is shortened
-            slices = [slice(None)] * len(x.shape)
-            slices[axis] = slice(0, length)
-            new_x = x[tuple(slices)]
-        elif x.shape[axis] == length:
-            new_x = x
-        else:
-            # other, the matrix is completed with zeros
-            shape = list(x.shape)
-            shape[axis] = length
-            slices = [slice(None)] * len(x.shape)
-            slices[axis] = slice(0, length)
-            zeros = numpy.zeros(tuple(shape), dtype=x.dtype)
-            index = [slice(0, i) for i in x.shape]
-            zeros[tuple(index)] = x
-            new_x = zeros
+    size = x.shape.size
+    perm = arange(numpy.array([0], dtype=numpy.int64), size).copy()
+    dim = perm[-1]
+    perm[axis] = dim
+    perm[dim] = axis
+    # issue with perm, it is an attribute and not a value
+    # xt = transpose(x, perm=perm)
 
-        cst = dft(new_x.shape[axis], length, x.dtype)
-        perm = numpy.arange(len(x.shape)).tolist()
-        if perm[axis] == perm[-1]:
-            res = numpy.matmul(new_x, cst).transpose(perm)
-        else:
-            perm[axis], perm[-1] = perm[-1], perm[axis]
-            rest = new_x.transpose(perm)
-            res = numpy.matmul(rest, cst).transpose(perm)
-            perm[axis], perm[0] = perm[0], perm[axis]
-        return res
-    raise ValueError("Unexpected value for fft_type=%r." % fft_type)
+    # if x.shape[axis] >= length:
+    #     new_x = xt.slice(0, length, axis=axis)
+    # elif x.shape[axis] == length:
+    #     new_x = xt
+    # else:
+    #     # other, the matrix is completed with zeros
+    #     new_shape = xt.shape
+    #     delta = length - new_shape[-1]
+    #     new_shape[-1] = delta
+    #     cst = zeros(new_shape, value=numpy.array([0], dtype=x.dtype))
+    #     new_x = concat(x, cst)
+
+    def else_branch():
+        new_shape = xt.shape
+        delta = length - new_shape[-1]
+        new_shape[-1] = delta
+        cst = zeros(new_shape, value=numpy.array([0], dtype=x.dtype))
+        new_x = concat(x, cst)
+
+    new_x = onnx_if(
+        x.shape[axis] >= length,
+        then_branch=lambda xt, length, axis: xt.slice(0, length, axis=axis),
+        else_branch=else_branch)
+
+    if fft_type != 'FFT':
+        raise NotImplementedError("Not implemented for fft_type != 'FFT'.")
+
+    cst = dft(new_x.shape[axis], length).astype(x.dtype)
+    result = numpy.matmul(new_x, cst)
+
+    return result.transpose(perm)
 
 
-def fftn(x, fft_type, fft_length, axes):
-    "Multidimensional FFT."
-    if fft_type == 'FFT':
-        res = x
-        for i in range(len(fft_length) - 1, -1, -1):
-            length = fft_length[i]
-            axis = axes[i]
-            res = fft(res, length, axis, fft_type=fft_type)
-        return res
-    raise ValueError("Unexpected value for fft_type=%r." % fft_type)
+# def fftn(x, fft_length, axes, fft_type='FFT'):
+#     "Multidimensional FFT."
+#     if fft_type == 'FFT':
+#         res = x
+#         for i in range(len(fft_length) - 1, -1, -1):
+#             length = fft_length[i]
+#             axis = axes[i]
+#             res = fft(res, length, axis, fft_type=fft_type)
+#         return res
+#     raise ValueError("Unexpected value for fft_type=%r." % fft_type)
