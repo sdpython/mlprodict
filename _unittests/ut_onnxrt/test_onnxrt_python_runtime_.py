@@ -46,6 +46,7 @@ from skl2onnx.algebra.onnx_ops import (  # pylint: disable=E0611
     OnnxEinsum, OnnxElu, OnnxEqual, OnnxErf, OnnxExp, OnnxExpand, OnnxEyeLike,
     OnnxFlatten, OnnxFloor,
     OnnxGreater, OnnxGreaterOrEqual, OnnxGemm, OnnxGlobalAveragePool,
+    OnnxHardSigmoid,
     OnnxIdentity, OnnxIsNaN,
     OnnxLeakyRelu, OnnxLess, OnnxLessOrEqual,
     OnnxLog, OnnxLogSoftmax, OnnxLpNormalization,
@@ -65,14 +66,14 @@ from skl2onnx.algebra.onnx_ops import (  # pylint: disable=E0611
     OnnxRelu, OnnxReshape,
     OnnxRound,
     OnnxScatterElements,
-    OnnxSequenceAt, OnnxSequenceConstruct,
+    OnnxSelu, OnnxSequenceAt, OnnxSequenceConstruct,
     OnnxShape, OnnxSlice, OnnxSigmoid, OnnxSign,
     OnnxSin, OnnxSinh,
     OnnxSize, OnnxSoftmax,
     OnnxSplit, OnnxSplitApi11,
     OnnxSqrt, OnnxSub, OnnxSum,
     OnnxSqueeze, OnnxSqueezeApi11,
-    OnnxTan, OnnxTanh, OnnxTopK, OnnxTranspose,
+    OnnxTan, OnnxTanh, OnnxTopK, OnnxTranspose, OnnxTrilu,
     OnnxUnsqueeze, OnnxUnsqueezeApi11
 )
 try:
@@ -2472,6 +2473,12 @@ class TestOnnxrtPythonRuntime(ExtTestCase):  # pylint: disable=R0904
             OnnxGreaterOrEqual, numpy.greater_equal)
 
     @wraplog()
+    def test_onnxt_runtime_hard_sigmoid(self):
+        self.common_test_onnxt_runtime_unary(
+            OnnxHardSigmoid, lambda x: numpy.maximum(
+                0, numpy.minimum(1, x * 0.2 + 0.5)))
+
+    @wraplog()
     def test_onnxt_runtime_identity(self):
         self.common_test_onnxt_runtime_unary(OnnxIdentity, lambda x: x)
 
@@ -3697,6 +3704,14 @@ class TestOnnxrtPythonRuntime(ExtTestCase):  # pylint: disable=R0904
                 self.assertEqualArray(y, got['Y'])
 
     @wraplog()
+    def test_onnxt_runtime_selu(self):
+        alpha = 1.67326319217681884765625
+        gamma = 1.05070102214813232421875
+        self.common_test_onnxt_runtime_unary(
+            OnnxSelu, lambda x: numpy.where(
+                x > 0, x * gamma, numpy.exp(x) * alpha - alpha))
+
+    @wraplog()
     def test_onnxt_runtime_sequence_at(self):
         x = numpy.random.randn(20, 2).astype(  # pylint: disable=E1101
             numpy.float32)  # pylint: disable=E1101
@@ -4171,6 +4186,11 @@ class TestOnnxrtPythonRuntime(ExtTestCase):  # pylint: disable=R0904
                 got = OnnxInference(model_def).run({'X': x})
                 self.assertEqualArray(y, got['Y'])
         python_tested.append(OnnxUnsqueeze)
+
+    @wraplog()
+    def test_onnxt_runtime_trilu(self):
+        self.common_test_onnxt_runtime_unary(
+            OnnxTrilu, lambda x: numpy.triu(x, 0))
 
     @wraplog()
     def test_cpp_topk_min_1(self):

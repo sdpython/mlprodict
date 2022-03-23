@@ -124,6 +124,11 @@ def shape_floor(known_shapes, node):
     return _element_unary(known_shapes, node)
 
 
+def shape_hardsigmoid(known_shapes, node):
+    "Infers shape for operator HardSigmoid."
+    return _element_unary(known_shapes, node)
+
+
 def shape_isnan(known_shapes, node):
     "Infers shape for operator IsNan."
     return _element_unary(known_shapes, node, numpy.bool_)
@@ -179,6 +184,11 @@ def shape_round(known_shapes, node):
     return _element_unary(known_shapes, node)
 
 
+def shape_selu(known_shapes, node):
+    "Infers shape for operator Selu."
+    return _element_unary(known_shapes, node)
+
+
 def shape_sigmoid(known_shapes, node):
     "Infers shape for operator Sigmoid."
     return _element_unary(known_shapes, node)
@@ -216,4 +226,9 @@ def shape_tan(known_shapes, node):
 
 def shape_tanh(known_shapes, node):
     "Infers shape for operator Tanh."
+    return _element_unary(known_shapes, node)
+
+
+def shape_trilu(known_shapes, node):
+    "Infers shape for operator Trilu."
     return _element_unary(known_shapes, node)
