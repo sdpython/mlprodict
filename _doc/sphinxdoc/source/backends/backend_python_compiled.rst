@@ -1,6 +1,6 @@
 
-ONNX Backends for Python/Numpy runtime
-======================================
+ONNX Backends for Python/Numpy runtime (compiled)
+=================================================
 
 Backend class: :class:`OnnxInferenceBackend
 <mlprodict.onnxrt.backend.OnnxInferenceBackend>`.
