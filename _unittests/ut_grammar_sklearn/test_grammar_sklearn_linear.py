@@ -11,6 +11,7 @@ from sklearn.datasets import load_iris
 from mlprodict.testing import iris_data, check_model_representation
 from mlprodict.grammar_sklearn import sklearn2graph, identify_interpreter
 from mlprodict.grammar_sklearn.cc import compile_c_function
+from mlprodict.grammar_sklearn.cc.c_compilation import CompilationError
 
 
 class TestGrammarSklearnLinear(ExtTestCase):
@@ -59,8 +60,14 @@ class TestGrammarSklearnLinear(ExtTestCase):
             raise ValueError("cannot be None")
 
         X = numpy.array([[numpy.float32(1), numpy.float32(2)]])
-        fct = compile_c_function(code_c, 2, additional_paths=[
-                                 'ggg'], suffix='_float')
+        try:
+            fct = compile_c_function(
+                code_c, 2, additional_paths=['ggg'], suffix='_float')
+        except (CompilationError, RuntimeError) as e:
+            if "Visual Studio is not installed" in str(e):
+                return
+            raise AssertionError(  # pylint: disable=W0707
+                "Issue type %r exc %r." % (type(e), e))
 
         e2 = fct(X[0, :])
         e1 = lr.predict(X)
@@ -85,8 +92,14 @@ class TestGrammarSklearnLinear(ExtTestCase):
             raise ValueError("cannot be None")
 
         X = numpy.array([[numpy.float64(1), numpy.float64(2)]])
-        fct = compile_c_function(code_c, 2, additional_paths=['ggg'],
-                                 dtype=numpy.float64, suffix='_double')
+        try:
+            fct = compile_c_function(code_c, 2, additional_paths=['ggg'],
+                                     dtype=numpy.float64, suffix='_double')
+        except (CompilationError, RuntimeError) as e:
+            if "Visual Studio is not installed" in str(e):
+                return
+            raise AssertionError(  # pylint: disable=W0707
+                "Issue type %r exc %r." % (type(e), e))
 
         e2 = fct(X[0, :])
         e1 = lr.predict(X)
@@ -102,8 +115,14 @@ class TestGrammarSklearnLinear(ExtTestCase):
         def myprint(*args, **kwargs):
             rows.append(' '.join(map(str, args)))
 
-        check_model_representation(
-            LinearRegression, X, y, verbose=True, fLOG=myprint, suffix='A')
+        try:
+            check_model_representation(
+                LinearRegression, X, y, verbose=True, fLOG=myprint, suffix='A')
+        except (RuntimeError, CompilationError) as e:
+            if "Visual Studio is not installed" in str(e):
+                return
+            raise AssertionError(  # pylint: disable=W0707
+                "Issue type %r exc %r." % (type(e), e))
         check_model_representation(
             LinearRegression, X.tolist(), y.tolist(), verbose=True,
             fLOG=myprint, suffix='B')
