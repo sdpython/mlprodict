@@ -174,6 +174,11 @@ def shape_round(known_shapes, node):
     return _element_unary(known_shapes, node)
 
 
+def shape_selu(known_shapes, node):
+    "Infers shape for operator Selu."
+    return _element_unary(known_shapes, node)
+
+
 def shape_sigmoid(known_shapes, node):
     "Infers shape for operator Sigmoid."
     return _element_unary(known_shapes, node)
