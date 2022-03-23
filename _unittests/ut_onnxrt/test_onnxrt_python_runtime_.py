@@ -43,7 +43,7 @@ from skl2onnx.algebra.onnx_ops import (  # pylint: disable=E0611
     OnnxDequantizeLinear,
     OnnxDet, OnnxDiv,
     OnnxDropout, OnnxDropout_7,
-    OnnxEinsum, OnnxEqual, OnnxErf, OnnxExp, OnnxExpand, OnnxEyeLike,
+    OnnxEinsum, OnnxElu, OnnxEqual, OnnxErf, OnnxExp, OnnxExpand, OnnxEyeLike,
     OnnxFlatten, OnnxFloor,
     OnnxGreater, OnnxGreaterOrEqual, OnnxGemm, OnnxGlobalAveragePool,
     OnnxHardSigmoid,
@@ -2154,6 +2154,11 @@ class TestOnnxrtPythonRuntime(ExtTestCase):  # pylint: disable=R0904
         oinfpy = OnnxInference(model_def, runtime="python", inplace=True)
         validate_python_inference(oinfpy, {'X': X.astype(numpy.float32),
                                            'Y': Y.astype(numpy.float32)})
+
+    @wraplog()
+    def test_onnxt_runtime_elu(self):
+        self.common_test_onnxt_runtime_unary(
+            OnnxElu, lambda x: numpy.where(x > 0, x, (numpy.exp(x) - 1)))
 
     @ignore_warnings(category=(RuntimeWarning, DeprecationWarning))
     @wraplog()
@@ -4564,5 +4569,5 @@ class TestOnnxrtPythonRuntime(ExtTestCase):  # pylint: disable=R0904
 
 if __name__ == "__main__":
     # Working
-    # TestOnnxrtPythonRuntime().test_onnxt_runtime_sub()
+    # TestOnnxrtPythonRuntime().test_onnxt_runtime_elu()
     unittest.main(verbosity=2)

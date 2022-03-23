@@ -104,6 +104,11 @@ def shape_cosh(known_shapes, node):
     return _element_unary(known_shapes, node)
 
 
+def shape_elu(known_shapes, node):
+    "Infers shape for operator Elu."
+    return _element_unary(known_shapes, node)
+
+
 def shape_erf(known_shapes, node):
     "Infers shape for operator Erf."
     return _element_unary(known_shapes, node)
