@@ -62,6 +62,7 @@ from .op_gather_elements import GatherElements
 from .op_gemm import Gemm
 from .op_global_average_pool import GlobalAveragePool
 from .op_greater import Greater, GreaterOrEqual
+from .op_hard_sigmoid import HardSigmoid
 from .op_floor import Floor
 from .op_identity import Identity
 from .op_if import If
@@ -112,6 +113,7 @@ from .op_rnn import RNN
 from .op_scaler import Scaler
 from .op_scan import Scan
 from .op_scatter_elements import ScatterElements
+from .op_selu import Selu
 from .op_sequence_at import SequenceAt
 from .op_sequence_construct import SequenceConstruct
 from .op_sequence_insert import SequenceInsert
@@ -144,6 +146,7 @@ from .op_tree_ensemble_classifier import (
 from .op_tree_ensemble_regressor import (
     TreeEnsembleRegressorDouble,
     TreeEnsembleRegressor_1, TreeEnsembleRegressor_3, TreeEnsembleRegressor)
+from .op_trilu import Trilu
 from .op_unsqueeze import Unsqueeze, Unsqueeze_1, Unsqueeze_11, Unsqueeze_13
 from .op_where import Where
 from .op_yield_op import YieldOp
