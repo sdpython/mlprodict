@@ -62,6 +62,7 @@ from .op_gather_elements import GatherElements
 from .op_gemm import Gemm
 from .op_global_average_pool import GlobalAveragePool
 from .op_greater import Greater, GreaterOrEqual
+from .op_hard_sigmoid import HardSigmoid
 from .op_floor import Floor
 from .op_identity import Identity
 from .op_if import If

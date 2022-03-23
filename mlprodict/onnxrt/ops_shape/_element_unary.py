@@ -119,6 +119,11 @@ def shape_floor(known_shapes, node):
     return _element_unary(known_shapes, node)
 
 
+def shape_hardsigmoid(known_shapes, node):
+    "Infers shape for operator HardSigmoid."
+    return _element_unary(known_shapes, node)
+
+
 def shape_isnan(known_shapes, node):
     "Infers shape for operator IsNan."
     return _element_unary(known_shapes, node, numpy.bool_)
