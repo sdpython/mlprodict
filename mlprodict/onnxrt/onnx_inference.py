@@ -232,13 +232,31 @@ class OnnxInference:
                             self.runtime, variables, self.__class__,
                             target_opset=target_opset, dtype=dtype,
                             domain=domain, ir_version=self.ir_version_,
-                            runtime_options=self.runtime_options)
+                            runtime_options=self.runtime_options,
+                            build_inference_node_function=lambda fct:
+                                OnnxInference(
+                                    fct, runtime=self.runtime,
+                                    skip_run=self.skip_run,
+                                    inplace=self.inplace,
+                                    runtime_options=self.runtime_options,
+                                    inside_loop=self.inside_loop,
+                                    static_inputs=self.static_inputs,
+                                    device=self.device))
                     else:
                         node.setup_runtime(
                             self.runtime, variables, self.__class__,
                             target_opset=target_opset, domain=domain,
                             ir_version=self.ir_version_,
-                            runtime_options=self.runtime_options)
+                            runtime_options=self.runtime_options,
+                            build_inference_node_function=lambda fct:
+                                OnnxInference(
+                                    fct, runtime=self.runtime,
+                                    skip_run=self.skip_run,
+                                    inplace=self.inplace,
+                                    runtime_options=self.runtime_options,
+                                    inside_loop=self.inside_loop,
+                                    static_inputs=self.static_inputs,
+                                    device=self.device))
                     if hasattr(node, 'ops_') and hasattr(node.ops_, 'typed_outputs_'):
                         for k, v in node.ops_.typed_outputs_:
                             variables[k] = v
@@ -507,10 +525,9 @@ class OnnxInference:
                 statics[n] = {'name': n}
                 self.global_index(n)
 
-        if isinstance(self.obj, onnx_proto.FunctionProto):
-            obj_graph = self.obj
-        else:
-            obj_graph = self.obj.graph
+        obj_graph = (
+            self.obj if isinstance(self.obj, onnx_proto.FunctionProto)
+            else self.obj.graph)
 
         # inputs
         for obj in obj_graph.input:

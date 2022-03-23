@@ -1,5 +1,5 @@
 """
-@brief      test log(time=120s)
+@brief      test log(time=152s)
 """
 import unittest
 import pprint
@@ -46,6 +46,7 @@ from skl2onnx.algebra.onnx_ops import (  # pylint: disable=E0611
     OnnxEinsum, OnnxEqual, OnnxErf, OnnxExp, OnnxExpand, OnnxEyeLike,
     OnnxFlatten, OnnxFloor,
     OnnxGreater, OnnxGreaterOrEqual, OnnxGemm, OnnxGlobalAveragePool,
+    OnnxHardSwish,
     OnnxIdentity, OnnxIsNaN,
     OnnxLeakyRelu, OnnxLess, OnnxLessOrEqual,
     OnnxLog, OnnxLogSoftmax, OnnxLpNormalization,
@@ -2467,6 +2468,16 @@ class TestOnnxrtPythonRuntime(ExtTestCase):  # pylint: disable=R0904
             OnnxGreaterOrEqual, numpy.greater_equal)
 
     @wraplog()
+    def test_onnxt_runtime_hardswish(self):
+
+        def hardswish(x):
+            alfa = 1. / 6
+            beta = 0.5
+            return x * numpy.maximum(0, numpy.minimum(1, alfa * x + beta))
+
+        self.common_test_onnxt_runtime_unary(OnnxHardSwish, hardswish)
+
+    @wraplog()
     def test_onnxt_runtime_identity(self):
         self.common_test_onnxt_runtime_unary(OnnxIdentity, lambda x: x)
 
@@ -4544,5 +4555,5 @@ class TestOnnxrtPythonRuntime(ExtTestCase):  # pylint: disable=R0904
 
 if __name__ == "__main__":
     # Working
-    # TestOnnxrtPythonRuntime().test_onnxt_runtime_sub()
+    # TestOnnxrtPythonRuntime().test_onnxt_runtime_hardswish()
     unittest.main(verbosity=2)

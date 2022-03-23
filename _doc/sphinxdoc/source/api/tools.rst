@@ -71,6 +71,11 @@ is left unchanged.
 
 .. autosignature:: mlprodict.onnx_tools.optim.onnx_optimisation_unused.onnx_remove_node_unused
 
+Onnx Schemas
+++++++++++++
+
+.. autosignature:: mlprodict.onnx_tools.onnx2py_helper.get_onnx_schema
+
 Profiling
 +++++++++
 

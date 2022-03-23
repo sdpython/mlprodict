@@ -6,6 +6,9 @@ import sys
 import pprint
 import numpy
 from onnx import onnx_pb as onnx_proto
+from onnx.onnx_cpp2py_export.defs import SchemaError  # pylint: disable=E0401,E0611
+from ..onnx_tools.onnx2py_helper import get_onnx_schema
+from .excs import MissingOperatorError
 from .ops import load_op
 
 
@@ -74,25 +77,32 @@ class OnnxInferenceNode:
 
     def setup_runtime(self, runtime=None, variables=None, rt_class=None,
                       target_opset=None, dtype=None, domain=None,
-                      ir_version=None, runtime_options=None):
+                      ir_version=None, runtime_options=None,
+                      build_inference_node_function=None):
         """
         Loads runtime.
 
-        @param      runtime         runtime options
-        @param      variables       registered variables created by previous operators
-        @param      rt_class        runtime class used to compute
-                                    prediction of subgraphs
-        @param      target_opset    use a specific target opset
-        @param      dtype           float computational type
-        @param      domain          node domain
-        @param      ir_version      if not None, changes the default value
-                                    given by :epkg:`ONNX`
-        @param      runtime_options runtime options
+        :param runtime: runtime options
+        :param variables: registered variables created by previous operators
+        :param rt_class: runtime class used to compute
+            prediction of subgraphs
+        :param target_opset: use a specific target opset
+        :param dtype: float computational type
+        :param domain: node domain
+        :param ir_version: if not None, changes the default value
+            given by :epkg:`ONNX`
+        :param runtime_options: runtime options
+        :param build_inference_node_function: function creating an inference
+            runtime from an ONNX graph
+
+        .. versionchanged:: 0.9
+            Parameter *build_inference_node_function* was added.
         """
         if self.desc is None:
             raise AttributeError(
                 "desc should not be None.")  # pragma: no cover
         if rt_class is None:
+            # path used when this operator is a function.
             self.function_ = runtime
             self.ops_ = None
         else:
@@ -111,19 +121,32 @@ class OnnxInferenceNode:
                 options.update({
                     k: v for k, v in runtime_options.items()
                     if k not in {'log_severity_level'}})
-            if runtime == 'onnxruntime2':
-                self.ops_ = load_op(self.onnx_node, desc=self.desc,
-                                    options=options if options else None,
-                                    variables=variables, dtype=dtype)
-            elif runtime in ('python_compiled', 'python_compiled_debug'):
-                options['provider'] = 'python'
-                self.ops_ = load_op(self.onnx_node, desc=self.desc,
-                                    options=options if options else None,
-                                    variables=variables)
-            else:
-                self.ops_ = load_op(self.onnx_node, desc=self.desc,
-                                    options=options if options else None,
-                                    variables=variables)
+            try:
+                if runtime == 'onnxruntime2':
+                    self.ops_ = load_op(self.onnx_node, desc=self.desc,
+                                        options=options if options else None,
+                                        variables=variables, dtype=dtype)
+                elif runtime in ('python_compiled', 'python_compiled_debug'):
+                    options['provider'] = 'python'
+                    self.ops_ = load_op(self.onnx_node, desc=self.desc,
+                                        options=options if options else None,
+                                        variables=variables, dtype=dtype)
+                else:
+                    self.ops_ = load_op(self.onnx_node, desc=self.desc,
+                                        options=options if options else None,
+                                        variables=variables, dtype=dtype)
+            except MissingOperatorError as e:
+                try:
+                    onnx_schema = get_onnx_schema(
+                        self.onnx_node.op_type, self.onnx_node.domain,
+                        opset=target_opset)
+                except SchemaError:
+                    raise e  # pylint: disable=W0707
+                if onnx_schema is None or not onnx_schema.has_function:
+                    raise e
+                self.function_ = build_inference_node_function(
+                    onnx_schema.function_body)
+                self.ops_ = None
 
     @staticmethod
     def _find_static_inputs(body):

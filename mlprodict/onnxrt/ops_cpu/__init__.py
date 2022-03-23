@@ -3,6 +3,7 @@
 @file
 @brief Shortcut to *ops_cpu*.
 """
+import textwrap
 from ..excs import MissingOperatorError
 from ._op import OpRunCustom
 from ._op_list import __dict__ as d_op_list
@@ -34,10 +35,10 @@ def load_op(onnx_node, desc=None, options=None):
     """
     Gets the operator related to the *onnx* node.
 
-    @param      onnx_node       :epkg:`onnx` node
-    @param      desc            internal representation
-    @param      options         runtime options
-    @return                     runtime class
+    :param onnx_node: :epkg:`onnx` node
+    :param desc: internal representation
+    :param options: runtime options
+    :return: runtime class
     """
     from ... import __max_supported_opset__
     if desc is None:
@@ -72,12 +73,15 @@ def load_op(onnx_node, desc=None, options=None):
         cl = d_op_list[name]
     else:
         raise MissingOperatorError(  # pragma no cover
-            "Operator '{}' has no runtime yet. Available list:\n"
-            "{}\n--- +\n{}".format(
-                name, "\n".join(sorted(_additional_ops)),
-                "\n".join(
-                    _ for _ in sorted(d_op_list)
-                    if "_" not in _ and _ not in {'cl', 'clo', 'name'})))
+            "Operator '{}' from domain '{}' has no runtime yet. "
+            "Available list:\n"
+            "{} - {}".format(
+                name, onnx_node.domain,
+                "\n".join(sorted(_additional_ops)),
+                "\n".join(textwrap.wrap(
+                    " ".join(
+                        _ for _ in sorted(d_op_list)
+                        if "_" not in _ and _ not in {'cl', 'clo', 'name'})))))
 
     if hasattr(cl, 'version_higher_than'):
         opv = min(current_opset, chosen_opset)
