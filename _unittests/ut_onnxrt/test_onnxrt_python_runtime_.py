@@ -65,7 +65,7 @@ from skl2onnx.algebra.onnx_ops import (  # pylint: disable=E0611
     OnnxRelu, OnnxReshape,
     OnnxRound,
     OnnxScatterElements,
-    OnnxSequenceAt, OnnxSequenceConstruct,
+    OnnxSelu, OnnxSequenceAt, OnnxSequenceConstruct,
     OnnxShape, OnnxSlice, OnnxSigmoid, OnnxSign,
     OnnxSin, OnnxSinh,
     OnnxSize, OnnxSoftmax,
@@ -3690,6 +3690,14 @@ class TestOnnxrtPythonRuntime(ExtTestCase):  # pylint: disable=R0904
                     target_opset=opset)
                 got = OnnxInference(model_def).run({'X': x})
                 self.assertEqualArray(y, got['Y'])
+
+    @wraplog()
+    def test_onnxt_runtime_selu(self):
+        alpha = 1.67326319217681884765625
+        gamma = 1.05070102214813232421875
+        self.common_test_onnxt_runtime_unary(
+            OnnxSelu, lambda x: numpy.where(
+                x > 0, x * gamma, numpy.exp(x) * alpha - alpha))
 
     @wraplog()
     def test_onnxt_runtime_sequence_at(self):
