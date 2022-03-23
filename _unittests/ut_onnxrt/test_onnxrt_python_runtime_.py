@@ -46,6 +46,7 @@ from skl2onnx.algebra.onnx_ops import (  # pylint: disable=E0611
     OnnxEinsum, OnnxEqual, OnnxErf, OnnxExp, OnnxExpand, OnnxEyeLike,
     OnnxFlatten, OnnxFloor,
     OnnxGreater, OnnxGreaterOrEqual, OnnxGemm, OnnxGlobalAveragePool,
+    OnnxHardSigmoid,
     OnnxIdentity, OnnxIsNaN,
     OnnxLeakyRelu, OnnxLess, OnnxLessOrEqual,
     OnnxLog, OnnxLogSoftmax, OnnxLpNormalization,
@@ -2442,6 +2443,12 @@ class TestOnnxrtPythonRuntime(ExtTestCase):  # pylint: disable=R0904
     def test_onnxt_runtime_greater_or_equal(self):
         self.common_test_onnxt_runtime_binary(
             OnnxGreaterOrEqual, numpy.greater_equal)
+
+    @wraplog()
+    def test_onnxt_runtime_hard_sigmoid(self):
+        self.common_test_onnxt_runtime_unary(
+            OnnxHardSigmoid, lambda x: numpy.maximum(
+                0, numpy.minimum(1, x * 0.2 + 0.5)))
 
     @wraplog()
     def test_onnxt_runtime_identity(self):
