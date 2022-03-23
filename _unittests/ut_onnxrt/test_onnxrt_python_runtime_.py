@@ -29,7 +29,7 @@ from skl2onnx.algebra.onnx_ops import (  # pylint: disable=E0611
     OnnxAbs, OnnxAdd, OnnxAnd,
     OnnxArgMax_11, OnnxArgMax,
     OnnxArgMin_11, OnnxArgMin,
-    OnnxBatchNormalization,
+    OnnxBatchNormalization, OnnxBitShift,
     OnnxAcos, OnnxAcosh, OnnxAsin, OnnxAsinh, OnnxAtan, OnnxAtanh,
     OnnxAveragePool,
     OnnxCast, OnnxCastLike, OnnxCeil, OnnxClip,
@@ -1061,6 +1061,29 @@ class TestOnnxrtPythonRuntime(ExtTestCase):  # pylint: disable=R0904
         # self.assertEqualArray(y, got['Y'])
         self.assertNotEmpty(y)
         self.assertNotEmpty(var)
+
+    @wraplog()
+    def test_onnxt_runtime_bitshift(self):
+        x = numpy.array([16, 4, 1]).astype(numpy.uint32)
+        y = numpy.array([1, 2, 3]).astype(numpy.uint32)
+
+        onx = OnnxBitShift('X', 'Y', direction=b'LEFT',
+                           op_version=14, output_names=['Z'])
+        model_def = onx.to_onnx({'X': x, 'Y': y}, {'Z': x},
+                                target_opset=14)
+        oinf = OnnxInference(model_def)
+        got = oinf.run({'X': x, 'Y': y})
+        self.assertEqualArray(got['Z'], x << y)
+
+        onx = OnnxBitShift('X', 'Y', direction=b'RIGHT',
+                           op_version=14, output_names=['Z'])
+        model_def = onx.to_onnx({'X': x, 'Y': y}, {'Z': x},
+                                target_opset=14)
+        oinf = OnnxInference(model_def)
+        got = oinf.run({'X': x, 'Y': y})
+        self.assertEqualArray(got['Z'], x >> y)
+
+        python_tested.append(OnnxBitShift)
 
     @wraplog()
     def test_onnxt_runtime_cast_out(self):
