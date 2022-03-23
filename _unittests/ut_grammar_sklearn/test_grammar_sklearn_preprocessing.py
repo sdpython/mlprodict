@@ -23,7 +23,7 @@ class TestGrammarSklearnPreprocessing(ExtTestCase):
         except (CompilationError, RuntimeError) as e:
             if "Visual Studio is not installed" in str(e):
                 return
-            raise AssertionError(
+            raise AssertionError(  # pylint: disable=W0707
                 "Issue type %r exc %r." % (type(e), e))
         # The second compilation fails if suffix is not specified.
         check_model_representation(
