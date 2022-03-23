@@ -63,10 +63,11 @@ class TestGrammarSklearnLinear(ExtTestCase):
         try:
             fct = compile_c_function(
                 code_c, 2, additional_paths=['ggg'], suffix='_float')
-        except CompilationError as e:
+        except (CompilationError, Runtime) as e:
             if "Visual Studio is not installed" in str(e):
                 return
-            raise e
+            raise AssertionError(
+                "Issue type %r exc %r." % (type(e), e))
 
         e2 = fct(X[0, :])
         e1 = lr.predict(X)
@@ -94,10 +95,11 @@ class TestGrammarSklearnLinear(ExtTestCase):
         try:
             fct = compile_c_function(code_c, 2, additional_paths=['ggg'],
                                      dtype=numpy.float64, suffix='_double')
-        except CompilationError as e:
+        except (CompilationError, RuntimeError) as e:
             if "Visual Studio is not installed" in str(e):
                 return
-            raise e
+            raise AssertionError(
+                "Issue type %r exc %r." % (type(e), e))
 
         e2 = fct(X[0, :])
         e1 = lr.predict(X)
@@ -119,7 +121,8 @@ class TestGrammarSklearnLinear(ExtTestCase):
         except (RuntimeError, CompilationError) as e:
             if "Visual Studio is not installed" in str(e):
                 return
-            raise e
+            raise AssertionError(
+                "Issue type %r exc %r." % (type(e), e))
         check_model_representation(
             LinearRegression, X.tolist(), y.tolist(), verbose=True,
             fLOG=myprint, suffix='B')
