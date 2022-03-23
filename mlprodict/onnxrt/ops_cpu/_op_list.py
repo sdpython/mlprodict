@@ -21,6 +21,7 @@ from .op_atanh import Atanh
 from .op_average_pool import AveragePool
 from .op_batch_normalization import BatchNormalization, BatchNormalization_14
 from .op_binarizer import Binarizer
+from .op_bitshift import BitShift
 from .op_broadcast_gradient_args import BroadcastGradientArgs
 from .op_cast import Cast, CastLike
 from .op_cdist import CDist

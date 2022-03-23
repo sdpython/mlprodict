@@ -8,6 +8,7 @@ import numpy
 from numpy.testing import assert_allclose
 from ..grammar_sklearn import sklearn2graph
 from ..grammar_sklearn.cc import compile_c_function
+from ..grammar_sklearn.cc.c_compilation import CompilationError
 
 
 def iris_data():
@@ -157,11 +158,14 @@ def check_model_representation(model, X, y=None, convs=None,
                 with redirect_stderr(ferr):
                     try:
                         fct = compile_fct(
-                            code_c, len(output_names), suffix=suffix, fLOG=lambda s: fout.write(s + "\n"))
+                            code_c, len(output_names), suffix=suffix,
+                            fLOG=lambda s: fout.write(s + "\n"))
                     except Exception as e:  # pragma: no cover
-                        raise RuntimeError(
-                            "Unable to compile a code\n-OUT-\n{0}\n-ERR-\n{1}\n-CODE-"
-                            "\n{2}".format(fout.getvalue(), ferr.getvalue(), code_c)) from e
+                        raise CompilationError(
+                            "Unable to compile a code\n-OUT-\n{0}\n-ERR-\n{1}"
+                            "\n-CODE-\n{2}\n-----------\n{3}".format(
+                                fout.getvalue(), ferr.getvalue(),
+                                code_c, e)) from e
 
             if verbose and fLOG:
                 fLOG("-----------------")
