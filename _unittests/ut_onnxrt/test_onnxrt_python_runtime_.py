@@ -2155,7 +2155,7 @@ class TestOnnxrtPythonRuntime(ExtTestCase):  # pylint: disable=R0904
                                            'Y': Y.astype(numpy.float32)})
 
     @wraplog()
-    def test_onnxt_runtime_relu(self):
+    def test_onnxt_runtime_elu(self):
         self.common_test_onnxt_runtime_unary(
             OnnxElu, lambda x: numpy.where(x > 0, x, (numpy.exp(x) - 1)))
 
@@ -4549,5 +4549,5 @@ class TestOnnxrtPythonRuntime(ExtTestCase):  # pylint: disable=R0904
 
 if __name__ == "__main__":
     # Working
-    # TestOnnxrtPythonRuntime().test_onnxt_runtime_sub()
+    # TestOnnxrtPythonRuntime().test_onnxt_runtime_elu()
     unittest.main(verbosity=2)

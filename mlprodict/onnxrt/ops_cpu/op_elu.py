@@ -14,7 +14,7 @@ class Elu(OpRunUnaryNum):
 
     def __init__(self, onnx_node, desc=None, **options):
         OpRunUnaryNum.__init__(self, onnx_node, desc=desc,
-                               attributes=Elu.atts,
+                               expected_attributes=Elu.atts,
                                **options)
 
     def _run(self, x):  # pylint: disable=W0221
@@ -24,4 +24,4 @@ class Elu(OpRunUnaryNum):
         return (
             "import numpy",
             ("return numpy.where({0} > 0, {0}, "
-             "self.alpha * (numpy.exp({0}) - 1))").format(inputs[0]))
+             "{1} * (numpy.exp({0}) - 1))").format(inputs[0], self.alpha))
