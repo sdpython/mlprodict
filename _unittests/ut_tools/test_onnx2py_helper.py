@@ -10,7 +10,8 @@ from mlprodict.onnx_tools.onnx2py_helper import (
     to_skl2onnx_type, guess_proto_dtype_name,
     numpy_max, numpy_min,
     guess_numpy_type_from_dtype,
-    guess_numpy_type_from_string)
+    guess_numpy_type_from_string,
+    get_onnx_schema)
 
 
 class TestOnnx2PyHelper(ExtTestCase):
@@ -77,6 +78,22 @@ class TestOnnx2PyHelper(ExtTestCase):
         self.assertEqual(guess_numpy_type_from_string('int32'), numpy.int32)
         self.assertEqual(guess_numpy_type_from_string('int16'), numpy.int16)
         self.assertEqual(guess_numpy_type_from_string('str'), numpy.str_)
+
+    def test_get_onnx_schema(self):
+        for opset in ([None] + list(range(16, 11, -1))):
+            with self.subTest(opset=opset):
+                schema = get_onnx_schema('MeanVarianceNormalization',
+                                         opset=opset)
+                self.assertTrue(schema.has_function)
+                schema = get_onnx_schema('MeanVarianceNormalization',
+                                         load_function=True)
+                self.assertTrue(schema.has_function)
+                self.assertRaise(
+                    lambda: get_onnx_schema('MeanVarianceNormalization',
+                                            load_function=True, opset=15),
+                    ValueError)
+        schema = get_onnx_schema('Add', load_function=True)
+        self.assertEqual(schema.name, 'Add')
 
 
 if __name__ == "__main__":

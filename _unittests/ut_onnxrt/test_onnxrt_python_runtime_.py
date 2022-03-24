@@ -1,5 +1,5 @@
 """
-@brief      test log(time=120s)
+@brief      test log(time=152s)
 """
 import unittest
 import pprint
@@ -46,7 +46,7 @@ from skl2onnx.algebra.onnx_ops import (  # pylint: disable=E0611
     OnnxEinsum, OnnxElu, OnnxEqual, OnnxErf, OnnxExp, OnnxExpand, OnnxEyeLike,
     OnnxFlatten, OnnxFloor,
     OnnxGreater, OnnxGreaterOrEqual, OnnxGemm, OnnxGlobalAveragePool,
-    OnnxHardSigmoid,
+    OnnxHardSigmoid, OnnxHardSwish,
     OnnxIdentity, OnnxIsNaN,
     OnnxLeakyRelu, OnnxLess, OnnxLessOrEqual,
     OnnxLog, OnnxLogSoftmax, OnnxLpNormalization,
@@ -268,7 +268,8 @@ class TestOnnxrtPythonRuntime(ExtTestCase):  # pylint: disable=R0904
         oinf = OnnxInference(model_def, inplace=False)
         all_names = "\n".join(
             "%s>=v%d" % (op.ops_.__class__.__name__,
-                         op.ops_._schema.since_version)  # pylint: disable=W0212
+                         op.ops_._schema.since_version
+                         if op.ops_ is not None else 1)  # pylint: disable=W0212
             for op in oinf.sequence_)
         if debug:
             got = oinf.run({'X': X.astype(numpy.float32)},
@@ -2472,11 +2473,20 @@ class TestOnnxrtPythonRuntime(ExtTestCase):  # pylint: disable=R0904
         self.common_test_onnxt_runtime_binary(
             OnnxGreaterOrEqual, numpy.greater_equal)
 
-    @wraplog()
     def test_onnxt_runtime_hard_sigmoid(self):
         self.common_test_onnxt_runtime_unary(
             OnnxHardSigmoid, lambda x: numpy.maximum(
                 0, numpy.minimum(1, x * 0.2 + 0.5)))
+
+    @wraplog()
+    def test_onnxt_runtime_hardswish(self):
+
+        def hardswish(x):
+            alfa = 1. / 6
+            beta = 0.5
+            return x * numpy.maximum(0, numpy.minimum(1, alfa * x + beta))
+
+        self.common_test_onnxt_runtime_unary(OnnxHardSwish, hardswish)
 
     @wraplog()
     def test_onnxt_runtime_identity(self):
@@ -4569,5 +4579,5 @@ class TestOnnxrtPythonRuntime(ExtTestCase):  # pylint: disable=R0904
 
 if __name__ == "__main__":
     # Working
-    # TestOnnxrtPythonRuntime().test_onnxt_runtime_elu()
+    # TestOnnxrtPythonRuntime().test_onnxt_runtime_hardswish()
     unittest.main(verbosity=2)

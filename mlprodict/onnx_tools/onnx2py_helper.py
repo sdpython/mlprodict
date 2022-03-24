@@ -7,6 +7,7 @@ import pprint
 import warnings
 import numpy
 from scipy.sparse import coo_matrix
+from onnx.defs import get_schema, get_function_ops, onnx_opset_version
 from onnx.mapping import NP_TYPE_TO_TENSOR_TYPE, TENSOR_TYPE_TO_NP_TYPE
 from onnx import TensorProto, ValueInfoProto
 from onnx.helper import make_tensor_type_proto
@@ -755,3 +756,52 @@ def make_value_info(name, dtype, shape):
         numpy_type_prototype(dtype), shape)
     value_info.type.CopyFrom(tensor_type_proto)  # pylint: disable=E1101
     return value_info
+
+
+_get_onnx_function_cache = None
+
+
+def _get_onnx_function():
+    """
+    Returns the list of functions defined in ONNX package.
+    """
+    global _get_onnx_function_cache  # pylint: disable=W0603
+    if _get_onnx_function_cache is None:
+        _get_onnx_function_cache = {}
+        fcts = get_function_ops()
+        for fct in fcts:
+            key = fct.domain, fct.name
+            if key in _get_onnx_function_cache:
+                raise RuntimeError(  # pragma: no cover
+                    "Function %r is already registered." % (key, ))
+            _get_onnx_function_cache[key] = fct
+    return _get_onnx_function_cache
+
+
+def get_onnx_schema(opname, domain='', opset=None, load_function=False):
+    """
+    Returns the operator schema for a specific operator.
+
+    :param domain: operator domain
+    :param opname: operator name
+    :param opset: opset or version, None for the latest
+    :param load_function: loads the function, if True, the function
+        looks into the list of function if one of them has the same name,
+        opset must be None in that case
+    :return: :epkg:`OpSchema`
+    """
+    if load_function:
+        if opset is not None:
+            raise ValueError(
+                "opset must be None if load_function is True for "
+                "operator (%r,%r)." % (domain, opname))
+        fcts = _get_onnx_function()
+        key = domain, opname
+        if key in fcts:
+            return fcts[key]
+        if opset is None:
+            opset = onnx_opset_version()
+        return get_schema(opname, opset, domain)
+    if opset is None:
+        opset = onnx_opset_version()
+    return get_schema(opname, opset, domain)

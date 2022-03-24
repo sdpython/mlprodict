@@ -479,6 +479,9 @@ class OnnxInferenceExport:
             res = oinf.to_python()
             print(res['onnx_pyrt_main.py'])
         """
+        if not isinstance(prefix, str):
+            raise TypeError(  # pragma: no cover
+                "prefix must be a string not %r." % type(prefix))
 
         def clean_args(args):
             new_args = []
@@ -520,7 +523,13 @@ class OnnxInferenceExport:
                       "        return %r" % obj, ""]
 
         # inputs
-        inputs = [obj.name for obj in self.oinf.obj.graph.input]
+        if hasattr(self.oinf.obj, 'graph'):
+            inputs = [obj.name for obj in self.oinf.obj.graph.input]
+            outputs = [obj.name for obj in self.oinf.obj.graph.output]
+        else:
+            inputs = list(self.oinf.obj.input)
+            outputs = list(self.oinf.obj.output)
+
         code_lines.extend([
             "    @property", "    def inputs(self):",
             "        return %r" % inputs,
@@ -528,7 +537,6 @@ class OnnxInferenceExport:
         ])
 
         # outputs
-        outputs = [obj.name for obj in self.oinf.obj.graph.output]
         code_lines.extend([
             "    @property", "    def outputs(self):",
             "        return %r" % outputs,
@@ -539,23 +547,24 @@ class OnnxInferenceExport:
         code_lines.extend(["    def _load_inits(self):",
                            "        self._inits = {}"])
         file_data = {}
-        for obj in self.oinf.obj.graph.initializer:
-            value = numpy_helper.to_array(obj)
-            bt = BytesIO()
-            pickle.dump(value, bt)
-            name = '{1}{0}.pkl'.format(obj.name, prefix)
-            if inline:
-                code_lines.extend([
-                    "        iocst = %r" % bt.getvalue(),
-                    "        self._inits['{0}'] = pickle.loads(iocst)".format(
-                        obj.name)
-                ])
-            else:
-                file_data[name] = bt.getvalue()
-                code_lines.append(
-                    "        self._inits['{0}'] = pickle.loads('{1}')".format(
-                        obj.name, name))
-        code_lines.append('')
+        if hasattr(self.oinf.obj, 'graph'):
+            for obj in self.oinf.obj.graph.initializer:
+                value = numpy_helper.to_array(obj)
+                bt = BytesIO()
+                pickle.dump(value, bt)
+                name = '{1}{0}.pkl'.format(obj.name, prefix)
+                if inline:
+                    code_lines.extend([
+                        "        iocst = %r" % bt.getvalue(),
+                        "        self._inits['{0}'] = pickle.loads(iocst)".format(
+                            obj.name)
+                    ])
+                else:
+                    file_data[name] = bt.getvalue()
+                    code_lines.append(
+                        "        self._inits['{0}'] = pickle.loads('{1}')".format(
+                            obj.name, name))
+            code_lines.append('')
 
         # inputs, outputs
         inputs = self.oinf.input_names
@@ -563,11 +572,12 @@ class OnnxInferenceExport:
         # nodes
         code_lines.extend(['    def run(self, %s):' % ', '.join(inputs)])
         ops = {}
-        code_lines.append('        # constant')
-        for obj in self.oinf.obj.graph.initializer:
-            code_lines.append(
-                "        {0} = self._inits['{0}']".format(obj.name))
-        code_lines.append('')
+        if hasattr(self.oinf.obj, 'graph'):
+            code_lines.append('        # constant')
+            for obj in self.oinf.obj.graph.initializer:
+                code_lines.append(
+                    "        {0} = self._inits['{0}']".format(obj.name))
+            code_lines.append('')
         code_lines.append('        # graph code')
         for node in self.oinf.sequence_:
             fct = 'pyrt_' + node.name

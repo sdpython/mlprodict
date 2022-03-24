@@ -232,13 +232,31 @@ class OnnxInference:
                             self.runtime, variables, self.__class__,
                             target_opset=target_opset, dtype=dtype,
                             domain=domain, ir_version=self.ir_version_,
-                            runtime_options=self.runtime_options)
+                            runtime_options=self.runtime_options,
+                            build_inference_node_function=lambda fct:
+                                OnnxInference(
+                                    fct, runtime=self.runtime,
+                                    skip_run=self.skip_run,
+                                    inplace=self.inplace,
+                                    runtime_options=self.runtime_options,
+                                    inside_loop=self.inside_loop,
+                                    static_inputs=self.static_inputs,
+                                    device=self.device))
                     else:
                         node.setup_runtime(
                             self.runtime, variables, self.__class__,
                             target_opset=target_opset, domain=domain,
                             ir_version=self.ir_version_,
-                            runtime_options=self.runtime_options)
+                            runtime_options=self.runtime_options,
+                            build_inference_node_function=lambda fct:
+                                OnnxInference(
+                                    fct, runtime=self.runtime,
+                                    skip_run=self.skip_run,
+                                    inplace=self.inplace,
+                                    runtime_options=self.runtime_options,
+                                    inside_loop=self.inside_loop,
+                                    static_inputs=self.static_inputs,
+                                    device=self.device))
                     if hasattr(node, 'ops_') and hasattr(node.ops_, 'typed_outputs_'):
                         for k, v in node.ops_.typed_outputs_:
                             variables[k] = v
@@ -337,8 +355,10 @@ class OnnxInference:
         .. versionchanged:: 0.6
             The list does not include optional inputs anymore.
         """
-        inits = set(_.name for _ in self.obj.graph.initializer)
-        return [_.name for _ in self.obj.graph.input if _.name not in inits]
+        if hasattr(self.obj, 'graph'):
+            inits = set(_.name for _ in self.obj.graph.initializer)
+            return [_.name for _ in self.obj.graph.input if _.name not in inits]
+        return list(self.obj.input)
 
     @property
     def input_names_shapes(self):
@@ -507,10 +527,9 @@ class OnnxInference:
                 statics[n] = {'name': n}
                 self.global_index(n)
 
-        if isinstance(self.obj, onnx_proto.FunctionProto):
-            obj_graph = self.obj
-        else:
-            obj_graph = self.obj.graph
+        obj_graph = (
+            self.obj if isinstance(self.obj, onnx_proto.FunctionProto)
+            else self.obj.graph)
 
         # inputs
         for obj in obj_graph.input:
@@ -1335,7 +1354,7 @@ class OnnxInference:
         """
         return self._set_shape_inference_runtime()
 
-    def _set_type_inference_runtime(self):
+    def _set_type_inference_runtime(self, inputs=None):
         """
         Set types based on type inference
         relying on the runtime.
@@ -1345,19 +1364,27 @@ class OnnxInference:
             raise RuntimeError(  # pragma: no cover
                 "This method only works if the runtime is 'python' not "
                 "'{}'.".format(self.runtime))
+
         values = OrderedDict()
         for k, v in self.statics_.items():
             values[k] = None
-        for k, v in self.inputs_.items():
-            # The function assumes the first dimension is unknown
-            # and is the batch size.
-            if isinstance(v['type']['elem'], dict):
-                # sequence
-                values[k] = SequenceType()
-            else:
-                values[k] = guess_numpy_type_from_string(v['type']['elem'])
+
+        if inputs is None:
+            for k, v in self.inputs_.items():
+                # The function assumes the first dimension is unknown
+                # and is the batch size.
+                if isinstance(v['type']['elem'], dict):
+                    # sequence
+                    values[k] = SequenceType()
+                else:
+                    values[k] = guess_numpy_type_from_string(v['type']['elem'])
+        else:
+            for name, dtype in zip(self.input_names, inputs):
+                values[name] = dtype
+
         for k, v in self.inits_.items():
             values[k] = v['value'].dtype
+
         last = None
         for i, node in enumerate(self.sequence_):
             try:
@@ -1374,13 +1401,14 @@ class OnnxInference:
                     i, '\n'.join(rows))) from e
         return values
 
-    def infer_types(self):
+    def infer_types(self, inputs=None):
         """
         Computes expected shapes.
 
+        :param inputs: needed when this class host a function and not a graph
         :return: dictionary of types
         """
-        return self._set_type_inference_runtime()
+        return self._set_type_inference_runtime(inputs)
 
     def _set_size_inference_runtime(self, inputs, context=None):
         """
@@ -1452,7 +1480,7 @@ class OnnxInference:
             diagram {
                 A -> B -> C -> E;
                      B -> D;
-           }
+            }
 
         It does not handle specific case such node `B` being
         overwritten by node `C` but without changing its shape

@@ -5,6 +5,7 @@
 .. versionadded:: 0.9
 """
 import numpy
+from onnx import FunctionProto, ModelProto
 from onnx.numpy_helper import to_array
 from onnx.mapping import TENSOR_TYPE_TO_NP_TYPE
 from .ops_shape.shape_result import ShapeResult
@@ -18,6 +19,13 @@ class OnnxShapeInference:
     It does not implements all the operator types.
 
     :param model_onnx: ONNX model
+
+    Other attributes:
+
+    * `known_shapes_`: shapes which can be inferred without any input
+    * `cache_`: keeps track of the function used to infer
+      the shapes
+    * `is_isfunction`: tells if the graph is a function or a model
 
     .. runpython::
         :showcode:
@@ -44,20 +52,27 @@ class OnnxShapeInference:
     """
 
     def __init__(self, model_onnx):
-        if not hasattr(model_onnx, 'graph'):
+        if not isinstance(model_onnx, (FunctionProto, ModelProto)):
             raise TypeError(  # pragma: no cover
-                "model_onnx is not an ONNX graph but %r." % type(model_onnx))
+                "model_onnx is not from FunctionProto or ModelProto "
+                "%r." % type(model_onnx))
+        self.is_function = isinstance(model_onnx, FunctionProto)
         self.model_onnx = model_onnx
+        self.cache_ = {}
         self.known_shapes_ = self._run_empty()
 
     @property
     def input_names(self):
         "Returns input names."
+        if self.is_function:
+            return list(self.model_onnx.input)
         return [i.name for i in self.model_onnx.graph.input]
 
     @property
     def output_names(self):
         "Returns output names."
+        if self.is_function:
+            return list(self.model_onnx.output)
         return [i.name for i in self.model_onnx.graph.output]
 
     def __repr__(self):
@@ -66,6 +81,8 @@ class OnnxShapeInference:
 
     @staticmethod
     def _get_shape(obj, known_shapes=None, result_name=None):
+        if obj is None:
+            return [], None, False
         dtype = TENSOR_TYPE_TO_NP_TYPE.get(
             obj.type.tensor_type.elem_type, None)
         shape = []
@@ -86,42 +103,59 @@ class OnnxShapeInference:
 
         :return: all intermediates results and output as a dictionary
         """
-        known_shapes = ShapeContainer()
-        for init in self.model_onnx.graph.initializer:
-            mat = to_array(init)
-            known_shapes.update(init.name, ShapeResult(
-                init.name, mat.shape, mat.dtype, sparse=False))
+        def get_obj(name, inputs):
+            if self.is_function:
+                return None
+            if inputs:
+                for o in self.model_onnx.graph.input:
+                    if o.name == name:
+                        return o
+            else:
+                for o in self.model_onnx.graph.output:
+                    if o.name == name:
+                        return o
+            return None
 
-        for obj in self.model_onnx.graph.input:
-            if obj.name in known_shapes:
+        known_shapes = ShapeContainer()
+        if not self.is_function:
+            for init in self.model_onnx.graph.initializer:
+                mat = to_array(init)
+                known_shapes.update(init.name, ShapeResult(
+                    init.name, mat.shape, mat.dtype, sparse=False))
+
+        for name in self.input_names:
+            if name in known_shapes:
                 raise NotImplementedError(
                     "Optional inputs are not implemented yet. "
-                    "(name=%r)" % obj.name)
+                    "(name=%r)" % name)
             shape, dtype, sparse = self._get_shape(
-                obj, known_shapes, result_name=obj.name)
-            known_shapes.update(obj.name, ShapeResult(
-                obj.name, shape, dtype, sparse=sparse))
+                get_obj(name, True), known_shapes, result_name=name)
+            known_shapes.update(name, ShapeResult(
+                name, shape, dtype, sparse=sparse))
 
-        for obj in self.model_onnx.graph.output:
-            if obj.name in known_shapes:
+        for name in self.output_names:
+            if name in known_shapes:
                 raise RuntimeError(  # pragma: no cover
                     "Output %r is already present. Use Identity node."
-                    "" % obj.name)
+                    "" % name)
             shape, dtype, sparse = self._get_shape(
-                obj, known_shapes, result_name=obj.name)
+                get_obj(name, False), known_shapes, result_name=name)
             if dtype is None:
                 # The onnx graph was created with named outputs
                 # but with no type or shape.
                 continue
-            known_shapes.update(obj.name, ShapeResult(
-                obj.name, shape, dtype, sparse=sparse))
+            known_shapes.update(name, ShapeResult(
+                name, shape, dtype, sparse=sparse))
 
+        nodes = (
+            self.model_onnx.node if self.is_function
+            else self.model_onnx.graph.node)
         cont = True
         while cont:
             cont = False
-            for node in self.model_onnx.graph.node:
-                cont = cont or shape_dispatch(known_shapes, node)
-
+            for node in nodes:
+                cont = cont or shape_dispatch(
+                    self.cache_, known_shapes, node, rt_class=self.__class__)
         return known_shapes
 
     def run(self, inputs=None):
@@ -143,10 +177,14 @@ class OnnxShapeInference:
             cont = cont or known_shapes.update(
                 name, ShapeResult(name, shape, dtype, sparse=sparse))
 
+        nodes = (
+            self.model_onnx.node if self.is_function
+            else self.model_onnx.graph.node)
         while cont:
             cont = False
-            for node in self.model_onnx.graph.node:
-                cont = cont or shape_dispatch(known_shapes, node)
-
+            for node in nodes:
+                updated = shape_dispatch(
+                    self.cache_, known_shapes, node, rt_class=self.__class__)
+                cont = cont or updated
         known_shapes.resolve()
         return known_shapes
