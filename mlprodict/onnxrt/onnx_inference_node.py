@@ -16,6 +16,94 @@ class OnnxInferenceNode:
     """
     A node to execute.
     """
+    class OnnxInferenceWrapper:
+        """
+        Wraps @see cl OnnxInference in a wrapper and exposes
+        the necessary function.
+
+        :param oinf: instance of @see cl OnnxInference
+        """
+
+        def __init__(self, oinf):
+            if oinf is None:
+                raise ValueError(  # pragma: no cover
+                    "oinf cannot be None.")
+            self.oinf = oinf
+
+        @property
+        def args_default(self):
+            "Returns the list of default arguments."
+            return []
+
+        @property
+        def args_default_modified(self):
+            "Returns the list of modified arguments."
+            return []
+
+        @property
+        def args_mandatory(self):
+            "Returns the list of mandatory arguments."
+            return self.oinf.input_names
+
+        @property
+        def args_optional(self):
+            "Returns the list of optional arguments."
+            return []
+
+        @property
+        def obj(self):
+            "Returns the ONNX graph."
+            return self.oinf.obj
+
+        def run(self, *args, **kwargs):
+            "Calls run."
+            return self.oinf.run(*args, **kwargs)
+
+        def to_python(self, inputs, *args, **kwargs):
+            "Calls to_python."
+            res = self.oinf.to_python(*args, **kwargs)
+            if len(res) != 1:
+                raise NotImplementedError(  # pragma: no cover
+                    "Not implemented if the code has multiple files.")
+            keys = list(res)
+            value = res[keys[0]]
+            lines = value.split('\n')
+            last = 0
+            for i, line in enumerate(lines):
+                if line.startswith('def '):
+                    last = i - 1
+                    break
+            imports = '\n'.join(
+                line for line in lines[:last] if 'import ' in line)
+            lines.append('')
+            lines.append("return OnnxPythonInference().run(%s)" %
+                         ', '.join(inputs))
+            code = '\n'.join(lines[last:])
+            return imports, code
+
+        def need_context(self):
+            "Needs context?"
+            return False
+
+        def infer_types(self, *args):
+            "Calls infer_types."
+            res = self.oinf.infer_types(args)
+            names = self.oinf.obj.output
+            dtypes = [res[n] for n in names]
+            return tuple(dtypes)
+
+        def infer_sizes(self, *args):
+            "Calls infer_sizes."
+            values = {name: value
+                      for name, value in zip(self.oinf.input_names, args)}
+            res = self.oinf.infer_sizes(values)
+            names = self.oinf.obj.output
+            sizes = [res.get(n, 0) for n in names]
+            return (res['#'], ) + tuple(sizes)
+
+        def enable_inplace_compute(self, index):
+            "Not implemented."
+            pass
 
     def __init__(self, onnx_node, desc, global_index):
         """
@@ -103,7 +191,7 @@ class OnnxInferenceNode:
                 "desc should not be None.")  # pragma: no cover
         if rt_class is None:
             # path used when this operator is a function.
-            self.function_ = runtime
+            self.function_ = OnnxInferenceNode.OnnxInferenceWrapper(runtime)
             self.ops_ = None
         else:
             self.function_ = None
@@ -144,8 +232,8 @@ class OnnxInferenceNode:
                     raise e  # pylint: disable=W0707
                 if onnx_schema is None or not onnx_schema.has_function:
                     raise e
-                self.function_ = build_inference_node_function(
-                    onnx_schema.function_body)
+                self.function_ = OnnxInferenceNode.OnnxInferenceWrapper(
+                    build_inference_node_function(onnx_schema.function_body))
                 self.ops_ = None
 
     @staticmethod
@@ -335,13 +423,20 @@ class OnnxInferenceNode:
         :param values: container for types
         """
         args = [values[k] for k in self.inputs]
-        try:
+        if self.ops_ is None:
+            res = self.function_.infer_types(*args)
+        else:
             res = self.ops_.infer_types(*args)
+        try:
+            if self.ops_ is None:
+                res = self.function_.infer_types(*args)
+            else:
+                res = self.ops_.infer_types(*args)
         except (TypeError, ValueError) as e:  # pragma: no cover
             raise TypeError(
                 "Unable to call infer_types with {} arguments for class"
-                " '{}' ({})".format(len(args), self.ops_.__class__.__name__,
-                                    self.ops_.infer_types)) from e
+                " '{}'".format(
+                    len(args), self.ops_.__class__.__name__)) from e
         if not isinstance(res, tuple):
             raise RuntimeError(  # pragma: no cover
                 "Results of an operator should be a tuple for operator '{}'"
@@ -365,12 +460,12 @@ class OnnxInferenceNode:
         """
         args = [values[k] for k in self.inputs]
         try:
-            if self.ops_.need_context():
+            if (self.ops_ or self.function_).need_context():
                 context = {n: values[n]
                            for n in self.ops_.additional_inputs}
                 res = self.ops_.infer_sizes(*args, context=context)
             else:
-                res = self.ops_.infer_sizes(*args)
+                res = (self.ops_ or self.function_).infer_sizes(*args)
         except (TypeError, ValueError) as e:  # pragma: no cover
             raise TypeError(
                 "Unable to call infer_sizes with {} arguments for class"
@@ -399,7 +494,8 @@ class OnnxInferenceNode:
         @param      name        input name
         """
         self.inplaces.append(name)
-        self.ops_.enable_inplace_compute(self.inputs.index(name))
+        (self.ops_ or self.function_).enable_inplace_compute(
+            self.inputs.index(name))
 
     @property
     def inputs_args(self):
@@ -412,15 +508,16 @@ class OnnxInferenceNode:
             raise AttributeError(
                 "Attribute 'ops_' is missing.")  # pragma: no cover
         sigs = []
-        mand = self.ops_.args_mandatory
+        ops_or_function = self.function_ if self.ops_ is None else self.ops_
+        mand = ops_or_function.args_mandatory
         if mand is None:
             mand = self.python_inputs
         sigs.extend(mand)
-        if len(self.ops_.args_optional) > 0:
-            sigs.extend(self.ops_.args_optional)
+        if len(ops_or_function.args_optional) > 0:
+            sigs.extend(ops_or_function.args_optional)
             if sys.version_info[:2] >= (3, 8):
                 sigs.append('/')
-        sigs.extend(self.ops_.args_default)
+        sigs.extend(ops_or_function.args_default)
         return sigs
 
     @property
@@ -443,6 +540,8 @@ class OnnxInferenceNode:
         if not hasattr(self, 'ops_'):
             raise AttributeError(
                 "Attribute 'ops_' is missing.")  # pragma: no cover
+        if self.ops_ is None:
+            return self.function_.args_default_modified
         return self.ops_.args_default_modified
 
     def to_python(self, inputs):
@@ -455,4 +554,6 @@ class OnnxInferenceNode:
         if not hasattr(self, 'ops_'):
             raise AttributeError(
                 "Attribute 'ops_' is missing.")  # pragma: no cover
+        if self.ops_ is None:
+            return self.function_.to_python(inputs)
         return self.ops_.to_python(inputs)

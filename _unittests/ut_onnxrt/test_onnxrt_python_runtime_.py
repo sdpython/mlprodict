@@ -268,7 +268,8 @@ class TestOnnxrtPythonRuntime(ExtTestCase):  # pylint: disable=R0904
         oinf = OnnxInference(model_def, inplace=False)
         all_names = "\n".join(
             "%s>=v%d" % (op.ops_.__class__.__name__,
-                         op.ops_._schema.since_version)  # pylint: disable=W0212
+                         op.ops_._schema.since_version
+                         if op.ops_ is not None else 1)  # pylint: disable=W0212
             for op in oinf.sequence_)
         if debug:
             got = oinf.run({'X': X.astype(numpy.float32)},
