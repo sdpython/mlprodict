@@ -209,7 +209,8 @@ class ShapeResult:
         if self.mtype != other_result.mtype:
             raise RuntimeError(  # pragma: no cover
                 "Unable to merge %r and %r." % (self, other_result))
-        if len(self.shape) != len(other_result.shape):
+        if (len(self.shape) != 0 and len(other_result.shape) != 0 and
+                len(self.shape) != len(other_result.shape)):
             raise RuntimeError(  # pragma: no cover
                 "Length mismatch, unable to merge %r and %r." % (
                     self, other_result))
@@ -219,6 +220,12 @@ class ShapeResult:
                 if c not in self.constraints:
                     self.constraints.append(c)
                     updated = True
+
+        if len(self.shape) == 0 and len(other_result.shape) > 0:
+            # Then self.shape is unknown and the other one is.
+            self.shape = other_result.shape.copy()
+            return True
+
         for a, b in zip(self.shape, other_result.shape):
             if a == b:
                 continue
