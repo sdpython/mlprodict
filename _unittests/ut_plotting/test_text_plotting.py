@@ -277,6 +277,7 @@ class TestPlotTextPlotting(ExtTestCase):
         self.assertIn("function name=LinearRegression domain=custom", text)
         self.assertIn("MatMul(X, A) -> XA", text)
         self.assertIn("type=? shape=?", text)
+        self.assertIn("LinearRegression[custom]", text)
 
     def test_onnx_function_init(self):
         OnnxAbs, OnnxAdd, OnnxDiv = loadop(  # pylint: disable=W0621

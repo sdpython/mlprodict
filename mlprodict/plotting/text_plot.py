@@ -576,8 +576,12 @@ def onnx_simple_text_plot(model, verbose=False, att_display=None,
         inputs = list(node.input)
         if len(atts) > 0:
             inputs.extend(atts)
-        return "%s%s(%s) -> %s" % (
-            "  " * indent, node.op_type,
+        if node.domain in ('', 'ai.onnx.ml'):
+            domain = ''
+        else:
+            domain = '[%s]' % node.domain
+        return "%s%s%s(%s) -> %s" % (
+            "  " * indent, node.op_type, domain,
             ", ".join(inputs), ", ".join(node.output))
 
     rows = []
