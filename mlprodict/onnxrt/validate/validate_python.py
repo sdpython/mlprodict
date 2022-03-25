@@ -125,7 +125,7 @@ def validate_python_inference(oinf, inputs, tolerance=0.):
                         numpy.isnan(a) and numpy.isnan(b)):
                     continue  # pragma: no cover
                 diff = max(diff, abs(a - b))
-            if diff > tolerance:
+            if tolerance != 'random' and diff > tolerance:
                 raise ValueError(  # pragma: no cover
                     "Values are different (max diff={}>{})\n--EXP--\n{}\n--GOT--"
                     "\n{}\n--\n{}".format(diff, tolerance, e, g, code))

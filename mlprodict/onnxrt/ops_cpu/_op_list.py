@@ -94,6 +94,8 @@ from .op_pad import Pad
 from .op_pow import Pow
 from .op_quantize_linear import QuantizeLinear
 from .op_qlinear_conv import QLinearConv
+from .op_random import (
+    RandomNormal, RandomUniform, RandomUniformLike, RandomNormalLike)
 from .op_range import Range
 from .op_reciprocal import Reciprocal
 from .op_reduce_log_sum_exp import ReduceLogSumExp
