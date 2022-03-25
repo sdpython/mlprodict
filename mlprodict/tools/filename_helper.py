@@ -75,9 +75,11 @@ def extract_information_from_filename(name):
         else:
             res['opt'] = res.get('opt', '') + '_' + v
 
+    updated = {}
     for k in res:  # pylint: disable=C0206
         if isinstance(res[k], str):
-            res[k] = res[k].strip('_')
+            updated[k] = res[k].strip('_')
+    res.update(updated)
 
     rep = {
         'LinReg': 'LinearRegression',
