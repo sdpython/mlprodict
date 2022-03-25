@@ -39,7 +39,7 @@ class ReduceSum_13(OpRunReduceNumpy):
                                   expected_attributes=ReduceSum_13.atts,
                                   **options)
 
-    def run(self, data, axes=None):  # pylint: disable=E0202,W0221
+    def run(self, data, axes=None):  # pylint: disable=E0202,W0221,W0237
         """
         Calls method ``_run``.
         """
@@ -75,10 +75,10 @@ class ReduceSum_13(OpRunReduceNumpy):
                 "Unable to reduce shape %r with axes=%r." % (
                     data.shape, axes)) from e
 
-    def infer_shapes(self, data, axes=None):  # pylint: disable=E0202,W0221
+    def infer_shapes(self, data, axes=None):  # pylint: disable=E0202,W0221,W0237
         return self._infer_shapes(data, axes=axes)
 
-    def _infer_shapes(self, data, axes=None):  # pylint: disable=W0221
+    def _infer_shapes(self, data, axes=None):  # pylint: disable=W0221,W0237
         """
         Returns the same shape by default.
         """
@@ -86,10 +86,10 @@ class ReduceSum_13(OpRunReduceNumpy):
                          dtype=numpy.int64)  # pylint: disable=E1101
         return (sh, )
 
-    def infer_types(self, data, axes=None):  # pylint: disable=E0202,W0221
+    def infer_types(self, data, axes=None):  # pylint: disable=E0202,W0221,W0237
         return self._infer_types(data, axes=axes)
 
-    def _infer_types(self, data, axes=None):  # pylint: disable=W0221
+    def _infer_types(self, data, axes=None):  # pylint: disable=W0221,W0237
         return (data, )
 
     def _infer_sizes(self, *args, **kwargs):  # pylint: disable=W0221
