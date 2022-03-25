@@ -73,7 +73,7 @@ class RandomUniform(_CommonRandom):
         res += self.low
         return (res.astype(dtype), )
 
-    def to_python(self, *inputs):
+    def to_python(self, inputs):
         lines = [
             'return (numpy.random.rand(*%r).astype(numpy.%s) * (%f - %f)) + %f' % (
                 list(self.shape), self.numpy_type, self.high, self.low, self.low)]
@@ -101,14 +101,16 @@ class RandomUniformLike(_CommonRandom):
         res += self.low
         return (res.astype(dtype), )
 
-    def to_python(self, *x):
-        if len(x) > 0 and hasattr(x[0], 'dtype'):
-            dtype = x[0].dtype
+    def to_python(self, inputs):
+        if len(inputs) > 0 and hasattr(inputs[0], 'dtype'):
+            dtype = inputs[0].dtype
+            shape = inputs[0].shape
         else:
             dtype = self.numpy_type or numpy.float32
+            shape = (1, )
         lines = [
-            'return (numpy.random.rand(%r).astype(numpy.%s) * (%f - %f)) + %f' % (
-                x.shape, x.dtype, self.high, self.low, self.low)]
+            'return (numpy.random.rand(*%r).astype(numpy.%s) * (%f - %f)) + %f' % (
+                shape, dtype, self.high, self.low, self.low)]
         return ("import numpy", "\n".join(lines))
 
 
@@ -139,7 +141,7 @@ class RandomNormal(_CommonRandom):
         res += self.mean
         return (res.astype(self.numpy_type), )
 
-    def to_python(self, *inputs):
+    def to_python(self, inputs):
         lines = [
             'return (numpy.random.randn(*%r).astype(numpy.%s) * %f) + %f' % (
                 list(self.shape), self.numpy_type, self.scale, self.mean)]
@@ -167,11 +169,13 @@ class RandomNormalLike(_CommonRandom):
         res += self.mean
         return (res.astype(dtype), )
 
-    def to_python(self, *x):
-        if len(x) > 0 and hasattr(x[0], 'dtype'):
-            dtype = x[0].dtype
+    def to_python(self, inputs):
+        if len(inputs) > 0 and hasattr(inputs[0], 'dtype'):
+            dtype = inputs[0].dtype
+            shape = inputs[0].shape
         else:
             dtype = self.numpy_type or numpy.float32
+            shape = (1, )
         lines = [
             'return (numpy.random.randn(%r).astype(numpy.%s) * %f) + %f' % (
                 x.shape, x.dtype, self.scale, self.mean)]
