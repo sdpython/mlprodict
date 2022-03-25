@@ -3,7 +3,6 @@
 """
 import unittest
 import numpy
-import onnx
 from onnx import TensorProto
 from pyquickhelper.pycode import ExtTestCase
 from mlprodict.onnxrt.validate.validate_python import validate_python_inference

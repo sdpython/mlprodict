@@ -178,5 +178,5 @@ class RandomNormalLike(_CommonRandom):
             shape = (1, )
         lines = [
             'return (numpy.random.randn(%r).astype(numpy.%s) * %f) + %f' % (
-                x.shape, x.dtype, self.scale, self.mean)]
+                shape, dtype, self.scale, self.mean)]
         return ("import numpy", "\n".join(lines))
