@@ -35,8 +35,8 @@ def custom_log(x: NDArray[(None, None), numpy.float32],
 
 
 @onnxnumpy_default
-def custom_logn(x: NDArray[(None, ...), numpy.float32],
-                ) -> NDArray[(None, ...), numpy.float32]:
+def custom_logn(x: NDArray[(None, ...), numpy.float32],  # pylint: disable=W2301
+                ) -> NDArray[(None, ...), numpy.float32]:  # pylint: disable=W2301
     "onnx custom log n"
     return nxnp.log(x)
 

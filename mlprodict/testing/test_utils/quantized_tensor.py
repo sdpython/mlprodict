@@ -139,10 +139,12 @@ def test_qlinear_conv(x: QuantizedTensor, x_shape,
                   'y_scale': y.scale_, 'y_zero_point': y.zero_point_,
                   'b': b.quantized_}
 
+    updated = {}
     for k in inputs:  # pylint: disable=C0206
         v = inputs[k]
         if len(v.shape) == 0:
-            inputs[k] = numpy.array([v], dtype=v.dtype)
+            updated[k] = numpy.array([v], dtype=v.dtype)
+    inputs.update(updated)
 
     node = OnnxQLinearConv(*inputs_list, output_names=['y'],
                            op_version=opset, **kwargs)
