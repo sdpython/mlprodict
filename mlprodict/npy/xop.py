@@ -417,6 +417,7 @@ def _dynamic_class_creation(operator_names=None, cache=False, include_past=False
             last = _all_classes[main]
         last.past_version[name] = cls[name]
 
+    # final
     _all_classes.update(cls)
     for cl_name, v in cls.items():
         if v not in set_skip and positions.get(cl_name, -1) >= 0:
@@ -738,6 +739,29 @@ class OnnxOperator(OnnxOperatorBase):
 
     .. versionadd:: 0.9
     """
+    @classmethod
+    def __class_getitem__(cls, opset):
+        """
+        Enables expression `cls[opset]`. It returns the appropriate class
+        `cls_opset`. Parameter *op_version* should be specified.
+        """
+        if not isinstance(opset, int):
+            raise ValueError(
+                "opset must an integer not %r." % type(opset))
+        best = None
+        for _, v in cls.past_version.items():
+            if v.since_version == opset:
+                return lambda *args, **kwargs: v(
+                    *args, op_version=opset, **kwargs)
+            if v.since_version <= opset and (
+                    best is None or best.since_version < v.since_version):
+                best = v
+        if best is None:
+            raise ValueError(
+                "Unable to find a version of operator %r and opset %r." % (
+                    cls.__name__, opset))
+        return lambda *args, **kwargs: best(
+            *args, op_version=opset, **kwargs)
 
     def __init__(self, *inputs, op_version=None, output_names=None,
                  domain=None, global_context=None, **kwargs):
