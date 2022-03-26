@@ -30,7 +30,6 @@ class TestXOpsOpset(ExtTestCase):
         self.assertEqualArray((x + numpy.abs(x)) / 2, got['Y'])
 
     def test_onnx_function_wrong(self):
-        opset = 15
         OnnxCos = loadop("Cos")
         self.assertRaise(lambda: OnnxCos[1]('X'), ValueError)
         self.assertRaise(lambda: OnnxCos['R']('X'), ValueError)
