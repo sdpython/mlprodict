@@ -7,6 +7,7 @@ from pyquickhelper.pycode import ExtTestCase
 from onnxruntime.capi.onnxruntime_pybind11_state import (  # pylint: disable=E0611
     InvalidArgument)
 from mlprodict.npy.xop import loadop
+from mlprodict.npy.xop_convert import OnnxSubOnnx
 
 
 class TestXOpsEval(ExtTestCase):
@@ -72,6 +73,16 @@ class TestXOpsEval(ExtTestCase):
         x = numpy.array([0, 1], dtype=numpy.float32)
         self.assertRaise(lambda: ov.f())
         self.assertRaise(lambda: ov.f(x, x))
+
+    def test_onnx_abs_subonnx(self):
+        OnnxAbs = loadop("Abs")
+        ov = OnnxAbs('X', output_names=['Y'])
+        onx = ov.to_onnx(numpy.float32, numpy.float32, verbose=0)
+
+        sub = OnnxSubOnnx(onx, 'X', output_names=['Y'])
+        x = numpy.array([-2, 2], dtype=numpy.float32)
+        y = sub.f(x)
+        self.assertEqualArray(numpy.abs(x), y)
 
 
 if __name__ == "__main__":

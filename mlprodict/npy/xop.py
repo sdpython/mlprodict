@@ -1596,12 +1596,39 @@ class OnnxOperator(OnnxOperatorBase):
                         unique.add(n)
         return found
 
+    def to_onnx_this(self, evaluated_inputs):
+        """
+        Returns a simple ONNX graph corresponding to this node.
+
+        :param evaluated_inputs: inputs as a list
+        :return: ONNX graph
+        """
+        inputs_names = ['I%d' % i for i in range(len(evaluated_inputs))]
+        if self.output_names is None:
+            if self.expected_outputs is None:
+                raise NotImplementedError(
+                    "expected_outputs and output_names are not defined.")
+            output_names = [o[0] for o in self.expected_outputs]
+        else:
+            output_names = [o.name for o in self.output_names]
+        node = make_node(self.op_type, inputs_names, output_names,
+                         domain=self.domain, name="f", **self.kwargs)
+        onx_inputs = [Variable(name, a.dtype).make_value_info()
+                      for name, a in zip(inputs_names, evaluated_inputs)]
+        onx_outputs = [make_value_info(name, make_tensor_type_proto(0, []))
+                       for name in output_names]
+        graph = make_graph([node], 'f', onx_inputs, onx_outputs)
+        model = make_model(
+            graph, opset_imports=[make_operatorsetid(
+                self.domain or '', self.since_version)])
+        return model
+
     def run(self, *inputs, verbose=0, fLOG=None, clear_cache=False, runtime=None):
         """
         Other name for
         `OnnxInference.f <mlprodict.onnxrt.onnx_inference.OnnxInference.f>`_.
         """
-        return self.f(self, *inputs, verbose=verbose, fLOG=fLOG,
+        return self.f(*inputs, verbose=verbose, fLOG=fLOG,
                       clear_cache=clear_cache, runtime=runtime)
 
     def f(self, *inputs, verbose=0, fLOG=None,  # pylint: disable=W0221
@@ -1694,25 +1721,11 @@ class OnnxOperator(OnnxOperatorBase):
             self.feval_onnx_ = {}
         key = tuple((m.dtype, m.shape) for m in evaluated_inputs)
         if key not in self.feval_onnx_ or clear_cache:
-            from ..onnxrt import OnnxInference
-            inputs_names = ['I%d' % i for i in range(len(evaluated_inputs))]
-            if self.output_names is None:
-                output_names = [o[0] for o in self.expected_outputs]
-            else:
-                output_names = [o.name for o in self.output_names]
             if verbose > 0:
-                fLOG("[OnnxOperator.f] creating node %r, inputs=%r, outputs=%r" % (
-                    self.op_type, key, output_names))
-            node = make_node(self.op_type, inputs_names, output_names,
-                             domain=self.domain, name="f", **self.kwargs)
-            onx_inputs = [Variable(name, a.dtype).make_value_info()
-                          for name, a in zip(inputs_names, evaluated_inputs)]
-            onx_outputs = [make_value_info(name, make_tensor_type_proto(0, []))
-                           for name in output_names]
-            graph = make_graph([node], 'f', onx_inputs, onx_outputs)
-            model = make_model(
-                graph, opset_imports=[make_operatorsetid(
-                    self.domain or '', self.since_version)])
+                fLOG("[OnnxOperator.f] creating node %r, inputs=%r" % (
+                    self.op_type, key))
+            from ..onnxrt import OnnxInference
+            model = self.to_onnx_this(evaluated_inputs)
             oinf = OnnxInference(model, runtime=runtime)
             self.feval_onnx_[key] = oinf
         else:

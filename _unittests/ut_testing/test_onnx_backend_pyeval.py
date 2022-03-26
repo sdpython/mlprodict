@@ -26,6 +26,8 @@ class TestOnnxBackEndPyEval(ExtTestCase):
         got = obj.run(feeds)
 
         names = obj.output_names
+        if names is None:
+            names = [n[0] for n in obj.expected_outputs]
         return [got[n] for n in names]
 
     def test_enumerate_onnx_tests_run_one(self):
@@ -80,5 +82,4 @@ class TestOnnxBackEndPyEval(ExtTestCase):
 
 
 if __name__ == "__main__":
-    TestOnnxBackEndPyEval().test_enumerate_onnx_tests_run_one()
     unittest.main()

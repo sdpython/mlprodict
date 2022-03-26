@@ -81,7 +81,13 @@ class OnnxInferenceBackendRep(BackendRep):
             raise TypeError(
                 "Unexpected input type %r." % type(inputs))
         outs = self._session.run(feeds)
-        return [outs[name] for name in self._session.output_names]
+        output_names = self._session.output_names
+        if output_names is None and hasattr(self._session, 'expected_outputs'):
+            output_names = [n[0] for n in self._session.expected_outputs]
+        if output_names is None:
+            raise RuntimeError(
+                "output_names cannot be None for type %r." % type(self._session))
+        return [outs[name] for name in output_names]
 
 
 class OnnxInferenceBackend(Backend):
@@ -195,6 +201,10 @@ class OnnxInferenceBackend(Backend):
         if isinstance(model, (str, bytes)):
             inf = cls.create_inference_session(model)
             return cls.prepare(inf, device, **kwargs)
+        else:
+            from ..npy.xop_convert import OnnxSubOnnx
+            if isinstance(model, OnnxSubOnnx):
+                return OnnxInferenceBackendRep(model)
 
         onnx_version = tuple(map(int, (version.version.split(".")[:3])))
         onnx_supports_serialized_model_check = onnx_version >= (1, 10, 0)
