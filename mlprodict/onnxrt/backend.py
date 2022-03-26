@@ -316,3 +316,46 @@ class OnnxInferenceBackendShape(OnnxInferenceBackend):
                     "Incompatible shapes %r and %r for output %r." % (
                         shapes[k], v.shape, k))
         return results
+
+
+class OnnxInferenceBackendPyEval(OnnxInferenceBackend):
+    """
+    Same backend as @see cl OnnxInferenceBackend but runtime
+    is @see cl OnnxShapeInference.
+    """
+
+    @classmethod
+    def create_inference_session(cls, model):
+        from ..npy.xop_convert import OnnxSubOnnx
+        if isinstance(model, str):
+            with open(model, 'rb') as f:
+                content = onnx_load(f)
+        elif isinstance(model, bytes):
+            content = onnx_load(BytesIO(model))
+        else:
+            content = model
+        return OnnxSubOnnx(content)
+
+    @classmethod
+    def run_model(cls, model, inputs, device=None, **kwargs):
+        """
+        Computes the prediction.
+
+        :param model: see @see cl OnnxShapeInference returned by
+            function *prepare*
+        :param inputs: inputs
+        :param device: requested device for the computation,
+            None means the default one which depends on
+            the compilation settings
+        :param kwargs: see @see cl OnnxInference
+        :return: predictions
+        """
+        rep = cls.prepare(model, device, **kwargs)
+        shapes = rep.shape_inference.run(**kwargs)
+        results = rep.onnx_inference.run(inputs, **kwargs)
+        for k, v in results.items():
+            if not shapes[k].is_compatible(v):
+                raise RuntimeError(
+                    "Incompatible shapes %r and %r for output %r." % (
+                        shapes[k], v.shape, k))
+        return results

@@ -22,3 +22,4 @@ tests.
     backend_onnxruntime1
     backend_micro_runtime
     backend_shape_inference
+    backend_pyeval_inference
