@@ -684,6 +684,25 @@ the other domains can be specified as a dictionary.
                         target_opset={'': opset, 'ai.onnx.ml': 1})
     print(onnx_simple_text_plot(onx))
 
+A last option is available to shorten the expression with operator `[]`.
+
+.. runpython::
+    :showcode:
+
+    import numpy
+    from numpy.testing import assert_almost_equal
+    from mlprodict.plotting.text_plot import onnx_simple_text_plot
+    from mlprodict.onnxrt import OnnxInference
+    from mlprodict.npy.xop import loadop
+
+    opset = 12
+    OnnxSub, OnnxMul = loadop('Sub', 'Mul')
+    diff = OnnxSub[opset]('X', 'Y')
+    error = OnnxMul[opset](diff, diff)
+    onx = error.to_onnx(numpy.float32, numpy.float32,
+                        target_opset=opset)
+    print(onnx_simple_text_plot(onx))
+
 Usually, the code written with one opset is likely to run the same way
 with the next one. However, the signature of an operator may change,
 an attribute may become an input. The code has to be different according
@@ -790,3 +809,113 @@ And visually:
     oinf = OnnxInference(model_def, inplace=False)
 
     print("DOT-SECTION", oinf.to_dot(recursive=True))
+
+Function or Graph
+=================
+
+There are two ways to export a onnx graph, as a full graph with
+typed inputs and outputs or as a function with named inputs.
+First one works as described in the previous examples.
+The second one is enabled by using parameter *function_name* and
+*function_domain*. They trigger the conversion to a function
+as shown in the following example.
+
+.. runpython::
+    :showcode:
+
+    from mlprodict.npy.xop import loadop
+
+    OnnxAbs, OnnxAdd = loadop("Abs", "Add")
+    ov = OnnxAbs('X')
+    ad = OnnxAdd('X', ov, output_names=['Y'])
+    proto = ad.to_onnx(function_name='AddAbs')
+    print(proto)
+
+Input and output types are not defined and the function is valid
+for whichever type works the code of the function. This function
+can now be used inside a bigger graph with class
+:class:`OnnxOperatorFunction <mlprodict.npy.xop.OnnxOperatorFunction>`.
+
+.. runpython::
+    :showcode:
+
+    import numpy
+    from mlprodict.npy.xop import loadop, OnnxOperatorFunction
+    from mlprodict.plotting.text_plot import onnx_simple_text_plot
+
+    OnnxAbs, OnnxAdd, OnnxDiv = loadop("Abs", "Add", "Div")
+
+    # the function
+    ov = OnnxAbs('X')
+    ad = OnnxAdd('X', ov, output_names=['Y'])
+    proto = ad.to_onnx(function_name='AddAbs')
+
+    # used in graph with operator OnnxOperatorFunction
+    op = OnnxDiv(OnnxOperatorFunction(proto, 'X'),
+                 numpy.array([2], dtype=numpy.float32),
+                 output_names=['Y'])
+
+    # display
+    onx = op.to_onnx(numpy.float32, numpy.float32)
+    print(onnx_simple_text_plot(onx))
+
+The same syntax can be simplified with an implicit conversion of
+an ONNX graph with `ad('X')`. `'A'` is the input of a function,
+`'X'` is the tensor the function is applied to.
+
+.. runpython::
+    :showcode:
+
+    import numpy
+    from mlprodict.npy.xop import loadop, OnnxOperatorFunction
+    from mlprodict.plotting.text_plot import onnx_simple_text_plot
+
+    OnnxAbs, OnnxAdd, OnnxDiv = loadop("Abs", "Add", "Div")
+
+    # the function
+    ov = OnnxAbs('A')
+    ad = OnnxAdd('A', ov)
+
+    # used in graph
+    op = OnnxDiv(ad('X'), numpy.array([2], dtype=numpy.float32),
+                 output_names=['Y'])
+
+    # display
+    onx = op.to_onnx(numpy.float32, numpy.float32)
+    print(onnx_simple_text_plot(onx))
+
+Eager evaluation
+================
+
+It is not easy to check the ONNX function returns the expected result
+only at the end of it. It is very useful to check that the function
+goes through expected transformations all along the graph.
+The can be done with method :meth:`OnnxOperator.f <mlprodict.npy.xop.OnnxOperator.f>`.
+The method independently runs every node in the graph after it was
+converted into ONNX.
+
+.. runpython::
+    :showcode:
+
+    import numpy
+    from mlprodict.plotting.text_plot import onnx_simple_text_plot
+    from mlprodict.npy.xop import loadop
+
+    X = numpy.array([[4, 5, 6], [7, 0, 1]], dtype=numpy.float32)
+    W = numpy.array([[1, 0.5, 0.6], [0.5, 0.2, 0.3]], dtype=numpy.float32)
+
+    OnnxReduceMean, OnnxTopK, OnnxGatherElements = loadop(
+        'ReduceMean', 'TopK', 'GatherElements')
+
+    topk = OnnxTopK('X', numpy.array([2], dtype=numpy.int64), axis=1)
+    dist = OnnxGatherElements('W', topk[1], axis=1)
+
+    print(dist.f({'X': X, 'W': W}))
+
+    # It is possible to simplify this expression into:
+    print("expected order:", dist.find_named_inputs())
+    print(dist.f(W, X))
+
+    result = OnnxReduceMean(dist * topk[0], axes=[1])
+    onx = result.to_onnx(numpy.float32, numpy.float32)
+    print(onnx_simple_text_plot(onx))

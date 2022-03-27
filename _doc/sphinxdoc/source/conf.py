@@ -96,6 +96,7 @@ epkg_dictionary.update({
     'exec': 'https://docs.python.org/3/library/functions.html#exec',
     'FunctionTransformer': 'https://scikit-learn.org/stable/modules/generated/sklearn.preprocessing.FunctionTransformer.html',
     'GaussianProcessRegressor': 'https://scikit-learn.org/stable/modules/generated/sklearn.gaussian_process.GaussianProcessRegressor.html',
+    'infer_shapes': 'http://www.xavierdupre.fr/app/onnxcustom/helpsphinx/api/onnx_python/shape_inference.html',
     'Iris': 'https://en.wikipedia.org/wiki/Iris_flower_data_set',
     'IR_VERSION': 'https://github.com/onnx/onnx/blob/master/docs/IR.md#onnx-versioning',
     'json': 'https://docs.python.org/3/library/json.html',

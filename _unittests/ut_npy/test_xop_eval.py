@@ -8,6 +8,7 @@ from onnxruntime.capi.onnxruntime_pybind11_state import (  # pylint: disable=E06
     InvalidArgument)
 from mlprodict.npy.xop import loadop
 from mlprodict.npy.xop_convert import OnnxSubOnnx
+from mlprodict.onnxrt import OnnxInference
 
 
 class TestXOpsEval(ExtTestCase):
@@ -84,7 +85,38 @@ class TestXOpsEval(ExtTestCase):
         y = sub.f(x)
         self.assertEqualArray(numpy.abs(x), y)
 
+    def test_onnx_operator_item(self):
+        X = numpy.array([[4, 5, 6], [7, 0, 1]], dtype=numpy.float32)
+        W = numpy.array([[1, 0.5, 0.6], [0.5, 0.2, 0.3]], dtype=numpy.float32)
+
+        OnnxReduceMean, OnnxTopK, OnnxGatherElements = loadop(
+            'ReduceMean', 'TopK', 'GatherElements')
+
+        topk = OnnxTopK('X', numpy.array([2], dtype=numpy.int64), axis=1)
+
+        r2 = topk.f(X)
+        r1 = topk.f({'X': X})
+        self.assertEqualArray(r1['Indices1'], r2[1])
+        self.assertEqualArray(r1['Values0'], r2[0])
+
+        dist = OnnxGatherElements('W', topk[1], axis=1)
+
+        names = dist.find_named_inputs()
+        self.assertEqual(['W', 'X'], names)
+        r1 = dist.f({'X': X, 'W': W})
+        r2 = dist.f(W, X)
+        self.assertEqualArray(r1['output0'], r2)
+
+        result = OnnxReduceMean(dist * topk[0], axes=[1])
+        onx = result.to_onnx(numpy.float32, numpy.float32)
+
+        sess = OnnxInference(onx)
+        name = sess.output_names[0]
+        res = sess.run({'X': X, 'W': W})
+        res2 = result.f({'X': X, 'W': W})
+        self.assertEqualArray(res[name], res2['reduced0'])
+
 
 if __name__ == "__main__":
-    # TestXOpsEval().test_onnx_abs_add()
+    # TestXOpsEval().test_onnx_operator_item()
     unittest.main(verbosity=2)
