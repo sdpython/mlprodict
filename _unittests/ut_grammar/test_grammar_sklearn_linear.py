@@ -139,8 +139,6 @@ class TestGrammarSklearnLinear(ExtTestCase):
         self.assertGreater(len(rows), 2)
 
     def test_sklearn_train_lr_into_c(self):
-        from sklearn.linear_model import LogisticRegression
-        from sklearn.datasets import load_iris
         iris = load_iris()
         X = iris.data[:, :2]
         y = iris.target
