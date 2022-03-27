@@ -581,6 +581,16 @@ class OnnxOperatorItem(OnnxOperatorBase):
                 "Can only return the first item.")
         return self.onx_op.get_output_result(self.index)
 
+    def _to_onnx_attributes(self, inputs=None, target_opset=None,
+                            optim=True, verbose=0, run_shape=True,
+                            fLOG=print):
+        """
+        Calls `self.onx_op._to_onnx_attributes`.
+        """
+        return self.onx_op._to_onnx_attributes(
+            inputs=inputs, target_opset=target_opset, optim=optim,
+            run_shape=run_shape, verbose=verbose, fLOG=fLOG)
+
     def find_named_inputs(self):
         """
         Returns all inputs to the graph.
@@ -1004,6 +1014,46 @@ class OnnxOperator(OnnxOperatorBase):
 
         self._post_process_attributes()
         self._check()
+
+    def then_do(self, branch):
+        """
+        Fills attribute *then_branch*.
+
+        :param branch: onnx graph or @see cl OnnxOperator
+        :return: self
+        """
+        return self._add_subgraph('then_branch', branch)
+
+    def else_do(self, branch):
+        """
+        Fills attribute *else_branch*.
+
+        :param branch: onnx graph or @see cl OnnxOperator
+        :return: self
+        """
+        return self._add_subgraph('else_branch', branch)
+
+    def _add_subgraph(self, attribute, branch):
+        """
+        Fills attributes *attribute*.
+
+        :param attribute: attribute name
+        :param branch: onnx graph or @see cl OnnxOperator
+        :return: self
+        """
+        if isinstance(branch, onnx.ModelProto):
+            self.kwargs[attribute] = branch.graph
+            return self
+        if isinstance(branch, onnx.GraphProto):
+            self.kwargs[attribute] = branch
+            return self
+        if isinstance(branch, OnnxOperator):
+            self.kwargs[attribute] = branch
+            return self
+        raise TypeError(
+            "Unexpected type %r for a subgraph, attribute %r "
+            "and class %r." % (
+                type(branch), attribute, self.__class__.__name__))
 
     @property
     def output_names(self):
@@ -1571,6 +1621,9 @@ class OnnxOperator(OnnxOperatorBase):
                          self.__class__.__name__, i, len(nodes), node)
 
         for node in nodes:
+            node._to_onnx_attributes(
+                inputs=graph_inputs, target_opset=target_opset,
+                optim=optim, verbose=verbose, run_shape=run_shape, fLOG=fLOG)
             node.add_to(builder)
 
         return builder.to_onnx(
@@ -1578,6 +1631,47 @@ class OnnxOperator(OnnxOperatorBase):
             target_opset=target_opset, verbose=verbose,
             optim=optim, run_shape=run_shape and run_shape2,
             function_name=function_name, function_domain=function_domain)
+
+    def _to_onnx_attributes(self, inputs=None, target_opset=None,
+                            optim=True, verbose=0, run_shape=True,
+                            fLOG=print):
+        """
+        Converts attributes into ONNX.
+        """
+        converts = []
+        for k, v in self.kwargs.items():
+            if isinstance(v, OnnxOperatorBase):
+                converts.append(k)
+        for name in converts:
+            if verbose > 0:
+                fLOG('[OnnxOperator._to_onnx_attributes] process %r of type %r.'
+                     '' % (name, type(self.kwargs[name])))
+            model = self._to_onnx_attribute(
+                self.kwargs[name], inputs=inputs, target_opset=target_opset,
+                optim=optim, verbose=verbose, run_shape=run_shape, fLOG=fLOG)
+            self.kwargs[name] = model.graph
+
+    def _to_onnx_attribute(self, oxop, inputs=None, target_opset=None,
+                           optim=True, verbose=0, run_shape=True,
+                           fLOG=print):
+        """
+        Converts one subgraph into ONNX.
+        """
+        if inputs is None:
+            vars = None
+        else:
+            named_inputs = set(oxop.find_named_inputs())
+            vars = []
+            for inp in inputs:
+                if inp.var.name in named_inputs:
+                    vars.append(Variable(
+                        inp.var.name, inp.var.dtype or inp.var.added_dtype))
+            if verbose > 0:
+                fLOG('[OnnxOperator._to_onnx_attribute] inputs=%r' % (vars, ))
+        onx = oxop.to_onnx(inputs=vars, target_opset=target_opset,
+                           run_shape=run_shape, verbose=verbose, fLOG=fLOG)
+        shaped_onx = infer_shapes(onx)
+        return shaped_onx
 
     def predecessors(self):
         """

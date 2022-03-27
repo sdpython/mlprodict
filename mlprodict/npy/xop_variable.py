@@ -172,6 +172,11 @@ class Variable:
         return self.dtype_
 
     @property
+    def added_dtype(self):
+        "Returns `self.added_dtype_`."
+        return self.added_dtype_
+
+    @property
     def shape(self):
         "Returns `self.shape_`."
         return self.shape_

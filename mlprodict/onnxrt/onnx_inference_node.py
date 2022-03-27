@@ -295,9 +295,9 @@ class OnnxInferenceNode:
     def run(self, values):
         """
         Runs the node.
-        the function updates values with outputs.
+        The function updates values with outputs.
 
-        @param      values      list of existing values
+        :param values: list of existing values
         """
         if self.ops_ is None:
             # Then a function.

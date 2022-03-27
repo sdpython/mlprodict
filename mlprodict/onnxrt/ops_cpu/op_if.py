@@ -36,34 +36,43 @@ class If(OpRun):
                                if hasattr(self.else_branch, 'run_in_scan')
                                else self.else_branch.run)
 
-    def _run(self, cond, named_inputs=None):  # pylint: disable=W0221
-        if named_inputs is None:
-            named_inputs = {}
+    def need_context(self):
+        "Share local scope."
+        return True
+
+    @property
+    def additional_inputs(self):
+        return list(set(self.then_branch.input_names).union(
+            set(self.else_branch.input_names)))
+
+    def _run(self, cond, context=None):  # pylint: disable=W0221
+        if context is None:
+            context = {}
         if len(self.then_branch.input_names) > 0:
-            if len(named_inputs) == 0:
+            if len(context) == 0:
                 raise RuntimeError(  # pragma: no cover
-                    "named_inputs is empty but the graph needs {}.".format(
+                    "context is empty but the graph needs {}.".format(
                         self.then_branch.input_names))
             for k in self.then_branch.input_names:
-                if k not in named_inputs:
+                if k not in context:
                     raise RuntimeError(  # pragma: no cover
                         "Unable to find named input '{}' in\n{}.".format(
-                            k, "\n".join(sorted(named_inputs))))
+                            k, "\n".join(sorted(context))))
         if len(self.else_branch.input_names) > 0:
-            if len(named_inputs) == 0:
+            if len(context) == 0:
                 raise RuntimeError(  # pragma: no cover
-                    "named_inputs is empty but the graph needs {}.".format(
+                    "context is empty but the graph needs {}.".format(
                         self.then_branch.input_names))
             for k in self.else_branch.input_names:
-                if k not in named_inputs:
+                if k not in context:
                     raise RuntimeError(  # pragma: no cover
                         "Unable to find named input '{}' in\n{}.".format(
-                            k, "\n".join(sorted(named_inputs))))
+                            k, "\n".join(sorted(context))))
 
         if all(cond):
-            outputs = self._run_meth_then(named_inputs)
+            outputs = self._run_meth_then(context)
             return tuple([outputs[name] for name in self.then_branch.output_names])
-        outputs = self._run_meth_else(named_inputs)
+        outputs = self._run_meth_else(context)
         return tuple([outputs[name] for name in self.else_branch.output_names])
 
     def _pick_shape(self, res, name):
