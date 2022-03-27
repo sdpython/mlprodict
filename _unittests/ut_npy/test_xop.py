@@ -930,11 +930,69 @@ class TestXOps(ExtTestCase):
         got = oinf.run({'X': x})
         self.assertEqualArray(x.astype(numpy.int64), got['Y'])
 
+    def test_zif_then_onnx(self):
+        OnnxConstant, OnnxIf, OnnxGreater = loadop(
+            "Constant", "If", "Greater")
+        bthen = OnnxConstant(
+            value_floats=numpy.array([0], dtype=numpy.float32),
+            output_names=['res_then'])
+
+        belse = OnnxConstant(
+            value_floats=numpy.array([1], dtype=numpy.float32),
+            output_names=['res_else'])
+
+        bthen_body = bthen.to_onnx(
+            [], [Variable('res_then', numpy.float32)])
+        belse_body = belse.to_onnx(
+            [], [Variable('res_else', numpy.float32)])
+
+        onx = OnnxIf(
+            OnnxGreater('X', numpy.array([0], dtype=numpy.float32)),
+            output_names=['Z']).then_do(bthen_body).else_do(belse_body)
+
+        x = numpy.array([1, 2], dtype=numpy.float32)
+        model_def = onx.to_onnx({'X': numpy.float32}, {'Z': numpy.float32})
+        got = OnnxInference(model_def).run({'X': x})
+        self.assertEqualArray(
+            numpy.array([0.], dtype=numpy.float32), got['Z'])
+
+        x = numpy.array([-1, -2], dtype=numpy.float32)
+        model_def = onx.to_onnx({'X': numpy.float32}, {'Z': numpy.float32})
+        got = OnnxInference(model_def).run({'X': x})
+        self.assertEqualArray(
+            numpy.array([1.], dtype=numpy.float32), got['Z'])
+
+    def test_zif_onnx(self):
+        OnnxConstant, OnnxIf, OnnxGreater = loadop(
+            "Constant", "If", "Greater")
+
+        onx = OnnxIf(
+            OnnxGreater('X', numpy.array([0], dtype=numpy.float32)),
+            output_names=['Z']).then_do(
+                OnnxConstant(
+                    value_floats=numpy.array([0], dtype=numpy.float32),
+                    output_names=['res_then'])).else_do(
+                OnnxConstant(
+                    value_floats=numpy.array([1], dtype=numpy.float32),
+                    output_names=['res_else']))
+
+        x = numpy.array([1, 2], dtype=numpy.float32)
+        model_def = onx.to_onnx({'X': numpy.float32}, {'Z': numpy.float32})
+        got = OnnxInference(model_def).run({'X': x})
+        self.assertEqualArray(
+            numpy.array([0.], dtype=numpy.float32), got['Z'])
+
+        x = numpy.array([-1, -2], dtype=numpy.float32)
+        model_def = onx.to_onnx({'X': numpy.float32}, {'Z': numpy.float32})
+        got = OnnxInference(model_def).run({'X': x})
+        self.assertEqualArray(
+            numpy.array([1.], dtype=numpy.float32), got['Z'])
+
 
 if __name__ == "__main__":
     # import logging
     # logger = logging.getLogger('xop')
     # logger.setLevel(logging.DEBUG)
     # logging.basicConfig(level=logging.DEBUG)
-    # TestXOps().test_onnx_ml_operator()
+    TestXOps().test_zif_onnx()
     unittest.main(verbosity=2)
