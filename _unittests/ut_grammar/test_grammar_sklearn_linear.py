@@ -9,9 +9,10 @@ from pyquickhelper.pycode import ExtTestCase
 from sklearn.linear_model import LogisticRegression, LinearRegression
 from sklearn.datasets import load_iris
 from mlprodict.testing import iris_data, check_model_representation
-from mlprodict.grammar_sklearn import sklearn2graph, identify_interpreter
-from mlprodict.grammar_sklearn.cc import compile_c_function
-from mlprodict.grammar_sklearn.cc.c_compilation import CompilationError
+from mlprodict.grammar.grammar_sklearn import sklearn2graph, identify_interpreter
+from mlprodict.grammar.grammar_sklearn.grammar.exc import Float32InfError
+from mlprodict.grammar.cc import compile_c_function
+from mlprodict.grammar.cc.c_compilation import CompilationError
 
 
 class TestGrammarSklearnLinear(ExtTestCase):
@@ -136,6 +137,19 @@ class TestGrammarSklearnLinear(ExtTestCase):
             self.assertIn("value is not a numpy.array but", str(e))
             return
         self.assertGreater(len(rows), 2)
+
+    def test_sklearn_train_lr_into_c(self):
+        iris = load_iris()
+        X = iris.data[:, :2]
+        y = iris.target
+        y[y == 2] = 1
+        lr = LogisticRegression()
+        lr.fit(X, y)
+
+        # We replace by double too big for floats.
+        lr.coef_ = numpy.array([[2.45, -3e250]])
+        self.assertRaise(lambda: sklearn2graph(
+            lr, output_names=['Prediction', 'Score']), Float32InfError)
 
 
 if __name__ == "__main__":

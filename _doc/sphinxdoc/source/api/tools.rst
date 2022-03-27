@@ -140,7 +140,7 @@ Others
 scikit-learn
 ++++++++++++
 
-.. autosignature:: mlprodict.grammar_sklearn.g_sklearn_main.sklearn2graph
+.. autosignature:: mlprodict.grammar.grammar_sklearn.g_sklearn_main.sklearn2graph
 
 Versions
 ++++++++

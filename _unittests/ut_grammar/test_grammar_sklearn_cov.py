@@ -3,7 +3,7 @@
 """
 import unittest
 from pyquickhelper.pycode import ExtTestCase
-from mlprodict.grammar_sklearn.grammar.api_extension import AutoType
+from mlprodict.grammar.grammar_sklearn.grammar.api_extension import AutoType
 
 
 class TestGrammarSklearnCov(ExtTestCase):

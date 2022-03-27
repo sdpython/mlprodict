@@ -6,7 +6,7 @@ import platform
 import numpy
 from pyquickhelper.pycode import ExtTestCase
 from mlprodict.testing import check_model_representation
-from mlprodict.grammar_sklearn.cc.c_compilation import CompilationError
+from mlprodict.grammar.cc.c_compilation import CompilationError
 
 
 class TestGrammarSklearnPreprocessing(ExtTestCase):
