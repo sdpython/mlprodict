@@ -502,12 +502,20 @@ class OnnxOperatorBase:
         raise NotImplementedError(  # pragma: no cover
             "Not overwritten for class %r." % type(self))
 
+    def find_named_inputs(self):
+        """
+        Returns all inputs to the graph.
+        """
+        raise NotImplementedError(  # pragma: no cover
+            "Method 'find_named_inputs' must be overloaded for type %s."
+            "" % type(self))
+
     def f(self, *args, **kwargs):
         """
         Evaluates this node.
         """
         raise NotImplementedError(  # pragma: no cover
-            "__call__ must be overloaded for type %s." % type(self))
+            "Method 'f' must be overloaded for type %s." % type(self))
 
 
 class OnnxOperatorItem(OnnxOperatorBase):
@@ -572,6 +580,50 @@ class OnnxOperatorItem(OnnxOperatorBase):
             raise IndexError(  # pragma: no cover
                 "Can only return the first item.")
         return self.onx_op.get_output_result(self.index)
+
+    def find_named_inputs(self):
+        """
+        Returns all inputs to the graph.
+        """
+        return self.onx_op.find_named_inputs()
+
+    def f(self, *inputs, verbose=0, fLOG=None,  # pylint: disable=W0221
+          clear_cache=False, runtime=None):
+        """
+        Computes the predictions for this node.
+        Similar to an eager evaluation.
+
+        :param inputs: inputs as dictionary or a list of inputs
+            (see below)
+        :param verbose: display information while predicting
+        :param fLOG: logging function if *verbose > 0*
+        :param clear_cache: onnx graph is created once unless
+            this parameter is True
+        :param runtime: runtime to use for the evaluation,
+            see @see cl OnnxInference
+        :return: outputs as a dictionary if the input were given as a
+            dictionary or a single result or a tuple otherwise
+
+        The inputs refer to the inputs of the graph.
+        The method walks through all inputs and finds inputs defined as
+        string. It replaces them by the value found in the dictionary.
+        If the inputs are specified in a list, the function retrieves the
+        list of inputs defined as a string and assigns them a value.
+        Logging function can be used to get more insight about it.
+        During the evaluation every node is independently converted
+        into ONNX. The ONNX graph is cached in the class itself.
+        """
+        res = self.onx_op.f(*inputs, verbose=verbose, fLOG=fLOG,
+                            clear_cache=clear_cache, runtime=runtime)
+        if isinstance(res, dict):
+            names = self.onx_op.output_names
+            if names is None:
+                names = self.onx_op.expected_outputs
+                name = names[self.index][0]
+            else:
+                name = names[self.index]
+            return {name: res[name]}
+        return res[self.index]
 
 
 class OnnxOperatorTuple(OnnxOperatorBase):
@@ -1588,12 +1640,17 @@ class OnnxOperator(OnnxOperatorBase):
                 if inp.name not in unique:
                     found.append(inp.name)
                     unique.add(inp.name)
-            elif isinstance(inp, OnnxOperator):
+            elif isinstance(inp, OnnxOperatorBase):
                 f = inp.find_named_inputs()
                 for n in f:
                     if n not in unique:
                         found.append(n)
                         unique.add(n)
+            elif isinstance(inp, numpy.ndarray):
+                pass
+            else:
+                raise RuntimeError(
+                    "Unexpected input type %r." % type(inp))
         return found
 
     def to_onnx_this(self, evaluated_inputs):
@@ -1694,7 +1751,7 @@ class OnnxOperator(OnnxOperatorBase):
                 evaluated_inputs.append(dict_inputs[inp])
             elif isinstance(inp, Variable):
                 evaluated_inputs.append(dict_inputs[inp.name])
-            elif isinstance(inp, OnnxOperator):
+            elif isinstance(inp, OnnxOperatorBase):
                 if verbose > 0:
                     fLOG("[OnnxOperator.f] evaluate input %d (op_type=%r)" % (
                         i, self.__class__.op_type))
@@ -1734,11 +1791,11 @@ class OnnxOperator(OnnxOperatorBase):
         # execution
         if verbose > 0:
             fLOG("[OnnxOperator.f] execute node %r" % self.op_type)
-        got = oinf.run({k: v for k, v in zip(
-            oinf.input_names, evaluated_inputs)})
+        got = oinf.run({k: v for k, v in
+                        zip(oinf.input_names, evaluated_inputs)})
         if as_dict:
             return got
-        if len(inputs) == 1:
+        if len(got) == 1:
             return got.popitem()[1]
         return [got[n] for n in oinf.output_names]
 
