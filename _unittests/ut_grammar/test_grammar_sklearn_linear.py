@@ -9,9 +9,9 @@ from pyquickhelper.pycode import ExtTestCase
 from sklearn.linear_model import LogisticRegression, LinearRegression
 from sklearn.datasets import load_iris
 from mlprodict.testing import iris_data, check_model_representation
-from mlprodict.grammar_sklearn import sklearn2graph, identify_interpreter
-from mlprodict.grammar_sklearn.cc import compile_c_function
-from mlprodict.grammar_sklearn.cc.c_compilation import CompilationError
+from mlprodict.grammar.grammar_sklearn import sklearn2graph, identify_interpreter
+from mlprodict.grammar.cc import compile_c_function
+from mlprodict.grammar.cc.c_compilation import CompilationError
 
 
 class TestGrammarSklearnLinear(ExtTestCase):

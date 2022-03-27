@@ -65,7 +65,7 @@ convert a model into :epkg:`C` code. A similar way than
     lr.fit(X, y)
 
     # Conversion into a graph.
-    from mlprodict.grammar_sklearn import sklearn2graph
+    from mlprodict.grammar.grammar_sklearn import sklearn2graph
     gr = sklearn2graph(lr, output_names=['Prediction', 'Score'])
 
     # Conversion into C

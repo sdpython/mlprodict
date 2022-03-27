@@ -81,15 +81,15 @@ def compile_c_function(code_c, nbout, dtype=numpy.float32, add_header=True,
     Compiles a C function with :epkg:`cffi`.
     It takes one features vector.
 
-    @param      nbout               number of expected outputs
-    @param      code_c              code C
-    @param      dtype               numeric type to use
-    @param      add_header          add common function before compiling
-    @param      suffix              avoid avoid the same compiled module name
-    @param      additional_paths    additional paths to add to the module
-    @param      tmpdir              see below
-    @param      fLOG                logging function
-    @return     compiled            function
+    :param nbout: number of expected outputs
+    :param code_c: code C
+    :param dtype: numeric type to use
+    :param add_header: add common function before compiling
+    :param suffix: avoid avoid the same compiled module name
+    :param additional_paths: additional paths to add to the module
+    :param tmpdir: see below
+    :param fLOG: logging function
+    :return: compiled function
 
     The function assumes the first line is the signature.
     If you are using Windows with Visual Studio 2017, make sure

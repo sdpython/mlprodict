@@ -16,7 +16,7 @@ when the machine learned model is embedded in a service.
 
 from sklearn.linear_model import LogisticRegression
 from sklearn.datasets import load_iris
-from mlprodict.grammar_sklearn import sklearn2graph
+from mlprodict.grammar.grammar_sklearn import sklearn2graph
 
 iris = load_iris()
 X = iris.data[:, :2]

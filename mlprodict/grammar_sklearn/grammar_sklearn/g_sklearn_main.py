@@ -40,7 +40,7 @@ def sklearn2graph(model, output_names=None, **kwargs):
         lr.fit(X, y)
 
         # grammar is the expected scoring model.
-        from mlprodict.grammar_sklearn import sklearn2graph
+        from mlprodict.grammar.grammar_sklearn import sklearn2graph
         gr = sklearn2graph(lr, output_names=['Prediction', 'Score'])
 
         # We can even check what the function should produce as a score.
@@ -97,7 +97,7 @@ def sklearn2graph(model, output_names=None, **kwargs):
         lr.fit(X, y)
 
         # a grammar tree is the expected scoring model.
-        from mlprodict.grammar_sklearn import sklearn2graph
+        from mlprodict.grammar.grammar_sklearn import sklearn2graph
         gr = sklearn2graph(lr, output_names=['Prediction', 'Score'])
 
         # We display the result in JSON.

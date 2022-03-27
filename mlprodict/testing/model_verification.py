@@ -6,9 +6,8 @@ import random
 import pandas
 import numpy
 from numpy.testing import assert_allclose
-from ..grammar_sklearn import sklearn2graph
-from ..grammar_sklearn.cc import compile_c_function
-from ..grammar_sklearn.cc.c_compilation import CompilationError
+from ..grammar.cc import compile_c_function
+from ..grammar.cc.c_compilation import CompilationError
 
 
 def iris_data():
@@ -124,6 +123,7 @@ def check_model_representation(model, X, y=None, convs=None,
         fLOG("---------------------")
 
     # grammar
+    from ..grammar.grammar_sklearn import sklearn2graph
     gr = sklearn2graph(model, output_names=output_names)
     lot = gr.execute(Features=oneX)
     if verbose and fLOG:

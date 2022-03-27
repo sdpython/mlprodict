@@ -8,9 +8,9 @@ Former Experiments
 Cc
 ++
 
-.. autosignature:: mlprodict.grammar_sklearn.cc.c_compilation.compile_c_function
+.. autosignature:: mlprodict.grammar.cc.c_compilation.compile_c_function
 
 Grammar
 +++++++
 
-.. autosignature:: mlprodict.grammar_sklearn.grammar.gmlactions.MLModel
+.. autosignature:: mlprodict.grammar.grammar_sklearn.grammar.gmlactions.MLModel
