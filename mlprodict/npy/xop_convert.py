@@ -42,8 +42,27 @@ class OnnxSubOnnx(OnnxOperator):
             raise RuntimeError(  # pragma: no cover
                 "Unexpected number of outputs %r != expected %r." % (
                     len(output_names), len(model.graph.output)))
+        if len(inputs) == 0:
+            if hasattr(model, 'graph'):
+                inputs = [Variable(i.name, i.type.tensor_type)
+                          for i in model.graph.input]
+            else:
+                inputs = [Variable(n) for n in model.input]
         OnnxOperator.__init__(self, *inputs, output_names=output_names)
+        if self.output_names is None and self.expected_outputs is None:
+            if hasattr(model, 'graph'):
+                self.expected_outputs = [
+                    (i.name, i.type.tensor_type)
+                    for i in model.graph.output]
+            else:
+                self.expected_outputs = [(n, None) for n in model.output]
         self.model = model
+
+    @property
+    def input_names(self):
+        "Returns the input names."
+        return ([i.name for i in self.model.graph.input]
+                if hasattr(self.model, 'graph') else list(self.model.input))
 
     def __repr__(self):
         "usual"
@@ -118,6 +137,15 @@ class OnnxSubOnnx(OnnxOperator):
                 'Identity', builder.get_unique_name(
                     '_sub_' + out.name, reserved=False),
                 [mapped_names[out.name]], [name])
+
+    def to_onnx_this(self, evaluated_inputs):
+        """
+        Returns the ONNX graph.
+
+        :param evaluated_inputs: unused
+        :return: ONNX graph
+        """
+        return self.model
 
 
 class OnnxSubEstimator(OnnxSubOnnx):

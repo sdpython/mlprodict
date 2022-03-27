@@ -81,7 +81,13 @@ class OnnxInferenceBackendRep(BackendRep):
             raise TypeError(
                 "Unexpected input type %r." % type(inputs))
         outs = self._session.run(feeds)
-        return [outs[name] for name in self._session.output_names]
+        output_names = self._session.output_names
+        if output_names is None and hasattr(self._session, 'expected_outputs'):
+            output_names = [n[0] for n in self._session.expected_outputs]
+        if output_names is None:
+            raise RuntimeError(
+                "output_names cannot be None for type %r." % type(self._session))
+        return [outs[name] for name in output_names]
 
 
 class OnnxInferenceBackend(Backend):
@@ -195,6 +201,10 @@ class OnnxInferenceBackend(Backend):
         if isinstance(model, (str, bytes)):
             inf = cls.create_inference_session(model)
             return cls.prepare(inf, device, **kwargs)
+        else:
+            from ..npy.xop_convert import OnnxSubOnnx
+            if isinstance(model, OnnxSubOnnx):
+                return OnnxInferenceBackendRep(model)
 
         onnx_version = tuple(map(int, (version.version.split(".")[:3])))
         onnx_supports_serialized_model_check = onnx_version >= (1, 10, 0)
@@ -292,6 +302,49 @@ class OnnxInferenceBackendShape(OnnxInferenceBackend):
             content = model
         return _CombineModels(OnnxInference(content),
                               OnnxShapeInference(content))
+
+    @classmethod
+    def run_model(cls, model, inputs, device=None, **kwargs):
+        """
+        Computes the prediction.
+
+        :param model: see @see cl OnnxShapeInference returned by
+            function *prepare*
+        :param inputs: inputs
+        :param device: requested device for the computation,
+            None means the default one which depends on
+            the compilation settings
+        :param kwargs: see @see cl OnnxInference
+        :return: predictions
+        """
+        rep = cls.prepare(model, device, **kwargs)
+        shapes = rep.shape_inference.run(**kwargs)
+        results = rep.onnx_inference.run(inputs, **kwargs)
+        for k, v in results.items():
+            if not shapes[k].is_compatible(v):
+                raise RuntimeError(
+                    "Incompatible shapes %r and %r for output %r." % (
+                        shapes[k], v.shape, k))
+        return results
+
+
+class OnnxInferenceBackendPyEval(OnnxInferenceBackend):
+    """
+    Same backend as @see cl OnnxInferenceBackend but runtime
+    is @see cl OnnxShapeInference.
+    """
+
+    @classmethod
+    def create_inference_session(cls, model):
+        from ..npy.xop_convert import OnnxSubOnnx
+        if isinstance(model, str):
+            with open(model, 'rb') as f:
+                content = onnx_load(f)
+        elif isinstance(model, bytes):
+            content = onnx_load(BytesIO(model))
+        else:
+            content = model
+        return OnnxSubOnnx(content)
 
     @classmethod
     def run_model(cls, model, inputs, device=None, **kwargs):

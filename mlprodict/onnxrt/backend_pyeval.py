@@ -8,7 +8,7 @@
     from contextlib import redirect_stdout, redirect_stderr
     from io import StringIO
     from onnx.backend.test import BackendTest
-    import mlprodict.onnxrt.backend_ort as backend
+    import mlprodict.onnxrt.backend_pyeval as backend
 
     back_test = BackendTest(backend, __name__)
     back_test.exclude('.*_blvc_.*')
@@ -48,9 +48,9 @@
     print("\\n".join(line for line in lines
           if "skipped 'no matched include pattern'" not in line))
 """
-from .backend import OnnxInferenceBackendOrt
+from .backend import OnnxInferenceBackendPyEval
 
-is_compatible = OnnxInferenceBackendOrt.is_compatible
-prepare = OnnxInferenceBackendOrt.prepare
-run = OnnxInferenceBackendOrt.run_model
-supports_device = OnnxInferenceBackendOrt.supports_device
+is_compatible = OnnxInferenceBackendPyEval.is_compatible
+prepare = OnnxInferenceBackendPyEval.prepare
+run = OnnxInferenceBackendPyEval.run_model
+supports_device = OnnxInferenceBackendPyEval.supports_device

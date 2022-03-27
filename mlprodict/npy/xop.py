@@ -13,10 +13,11 @@ from collections import OrderedDict
 import numpy
 from scipy.sparse.coo import coo_matrix
 import onnx
-from onnx import GraphProto, TensorProto
+from onnx import GraphProto, TensorProto, ValueInfoProto
 from onnx.helper import (
-    make_node, make_graph, make_model,
-    make_tensor_value_info, make_function, make_opsetid)
+    make_node, make_graph, make_model, make_value_info,
+    make_tensor_value_info, make_function, make_opsetid,
+    make_tensor_type_proto, make_operatorsetid)
 from onnx.numpy_helper import from_array, to_array
 from onnx.shape_inference import infer_shapes
 from ._cache import cache_folder
@@ -501,6 +502,13 @@ class OnnxOperatorBase:
         raise NotImplementedError(  # pragma: no cover
             "Not overwritten for class %r." % type(self))
 
+    def f(self, *args, **kwargs):
+        """
+        Evaluates this node.
+        """
+        raise NotImplementedError(  # pragma: no cover
+            "__call__ must be overloaded for type %s." % type(self))
+
 
 class OnnxOperatorItem(OnnxOperatorBase):
     """
@@ -859,6 +867,8 @@ class OnnxOperator(OnnxOperatorBase):
                     self.inputs.append(inp)
                 elif isinstance(inp, (numpy.ndarray, coo_matrix, TensorProto)):
                     self.inputs.append(inp)
+                elif isinstance(inp, ValueInfoProto):
+                    self.inputs.append(inp.type.tensor_type)
                 else:
                     raise TypeError(  # pragma: no cover
                         "Unable to interpret the input name for type {} in "
@@ -871,7 +881,7 @@ class OnnxOperator(OnnxOperatorBase):
             raise RuntimeError(  # pragma: no cover
                 "Operator '{}' expects a number of inputs in [{}, {}] not {} "
                 "(expected opset={}, class opset={})".format(
-                    self.operator_name, *self.input_range,
+                    getattr(self, 'operator_name', '?'), *self.input_range,
                     len(self.inputs), op_version, self.op_version))
         # global context
         if global_context is None:
@@ -954,7 +964,8 @@ class OnnxOperator(OnnxOperatorBase):
         self.output_names_ = value
 
     def _check(self):
-        input_types = (Variable, OnnxOperatorBase, numpy.ndarray)
+        input_types = (Variable, OnnxOperatorBase, numpy.ndarray,
+                       TensorProto)
         for o in self.inputs:
             if not isinstance(o, input_types):
                 raise TypeError(  # pragma: no cover
@@ -1416,7 +1427,8 @@ class OnnxOperator(OnnxOperatorBase):
     def to_onnx(self, inputs=None, outputs=None,
                 other_outputs=None, target_opset=None,
                 optim=True, verbose=0, run_shape=True,
-                function_name=None, function_domain=None):
+                function_name=None, function_domain=None,
+                fLOG=print):
         """
         Converts this operator into an ONNX graph.
 
@@ -1439,6 +1451,7 @@ class OnnxOperator(OnnxOperatorBase):
         :param function_name: if not None, returns a :epkg:`FunctionProto`
         :param function_domain: in case of a function, declares the function
             as part of this domain
+        :param fLOG: logging function
         :return ONNX stucture
         """
         # opsets
@@ -1481,9 +1494,9 @@ class OnnxOperator(OnnxOperatorBase):
                 "Node list is empty.")
         if verbose > 1:
             for i, n in enumerate(nodes):  # pragma: no cover
-                print("nodes[%d]=%r" % (i, n))
+                fLOG("nodes[%d]=%r" % (i, n))
             for i, n in enumerate(graph_inputs):  # pragma: no cover
-                print("graph_inputs[%d]=%r" % (i, n))
+                fLOG("graph_inputs[%d]=%r" % (i, n))
 
         # creates a _GraphBuilder
         builder = _GraphBuilder()
@@ -1559,6 +1572,175 @@ class OnnxOperator(OnnxOperatorBase):
         onx = self.to_onnx(function_name=function_name,
                            function_domain=function_domain)
         return OnnxOperatorFunction(onx, *args, **kwargs)
+
+    def find_named_inputs(self):
+        """
+        Retrieves all named inputs in this graph.
+        """
+        unique = set()
+        found = []
+        for inp in self.inputs:
+            if isinstance(inp, str):
+                if inp not in unique:
+                    found.append(inp)
+                    unique.add(inp)
+            elif isinstance(inp, Variable):
+                if inp.name not in unique:
+                    found.append(inp.name)
+                    unique.add(inp.name)
+            elif isinstance(inp, OnnxOperator):
+                f = inp.find_named_inputs()
+                for n in f:
+                    if n not in unique:
+                        found.append(n)
+                        unique.add(n)
+        return found
+
+    def to_onnx_this(self, evaluated_inputs):
+        """
+        Returns a simple ONNX graph corresponding to this node.
+
+        :param evaluated_inputs: inputs as a list
+        :return: ONNX graph
+        """
+        inputs_names = ['I%d' % i for i in range(len(evaluated_inputs))]
+        if self.output_names is None:
+            if self.expected_outputs is None:
+                raise NotImplementedError(
+                    "expected_outputs and output_names are not defined.")
+            output_names = [o[0] for o in self.expected_outputs]
+        else:
+            output_names = [o.name for o in self.output_names]
+        node = make_node(self.op_type, inputs_names, output_names,
+                         domain=self.domain, name="f", **self.kwargs)
+        onx_inputs = [Variable(name, a.dtype).make_value_info()
+                      for name, a in zip(inputs_names, evaluated_inputs)]
+        onx_outputs = [make_value_info(name, make_tensor_type_proto(0, []))
+                       for name in output_names]
+        graph = make_graph([node], 'f', onx_inputs, onx_outputs)
+        model = make_model(
+            graph, opset_imports=[make_operatorsetid(
+                self.domain or '', self.since_version)])
+        return model
+
+    def run(self, *inputs, verbose=0, fLOG=None, clear_cache=False, runtime=None):
+        """
+        Other name for
+        `OnnxInference.f <mlprodict.onnxrt.onnx_inference.OnnxInference.f>`_.
+        """
+        return self.f(*inputs, verbose=verbose, fLOG=fLOG,
+                      clear_cache=clear_cache, runtime=runtime)
+
+    def f(self, *inputs, verbose=0, fLOG=None,  # pylint: disable=W0221
+          clear_cache=False, runtime=None):
+        """
+        Computes the predictions for this node.
+        Similar to an eager evaluation.
+
+        :param inputs: inputs as dictionary or a list of inputs
+            (see below)
+        :param verbose: display information while predicting
+        :param fLOG: logging function if *verbose > 0*
+        :param clear_cache: onnx graph is created once unless
+            this parameter is True
+        :param runtime: runtime to use for the evaluation,
+            see @see cl OnnxInference
+        :return: outputs as a dictionary if the input were given as a
+            dictionary or a single result or a tuple otherwise
+
+        The inputs refer to the inputs of the graph.
+        The method walks through all inputs and finds inputs defined as
+        string. It replaces them by the value found in the dictionary.
+        If the inputs are specified in a list, the function retrieves the
+        list of inputs defined as a string and assigns them a value.
+        Logging function can be used to get more insight about it.
+        During the evaluation every node is independently converted
+        into ONNX. The ONNX graph is cached in the class itself.
+        """
+        # input evaluation
+        if len(inputs) == 1 and isinstance(inputs[0], dict):
+            dict_inputs = inputs[0]
+            as_dict = True
+        elif not isinstance(inputs, (tuple, list)):
+            raise TypeError(  # pragma: no cover
+                "inputs must be a list not %r." % type(inputs))
+        elif len(inputs) > 0 and isinstance(inputs[0], OnnxOperator):
+            raise TypeError(  # pragma: no cover
+                "Unexpected type for inputs[0]: %r." % type(inputs[0]))
+        else:
+            as_dict = False
+            if verbose > 0:
+                fLOG("[OnnxOperator.f] retrieves named inputs")
+            if hasattr(self, "feval_named_inputs_"):
+                named_inputs = self.feval_named_inputs_  # pylint: disable=E0203
+            else:
+                named_inputs = self.find_named_inputs()
+                self.feval_named_inputs_ = named_inputs
+            if len(named_inputs) != len(inputs):
+                raise RuntimeError(
+                    "Mismatch between the number of found inputs (%d) and "
+                    "the number of given inputs (%d) (found %r)."
+                    "" % (
+                        len(named_inputs), len(inputs), named_inputs))
+            dict_inputs = {
+                name: value for name, value in zip(named_inputs, inputs)}
+            if verbose > 0:
+                fLOG("[OnnxOperator.f] found inputs: %r" % (named_inputs, ))
+
+        # conversion
+        evaluated_inputs = []
+        for i, inp in enumerate(self.inputs):
+            if isinstance(inp, str):
+                evaluated_inputs.append(dict_inputs[inp])
+            elif isinstance(inp, Variable):
+                evaluated_inputs.append(dict_inputs[inp.name])
+            elif isinstance(inp, OnnxOperator):
+                if verbose > 0:
+                    fLOG("[OnnxOperator.f] evaluate input %d (op_type=%r)" % (
+                        i, self.__class__.op_type))
+                out = inp.f(dict_inputs, verbose=verbose, fLOG=fLOG)
+                if isinstance(out, dict):
+                    if len(out) == 1:
+                        evaluated_inputs.append(out.popitem()[1])
+                    else:
+                        raise NotImplementedError(
+                            "Not yet implemented in case when there are multiple "
+                            "outputs (%r)." % list(out))
+                elif isinstance(out, list):
+                    evaluated_inputs.extend(out)
+                else:
+                    evaluated_inputs.append(out)
+            elif isinstance(inp, numpy.ndarray):
+                evaluated_inputs.append(inp)
+            else:
+                raise RuntimeError(
+                    "Unexpected type %r for input %d." % (type(inp), i))
+
+        # conversion to ONNX
+        if not hasattr(self, 'feval_onnx_'):
+            self.feval_onnx_ = {}
+        key = tuple((m.dtype, m.shape) for m in evaluated_inputs)
+        if key not in self.feval_onnx_ or clear_cache:
+            if verbose > 0:
+                fLOG("[OnnxOperator.f] creating node %r, inputs=%r" % (
+                    self.op_type, key))
+            from ..onnxrt import OnnxInference
+            model = self.to_onnx_this(evaluated_inputs)
+            oinf = OnnxInference(model, runtime=runtime)
+            self.feval_onnx_[key] = oinf
+        else:
+            oinf = self.feval_onnx_[key]
+
+        # execution
+        if verbose > 0:
+            fLOG("[OnnxOperator.f] execute node %r" % self.op_type)
+        got = oinf.run({k: v for k, v in zip(
+            oinf.input_names, evaluated_inputs)})
+        if as_dict:
+            return got
+        if len(inputs) == 1:
+            return got.popitem()[1]
+        return [got[n] for n in oinf.output_names]
 
     @staticmethod
     def _merge_op_version(n1, n2):
