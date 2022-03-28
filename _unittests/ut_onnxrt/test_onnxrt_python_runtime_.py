@@ -10,6 +10,7 @@ from contextlib import redirect_stdout
 from io import StringIO
 import numpy
 import onnx
+from onnx.backend.test.case.node.softmaxcrossentropy import softmaxcrossentropy
 from scipy.sparse import coo_matrix, csr_matrix, SparseEfficiencyWarning
 from scipy.special import (  # pylint: disable=E0611
     expit as logistic_sigmoid, erf)
@@ -69,7 +70,7 @@ from skl2onnx.algebra.onnx_ops import (  # pylint: disable=E0611
     OnnxSelu, OnnxSequenceAt, OnnxSequenceConstruct,
     OnnxShape, OnnxSlice, OnnxSigmoid, OnnxSign,
     OnnxSin, OnnxSinh,
-    OnnxSize, OnnxSoftmax,
+    OnnxSize, OnnxSoftmax, OnnxSoftmaxCrossEntropyLoss,
     OnnxSplit, OnnxSplitApi11,
     OnnxSqrt, OnnxSub, OnnxSum,
     OnnxSqueeze, OnnxSqueezeApi11,
@@ -4002,6 +4003,91 @@ class TestOnnxrtPythonRuntime(ExtTestCase):  # pylint: disable=R0904
         self.common_test_onnxt_runtime_unary(OnnxSoftmax, softmax)
 
     @wraplog()
+    def test_softmax_cross_entropy_loss(self):
+
+        def _make_model(node, opset=15):
+            ginputs = [
+                onnx.helper.make_tensor_value_info(
+                    name, (TensorProto.FLOAT if i % 2 == 0 else TensorProto.INT64), [])
+                for i, name in enumerate(node.input)]
+            goutputs = [
+                onnx.helper.make_tensor_value_info(o, TensorProto.FLOAT, [])
+                for o in node.output]
+            model_def = onnx.helper.make_model(
+                opset_imports=[onnx.helper.make_operatorsetid('', opset)],
+                graph=onnx.helper.make_graph(
+                    name='test_softmax_cross_entropy_loss',
+                    inputs=ginputs, outputs=goutputs,
+                    nodes=[node]))
+            return model_def
+        
+        reduction = 'mean'
+        ignore_index = numpy.int64(-1)
+        node = onnx.helper.make_node(
+            'SoftmaxCrossEntropyLoss', inputs=['x', 'y', 'w'],
+            outputs=['z'], reduction=reduction, ignore_index=ignore_index)
+        model_def = _make_model(node)
+
+        N, C, dim1 = 3, 5, 6
+        numpy.random.seed(0)
+        x = numpy.random.rand(N, C, dim1).astype(numpy.float32)
+        labels = numpy.random.randint(0, high=C, size=(N, dim1)).astype(numpy.int64)
+        labels[0, 0] = -1
+        weight = numpy.random.rand(C).astype(numpy.float32)
+
+        outputs = softmaxcrossentropy(
+            x, labels, weight=weight, reduction=reduction,
+            ignore_index=ignore_index)
+        
+        oinf = OnnxInference(model_def)
+        got = oinf.run({'x': x, 'y': labels, 'w': weight})
+        self.assertEqual(len(got), 1)
+        self.assertEqualArray(outputs, got['z'])
+        python_tested.append(OnnxSoftmaxCrossEntropyLoss)
+
+    @wraplog()
+    def test_softmax_cross_entropy_loss_multi_output(self):
+
+        def _make_model(node, opset=15):
+            ginputs = [
+                onnx.helper.make_tensor_value_info(
+                    name, (TensorProto.FLOAT if i % 2 == 0 else TensorProto.INT64), [])
+                for i, name in enumerate(node.input)]
+            goutputs = [
+                onnx.helper.make_tensor_value_info(o, TensorProto.FLOAT, [])
+                for o in node.output]
+            model_def = onnx.helper.make_model(
+                opset_imports=[onnx.helper.make_operatorsetid('', opset)],
+                graph=onnx.helper.make_graph(
+                    name='test_softmax_cross_entropy_loss',
+                    inputs=ginputs, outputs=goutputs,
+                    nodes=[node]))
+            return model_def
+        
+        reduction = 'none'
+        ignore_index = numpy.int64(-5)
+        node = onnx.helper.make_node(
+            'SoftmaxCrossEntropyLoss', inputs=['x', 'y'],
+            outputs=['z', 'log_prob'], reduction=reduction, ignore_index=ignore_index)
+        model_def = _make_model(node)
+
+        N, C, dim1, dim2, dim3 = 3, 5, 6, 6, 5
+        numpy.random.seed(0)
+        x = numpy.random.rand(N, C, dim1, dim2, dim3).astype(numpy.float32)
+        labels = numpy.random.randint(0, high=C, size=(N, dim1, dim2, dim3)).astype(numpy.int64)
+        labels[0][0][0][0] = -5
+
+        outputs = softmaxcrossentropy(
+            x, labels, reduction=reduction,
+            ignore_index=ignore_index, get_log_prob=True)
+        
+        oinf = OnnxInference(model_def)
+        got = oinf.run({'x': x, 'y': labels})
+        self.assertEqual(len(got), 2)
+        self.assertEqualArray(outputs[0], got['z'])
+        self.assertEqualArray(outputs[1], got['log_prob'])
+
+    @wraplog()
     def test_onnxt_runtime_sub(self):
         self.common_test_onnxt_runtime_binary(OnnxSub, lambda x, y: x - y)
 
@@ -4579,5 +4665,5 @@ class TestOnnxrtPythonRuntime(ExtTestCase):  # pylint: disable=R0904
 
 if __name__ == "__main__":
     # Working
-    # TestOnnxrtPythonRuntime().test_onnxt_runtime_hardswish()
+    # TestOnnxrtPythonRuntime().test_softmax_cross_entropy_loss_multi_output()
     unittest.main(verbosity=2)

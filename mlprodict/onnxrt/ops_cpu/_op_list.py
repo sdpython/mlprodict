@@ -116,6 +116,7 @@ from .op_rnn import RNN
 from .op_scaler import Scaler
 from .op_scan import Scan
 from .op_scatter_elements import ScatterElements
+from .op_sce import SoftmaxCrossEntropyLoss
 from .op_selu import Selu
 from .op_sequence_at import SequenceAt
 from .op_sequence_construct import SequenceConstruct
