@@ -73,7 +73,7 @@ def softmaxcrossentropy(x, target, weight=None, reduction='mean',
             loss = loss.sum() / gather_weight.sum()
             if get_log_prob is True:
                 return loss, log_prob
-            return loss,
+            return (loss, )
 
     if reduction == b'mean':
         loss = numpy.mean(loss)
@@ -82,10 +82,13 @@ def softmaxcrossentropy(x, target, weight=None, reduction='mean',
 
     if get_log_prob is True:
         return loss, log_prob
-    return loss,
+    return (loss, )
 
 
 class SoftmaxCrossEntropyLoss(OpRun):
+    """
+    Python runtime for function *SoftmaxCrossEntropyLoss*.
+    """
 
     atts = {'reduction': b'mean', 'ignore_index': -1}
 
@@ -97,8 +100,9 @@ class SoftmaxCrossEntropyLoss(OpRun):
     def _run(self, x, target, weight=None):  # pylint: disable=W0221
         n_outputs = len(self.onnx_node.output)
         return softmaxcrossentropy(
-            x, target, weight=weight, reduction=self.reduction,
-            ignore_index=self.ignore_index, get_log_prob=n_outputs == 2)
+            x, target, weight=weight, reduction=self.reduction,  # pylint: disable=E1101
+            ignore_index=self.ignore_index,  # pylint: disable=E1101
+            get_log_prob=n_outputs == 2)
 
     def _infer_shapes(self, x, target, weight=None):  # pylint: disable=W0221
         n_outputs = len(self.onnx_node.output)

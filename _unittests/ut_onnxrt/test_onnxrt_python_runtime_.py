@@ -9,12 +9,12 @@ from logging import getLogger
 from contextlib import redirect_stdout
 from io import StringIO
 import numpy
-import onnx
-from onnx.backend.test.case.node.softmaxcrossentropy import softmaxcrossentropy
 from scipy.sparse import coo_matrix, csr_matrix, SparseEfficiencyWarning
 from scipy.special import (  # pylint: disable=E0611
     expit as logistic_sigmoid, erf)
 from scipy.spatial.distance import cdist
+import onnx
+from onnx.backend.test.case.node.softmaxcrossentropy import softmaxcrossentropy
 from onnx import TensorProto, __version__ as onnx_version
 from onnx.helper import make_sparse_tensor, make_tensor
 from onnx.defs import onnx_opset_version
@@ -4020,7 +4020,7 @@ class TestOnnxrtPythonRuntime(ExtTestCase):  # pylint: disable=R0904
                     inputs=ginputs, outputs=goutputs,
                     nodes=[node]))
             return model_def
-        
+
         reduction = 'mean'
         ignore_index = numpy.int64(-1)
         node = onnx.helper.make_node(
@@ -4038,7 +4038,7 @@ class TestOnnxrtPythonRuntime(ExtTestCase):  # pylint: disable=R0904
         outputs = softmaxcrossentropy(
             x, labels, weight=weight, reduction=reduction,
             ignore_index=ignore_index)
-        
+
         oinf = OnnxInference(model_def)
         got = oinf.run({'x': x, 'y': labels, 'w': weight})
         self.assertEqual(len(got), 1)
@@ -4063,7 +4063,7 @@ class TestOnnxrtPythonRuntime(ExtTestCase):  # pylint: disable=R0904
                     inputs=ginputs, outputs=goutputs,
                     nodes=[node]))
             return model_def
-        
+
         reduction = 'none'
         ignore_index = numpy.int64(-5)
         node = onnx.helper.make_node(
@@ -4080,7 +4080,7 @@ class TestOnnxrtPythonRuntime(ExtTestCase):  # pylint: disable=R0904
         outputs = softmaxcrossentropy(
             x, labels, reduction=reduction,
             ignore_index=ignore_index, get_log_prob=True)
-        
+
         oinf = OnnxInference(model_def)
         got = oinf.run({'x': x, 'y': labels})
         self.assertEqual(len(got), 2)
