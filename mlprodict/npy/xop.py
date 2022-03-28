@@ -764,6 +764,23 @@ class OnnxOperatorTuple(OnnxOperatorBase):
             "Not implemented yet, value=%r, unique=%r values=%r." % (
                 value, self.unique, self.values))
 
+    def _to_onnx_attributes(self, inputs=None, target_opset=None,
+                            optim=True, verbose=0, run_shape=True,
+                            fLOG=print):
+        """
+        Calls `self.onx_op._to_onnx_attributes`.
+        """
+        if self.values is None:
+            return self.unique._to_onnx_attributes(
+                inputs=inputs, target_opset=target_opset, optim=optim,
+                run_shape=run_shape, verbose=verbose, fLOG=fLOG)
+        res = []
+        for v in self.values:
+            res.append(v._to_onnx_attributes(
+                inputs=inputs, target_opset=target_opset, optim=optim,
+                run_shape=run_shape, verbose=verbose, fLOG=fLOG))
+        return res
+
     def to_onnx(self, inputs=None, outputs=None,
                 other_outputs=None, target_opset=None,
                 optim=True, verbose=0, run_shape=True):
