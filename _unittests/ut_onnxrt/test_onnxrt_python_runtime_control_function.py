@@ -2,11 +2,9 @@
 @brief      test log(time=2s)
 """
 import unittest
-from logging import getLogger
-from collections import OrderedDict
 import numpy
 import onnx
-from onnx import numpy_helper, checker, FunctionProto, parser
+from onnx import FunctionProto, parser
 from pyquickhelper.pycode import ExtTestCase, ignore_warnings
 from mlprodict.plotting.text_plot import onnx_simple_text_plot
 from mlprodict.onnxrt import OnnxInference
