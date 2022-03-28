@@ -60,7 +60,11 @@ class If(OpRun):
                         "Unable to find named input '{}' in\n{}.".format(
                             k, "\n".join(sorted(named_inputs))))
 
-        if all(cond):
+        if len(cond.shape) > 0:
+            if all(cond):
+                outputs = self._run_meth_then(named_inputs)
+                return tuple([outputs[name] for name in self.then_branch.output_names])
+        elif cond:
             outputs = self._run_meth_then(named_inputs)
             return tuple([outputs[name] for name in self.then_branch.output_names])
         outputs = self._run_meth_else(named_inputs)
