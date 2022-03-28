@@ -1,6 +1,6 @@
 
-ONNX Backends for Shape Inference
-=================================
+ONNX Backends for Eager Evaluation
+==================================
 
 Backend class: :class:`OnnxInferenceBackendPyEval
 <mlprodict.onnxrt.backend.OnnxInferenceBackendPyEval>`.
@@ -18,7 +18,7 @@ Backend class: :class:`OnnxInferenceBackendPyEval
     from onnx import __version__ as onnx_version
     from onnxruntime import __version__ as ort_version
     from numpy import __version__ as npy_version
-    import mlprodict.onnxrt.backend_peval as backend
+    import mlprodict.onnxrt.backend_pyeval as backend
 
     back_test = BackendTest(backend, __name__)
     back_test.include('.*_cpu')
