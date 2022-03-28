@@ -75,6 +75,9 @@ class OnnxInference:
         by this new one
     :param device: device, a string `cpu`, `cuda`, `cuda:0`...,
         this option is only available with runtime *onnxruntime1*
+    :param existing_functions: a model may contain several local functions,
+        this parameter is used when a local function is calling another
+        local function previously defined.
 
     Among the possible runtime_options, there are:
     * *enable_profiling*: enables profiling for :epkg:`onnxruntime`
@@ -87,6 +90,9 @@ class OnnxInference:
 
     .. versionchanged:: 0.8
         Parameters *static_inputs*, *device* were added.
+
+    .. versionchanged:: 0.9
+        Parameters *existing_functions* was added.
     """
 
     def __init__(self, onnx_or_bytes_or_stream, runtime=None,
@@ -95,7 +101,7 @@ class OnnxInference:
                  target_opset=None, runtime_options=None,
                  session_options=None, inside_loop=False,
                  static_inputs=None, new_outputs=None, new_opset=None,
-                 device=None):
+                 device=None, existing_functions=None):
         if isinstance(onnx_or_bytes_or_stream, bytes):
             self.obj = load_model(BytesIO(onnx_or_bytes_or_stream))
         elif isinstance(onnx_or_bytes_or_stream, BytesIO):
@@ -133,7 +139,7 @@ class OnnxInference:
         self.inside_loop = inside_loop
         self.static_inputs = static_inputs
         self.device = device
-        self._init()
+        self._init(existing_functions)
 
     def __getstate__(self):
         """
@@ -167,11 +173,11 @@ class OnnxInference:
         self.device = state['device']
         self._init()
 
-    def _init(self):
+    def _init(self, existing_functions=None):
         """
         Prepares the instance to deliver predictions.
         """
-        self.graph_ = self.to_sequence()
+        self.graph_ = self.to_sequence(existing_functions)
         if len(self.graph_['sequence']) == 0:
             raise RuntimeError(  # pragma: no cover
                 "No runnable nodes was found in the ONNX graph.")
@@ -458,7 +464,7 @@ class OnnxInference:
         self._global_index[name] = len(self._global_index)
         return self._global_index[name]
 
-    def to_sequence(self):
+    def to_sequence(self, existing_functions=None):
         """
         Produces a graph to facilitate the execution.
 
@@ -504,6 +510,8 @@ class OnnxInference:
         statics = {}
         targets = {}
         functions = {}
+        if existing_functions is not None:
+            functions.update(existing_functions)
         is_function_proto = isinstance(self.obj, onnx_proto.FunctionProto)
 
         for o in self.obj.opset_import:
@@ -519,7 +527,8 @@ class OnnxInference:
                     runtime_options=self.runtime_options,
                     inside_loop=self.inside_loop,
                     static_inputs=self.static_inputs,
-                    device=self.device)
+                    device=self.device,
+                    existing_functions=functions)
 
         # static variables
         if self.static_inputs is not None:
@@ -1652,27 +1661,33 @@ class OnnxInference:
         # code
         for i, node in enumerate(self.sequence_):
             name = "n{}_{}".format(i, node.ops_.__class__.__name__.lower())
-            context[name] = node.ops_._run
-            if (node.ops_.__class__.__name__ == 'Loop' and
-                    node.ops_.need_context()):
-                # Adding context.
-                ctx = "{%s}" % ", ".join(
-                    "'%s': %s" % (n, n) for n in node.ops_.additional_inputs)
-                code.append('    ({1}, ) = {2}({0}, context={3})'.format(
-                    ', '.join(map(clean_name, node.inputs)),
-                    ', '.join(map(clean_name, node.outputs)),
-                    name, ctx))
+            if node.ops_ is None:
+                context[name] = node.function_
+                # The code of the function should be added but only once.
+                raise NotImplementedError(
+                    "Not implemented for models including functions.")
             else:
-                code.append('    ({1}, ) = {2}({0})'.format(
-                    ', '.join(map(clean_name, node.inputs)),
-                    ', '.join(map(clean_name, node.outputs)),
-                    name))
-            if debug:
-                code.append("    print('''# {}''')".format(code[-1][4:]))
-                for o in node.outputs:
-                    code.append(
-                        "    debug_print('o.{0}', {1}, printed)".format(
-                            clean_name(o), o))
+                context[name] = node.ops_._run
+                if (node.ops_.__class__.__name__ == 'Loop' and
+                        node.ops_.need_context()):
+                    # Adding context.
+                    ctx = "{%s}" % ", ".join(
+                        "'%s': %s" % (n, n) for n in node.ops_.additional_inputs)
+                    code.append('    ({1}, ) = {2}({0}, context={3})'.format(
+                        ', '.join(map(clean_name, node.inputs)),
+                        ', '.join(map(clean_name, node.outputs)),
+                        name, ctx))
+                else:
+                    code.append('    ({1}, ) = {2}({0})'.format(
+                        ', '.join(map(clean_name, node.inputs)),
+                        ', '.join(map(clean_name, node.outputs)),
+                        name))
+                if debug:
+                    code.append("    print('''# {}''')".format(code[-1][4:]))
+                    for o in node.outputs:
+                        code.append(
+                            "    debug_print('o.{0}', {1}, printed)".format(
+                                clean_name(o), o))
 
         # return
         code.append('    return {')
