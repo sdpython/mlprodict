@@ -8,11 +8,11 @@ jupyter
 matplotlib
 notebook>=5.0.0
 numba
-numpy>=1.19.0
+numpy>=1.21.4
 pandas>=1.4.0
 pillow
-scikit-learn>=1.0
-scipy>=1.7.0
+scikit-learn>=1.0.1
+scipy>=1.8.0
 Sphinx
 wheel
 
@@ -37,7 +37,7 @@ pydot
 py-cpuinfo
 pyinstrument
 pylint>=2.6.0
-pyquickhelper>=1.10.3626
+pyquickhelper>=1.10.3653
 pyquicksetup
 sphinx
 sphinxcontrib.blockdiag
