@@ -25,12 +25,12 @@ cpyquickhelper>=0.3.412
 flatbuffers
 jyquickhelper
 lightgbm
-memory_profiler
-mlinsights>=0.3
+mlinsights>=0.3.606
 mlstatpy>=0.3.593
 nbconvert>=6.0.2
 openpyxl
 opt-einsum>=3.3.0
+protobuf>=3.19.4
 pybind11
 pydata-sphinx-theme
 pydot
