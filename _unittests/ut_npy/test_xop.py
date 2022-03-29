@@ -10,7 +10,8 @@ from mlprodict.onnxrt import OnnxInference
 from mlprodict.plotting.text_plot import onnx_simple_text_plot
 from mlprodict.onnx_tools.onnx2py_helper import get_dtype_shape
 from mlprodict.npy.xop import (
-    loadop, OnnxLoadFactory, _GraphBuilder, _domain_to_class_name)
+    loadop, OnnxLoadFactory, _GraphBuilder, _domain_to_class_name,
+    OnnxExisting)
 from mlprodict.npy.xop_auto import get_domain_list
 from mlprodict.npy.xop_variable import (
     Variable, max_supported_opset,
@@ -989,18 +990,15 @@ class TestXOps(ExtTestCase):
             numpy.array([1.], dtype=numpy.float32), got['Z'])
 
     def test_zif_onnx_common_inputs(self):
-        OnnxConstant, OnnxIf, OnnxGreater, OnnxIdentity = loadop(
-            "Constant", "If", "Greater", "Identity")
+        OnnxIf, OnnxGreater, OnnxIdentity, OnnxReduceSum = loadop(
+            "If", "Greater", "Identity", "ReduceSum")
 
         onx = OnnxIf(
-            OnnxGreater('X', numpy.array([0], dtype=numpy.float32)),
-            output_names=['Z']).then_do(
-                OnnxIdentity('X') - OnnxConstant(
-                    value_floats=numpy.array([0], dtype=numpy.float32),
-                    output_names=['res_then'])).else_do(
-                OnnxIdentity('X') + OnnxConstant(
-                    value_floats=numpy.array([1], dtype=numpy.float32),
-                    output_names=['res_else']))
+            OnnxGreater(OnnxReduceSum('X'),
+                        numpy.array([0], dtype=numpy.float32)),
+            output_names=['Z']) \
+            .then_do(OnnxIdentity('X') - numpy.array([0], dtype=numpy.float32)) \
+            .else_do(OnnxIdentity('X') + numpy.array([1], dtype=numpy.float32))
 
         x = numpy.array([1, 2], dtype=numpy.float32)
         model_def = onx.to_onnx(
@@ -1015,11 +1013,44 @@ class TestXOps(ExtTestCase):
         got = OnnxInference(model_def).run({'X': x})
         self.assertEqualArray(x + 1, got['Z'])
 
+    def test_zif_onnx_common_intermediate(self):
+        OnnxAbs, OnnxIf, OnnxGreater, OnnxIdentity, OnnxReduceSum = loadop(
+            "Abs", "If", "Greater", "Identity", "ReduceSum")
+
+        x2 = OnnxAbs('X')
+        ex = OnnxExisting(x2)
+        self.assertEqual("OnnxExisting(1 in) -> ?", repr(ex))
+
+        onx = OnnxIf(
+            OnnxGreater(OnnxReduceSum('X'),
+                        numpy.array([0], dtype=numpy.float32)),
+            output_names=['Z']) \
+            .then_do(OnnxIdentity('X') - OnnxExisting(x2)) \
+            .else_do(OnnxIdentity('X') + OnnxExisting(x2))
+
+        x = numpy.array([1, 2], dtype=numpy.float32)
+        model_def = onx.to_onnx(
+            {'X': numpy.float32}, {'Z': numpy.float32},
+            run_shape=False, verbose=0)
+        spl = str(model_def).split('op_type: "Abs"')
+        if len(spl) != 2:
+            raise AssertionError(
+                "Operator Abs should be duplicated (%d) in\n%s" % (
+                    len(spl), str(model_def)))
+        got = OnnxInference(model_def).run({'X': x})
+        self.assertEqualArray(
+            numpy.array(x - numpy.abs(x), dtype=numpy.float32), got['Z'])
+
+        x = numpy.array([-1, -2], dtype=numpy.float32)
+        model_def = onx.to_onnx({'X': numpy.float32}, {'Z': numpy.float32})
+        got = OnnxInference(model_def).run({'X': x})
+        self.assertEqualArray(x + numpy.abs(x), got['Z'])
+
 
 if __name__ == "__main__":
     # import logging
     # logger = logging.getLogger('xop')
     # logger.setLevel(logging.DEBUG)
     # logging.basicConfig(level=logging.DEBUG)
-    # TestXOps().test_zif_onnx_common_inputs()
+    # TestXOps().test_zif_onnx_common_intermediate()
     unittest.main(verbosity=2)

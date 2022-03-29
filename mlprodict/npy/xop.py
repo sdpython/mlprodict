@@ -24,7 +24,7 @@ from ._cache import cache_folder
 from .xop_variable import (
     Variable, is_numpy_dtype, numpy_type_prototype, max_supported_opset,
     DetectedVariable, InputDetectedVariable, OutputDetectedVariable,
-    NodeResultName, guess_numpy_type)
+    NodeResultName, guess_numpy_type, ExistingVariable)
 from .xop_auto import get_rst_doc
 
 
@@ -1080,7 +1080,20 @@ class OnnxOperator(OnnxOperatorBase):
     @output_names.setter
     def output_names(self, value):
         logger.debug("OnnxOperator:output_names:set(%r)", value)
-        self.output_names_ = value
+        if not isinstance(value, list):
+            raise TypeError(  # pragma: no cover
+                "Value must be a list not %r." % type(value))
+        res = []
+        for v in value:
+            if isinstance(v, (Variable, ExistingVariable)):
+                res.append(v)
+            elif isinstance(v, str):
+                res.append(Variable(v))
+            else:
+                raise TypeError(
+                    "Unexpected type %r for an output_names %r."
+                    "" % type(v))
+        self.output_names_ = res
 
     def _check(self):
         input_types = (Variable, OnnxOperatorBase, numpy.ndarray,
@@ -1293,7 +1306,15 @@ class OnnxOperator(OnnxOperatorBase):
             raise RuntimeError(  # pragma: no cover
                 "Both inputs and inputs_dtype cannot be None at the same time "
                 "for inp=%r." % (inp, ))
-        if isinstance(inp, OnnxOperator):
+
+        if isinstance(inp, OnnxExisting):
+            if inp.inputs[0].output_names is None:
+                raise RuntimeError(
+                    "output_names cannot be None for OnnxExisting, "
+                    "subop is %r." % (inp.inputs[0], ))
+            inp = inp.inputs[0].output_names[0]
+            new_inputs.append(InputDetectedVariable(node, inp))
+        elif isinstance(inp, OnnxOperator):
             new_stack.append(inp)
         elif isinstance(inp, OnnxOperatorItem):
             new_stack.append(inp)
@@ -1459,7 +1480,9 @@ class OnnxOperator(OnnxOperatorBase):
             memo.extend(stack)
             new_stack = []
             for obj in stack:
-                if isinstance(obj, OnnxOperatorItem):
+                if isinstance(obj, OnnxExisting):
+                    pass
+                elif isinstance(obj, OnnxOperatorItem):
                     # nothing to do, OnnxOperatorItem is created
                     # by OnnxOperator.__getitem__.
                     pass
@@ -2360,10 +2383,16 @@ class _GraphBuilder:
         """
         names = []
         for i in inputs:
-            if isinstance(i, Variable):
+            if isinstance(i, (Variable, ExistingVariable)):
                 self._add_name(i.name)
                 names.append(i.name)
                 self.input_names[i.name] = InputDetectedVariable(None, i)
+            elif isinstance(i, OnnxExisting):
+                inp = i.inputs[0]
+                n = inp.output_names[0]
+                self._add_name(n.name)
+                names.append(n.name)
+                self.input_names[n.name] = InputDetectedVariable(None, n)
             elif isinstance(i, OnnxOperator):
                 key = id(i), 0
                 try:
@@ -2727,3 +2756,34 @@ class _GraphBuilder:
 _all_schemas, _all_schemas_versions, _all_domains = _populate_schemas()
 _all_classes = {}
 onnx_load_factory = Xop = OnnxLoadFactory()
+OnnxIdentity = loadop('Identity')
+
+
+class OnnxExisting(OnnxIdentity):
+    """
+    Wrapper around OnnxIdentity to specify this operator is
+    not part of the subgraph it is used in.
+    """
+
+    def __init__(self, *args, **kwargs):
+        OnnxIdentity.__init__(self, *args, **kwargs)
+        if len(self.inputs) != 1:
+            raise RuntimeError(
+                "Unexpected number of inputs %d." % len(self.inputs))
+        if not isinstance(self.inputs[0], OnnxOperatorBase):
+            raise TypeError(
+                "Only input should a node not %r." % type(self.inputs[0]))
+        if self.inputs[0].output_names is None:
+            new_names = [ExistingVariable("_existing_%d" % id(self.inputs[0]))]
+            logger.debug("OnnxExisting.__init__:set-input:%r", new_names)
+            self.inputs[0].output_names = new_names
+
+    def find_named_inputs(self):
+        """
+        Retrieves all named inputs in this graph.
+        """
+        return [n.name for n in self.inputs[0].output_names]
+
+    def f(self, *inputs, verbose=0, fLOG=None,  # pylint: disable=W0221
+          clear_cache=False, runtime=None):
+        raise NotImplementedError()
