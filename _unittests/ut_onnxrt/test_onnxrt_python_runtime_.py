@@ -54,7 +54,7 @@ from skl2onnx.algebra.onnx_ops import (  # pylint: disable=E0611
     OnnxMatMul, OnnxMax, OnnxMaxPool, OnnxMean, OnnxMin, OnnxMod, OnnxMul,
     OnnxNeg, OnnxNot,
     OnnxOr,
-    OnnxPad, OnnxPow,
+    OnnxPad, OnnxPow, OnnxPRelu,
     OnnxQLinearConv, OnnxQuantizeLinear,
     OnnxRange,
     OnnxReciprocal,
@@ -2861,6 +2861,22 @@ class TestOnnxrtPythonRuntime(ExtTestCase):  # pylint: disable=R0904
     @wraplog()
     def test_onnxt_runtime_pow(self):
         self.common_test_onnxt_runtime_binary(OnnxPow, numpy.power)
+
+    @wraplog()
+    def test_onnxt_runtime_prelu(self):
+        x = numpy.random.randn(1, 3, 4, 5).astype(numpy.float32)
+        slope = numpy.array([3]).astype(numpy.float32)
+        onx = OnnxPRelu(
+            'x', 'slope', output_names=['Y'],
+            op_version=TARGET_OPSET)
+        model_def = onx.to_onnx({'x': x, 'slope': slope},
+                                outputs={'Y': x},
+                                target_opset=TARGET_OPSET)
+        oinf = OnnxInference(model_def)
+        exp = numpy.where(x > 0, x, x * slope)
+        got = oinf.run({'x': x, 'slope': slope})
+        self.assertEqualArray(exp, got['Y'])
+        python_tested.append(OnnxPRelu)
 
     @wraplog()
     def test_onnxt_runtime_qlinear_conv(self):
