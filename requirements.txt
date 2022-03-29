@@ -18,7 +18,7 @@ wheel
 
 # pip
 autopep8
-asv
+asv>=0.5.1
 chardet
 coverage>=5.0
 cpyquickhelper>=0.3.412
