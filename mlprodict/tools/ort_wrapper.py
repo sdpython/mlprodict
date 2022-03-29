@@ -6,7 +6,6 @@
 """
 import os
 from onnx import numpy_helper
-from .onnx_inference_ort_helper import device_to_providers
 
 
 class InferenceSession:  # pylint: disable=E0102

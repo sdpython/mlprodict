@@ -508,7 +508,8 @@ class OnnxInference:
             targets[o.domain] = o.version
 
         if (hasattr(self.obj, 'functions') and len(self.obj.functions) > 0 and
-                not self.runtime.startswith('onnxruntime1')):
+                (self.runtime is None or not
+                    self.runtime.startswith('onnxruntime1'))):
             for fct in self.obj.functions:
                 functions[fct.domain, fct.name] = OnnxInference(
                     fct, runtime=self.runtime,
