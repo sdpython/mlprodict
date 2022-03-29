@@ -5,17 +5,17 @@
 @brief Runtime operator.
 """
 import numpy
-from ._op import OpRunUnaryNum
+from ._op import OpRun
 
 
-class Trilu(OpRunUnaryNum):
+class Trilu(OpRun):
 
     atts = {'upper': 1}
 
     def __init__(self, onnx_node, desc=None, **options):
-        OpRunUnaryNum.__init__(self, onnx_node, desc=desc,
-                               expected_attributes=Trilu.atts,
-                               **options)
+        OpRun.__init__(self, onnx_node, desc=desc,
+                       expected_attributes=Trilu.atts,
+                       **options)
         if self.upper not in (0, 1):
             raise ValueError("upper must be 0 or 1 not %r." % (self.upper, ))
 
@@ -32,3 +32,13 @@ class Trilu(OpRunUnaryNum):
             "import numpy",
             "return numpy.%s(%s, int(%s))" % (
                 name, inputs[0], 0 if len(inputs) == 1 else inputs[1]))
+
+    def _infer_shapes(self, *inputs):  # pylint: disable=W0221
+        return (inputs[0], )
+
+    def _infer_types(self, *inputs):  # pylint: disable=W0221
+        return (inputs[0], )
+
+    def _infer_sizes(self, *args, **kwargs):
+        res = self.run(*args, **kwargs)
+        return (dict(temp=0), ) + res

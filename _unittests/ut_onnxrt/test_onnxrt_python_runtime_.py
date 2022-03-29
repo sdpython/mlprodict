@@ -4284,6 +4284,21 @@ class TestOnnxrtPythonRuntime(ExtTestCase):  # pylint: disable=R0904
         python_tested.append(OnnxUnsqueeze)
 
     @wraplog()
+    def test_onnxt_runtime_trilu_neg(self):
+        X = numpy.arange(20).reshape((4, 5)).astype(numpy.int64)
+        K = numpy.array(-7).astype(numpy.int64)
+
+        onx = OnnxTrilu('X', 'K', output_names=['Y'],
+                        op_version=TARGET_OPSET, upper=0)
+        model_def = onx.to_onnx({'X': X, 'K': K},
+                                target_opset=TARGET_OPSET)
+        self._check_shape_inference(OnnxTranspose, model_def)
+        oinf = OnnxInference(model_def)
+        got = oinf.run({'X': X, 'K': K})
+        self.assertEqual(list(sorted(got)), ['Y'])
+        self.assertEqualArray(numpy.zeros(X.shape, dtype=X.dtype), got['Y'])
+
+    @wraplog()
     def test_onnxt_runtime_trilu(self):
         self.common_test_onnxt_runtime_unary(
             OnnxTrilu, lambda x: numpy.triu(x, 0))
