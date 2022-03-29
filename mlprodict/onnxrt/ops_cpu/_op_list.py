@@ -98,6 +98,7 @@ from .op_random import (
     RandomNormal, RandomUniform, RandomUniformLike, RandomNormalLike)
 from .op_range import Range
 from .op_reciprocal import Reciprocal
+from .op_reduce_log_sum import ReduceLogSum
 from .op_reduce_log_sum_exp import ReduceLogSumExp
 from .op_reduce_l1 import ReduceL1
 from .op_reduce_l2 import ReduceL2

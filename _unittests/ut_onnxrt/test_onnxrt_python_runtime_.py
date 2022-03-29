@@ -59,7 +59,8 @@ from skl2onnx.algebra.onnx_ops import (  # pylint: disable=E0611
     OnnxRange,
     OnnxReciprocal,
     OnnxReduceL1, OnnxReduceL2,
-    OnnxReduceLogSumExp, OnnxReduceMax, OnnxReduceMean, OnnxReduceMin,
+    OnnxReduceLogSum, OnnxReduceLogSumExp, OnnxReduceMax,
+    OnnxReduceMean, OnnxReduceMin,
     OnnxReduceProd,
     OnnxReduceSum, OnnxReduceSumApi11,
     OnnxReduceSum_13, OnnxReduceSum_11, OnnxReduceSum_1,
@@ -3238,6 +3239,24 @@ class TestOnnxrtPythonRuntime(ExtTestCase):  # pylint: disable=R0904
         self.assertEqualArray(reduce_l2(X, axis=1, keepdims=1).ravel(),
                               got['Y'].ravel())
         python_tested.append(OnnxReduceL2)
+
+    @wraplog()
+    def test_onnxt_runtime_reduce_log_sum(self):
+        X = numpy.array([[2, 1], [4, 1]], dtype=float)
+
+        onx = OnnxReduceLogSum('X', output_names=['Y'], keepdims=0,
+                               op_version=TARGET_OPSET)
+        model_def = onx.to_onnx({'X': X.astype(numpy.float32)},
+                                target_opset=TARGET_OPSET)
+        oinf = OnnxInference(model_def)
+        got = oinf.run({'X': X.astype(numpy.float32)})
+        self.assertEqual(list(sorted(got)), ['Y'])
+        res = numpy.log(numpy.sum(X))
+        self.assertEqualArray(res, got['Y'], decimal=5)
+        self.common_expected_shapes_types(
+            oinf, {'X': X.astype(numpy.float32)}, got,
+            OnnxReduceLogSum, model_def)
+        python_tested.append(OnnxReduceLogSum)
 
     @wraplog()
     def test_onnxt_runtime_reduce_log_sum_exp(self):
