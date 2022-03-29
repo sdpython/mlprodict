@@ -6,7 +6,7 @@
 """
 import os
 from onnx import numpy_helper
-from .onnx_inference_ort_helper import get_ort_device, device_to_providers
+from .onnx_inference_ort_helper import device_to_providers
 
 
 class InferenceSession:  # pylint: disable=E0102
@@ -17,10 +17,11 @@ class InferenceSession:  # pylint: disable=E0102
     :param session_options: session options
     :param log_severity_level: change the logging level
     :param runtime: runtime to use, `onnxruntime`, `onnxruntime-cuda`, ...
+    :param providers: providers
     """
 
     def __init__(self, onnx_bytes, sess_options=None, log_severity_level=4,
-                 runtime='onnxruntime'):
+                 runtime='onnxruntime', providers=None):
         from onnxruntime import (  # pylint: disable=W0611
             SessionOptions, RunOptions,
             InferenceSession as OrtInferenceSession,
@@ -31,7 +32,9 @@ class InferenceSession:  # pylint: disable=E0102
         self.C_OrtValue = C_OrtValue
 
         self.log_severity_level = log_severity_level
-        if runtime in (None, 'onnxruntime', 'onnxruntime1', 'onnxruntime2'):
+        if providers is not None:
+            self.providers = providers
+        elif runtime in (None, 'onnxruntime', 'onnxruntime1', 'onnxruntime2'):
             providers = ['CPUExecutionProvider']
         elif runtime in ('onnxruntime-cuda', 'onnxruntime1-cuda', 'onnxruntime2-cuda'):
             providers = ['CUDAExecutionProvider', 'CPUExecutionProvider']
