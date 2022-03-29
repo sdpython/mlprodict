@@ -59,6 +59,6 @@ def device_to_providers(device):
     if device.device_type() == device.cpu():
         return ['CPUExecutionProvider']
     if device.device_type() == device.cuda():
-        return ['CUDAExecutionProvider']
+        return ['CUDAExecutionProvider', 'CPUExecutionProvider']
     raise ValueError(  # pragma: no cover
         "Unexpected device %r." % device)

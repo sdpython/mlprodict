@@ -458,7 +458,7 @@ class OnnxNumpyCompiler:
                             version=version)
         inputs, outputs, _, n_optional, n_variables = self._parse_annotation(
             signature=signature, version=version)
-        if runtime != 'onnxruntime':
+        if runtime not in ('onnxruntime', 'onnxruntime-cuda'):
             from ..onnxrt import OnnxInference
             rt = OnnxInference(onx, runtime=runtime)
             self.rt_fct_ = OnnxNumpyFunctionOnnxInference(
@@ -466,7 +466,10 @@ class OnnxNumpyCompiler:
                 n_optional=n_optional, n_variables=n_variables)
         else:
             from ..tools.ort_wrapper import InferenceSession
-            rt = InferenceSession(onx.SerializeToString())
+            providers = ['CPUExecutionProvider']
+            if runtime == 'onnxruntime-cuda':
+                providers = ['CUDAExecutionProvider'] + providers
+            rt = InferenceSession(onx.SerializeToString(), providers=providers)
             self.rt_fct_ = OnnxNumpyFunctionInferenceSession(
                 self, rt, inputs=inputs, outputs=outputs,
                 n_optional=n_optional, n_variables=n_variables)

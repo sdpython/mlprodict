@@ -16,11 +16,11 @@ class InferenceSession:  # pylint: disable=E0102
     :param onnx_bytes: onnx bytes
     :param session_options: session options
     :param log_severity_level: change the logging level
-    :param device: device, a string `cpu`, `cuda`, `cuda:0`...
+    :param runtime: runtime to use, `onnxruntime`, `onnxruntime-cuda`, ...
     """
 
     def __init__(self, onnx_bytes, sess_options=None, log_severity_level=4,
-                 device=None):
+                 runtime='onnxruntime'):
         from onnxruntime import (  # pylint: disable=W0611
             SessionOptions, RunOptions,
             InferenceSession as OrtInferenceSession,
@@ -31,11 +31,14 @@ class InferenceSession:  # pylint: disable=E0102
         self.C_OrtValue = C_OrtValue
 
         self.log_severity_level = log_severity_level
-        if device is None:
-            self.device = get_ort_device('cpu')
+        if runtime in (None, 'onnxruntime', 'onnxruntime1', 'onnxruntime2'):
+            providers = ['CPUExecutionProvider']
+        elif runtime in ('onnxruntime-cuda', 'onnxruntime1-cuda', 'onnxruntime2-cuda'):
+            providers = ['CUDAExecutionProvider', 'CPUExecutionProvider']
         else:
-            self.device = get_ort_device(device)
-        self.providers = device_to_providers(self.device)
+            raise ValueError(
+                "Unexpected value %r for onnxruntime." % (runtime, ))
+        self.providers = providers
         set_default_logger_severity(3)
         if sess_options is None:
             self.so = SessionOptions()
@@ -105,7 +108,7 @@ def prepare_c_profiling(model_onnx, inputs, dest=None):
     model_bytes = model_onnx.SerializeToString()
     with open(os.path.join(dest, name), "wb") as f:
         f.write(model_bytes)
-    sess = InferenceSession(model_bytes)
+    sess = InferenceSession(model_bytes, providers=['CPUExecutionProvider'])
     input_names = [_.name for _ in sess.get_inputs()]
     if isinstance(inputs, list):
         dict_inputs = dict(zip(input_names, inputs))

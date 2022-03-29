@@ -42,7 +42,7 @@ class OnnxInference:
       one except every operator is called from a compiled function
       (@see me _build_compile_run) instead for a method going through
       the list of operator
-    * ``'onnxruntime1'``: uses :epkg:`onnxruntime`
+    * ``'onnxruntime1'``: uses :epkg:`onnxruntime` (or `onnxruntime1-cuda`, ...)
     * ``'onnxruntime2'``: this mode is mostly used to debug as
       python handles calling every operator but :epkg:`onnxruntime`
       is called for every of them, this process may fail due to
@@ -73,8 +73,6 @@ class OnnxInference:
         be cut to have these new_outputs as the final outputs
     :param new_opset: overwrite the main opset and replaces
         by this new one
-    :param device: device, a string `cpu`, `cuda`, `cuda:0`...,
-        this option is only available with runtime *onnxruntime1*
     :param existing_functions: a model may contain several local functions,
         this parameter is used when a local function is calling another
         local function previously defined.
@@ -93,6 +91,8 @@ class OnnxInference:
 
     .. versionchanged:: 0.9
         Parameters *existing_functions* was added.
+        Removes *device* parameter. See runtime.
+        Runtime `onnxruntime1-cuda` was added.
     """
 
     def __init__(self, onnx_or_bytes_or_stream, runtime=None,
@@ -101,7 +101,7 @@ class OnnxInference:
                  target_opset=None, runtime_options=None,
                  session_options=None, inside_loop=False,
                  static_inputs=None, new_outputs=None, new_opset=None,
-                 device=None, existing_functions=None):
+                 existing_functions=None):
         if isinstance(onnx_or_bytes_or_stream, bytes):
             self.obj = load_model(BytesIO(onnx_or_bytes_or_stream))
         elif isinstance(onnx_or_bytes_or_stream, BytesIO):
@@ -125,10 +125,6 @@ class OnnxInference:
                 self.obj, outputs=new_outputs, infer_shapes=True)
         if new_opset is not None:
             self.obj = overwrite_opset(self.obj, new_opset)
-        if device is not None and runtime != 'onnxruntime1':
-            raise ValueError(
-                "Incompatible values, device can be specified with "
-                "runtime 'onnxruntime1', not %r." % runtime)
 
         self.runtime = runtime
         self.skip_run = skip_run
@@ -138,7 +134,6 @@ class OnnxInference:
         self.runtime_options = runtime_options
         self.inside_loop = inside_loop
         self.static_inputs = static_inputs
-        self.device = device
         self._init(existing_functions)
 
     def __getstate__(self):
@@ -153,8 +148,7 @@ class OnnxInference:
                 'inplace': self.inplace,
                 'force_target_opset': self.force_target_opset,
                 'static_inputs': self.static_inputs,
-                'inside_loop': self.inside_loop,
-                'device': self.device}
+                'inside_loop': self.inside_loop}
 
     def __setstate__(self, state):
         """
@@ -170,7 +164,6 @@ class OnnxInference:
         self.force_target_opset = state['force_target_opset']
         self.static_inputs = state['static_inputs']
         self.inside_loop = state['inside_loop']
-        self.device = state['device']
         self._init()
 
     def _init(self, existing_functions=None):
@@ -213,13 +206,12 @@ class OnnxInference:
         self.ir_version_ = self.graph_['ir_version']
 
         if not self.skip_run:
-            if self.runtime == 'onnxruntime1':
+            if self.runtime is not None and self.runtime.startswith('onnxruntime1'):
                 # Loads the onnx with onnxruntime as a single file.
                 del self.graph_
                 from .ops_whole.session import OnnxWholeSession
                 self._whole = OnnxWholeSession(
-                    self.obj, self.runtime, self.runtime_options,
-                    self.device)
+                    self.obj, self.runtime, self.runtime_options)
                 self._run = self._run_whole_runtime
             else:
                 self.sequence_ = self.graph_['sequence']
@@ -246,8 +238,7 @@ class OnnxInference:
                                     inplace=self.inplace,
                                     runtime_options=self.runtime_options,
                                     inside_loop=self.inside_loop,
-                                    static_inputs=self.static_inputs,
-                                    device=self.device))
+                                    static_inputs=self.static_inputs))
                     else:
                         node.setup_runtime(
                             self.runtime, variables, self.__class__,
@@ -261,8 +252,7 @@ class OnnxInference:
                                     inplace=self.inplace,
                                     runtime_options=self.runtime_options,
                                     inside_loop=self.inside_loop,
-                                    static_inputs=self.static_inputs,
-                                    device=self.device))
+                                    static_inputs=self.static_inputs))
                     if hasattr(node, 'ops_') and hasattr(node.ops_, 'typed_outputs_'):
                         for k, v in node.ops_.typed_outputs_:
                             variables[k] = v
@@ -518,7 +508,7 @@ class OnnxInference:
             targets[o.domain] = o.version
 
         if (hasattr(self.obj, 'functions') and len(self.obj.functions) > 0 and
-                self.runtime != 'onnxruntime1'):
+                not self.runtime.startswith('onnxruntime1')):
             for fct in self.obj.functions:
                 functions[fct.domain, fct.name] = OnnxInference(
                     fct, runtime=self.runtime,
@@ -527,7 +517,6 @@ class OnnxInference:
                     runtime_options=self.runtime_options,
                     inside_loop=self.inside_loop,
                     static_inputs=self.static_inputs,
-                    device=self.device,
                     existing_functions=functions)
 
         # static variables

@@ -196,8 +196,11 @@ def verify_model(onnx_file, examples, runtime=None, abs_tol=5e-4,
     :param fLOG: logging function when `verbose > 0`
     :return: errors for every sample
     """
-    if runtime == 'onnxruntime':
-        sess = InferenceSession(onnx_file)
+    if runtime in ('onnxruntime', 'onnxruntime-cuda'):
+        providers = ['CPUExecutionProvider']
+        if runtime == "onnxruntime-cuda":
+            providers = ['CUDAExecutionProvider'] + providers
+        sess = InferenceSession(onnx_file, providers=providers)
         meth = lambda data, s=sess: s.run(None, data)
         names = [p.name for p in sess.get_inputs()]
         onames = list(range(len(sess.get_outputs())))

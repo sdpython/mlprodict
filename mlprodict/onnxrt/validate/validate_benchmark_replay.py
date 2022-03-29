@@ -12,10 +12,13 @@ from .validate_benchmark import make_n_rows
 
 
 class SimplifiedOnnxInference:
-    "Simple wrapper around InferenceSession which imitates OnnxInference."
+    """
+    Simple wrapper around InferenceSession which imitates
+    @see cl OnnxInference. It only enable *CPUExecutionProvider*.
+    """
 
     def __init__(self, ort):
-        self.sess = InferenceSession(ort)
+        self.sess = InferenceSession(ort, providers=['CPUExecutionProvider'])
 
     @property
     def input_names(self):
