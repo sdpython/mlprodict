@@ -30,11 +30,10 @@ mlinsights>=0.3
 mlstatpy>=0.3.593
 nbconvert>=6.0.2
 openpyxl
-opt-einsum
+opt-einsum>=3.3.0
 pybind11
 pydata-sphinx-theme
 pydot
-pyensae
 py-cpuinfo
 pyinstrument
 pylint>=2.6.0
