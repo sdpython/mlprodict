@@ -9,7 +9,7 @@ matplotlib
 notebook>=5.0.0
 numba
 numpy>=1.19.0
-pandas
+pandas>=1.4.0
 pillow
 scikit-learn>=1.0
 scipy>=1.7.0
@@ -24,7 +24,7 @@ coverage>=5.0
 cpyquickhelper>=0.3.412
 flatbuffers
 jyquickhelper
-lightgbm
+lightgbm>=3.3.1
 mlinsights>=0.3.606
 mlstatpy>=0.3.593
 nbconvert>=6.0.2
