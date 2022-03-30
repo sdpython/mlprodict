@@ -24,17 +24,19 @@ class OpRunOnnxRuntime:
     """
 
     def __init__(self, onnx_node, desc=None, variables=None,
-                 dtype=None, **options):
+                 dtype=None, runtime=None, **options):
         """
-        @param      onnx_node               :epkg:`onnx` node
-        @param      desc                    internal representation
-        @param      variables               registered variables created by previous operators
-        @param      dtype                   float computation type
-        @param      options                 runtime options
+        :param onnx_node: :epkg:`onnx` node
+        :param desc: internal representation
+        :param variables: registered variables created by previous operators
+        :param dtype: float computation type
+        :param options: runtime options
+        :param runtime: `onnxruntime1`, `onnxruntime1-cuda`, ...
         """
         self._provider = 'onnxruntime'
         self.onnx_node = onnx_node
         self.desc = desc
+        self.runtime = runtime
         self._schema = _schemas.get(onnx_node.op_type, None)
         if desc is not None:
             if 'atts' in desc:
@@ -268,7 +270,8 @@ class OpRunOnnxRuntime:
             self.onnx_.ir_version = ir_version
         try:
             self.sess_ = InferenceSession(
-                self.onnx_.SerializeToString(), sess_options=sess_options)
+                self.onnx_.SerializeToString(), sess_options=sess_options,
+                runtime=self.runtime)
         except (RuntimeError, OrtNotImplemented, OrtInvalidGraph, OrtFail) as e:
             raise RuntimeError(
                 "Unable to load node '{}' (output type was {}) inputs={} "

@@ -9,7 +9,10 @@ import urllib.request
 from collections import OrderedDict
 import numpy
 from onnx import TensorProto, numpy_helper
-from mlprodict.tools.ort_wrapper import InferenceSession
+try:
+    from .ort_wrapper import InferenceSession
+except ImportError:
+    from mlprodict.tools.ort_wrapper import InferenceSession
 
 
 def short_list_zoo_models():
@@ -196,8 +199,8 @@ def verify_model(onnx_file, examples, runtime=None, abs_tol=5e-4,
     :param fLOG: logging function when `verbose > 0`
     :return: errors for every sample
     """
-    if runtime == 'onnxruntime':
-        sess = InferenceSession(onnx_file)
+    if runtime in ('onnxruntime', 'onnxruntime-cuda'):
+        sess = InferenceSession(onnx_file, runtime=runtime)
         meth = lambda data, s=sess: s.run(None, data)
         names = [p.name for p in sess.get_inputs()]
         onames = list(range(len(sess.get_outputs())))

@@ -135,14 +135,18 @@ def latency(model, law='normal', size=1, number=10, repeat=10, max_time=0,
         raise ValueError(  # pragma no cover
             "Device %r not supported." % device)
 
-    if runtime == "onnxruntime":
+    if runtime in ("onnxruntime", "onnxruntime-cuda"):
         from onnxruntime import InferenceSession, SessionOptions  # delayed import
+        providers = ['CPUExecutionProvider']
+        if runtime == "onnxruntime-cuda":
+            providers = ['CUDAExecutionProvider'] + providers
         if profiling in ('name', 'type'):
             so = SessionOptions()
             so.enable_profiling = True
-            sess = InferenceSession(model, sess_options=so)
+            sess = InferenceSession(
+                model, sess_options=so, providers=providers)
         else:
-            sess = InferenceSession(model)
+            sess = InferenceSession(model, providers=providers)
         fct = lambda feeds: sess.run(None, feeds)
         inputs = sess.get_inputs()
     else:

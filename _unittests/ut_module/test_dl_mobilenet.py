@@ -4,12 +4,16 @@
 import unittest
 import numpy
 from pyquickhelper.pycode import ExtTestCase
-from pyensae.datasource import download_data
+try:
+    from pyensae.datasource import download_data
+except ImportError:
+    download_data = None
 from mlprodict.onnxrt import OnnxInference
 
 
 class TestLONGMobileNet(ExtTestCase):
 
+    @unittest.skipIf(download_data is None, reason="pyensae is not installed")
     def test_mobilenet(self):
         src = ("https://s3.amazonaws.com/onnx-model-zoo/mobilenet/"
                "mobilenetv2-1.0/")

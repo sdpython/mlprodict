@@ -4,7 +4,7 @@
 """
 
 
-def load_op(onnx_node, desc=None, options=None, variables=None, dtype=None):
+def load_op(onnx_node, desc=None, options=None, variables=None, dtype=None, runtime=None):
     """
     Sets up a class for a specific ONNX operator.
 
@@ -13,9 +13,7 @@ def load_op(onnx_node, desc=None, options=None, variables=None, dtype=None):
     :param options: runtime options
     :param variables: registered variables created by previous operators
     :param dtype: float computational type
-    :param class_runtime: needed when the runtime does not have any
-        specific implementation, it tries to look into the functions
-        defined in ONNX package.
+    :param runtime: runtime
     :return: runtime class
     """
     if desc is None:
@@ -34,8 +32,8 @@ def load_op(onnx_node, desc=None, options=None, variables=None, dtype=None):
     if provider == 'empty':
         from .ops_empty import load_op as lo
         return lo(onnx_node, desc=desc, options=options)
-    if provider == 'onnxruntime2':
+    if provider in ('onnxruntime2', 'onnxruntime2-cuda'):
         from .ops_onnxruntime import load_op as lo
         return lo(onnx_node, desc=desc, options=options,  # pylint: disable=E1123
-                  variables=variables, dtype=dtype)
+                  variables=variables, dtype=dtype, runtime=runtime)
     raise ValueError("Unable to handle provider '{}'.".format(provider))
