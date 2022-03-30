@@ -466,10 +466,7 @@ class OnnxNumpyCompiler:
                 n_optional=n_optional, n_variables=n_variables)
         else:
             from ..tools.ort_wrapper import InferenceSession
-            providers = ['CPUExecutionProvider']
-            if runtime == 'onnxruntime-cuda':
-                providers = ['CUDAExecutionProvider'] + providers
-            rt = InferenceSession(onx.SerializeToString(), providers=providers)
+            rt = InferenceSession(onx.SerializeToString(), runtime=runtime)
             self.rt_fct_ = OnnxNumpyFunctionInferenceSession(
                 self, rt, inputs=inputs, outputs=outputs,
                 n_optional=n_optional, n_variables=n_variables)

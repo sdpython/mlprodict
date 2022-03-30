@@ -15,10 +15,13 @@ class SimplifiedOnnxInference:
     """
     Simple wrapper around InferenceSession which imitates
     @see cl OnnxInference. It only enable *CPUExecutionProvider*.
+
+    :param runtime: see :class:`InferenceSession
+        <mlprodict.tools.ort_wrapper.InferenceSession>`
     """
 
-    def __init__(self, ort):
-        self.sess = InferenceSession(ort, providers=['CPUExecutionProvider'])
+    def __init__(self, ort, runtime='onnxruntime'):
+        self.sess = InferenceSession(ort, runtime=runtime)
 
     @property
     def input_names(self):
