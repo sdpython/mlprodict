@@ -9,6 +9,7 @@ from numpy.linalg import det as npy_det  # pylint: disable=E0611
 from scipy.spatial.distance import cdist  # pylint: disable=E0611
 from scipy.special import expit, erf  # pylint: disable=E0611
 from scipy.linalg import solve  # pylint: disable=E0611
+from onnx.mapping import TENSOR_TYPE_TO_NP_TYPE
 from ...tools.code_helper import make_callable
 
 
@@ -76,7 +77,8 @@ def validate_python_inference(oinf, inputs, tolerance=0.):
           'fft': numpy.fft.fft, 'rfft': numpy.fft.rfft,
           'fft2': numpy.fft.fft2,
           'npy_det': npy_det, 'ndarray': numpy.ndarray,
-          '_leaky_relu': _leaky_relu}
+          '_leaky_relu': _leaky_relu,
+          'TENSOR_TYPE_TO_NP_TYPE': TENSOR_TYPE_TO_NP_TYPE}
 
     for fct in pyrt_fcts:
         for obj in cp.co_consts:
@@ -90,7 +92,8 @@ def validate_python_inference(oinf, inputs, tolerance=0.):
     loc = inputs
     try:
         exec(cp, gl, loc)  # pylint: disable=W0122
-    except (NameError, TypeError, SyntaxError, IndexError) as e:  # pragma: no cover
+    except (NameError, TypeError, SyntaxError,  # pragma: no cover
+            IndexError, ValueError) as e:
         raise RuntimeError(
             "Unable to execute code\n-----\n{}".format(code)) from e
 
@@ -101,17 +104,17 @@ def validate_python_inference(oinf, inputs, tolerance=0.):
 
     if not isinstance(got, dict):
         raise TypeError(  # pragma: no cover
-            "got is not a dictionary by '{}'\n--\n{}\n---\n{}.".format(
-                type(got), dir(got), pprint.pformat(str(loc))))
+            "got is not a dictionary by '{}'\n--\n{}\n---\n{}\n--code--\n{}".format(
+                type(got), dir(got), pprint.pformat(str(loc)), code))
     if len(got) != len(exp):
         raise RuntimeError(  # pragma: no cover
-            "Different number of results.\nexp: {}\ngot: {}".format(
-                ", ".join(sorted(exp)), ", ".join(sorted(got))))
+            "Different number of results.\nexp: {}\ngot: {}\n--code--\n{}".format(
+                ", ".join(sorted(exp)), ", ".join(sorted(got)), code))
 
     if keys != list(sorted(got)):
         raise RuntimeError(  # pragma: no cover
-            "Different result names.\nexp: {}\ngot: {}".format(
-                ", ".join(sorted(exp)), ", ".join(sorted(got))))
+            "Different result names.\nexp: {}\ngot: {}\n--code--\n{}".format(
+                ", ".join(sorted(exp)), ", ".join(sorted(got)), code))
 
     for k in keys:
         e = exp[k]

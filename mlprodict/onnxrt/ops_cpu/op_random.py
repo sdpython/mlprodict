@@ -45,6 +45,33 @@ class _CommonRandom(OpRun):
         return (dict(temp=0), ) + res
 
 
+class Bernoulli(_CommonRandom):
+
+    atts = {'dtype': 1,
+            'seed': None}
+
+    def __init__(self, onnx_node, desc=None, **options):
+        _CommonRandom.__init__(self, onnx_node, desc=desc,
+                               expected_attributes=Bernoulli.atts,
+                               **options)
+        self.numpy_type = TENSOR_TYPE_TO_NP_TYPE[self.dtype]
+
+    def _run(self, x):  # pylint: disable=W0221
+        dtype = self._dtype(x)
+        state = numpy.random.RandomState(seed=self.seed)
+        res = state.binomial(1, p=x).astype(dtype)
+        return (res.astype(dtype), )
+
+    def to_python(self, inputs):
+        lines = [
+            'numpy_dtype = TENSOR_TYPE_TO_NP_TYPE[dtype]',
+            'state = numpy.random.RandomState(seed=seed)',
+            'return state.binomial(1, %s).astype(numpy_dtype)' % (
+                inputs[0], )]
+        return ("import numpy\nfrom onnx.mapping import TENSOR_TYPE_TO_NP_TYPE",
+                "\n".join(lines))
+
+
 class RandomUniform(_CommonRandom):
 
     atts = {'dtype': 1,
@@ -68,16 +95,20 @@ class RandomUniform(_CommonRandom):
             raise RuntimeError(  # pragma: no cover
                 "Operator %s cannot have inputs." % self.__class__.__name__)
         dtype = self._dtype(*args)
-        res = numpy.random.rand(*self.shape).astype(dtype)
+        state = numpy.random.RandomState(seed=self.seed)
+        res = state.rand(*self.shape).astype(dtype)
         res *= (self.high - self.low)
         res += self.low
         return (res.astype(dtype), )
 
     def to_python(self, inputs):
         lines = [
-            'return (numpy.random.rand(*%r).astype(numpy.%s) * (%f - %f)) + %f' % (
+            'numpy_dtype = TENSOR_TYPE_TO_NP_TYPE[dtype]',
+            'state = numpy.random.RandomState(seed=seed)',
+            'return (state.rand(*%r).astype(numpy.%s) * (%f - %f)) + %f' % (
                 list(self.shape), self.numpy_type, self.high, self.low, self.low)]
-        return ("import numpy", "\n".join(lines))
+        return ("import numpy\nfrom onnx.mapping import TENSOR_TYPE_TO_NP_TYPE",
+                "\n".join(lines))
 
 
 class RandomUniformLike(_CommonRandom):
@@ -96,7 +127,8 @@ class RandomUniformLike(_CommonRandom):
 
     def _run(self, x):  # pylint: disable=W0221
         dtype = self._dtype(x)
-        res = numpy.random.rand(*x.shape).astype(dtype)
+        state = numpy.random.RandomState(seed=self.seed)
+        res = state.rand(*x.shape).astype(dtype)
         res *= (self.high - self.low)
         res += self.low
         return (res.astype(dtype), )
@@ -109,9 +141,12 @@ class RandomUniformLike(_CommonRandom):
             dtype = self.numpy_type or numpy.float32
             shape = (1, )
         lines = [
-            'return (numpy.random.rand(*%r).astype(numpy.%s) * (%f - %f)) + %f' % (
+            'numpy_dtype = TENSOR_TYPE_TO_NP_TYPE[dtype]',
+            'state = numpy.random.RandomState(seed=seed)',
+            'return (state.rand(*%r).astype(numpy.%s) * (%f - %f)) + %f' % (
                 shape, dtype, self.high, self.low, self.low)]
-        return ("import numpy", "\n".join(lines))
+        return ("import numpy\nfrom onnx.mapping import TENSOR_TYPE_TO_NP_TYPE",
+                "\n".join(lines))
 
 
 class RandomNormal(_CommonRandom):
@@ -136,16 +171,20 @@ class RandomNormal(_CommonRandom):
         if len(args) != 0:
             raise RuntimeError(  # pragma: no cover
                 "Operator %s cannot have inputs." % self.__class__.__name__)
-        res = numpy.random.randn(*self.shape).astype(self.numpy_type)
+        state = numpy.random.RandomState(seed=self.seed)
+        res = state.randn(*self.shape).astype(self.numpy_type)
         res *= self.scale
         res += self.mean
         return (res.astype(self.numpy_type), )
 
     def to_python(self, inputs):
         lines = [
-            'return (numpy.random.randn(*%r).astype(numpy.%s) * %f) + %f' % (
+            'numpy_dtype = TENSOR_TYPE_TO_NP_TYPE[dtype]',
+            'state = numpy.random.RandomState(seed=seed)',
+            'return (state.randn(*%r).astype(numpy.%s) * %f) + %f' % (
                 list(self.shape), self.numpy_type, self.scale, self.mean)]
-        return ("import numpy", "\n".join(lines))
+        return ("import numpy\nfrom onnx.mapping import TENSOR_TYPE_TO_NP_TYPE",
+                "\n".join(lines))
 
 
 class RandomNormalLike(_CommonRandom):
@@ -164,7 +203,8 @@ class RandomNormalLike(_CommonRandom):
 
     def _run(self, x):  # pylint: disable=W0221
         dtype = self._dtype(x)
-        res = numpy.random.randn(*x.shape).astype(dtype)
+        state = numpy.random.RandomState(seed=self.seed)
+        res = state.randn(*x.shape).astype(dtype)
         res *= self.scale
         res += self.mean
         return (res.astype(dtype), )
@@ -177,6 +217,9 @@ class RandomNormalLike(_CommonRandom):
             dtype = self.numpy_type or numpy.float32
             shape = (1, )
         lines = [
-            'return (numpy.random.randn(%r).astype(numpy.%s) * %f) + %f' % (
+            'numpy_dtype = TENSOR_TYPE_TO_NP_TYPE[dtype]',
+            'state = numpy.random.RandomState(seed=seed)',
+            'return (state.randn(%r).astype(numpy.%s) * %f) + %f' % (
                 shape, dtype, self.scale, self.mean)]
-        return ("import numpy", "\n".join(lines))
+        return ("import numpy\nfrom onnx.mapping import TENSOR_TYPE_TO_NP_TYPE",
+                "\n".join(lines))
