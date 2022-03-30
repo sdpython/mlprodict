@@ -92,12 +92,14 @@ from .op_one_hot_encoder import OneHotEncoder
 from .op_or import Or
 from .op_pad import Pad
 from .op_pow import Pow
+from .op_prelu import PRelu
 from .op_quantize_linear import QuantizeLinear
 from .op_qlinear_conv import QLinearConv
 from .op_random import (
     RandomNormal, RandomUniform, RandomUniformLike, RandomNormalLike)
 from .op_range import Range
 from .op_reciprocal import Reciprocal
+from .op_reduce_log_sum import ReduceLogSum
 from .op_reduce_log_sum_exp import ReduceLogSumExp
 from .op_reduce_l1 import ReduceL1
 from .op_reduce_l2 import ReduceL2
@@ -153,6 +155,7 @@ from .op_tree_ensemble_regressor import (
 from .op_trilu import Trilu
 from .op_unsqueeze import Unsqueeze, Unsqueeze_1, Unsqueeze_11, Unsqueeze_13
 from .op_where import Where
+from .op_xor import Xor
 from .op_yield_op import YieldOp
 from .op_zipmap import ZipMap
 

@@ -27,7 +27,8 @@ from ._element_wise import (
     shape_max, shape_min, shape_mod, shape_mul,
     shape_or,
     shape_pow,
-    shape_sub)
+    shape_sub,
+    shape_xor)
 from ._op_shape_op import shape_det
 
 
