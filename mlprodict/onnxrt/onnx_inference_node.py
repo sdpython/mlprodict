@@ -210,19 +210,22 @@ class OnnxInferenceNode:
                     k: v for k, v in runtime_options.items()
                     if k not in {'log_severity_level'}})
             try:
-                if runtime == 'onnxruntime2':
+                if runtime is not None and runtime.startswith('onnxruntime2'):
                     self.ops_ = load_op(self.onnx_node, desc=self.desc,
                                         options=options if options else None,
-                                        variables=variables, dtype=dtype)
+                                        variables=variables, dtype=dtype,
+                                        runtime=runtime)
                 elif runtime in ('python_compiled', 'python_compiled_debug'):
                     options['provider'] = 'python'
                     self.ops_ = load_op(self.onnx_node, desc=self.desc,
                                         options=options if options else None,
-                                        variables=variables, dtype=dtype)
+                                        variables=variables, dtype=dtype,
+                                        runtime=runtime)
                 else:
                     self.ops_ = load_op(self.onnx_node, desc=self.desc,
                                         options=options if options else None,
-                                        variables=variables, dtype=dtype)
+                                        variables=variables, dtype=dtype,
+                                        runtime=runtime)
             except MissingOperatorError as e:
                 try:
                     onnx_schema = get_onnx_schema(

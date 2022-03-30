@@ -99,9 +99,9 @@ class TestOnnxrtIOBinding(ExtTestCase):
             op_version=TARGET_OPSET)
         model_def = onx.to_onnx({'X': idi.astype(numpy.float32)},
                                 target_opset=TARGET_OPSET)
-        self.assertRaise(lambda: OnnxInference(model_def, device='cpu'),
+        self.assertRaise(lambda: OnnxInference(model_def, runtime="cuda"),
                          ValueError)
-        oinf = OnnxInference(model_def, runtime="onnxruntime1", device='cpu')
+        oinf = OnnxInference(model_def, runtime="onnxruntime1")
         X = numpy.array([[1, 1], [3, 3]])
         X32 = X.astype(numpy.float32)
         ov = C_OrtValue.ortvalue_from_numpy(X32, get_ort_device('cpu'))
@@ -121,7 +121,7 @@ class TestOnnxrtIOBinding(ExtTestCase):
             op_version=TARGET_OPSET)
         model_def = onx.to_onnx({'X': idi.astype(numpy.float32)},
                                 target_opset=TARGET_OPSET)
-        oinf = OnnxInference(model_def, runtime="onnxruntime1", device='cuda')
+        oinf = OnnxInference(model_def, runtime="onnxruntime1-cuda",)
         X = numpy.array([[1, 1], [3, 3]])
         X32 = X.astype(numpy.float32)
         ov = C_OrtValue.ortvalue_from_numpy(X32, get_ort_device('cuda'))

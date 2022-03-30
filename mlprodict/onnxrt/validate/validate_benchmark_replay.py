@@ -12,10 +12,16 @@ from .validate_benchmark import make_n_rows
 
 
 class SimplifiedOnnxInference:
-    "Simple wrapper around InferenceSession which imitates OnnxInference."
+    """
+    Simple wrapper around InferenceSession which imitates
+    @see cl OnnxInference. It only enable *CPUExecutionProvider*.
 
-    def __init__(self, ort):
-        self.sess = InferenceSession(ort)
+    :param runtime: see :class:`InferenceSession
+        <mlprodict.tools.ort_wrapper.InferenceSession>`
+    """
+
+    def __init__(self, ort, runtime='onnxruntime'):
+        self.sess = InferenceSession(ort, runtime=runtime)
 
     @property
     def input_names(self):

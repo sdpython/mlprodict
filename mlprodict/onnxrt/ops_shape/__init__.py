@@ -11,7 +11,7 @@ from ._element_unary import (
     shape_castlike, shape_ceil, shape_celu,
     shape_clip, shape_cos, shape_cosh,
     shape_elu, shape_erf, shape_exp, shape_floor,
-    shape_hardsigmoid,
+    shape_hardmax, shape_hardsigmoid,
     shape_identity, shape_isnan,
     shape_leakyrelu, shape_log, shape_logsoftmax,
     shape_neg, shape_not, shape_reciprocal, shape_relu, shape_round,
@@ -27,7 +27,8 @@ from ._element_wise import (
     shape_max, shape_min, shape_mod, shape_mul,
     shape_or,
     shape_pow,
-    shape_sub)
+    shape_sub,
+    shape_xor)
 from ._op_shape_op import shape_det
 
 

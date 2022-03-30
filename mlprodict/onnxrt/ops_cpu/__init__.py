@@ -31,13 +31,14 @@ def register_operator(cls, name=None, overwrite=True):
             "by {}".format(name, _additional_ops[name], cls))
 
 
-def load_op(onnx_node, desc=None, options=None):
+def load_op(onnx_node, desc=None, options=None, runtime=None):
     """
     Gets the operator related to the *onnx* node.
 
     :param onnx_node: :epkg:`onnx` node
     :param desc: internal representation
     :param options: runtime options
+    :param runtime: runtime
     :return: runtime class
     """
     from ... import __max_supported_opset__
@@ -105,4 +106,4 @@ def load_op(onnx_node, desc=None, options=None):
 
     if options is None:
         options = {}  # pragma: no cover
-    return cl(onnx_node, desc=desc, **options)
+    return cl(onnx_node, desc=desc, runtme=runtime, **options)

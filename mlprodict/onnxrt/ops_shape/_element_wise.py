@@ -100,3 +100,8 @@ def shape_pow(known_shapes, node):
 def shape_sub(known_shapes, node):
     "Infers shape for operator Sub."
     return _element_wise(known_shapes, node)
+
+
+def shape_xor(known_shapes, node):
+    "Infers shape for operator Xor."
+    return _element_wise(known_shapes, node)

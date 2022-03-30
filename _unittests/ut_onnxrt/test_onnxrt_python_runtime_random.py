@@ -12,6 +12,20 @@ from mlprodict.npy.xop import loadop
 
 class TestOnnxrtPythonRuntimeRandom(ExtTestCase):  # pylint: disable=R0904
 
+    def test_onnxt_runtime_bernoulli(self):
+        OnnxBernoulli = loadop('Bernoulli')
+        node = OnnxBernoulli('X', seed=0, dtype=TensorProto.DOUBLE,
+                             output_names=['Y'])
+        onx = node.to_onnx(numpy.float32, numpy.float64)
+        oinf = OnnxInference(onx, runtime='python')
+        X = numpy.random.uniform(0.0, 1.0, 10).astype(numpy.float32)
+        got = oinf.run({'X': X})
+        self.assertEqual(got['Y'].dtype, numpy.float64)
+        self.assertEqual(got['Y'].shape, (10, ))
+        self.assertGreater(got['Y'].min(), 0)
+        self.assertLess(got['Y'].max(), 1. + 1.e-5)
+        validate_python_inference(oinf, {'X': X}, tolerance='random')
+
     def test_onnxt_runtime_random_uniform(self):
         OnnxRandomUniform = loadop('RandomUniform')
         node = OnnxRandomUniform(seed=0, shape=[2, 4], output_names=['Y'])
