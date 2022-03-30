@@ -166,7 +166,8 @@ def einsum_benchmark(equation="abc,cd->abd", shape=30, perm=False,
                 onx = seq.to_onnx('Y', *["X%d" % i for i in range(len(inputs))],
                                   opset=opset)
             sess = InferenceSession(
-                onx.SerializeToString())  # pylint: disable=W0612
+                onx.SerializeToString(),
+                providers=['CPUExecutionProvider'])  # pylint: disable=W0612
             fct = lambda *x, se=sess: se.run(
                 None, {"X%d" % i: v for i, v in enumerate(x)})
         elif rt == 'python':

@@ -124,6 +124,11 @@ def shape_floor(known_shapes, node):
     return _element_unary(known_shapes, node)
 
 
+def shape_hardmax(known_shapes, node):
+    "Infers shape for operator Hardmax."
+    return _element_unary(known_shapes, node)
+
+
 def shape_hardsigmoid(known_shapes, node):
     "Infers shape for operator HardSigmoid."
     return _element_unary(known_shapes, node)

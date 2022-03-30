@@ -11,6 +11,7 @@ from onnx.helper import (
 from sklearn.datasets import load_iris
 from sklearn.cluster import KMeans
 from sklearn.model_selection import train_test_split
+from onnxruntime import get_all_providers, get_available_providers
 from pyquickhelper.pycode import ExtTestCase, ignore_warnings
 from pyquickhelper.loghelper import BufferedPrint
 from mlprodict.onnx_conv import to_onnx
@@ -23,6 +24,12 @@ class TestOnnxInference(ExtTestCase):
     def setUp(self):
         logger = getLogger('skl2onnx')
         logger.disabled = True
+
+    def test_get_all_providers(self):
+        res = get_all_providers()
+        self.assertIn('CPUExecutionProvider', res)
+        res = get_available_providers()
+        self.assertIn('CPUExecutionProvider', res)
 
     @ignore_warnings(DeprecationWarning)
     def test_onnx_inference_name_confusion(self):
@@ -41,6 +48,32 @@ class TestOnnxInference(ExtTestCase):
             opset_imports=[helper.make_operatorsetid('', TARGET_OPSET)])
 
         oinf = OnnxInference(model_def)
+        X = numpy.random.randn(4, 2).astype(  # pylint: disable=E1101
+            numpy.float32)  # pylint: disable=E1101
+        Y = numpy.random.randn(4, 2).astype(  # pylint: disable=E1101
+            numpy.float32)  # pylint: disable=E1101
+        exp = (X * 2 + Y).astype(numpy.float32)
+        res = oinf.run({'X': X, 'Y': Y})
+        got = res['Z']
+        self.assertEqualArray(exp, got, decimal=6)
+
+    @ignore_warnings(DeprecationWarning)
+    def test_onnx_inference_name_confusion_cuda(self):
+        X = helper.make_tensor_value_info(
+            'X', TensorProto.FLOAT, [None, 2])  # pylint: disable=E1101
+        Y = helper.make_tensor_value_info(
+            'Y', TensorProto.FLOAT, [None, 2])  # pylint: disable=E1101
+        Z = helper.make_tensor_value_info(
+            'Z', TensorProto.FLOAT, [None, 2])  # pylint: disable=E1101
+        node_def = helper.make_node('Add', ['X', 'Y'], ['Zt'], name='Zt')
+        node_def2 = helper.make_node('Add', ['X', 'Zt'], ['Z'], name='Z')
+        graph_def = helper.make_graph(
+            [node_def, node_def2], 'test-model', [X, Y], [Z])
+        model_def = helper.make_model(
+            graph_def, producer_name='mlprodict', ir_version=6, producer_version='0.1',
+            opset_imports=[helper.make_operatorsetid('', TARGET_OPSET)])
+
+        oinf = OnnxInference(model_def, runtime='onnxruntime1-cuda')
         X = numpy.random.randn(4, 2).astype(  # pylint: disable=E1101
             numpy.float32)  # pylint: disable=E1101
         Y = numpy.random.randn(4, 2).astype(  # pylint: disable=E1101
