@@ -23,7 +23,7 @@ def assert_almost_equal_string(expected, value):
     def is_float(x):
         try:
             return True
-        except ValueError:
+        except ValueError:  # pragma: no cover
             return False
 
     if all(map(is_float, expected.ravel())):
@@ -72,7 +72,7 @@ class OnnxBackendTest:
             except Exception:  # pylint: disable=W0703
                 try:
                     loaded = onnx.load_model_from_string(serialized)
-                except Exception:
+                except Exception:  # pragma: no cover
                     raise RuntimeError(
                         "Unable to read %r, error is %s, content is %r." % (
                             full, e, serialized[:100])) from e
@@ -89,7 +89,7 @@ class OnnxBackendTest:
             elif isinstance(new_tensor, onnx.TensorProto):
                 t = to_array(new_tensor)
             else:
-                raise RuntimeError(
+                raise RuntimeError(  # pragma: no cover
                     "Unexpected type %r for %r." % (type(new_tensor), full))
             res.append(t)
         return res
@@ -100,11 +100,12 @@ class OnnxBackendTest:
 
     def __init__(self, folder):
         if not os.path.exists(folder):
-            raise FileNotFoundError("Unable to find folder %r." % folder)
+            raise FileNotFoundError(  # pragma: no cover
+                "Unable to find folder %r." % folder)
         content = os.listdir(folder)
         onx = [c for c in content if os.path.splitext(c)[-1] in {'.onnx'}]
         if len(onx) != 1:
-            raise ValueError(
+            raise ValueError(  # pragma: no cover
                 "There is more than one onnx file in %r (%r)." % (
                     folder, onx))
         self.folder = folder
@@ -157,7 +158,7 @@ class OnnxBackendTest:
                     try:
                         assert_almost_equal_string(e, o)
                     except AssertionError as ex:
-                        raise AssertionError(
+                        raise AssertionError(  # pragma: no cover
                             "Output %d of test %d in folder %r failed." % (
                                 i, index, self.folder)) from ex
                 else:
@@ -175,7 +176,7 @@ class OnnxBackendTest:
                         "(e.dtype=%r, o=%r)." % (
                             i, index, self.folder, e.dtype, o))
                 if not o.is_compatible(e.shape):
-                    raise AssertionError(
+                    raise AssertionError(  # pragma: no cover
                         "Output %d of test %d in folder %r failed "
                         "(e.shape=%r, o=%r)." % (
                             i, index, self.folder, e.shape, o))
@@ -204,7 +205,7 @@ class OnnxBackendTest:
         got = run_fct(obj, *self.tests[index]['inputs'])
         expected = self.tests[index]['outputs']
         if len(got) != len(expected):
-            raise AssertionError(
+            raise AssertionError(  # pragma: no cover
                 "Unexpected number of output (test %d, folder %r), "
                 "got %r, expected %r." % (
                     index, self.folder, len(got), len(expected)))
@@ -246,7 +247,7 @@ class OnnxBackendTest:
                            textwrap.indent(code, '    ')])
         try:
             from pyquickhelper.pycode.code_helper import remove_extra_spaces_and_pep8
-        except ImportError:
+        except ImportError:  # pragma: no cover
             return final
         return remove_extra_spaces_and_pep8(final, aggressive=True)
 

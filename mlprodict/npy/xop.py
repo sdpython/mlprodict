@@ -1649,7 +1649,7 @@ class OnnxOperator(OnnxOperatorBase):
             elif isinstance(inp, numpy.ndarray):
                 pass
             else:
-                raise RuntimeError(
+                raise RuntimeError(  # pragma: no cover
                     "Unexpected input type %r." % type(inp))
         return found
 
@@ -1727,7 +1727,8 @@ class OnnxOperator(OnnxOperatorBase):
         else:
             as_dict = False
             if verbose > 0:
-                fLOG("[OnnxOperator.f] retrieves named inputs")
+                fLOG(  # pragma: no cover
+                    "[OnnxOperator.f] retrieves named inputs")
             if hasattr(self, "feval_named_inputs_"):
                 named_inputs = self.feval_named_inputs_  # pylint: disable=E0203
             else:
@@ -1742,7 +1743,8 @@ class OnnxOperator(OnnxOperatorBase):
             dict_inputs = {
                 name: value for name, value in zip(named_inputs, inputs)}
             if verbose > 0:
-                fLOG("[OnnxOperator.f] found inputs: %r" % (named_inputs, ))
+                fLOG(  # pragma: no cover
+                    "[OnnxOperator.f] found inputs: %r" % (named_inputs, ))
 
         # conversion
         evaluated_inputs = []
@@ -1753,8 +1755,9 @@ class OnnxOperator(OnnxOperatorBase):
                 evaluated_inputs.append(dict_inputs[inp.name])
             elif isinstance(inp, OnnxOperatorBase):
                 if verbose > 0:
-                    fLOG("[OnnxOperator.f] evaluate input %d (op_type=%r)" % (
-                        i, self.__class__.op_type))
+                    fLOG(  # pragma: no cover
+                        "[OnnxOperator.f] evaluate input %d (op_type=%r)" % (
+                            i, self.__class__.op_type))
                 out = inp.f(dict_inputs, verbose=verbose, fLOG=fLOG)
                 if isinstance(out, dict):
                     if len(out) == 1:
@@ -1770,7 +1773,7 @@ class OnnxOperator(OnnxOperatorBase):
             elif isinstance(inp, numpy.ndarray):
                 evaluated_inputs.append(inp)
             else:
-                raise RuntimeError(
+                raise RuntimeError(  # pragma: no cover
                     "Unexpected type %r for input %d." % (type(inp), i))
 
         # conversion to ONNX
@@ -2048,7 +2051,7 @@ class OnnxOperatorFunction(OnnxOperator):
             raise ValueError(
                 "function_proto cannot be None.")  # pragma: no cover
         if not isinstance(function_proto, onnx.FunctionProto):
-            raise TypeError(
+            raise TypeError(  # pragma: no cover
                 "function_proto must be of type FunctionProto not %r." %
                 type(function_proto))
         if len(inputs) > len(function_proto.input):
@@ -2579,7 +2582,7 @@ class _GraphBuilder:
             seen_opset = set()
             for k, v in self.opsets.items():
                 if (k or '') in seen_opset:
-                    raise RuntimeError(
+                    raise RuntimeError(  # pragma: no cover
                         "Duplicated opset (%r, %r)." % (k, v))
                 op_set = onnx_model.opset_import.add()  # pylint: disable=E1101
                 op_set.domain = k or ''
