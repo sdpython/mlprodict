@@ -24,7 +24,7 @@ class OnnxWholeSession:
     """
 
     def __init__(self, onnx_data, runtime, runtime_options=None, device=None):
-        if runtime != 'onnxruntime1':
+        if runtime not in ('onnxruntime1', 'onnxruntime1-cuda'):
             raise NotImplementedError(  # pragma: no cover
                 "runtime '{}' is not implemented.".format(runtime))
 
@@ -76,9 +76,12 @@ class OnnxWholeSession:
             raise RuntimeError(  # pragma: no cover
                 "session_options and log_severity_level cannot be defined at the "
                 "same time.")
+        providers = ['CPUExecutionProvider']
+        if runtime == 'onnxruntime1-cuda':
+            providers = ['CUDAExecutionProvider'] + providers
         try:
             self.sess = InferenceSession(onnx_data, sess_options=sess_options,
-                                         device=device)
+                                         device=device, providers=providers)
         except (OrtFail, OrtNotImplemented, OrtInvalidGraph,
                 OrtInvalidArgument, OrtRuntimeException, RuntimeError) as e:
             from ...tools.asv_options_helper import display_onnx

@@ -49,7 +49,8 @@ class TokenizerTransformerBase(BaseEstimator, TransformerMixin):
         self._SessionOptions = SessionOptions
         so = SessionOptions()
         so.register_custom_ops_library(get_library_path())
-        self.sess_ = InferenceSession(self.onnx_.SerializeToString(), so)
+        self.sess_ = InferenceSession(self.onnx_.SerializeToString(), so,
+                                      providers=['CPUExecutionProvider'])
         return self
 
 

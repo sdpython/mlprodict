@@ -38,6 +38,9 @@ class InferenceSession2:
             kwargs['sess_options'] = SessionOptions()
             kwargs['sess_options'].graph_optimization_level = (
                 GraphOptimizationLevel.ORT_DISABLE_ALL)
+        if 'providers' not in kwargs:
+            kwargs = kwargs.copy()
+            kwargs['providers'] = ['CPUExecutionProvider']
         self.sess, self.outi, self.erri = _capture_output(
             lambda: InferenceSession(*args, **kwargs), 'c')
 
