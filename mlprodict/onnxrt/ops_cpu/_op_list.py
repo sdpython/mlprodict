@@ -153,6 +153,7 @@ from .op_tree_ensemble_regressor import (
 from .op_trilu import Trilu
 from .op_unsqueeze import Unsqueeze, Unsqueeze_1, Unsqueeze_11, Unsqueeze_13
 from .op_where import Where
+from .op_xor import Xor
 from .op_yield_op import YieldOp
 from .op_zipmap import ZipMap
 
