@@ -61,7 +61,11 @@ def validate_python_inference(oinf, inputs, tolerance=0.):
     code += "\n".join(['', '', 'opi = OnnxPythonInference()',
                        'res = opi.run(%s)' % ', '.join(inps)])
 
-    cp = compile(code, "<string>", mode='exec')
+    try:
+        cp = compile(code, "<string>", mode='exec')
+    except SyntaxError as e:
+        raise SyntaxError(
+            "Error %s in code\n%s" % (str(e), code)) from e
     pyrt_fcts = [_ for _ in cp.co_names if _.startswith("pyrt_")]
     fcts_local = {}
 

@@ -47,7 +47,7 @@ from skl2onnx.algebra.onnx_ops import (  # pylint: disable=E0611
     OnnxEinsum, OnnxElu, OnnxEqual, OnnxErf, OnnxExp, OnnxExpand, OnnxEyeLike,
     OnnxFlatten, OnnxFloor,
     OnnxGreater, OnnxGreaterOrEqual, OnnxGemm, OnnxGlobalAveragePool,
-    OnnxHardSigmoid, OnnxHardSwish,
+    OnnxHardmax, OnnxHardSigmoid, OnnxHardSwish,
     OnnxIdentity, OnnxIsNaN,
     OnnxLeakyRelu, OnnxLess, OnnxLessOrEqual,
     OnnxLog, OnnxLogSoftmax, OnnxLpNormalization,
@@ -2855,6 +2855,17 @@ class TestOnnxrtPythonRuntime(ExtTestCase):  # pylint: disable=R0904
         self.common_test_onnxt_runtime_unary(
             OnnxHardSigmoid, lambda x: numpy.maximum(
                 0, numpy.minimum(1, x * 0.2 + 0.5)))
+
+    @wraplog()
+    def test_onnxt_runtime_hardmax(self):
+        def hardmax(x, axis=-1):
+            x_argmax = numpy.argmax(x, axis=axis)
+            y = numpy.zeros_like(x)
+            numpy.put_along_axis(y, numpy.expand_dims(x_argmax, axis=axis),
+                                 1, axis=axis)
+            return y
+
+        self.common_test_onnxt_runtime_unary(OnnxHardmax, hardmax)
 
     @wraplog()
     def test_onnxt_runtime_hardswish(self):
