@@ -93,15 +93,27 @@ class ExistingVariable:
     Temporary name.
 
     :param name: variable name
+    :param op: operator it comes from
     """
 
-    def __init__(self, name):
+    def __init__(self, name, op):
         self.name = name
+        self.op = op
 
     def __repr__(self):
         "usual"
         return "%s(%r)" % (
             self.__class__.__name__, self.name)
+
+    @property
+    def dtype(self):
+        "Unknown type, returns None."
+        return None
+
+    @property
+    def added_dtype(self):
+        "Unknown type, returns None."
+        return None
 
 
 class Variable:

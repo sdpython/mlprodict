@@ -1033,9 +1033,13 @@ class TestXOps(ExtTestCase):
             {'X': numpy.float32}, {'Z': numpy.float32},
             run_shape=False, verbose=0)
         spl = str(model_def).split('op_type: "Abs"')
-        if len(spl) != 2:
+        if len(spl) > 2:
             raise AssertionError(
                 "Operator Abs should be duplicated (%d) in\n%s" % (
+                    len(spl), str(model_def)))
+        if len(spl) < 2:
+            raise AssertionError(
+                "Operator Abs is missing (%d) in\n%s" % (
                     len(spl), str(model_def)))
         got = OnnxInference(model_def).run({'X': x})
         self.assertEqualArray(
@@ -1052,5 +1056,5 @@ if __name__ == "__main__":
     # logger = logging.getLogger('xop')
     # logger.setLevel(logging.DEBUG)
     # logging.basicConfig(level=logging.DEBUG)
-    # TestXOps().test_zif_onnx_common_intermediate()
+    TestXOps().test_zif_onnx_common_intermediate()
     unittest.main(verbosity=2)

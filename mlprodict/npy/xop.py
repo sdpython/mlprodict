@@ -517,6 +517,22 @@ class OnnxOperatorBase:
         raise NotImplementedError(  # pragma: no cover
             "Method 'f' must be overloaded for type %s." % type(self))
 
+    def _set_control_op(self, op):
+        """
+        Tells this operator is part of a subgraph.
+        """
+        raise NotImplementedError(
+            "Method '_set_control_op' must be overloaded for type %s."
+            "" % type(self))
+
+    def add_external_input(self, op):
+        """
+        Tells a subgraph this node comes from the main graph.
+        """
+        raise NotImplementedError(
+            "Method '_set_control_op' must be overloaded for type %s."
+            "" % type(self))
+
 
 class OnnxOperatorItem(OnnxOperatorBase):
     """
@@ -1031,6 +1047,13 @@ class OnnxOperator(OnnxOperatorBase):
 
         self._post_process_attributes()
         self._check()
+        self.external_inputs = []
+
+    def add_external_input(self, op):
+        """
+        Tells a subgraph this node comes from the main graph.
+        """
+        self.external_inputs.append(op)
 
     def then_do(self, branch):
         """
@@ -1052,7 +1075,7 @@ class OnnxOperator(OnnxOperatorBase):
 
     def _add_subgraph(self, attribute, branch):
         """
-        Fills attributes *attribute*.
+        Fills attribute *attribute*.
 
         :param attribute: attribute name
         :param branch: onnx graph or @see cl OnnxOperator
@@ -1066,11 +1089,20 @@ class OnnxOperator(OnnxOperatorBase):
             return self
         if isinstance(branch, OnnxOperator):
             self.kwargs[attribute] = branch
+            branch._set_control_op(self)
             return self
         raise TypeError(
             "Unexpected type %r for a subgraph, attribute %r "
             "and class %r." % (
                 type(branch), attribute, self.__class__.__name__))
+
+    def _set_control_op(self, op):
+        """
+        Sets *control_op* for every instance of @see cl OnnxExisting node.
+        """
+        for inp in self.inputs:
+            if isinstance(inp, OnnxOperatorBase):
+                inp._set_control_op(op)
 
     @property
     def output_names(self):
@@ -1488,6 +1520,12 @@ class OnnxOperator(OnnxOperatorBase):
                     pass
                 elif isinstance(obj, (OnnxOperator, OnnxOperatorTuple)):
                     for inp in obj.inputs:
+                        self._node_to_graph_process_input(
+                            inputs_dict, set_inputs, obj, inp, new_inputs,
+                            new_stack, inputs_dtype, as_function=as_function)
+                    # inputs not directly used by the node but by the subgraphs.
+                    # TODO
+                    for inp in obj.external_inputs:
                         self._node_to_graph_process_input(
                             inputs_dict, set_inputs, obj, inp, new_inputs,
                             new_stack, inputs_dtype, as_function=as_function)
@@ -2594,8 +2632,9 @@ class _GraphBuilder:
         # common parts
         if len(input_names) != len(inputs):
             raise RuntimeError(  # pragma: no cover
-                "Mismatch between %r and %r." % (
-                    input_names, inputs))
+                "Mismatch between (%d != %d)\n%s\nand\n%s." % (
+                    len(input_names), len(inputs),
+                    pprint.pformat(input_names), pprint.pformat(inputs)))
 
         if isinstance(input_names, list):
             d_input_names = {}
@@ -2631,9 +2670,14 @@ class _GraphBuilder:
             if inp.var != var.var:
                 raise RuntimeError(  # pragma: no cover
                     "Unexpected %r != %r." % (inp, var))
-            res.append(make_tensor_value_info(
-                inp.name, inp.var.proto_added_type,
-                inp.var.proto_added_shape))
+            if isinstance(inp.var, ExistingVariable):
+                # The type of ExistingVariable must be known
+                # to build the subgraph. Let's try unknown.
+                res.append(make_tensor_value_info(inp.name, 0, None))
+            else:
+                res.append(make_tensor_value_info(
+                    inp.name, inp.var.proto_added_type,
+                    inp.var.proto_added_shape))
 
         return res
 
@@ -2770,6 +2814,7 @@ class OnnxExisting(OnnxIdentity):
 
     def __init__(self, *args, **kwargs):
         OnnxIdentity.__init__(self, *args, **kwargs)
+        self.control_op_ = None
         if len(self.inputs) != 1:
             raise RuntimeError(
                 "Unexpected number of inputs %d." % len(self.inputs))
@@ -2777,7 +2822,8 @@ class OnnxExisting(OnnxIdentity):
             raise TypeError(
                 "Only input should a node not %r." % type(self.inputs[0]))
         if self.inputs[0].output_names is None:
-            new_names = [ExistingVariable("_existing_%d" % id(self.inputs[0]))]
+            new_names = [ExistingVariable("_existing_%d" % id(self.inputs[0]),
+                                          self.inputs[0])]
             logger.debug("OnnxExisting.__init__:set-input:%r", new_names)
             self.inputs[0].output_names = new_names
 
@@ -2790,3 +2836,7 @@ class OnnxExisting(OnnxIdentity):
     def f(self, *inputs, verbose=0, fLOG=None,  # pylint: disable=W0221
           clear_cache=False, runtime=None):
         raise NotImplementedError()
+
+    def _set_control_op(self, op):
+        self.control_op_ = op
+        op.add_external_input(self)
