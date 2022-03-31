@@ -282,19 +282,31 @@ def _to_array(var):
                                     copy=False).reshape(dims)
             except ValueError:
                 data = _numpy_array(to_array(var))
-        elif var.data_type == 11 and var.double_data is not None:
-            try:
-                data = _numpy_array(var.double_data, dtype=numpy.float64,
-                                    copy=False).reshape(dims)
-            except ValueError:
-                data = _numpy_array(to_array(var))
+        elif var.data_type == 2 and var.uint8_data is not None:
+            data = _numpy_array(var.uint8_data, dtype=numpy.uint8,
+                                copy=False).reshape(dims)
+        elif var.data_type == 3 and var.int8_data is not None:
+            data = _numpy_array(var.int8_data, dtype=numpy.int8,
+                                copy=False).reshape(dims)
+        elif var.data_type == 4 and var.uint16_data is not None:
+            data = _numpy_array(var.uint16_data, dtype=numpy.uint16,
+                                copy=False).reshape(dims)
+        elif var.data_type == 5 and var.int16_data is not None:
+            data = _numpy_array(var.int16_data, dtype=numpy.int16,
+                                copy=False).reshape(dims)
         elif var.data_type == 6 and var.int32_data is not None:
             data = _numpy_array(var.int32_data, dtype=numpy.int32,
                                 copy=False).reshape(dims)
         elif var.data_type == 7 and var.int64_data is not None:
             data = _numpy_array(var.int64_data, dtype=numpy.int64,
                                 copy=False).reshape(dims)
-        elif var.data_type == 10 and var.float16_data is not None:
+        elif var.data_type == 11 and var.double_data is not None:
+            try:
+                data = _numpy_array(var.double_data, dtype=numpy.float64,
+                                    copy=False).reshape(dims)
+            except ValueError:
+                data = _numpy_array(to_array(var))
+        elif var.data_type == 16 and var.float16_data is not None:
             data = _numpy_array(var.float16_data, dtype=numpy.float16,
                                 copy=False).reshape(dims)
         else:

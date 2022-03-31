@@ -184,6 +184,12 @@ class OnnxBackendTest:
             raise NotImplementedError(
                 "Comparison not implemented for type %r." % type(e))
 
+    def is_random(self):
+        "Tells if a test is random or not."
+        if 'bernoulli' in self.folder:
+            return True
+        return False
+
     def run(self, load_fct, run_fct, index=None, decimal=5):
         """
         Executes a tests or all tests if index is None.
@@ -210,7 +216,19 @@ class OnnxBackendTest:
                 "got %r, expected %r." % (
                     index, self.folder, len(got), len(expected)))
         for i, (e, o) in enumerate(zip(expected, got)):
-            self._compare_results(index, i, e, o)
+            if self.is_random():
+                if e.dtype != o.dtype:
+                    raise AssertionError(
+                        "Output %d of test %d in folder %r failed "
+                        "(type mismatch %r != %r)." % (
+                            i, index, self.folder, e.dtype, o.dtype))
+                if e.shape != o.shape:
+                    raise AssertionError(
+                        "Output %d of test %d in folder %r failed "
+                        "(shape mismatch %r != %r)." % (
+                            i, index, self.folder, e.shape, o.shape))
+            else:
+                self._compare_results(index, i, e, o)
 
     def to_python(self):
         """
