@@ -20,7 +20,7 @@ class _CommonRandom(OpRun):
 
     def _dtype(self, *data, dtype_first=False):
         if dtype_first:
-            if self.seed != 0:
+            if self.dtype != 0:
                 return self.numpy_type
             if len(data) > 0:
                 return data[0].dtype
@@ -87,7 +87,8 @@ class Bernoulli(_CommonRandom):
             'state = numpy.random.RandomState(seed=seed)',
             'return state.binomial(1, %s).astype(numpy_dtype)' % (
                 inputs[0], )]
-        return ("import numpy\nfrom onnx.mapping import TENSOR_TYPE_TO_NP_TYPE",
+        return ("import numpy\nfrom numpy import nan\n"
+                "from onnx.mapping import TENSOR_TYPE_TO_NP_TYPE",
                 "\n".join(lines))
 
 
