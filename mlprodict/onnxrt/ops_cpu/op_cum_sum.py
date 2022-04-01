@@ -36,12 +36,12 @@ class CumSum(OpRun):
             if len(axis.shape) > 0:
                 axis = axis[0]  # pylint: disable=E1136
         if self.reverse:
-            indices = [slice(s) for s in x.shape]
-            indices[axis] = slice(0, x.shape[axis], -1)
-            x = x[indices]
+            rev_indices = [slice(0, s) for s in x.shape]
+            rev_indices[axis] = slice(None, None, -1)
+            x = x[rev_indices]
         if self.exclusive:
-            indices_c = [slice(s) for s in x.shape]
-            indices_d = [slice(s) for s in x.shape]
+            indices_c = [slice(0, s) for s in x.shape]
+            indices_d = [slice(0, s) for s in x.shape]
             indices_c[axis] = slice(0, -1)
             indices_d[axis] = slice(1, x.shape[axis])
             res = numpy.zeros(x.shape, dtype=x.dtype)
@@ -51,6 +51,8 @@ class CumSum(OpRun):
                 res = numpy.cumsum(x, axis=axis, out=x)
             else:
                 res = numpy.cumsum(x, axis=axis)
+        if self.reverse:
+            res = res[rev_indices]
         return (res, )
 
     def _infer_shapes(self, x, *axis):  # pylint: disable=W0221

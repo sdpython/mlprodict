@@ -1042,7 +1042,6 @@ class TestOnnxBackEnd(ExtTestCase):
             functions = []
 
             opsets = {'': 15}
-            target_opset = 15  # subgraphs
             inputs.append(make_tensor_value_info('x', 11, [10]))
             outputs.append(make_tensor_value_info('y', 11, [10]))
             node = make_node('Bernoulli', ['x'], ['y'], domain='')
@@ -1100,7 +1099,7 @@ class TestOnnxBackEnd(ExtTestCase):
         # if __name__ == '__main__':
         #     print(code[0])
 
-    def test_constantofshape_int_shape_zero(self):
+    def test_constantofshape_int_shape_zero2(self):
 
         def create_model():
             initializers = []
@@ -1110,7 +1109,6 @@ class TestOnnxBackEnd(ExtTestCase):
             functions = []
 
             opsets = {'': 12}
-            target_opset = 12  # subgraphs
             inputs.append(make_tensor_value_info('x', 7, [1]))
             outputs.append(make_tensor_value_info('y', 6, [None]))
             node = make_node(
@@ -1144,7 +1142,7 @@ class TestOnnxBackEnd(ExtTestCase):
         for y, gy in zip(ys, goty):
             self.assertEqualArray(y, gy)
 
-    def test_enumerate_onnx_test_constantofshape_int_shape_zero(self):
+    def test_enumerate_onnx_test_constantofshape_int_shape_zero_code(self):
         done = 0
         for te in enumerate_onnx_tests(
                 'node', lambda folder: folder == 'test_constantofshape_int_shape_zero'):
