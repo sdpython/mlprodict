@@ -241,20 +241,6 @@ dfs.append(df)
 df.pivot("fct", "N", "average")
 
 ###################################
-# Reduction on a particular case RKR
-# ++++++++++++++++++++++++++++++++++
-#
-# (N, 64, 16, 16), axis=(0, 2, 3)
-# ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-
-axes = (0, 2, 3)
-df, piv, ax = benchmark_op(
-    axes, shape_fct=lambda dim: (dim, 64, 16, 16))
-dfs.append(df)
-df.pivot("fct", "N", "average")
-
-
-###################################
 # Reduction on a particular case RKRK
 # +++++++++++++++++++++++++++++++++++
 #
