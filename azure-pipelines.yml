@@ -194,7 +194,7 @@ jobs:
       architecture: 'x64'
   - script: python -m pip install --upgrade pip setuptools wheel versioneer
     displayName: 'Install tools'
-  - script: python -m pip install --upgrade pip numpy pandas matplotlib scipy scikit-learn matplotlib --only-binary=:all:
+  - script: python -m pip install --upgrade pip numpy pandas matplotlib scipy scikit-learn matplotlib
     displayName: 'Install tools'
   - script: python -m pip install onnxruntime onnxruntime-extensions --no-deps
     displayName: 'Install onnx'

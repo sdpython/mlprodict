@@ -11,8 +11,8 @@ init:
 install:
   - "%PYTHON%\\python -m pip install --upgrade pip"
   - pip install wheel versioneer
-  - pip install numpy pandas scipy matplotlib scikit-learn --only-binary=:all:
-  - pip install onnx onnxruntime --no-deps --only-binary=:all:
+  - pip install numpy==1.21.5 pandas scipy matplotlib scikit-learn
+  - pip install onnx onnxruntime --no-deps
   - pip install -r requirements-win.txt --upgrade-strategy eager
 
 build: off
