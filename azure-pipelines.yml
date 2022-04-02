@@ -194,7 +194,7 @@ jobs:
       architecture: 'x64'
   - script: python -m pip install --upgrade pip setuptools wheel versioneer numpy pandas matplotlib scipy scikit-learn matplotlib
     displayName: 'Install tools'
-  - script: python -m pip install onnx --no-deps
+  - script: python -m pip install onnxruntime onnxruntime-extensions --no-deps
     displayName: 'Install tools'
   - script: pip install -r requirements-win.txt --upgrade-strategy eager
     displayName: 'Install Requirements'

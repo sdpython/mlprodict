@@ -1,3 +1,4 @@
+# pylint: disable=R0401
 """
 @file
 @brief Helpers to compile C.
