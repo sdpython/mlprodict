@@ -3,13 +3,9 @@
 @brief Automates the generation of operators for the
 documentation for the Xop API.
 
-::
-
-    def setup(app):
-        app.connect('builder-inited', generate_op_doc)
-
 .. versionadded:: 0.9
 """
+import os
 import textwrap
 import importlib
 import inspect
@@ -55,11 +51,11 @@ def _get_doc_template():
         **Version**
 
         * **name**: `{{sch.name}} (GitHub) <{{build_doc_url(sch)}}{{sch.name}}>`_
-        * **domain**: **{{sch.domain}}**
+        * **domain**: **{% if sch.domain == '' %}main{% else %}{{sch.domain}}{% endif %}**
         * **since_version**: **{{sch.since_version}}**
-        * **function**: {{sch.has_function}}**
-        * **support_level**: {{sch.support_level}}**
-        * **shape inference**: {{sch.has_type_and_shape_inference_function}}**
+        * **function**: {{sch.has_function}}
+        * **support_level**: {{sch.support_level}}
+        * **shape inference**: {{sch.has_type_and_shape_inference_function}}
 
         {% if sch.support_level == OpSchema.SupportType.EXPERIMENTAL %}
         No versioning maintained for experimental ops.
@@ -81,7 +77,7 @@ def _get_doc_template():
         {% if sch.attributes %}
         **Attributes**
 
-        {% for _, attr in sorted(sch.attributes.items()) %}* *{{attr.name}}*{%
+        {% for _, attr in sorted(sch.attributes.items()) %}* **{{attr.name}}**{%
           if attr.required %} (required){% endif %}:
         {{text_wrap(attr.description, 2)}} {%
           if attr.default_value %}{{clean_default_value(attr.default_value)}}{%
@@ -96,7 +92,7 @@ def _get_doc_template():
         }} and {{sch.max_input}} inputs.
         {% endif %}
         {% for ii, inp in enumerate(sch.inputs) %}
-        * *{{getname(inp, ii)}}*{{format_option(inp)}} - **{{inp.typeStr}}**:
+        * **{{getname(inp, ii)}}**{{format_option(inp)}} - **{{inp.typeStr}}**:
         {{text_wrap(inp.description, 2)}}{% endfor %}
         {% endif %}
 
@@ -107,7 +103,7 @@ def _get_doc_template():
         }} and {{sch.max_output}} outputs.
         {% endif %}
         {% for ii, out in enumerate(sch.outputs) %}
-        * *{{getname(out, ii)}}*{{format_option(out)}} - **{{out.typeStr}}**:
+        * **{{getname(out, ii)}}**{{format_option(out)}} - **{{out.typeStr}}**:
         {{text_wrap(out.description, 2)}}{% endfor %}
         {% endif %}
 
@@ -228,6 +224,7 @@ def get_rst_doc(op_name=None, domain=None, version='last', clean=True,
     The function relies on module :epkg:`jinja2` or replaces it
     with a simple rendering if not present.
     """
+    from ..onnx_tools.onnx2py_helper import _var_as_dict
     schemas = get_operator_schemas(op_name, domain=domain, version=version)
 
     # from onnx.backend.sample.ops import collect_sample_implementations
@@ -324,9 +321,16 @@ def get_rst_doc(op_name=None, domain=None, version='last', clean=True,
         return doc_url
 
     def clean_default_value(value):
-        res = str(value).replace('\\n', ' ').strip()
-        if len(res) > 0:
-            return "Default value is ``%s``." % res
+        dvar = _var_as_dict(value)
+        if 'value' in dvar:
+            v = dvar['value']
+            if isinstance(v, bytes):
+                return "Default value is ``'%s'``." % v.decode('ascii')
+            return "Default value is ``{}``.".format(v)
+        else:
+            res = str(value).replace('\n', ' ').strip()
+            if len(res) > 0:
+                return "Default value is ``%s``." % res
         return ""
 
     def text_wrap(text, indent):
@@ -388,6 +392,10 @@ def _insert_diff(docs, split='.. tag-diff-insert.'):
     for i in range(1, len(spl)):
         spl1 = spl[i - 1].strip('\n ')
         spl2 = spl[i].strip('\n ')
+        spl1 = spl1.split('**Examples**')[0].replace('`', '')
+        spl2 = spl2.split('**Examples**')[0].replace('`', '')
+        spl1 = spl1.split('**Summary**')[-1].strip('\n ')
+        spl2 = spl2.split('**Summary**')[-1].strip('\n ')
         if len(spl1) < 5 or len(spl2) < 5:
             pieces.append(spl[i])
             continue
@@ -395,8 +403,10 @@ def _insert_diff(docs, split='.. tag-diff-insert.'):
         _, aligned, final = edit_distance_text(  # pylint: disable=W0632
             spl1, spl2, threshold=0.5)
         ht = diff2html(spl1, spl2, aligned, final, two_columns=True)
+        ht = ht.replace(">``<", "><")
         ht = '    ' + '\n    '.join(ht.split('\n'))
-        pieces.extend(['', '.. html::', '', ht, '', spl[i]])
+        pieces.extend(['', '**Differences**', '', '.. raw:: html',
+                       '', ht, '', spl[i]])
 
     return '\n'.join(pieces)
 
@@ -435,7 +445,7 @@ def get_onnx_example(op_name):
             found = textwrap.dedent(found)
             lines = found.split('\n')
             first = 0
-            for i in range(len(lines)):
+            for i in range(len(lines)):  # pylint: disable=C0200
                 if lines[i].startswith('def '):
                     first = i + 1
             found = textwrap.dedent('\n'.join(lines[first:]))
@@ -452,3 +462,71 @@ def is_last_schema(sch):
     """
     last = onnx.defs.get_schema(sch.name, domain=sch.domain)
     return last.since_version == sch.since_version
+
+
+def onnx_documentation_folder(folder, ops=None, title='ONNX operators',
+                              fLOG=None):
+    """
+    Creates documentation in a folder for all known
+    ONNX operators or a subset.
+
+    :param folder: folder where to write the documentation
+    :param ops: None for all operators or a subset of them
+    :param title: index title
+    :param fLOG: logging function
+    :return: list of creates files
+    """
+    global _get_all_schemas_with_history
+    if not os.path.exists(folder):
+        os.makedirs(folder)
+    if _get_all_schemas_with_history is None:
+        _get_all_schemas_with_history = _populate__get_all_schemas_with_history()
+    index = ['', title, '=' * len(title), '', '.. contents::', '    :local:',
+             '']
+    pages = []
+
+    if ops is not None:
+        ops = set(ops)
+    for dom in sorted(_get_all_schemas_with_history):
+        sdom = 'main' if dom == '' else dom
+        index_dom = [sdom, '+' * len(sdom), '', '.. toctree::',
+                     '    :maxdepth: 1', '']
+        sub = _get_all_schemas_with_history[dom]
+        do = []
+        if ops is None:
+            do.extend(sub)
+        else:
+            inter = set(sub).intersection(ops)
+            if len(inter) == 0:
+                continue
+            do.extend(sorted(inter))
+        if len(do) == 0:
+            continue
+
+        for op in sorted(do):
+            if fLOG is not None:
+                fLOG('generate page for onnx %r - %r' % (dom, op))
+            page_name = "onnx_%s_%s" % (dom.replace('.', ''), op)
+            index_dom.append('    %s' % page_name)
+            doc = get_rst_doc(op, domain=dom, version=None, example=True,
+                              diff=True)
+            if dom == '':
+                main = op
+            else:
+                main = '%s - %s' % (dom, op)
+            rows = ['', '.. _l-onnx-doc%s-%s:' % (dom, op), '',
+                    '=' * len(main), main, '=' * len(main), '',
+                    '.. contents::', '    :local:', '', doc]
+
+            full = os.path.join(folder, page_name + '.rst')
+            with open(full, 'w', encoding='utf-8') as f:
+                f.write("\n".join(rows))
+            pages.append(full)
+        index.extend(index_dom)
+        index.append('')
+
+    page_name = os.path.join(folder, 'index.rst')
+    with open(page_name, 'w', encoding='utf-8') as f:
+        f.write('\n'.join(index))
+    pages.append(page_name)
+    return pages

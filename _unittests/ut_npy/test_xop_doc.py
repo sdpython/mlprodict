@@ -2,10 +2,11 @@
 @brief      test log(time=10s)
 """
 import unittest
-from pyquickhelper.pycode import ExtTestCase
+from pyquickhelper.pycode import ExtTestCase, get_temp_folder
 from mlprodict.npy.xop import _dynamic_class_creation, Xop
 from mlprodict.npy.xop_auto import (
-    get_rst_doc, get_operator_schemas, get_onnx_example)
+    get_rst_doc, get_operator_schemas, get_onnx_example,
+    onnx_documentation_folder)
 
 
 class TestXopDoc(ExtTestCase):
@@ -51,7 +52,7 @@ class TestXopDoc(ExtTestCase):
         rstdiff = get_rst_doc('Transpose', version=None, diff=True)
         self.assertIn('Transpose - 13', rstdiff)
         self.assertIn('Transpose - 1', rstdiff)
-        self.assertIn('.. html::', rstdiff)
+        self.assertIn('.. raw:: html', rstdiff)
 
     def test_onnxt_get_example(self):
         content = get_onnx_example('Transpose')
@@ -80,7 +81,14 @@ class TestXopDoc(ExtTestCase):
         res = get_onnx_example('tttt')
         self.assertEqual({}, res)
 
+    def test_onnx_documentation_folder(self):
+        temp = get_temp_folder(__file__, 'temp_onnx_documentation_folder')
+        pages = onnx_documentation_folder(temp, ['Add', 'Transpose', 'TopK'])
+        self.assertGreater(len(pages), 3)
+        index = pages[-1]
+        self.assertEndsWith('index.rst', index)
+
 
 if __name__ == "__main__":
-    # TestXopDoc().test_onnxt_rst_transpose_example_all()
+    # TestXopDoc().test_onnx_documentation_folder()
     unittest.main(verbosity=2)

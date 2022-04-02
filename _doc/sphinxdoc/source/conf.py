@@ -47,17 +47,15 @@ extensions.extend([
     'generate_automated_pages',
     'generate_visual_graphs',
     'generate_onnx_ops',
+    'mlprodict.npy.xop_sphinx',
 ])
 
 html_css_files = ['my-styles.css']
-
 html_logo = "phdoc_static/project_ico.png"
-
 html_sidebars = {}
-
 language = "en"
-
 mathdef_link_only = True
+onnx_doc_folder = os.path.join(os.path.dirname(__file__), 'onnxops')
 
 intersphinx_mapping.update({
     'cpyquickhelper': (
