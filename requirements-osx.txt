@@ -22,7 +22,6 @@ numba
 numpy
 onnx>=1.11.0
 onnxruntime>=1.11.0
-onnxruntime-extensions>=0.4.2
 openpyxl
 opt-einsum
 pandas
