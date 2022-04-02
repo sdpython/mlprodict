@@ -5,13 +5,14 @@ datashape
 jinja2==3.0.3
 joblib>=0.12
 jupyter
+llvmlite>=0.38.0
 matplotlib
 notebook>=5.0.0
-numba
+numba>=0.55.1
 numpy>=1.21.4
 pandas>=1.4.0
 pillow
-scikit-learn>=1.0.1
+scikit-learn>=1.0.2
 scipy>=1.8.0
 Sphinx
 wheel
