@@ -3,6 +3,11 @@
 @brief Automates the generation of operators for the
 documentation for the Xop API.
 
+::
+
+    def setup(app):
+        app.connect('builder-inited', generate_op_doc)
+
 .. versionadded:: 0.9
 """
 import textwrap
@@ -37,20 +42,27 @@ def _get_doc_template():
     return Template(textwrap.dedent("""
         {% for sch in schemas %}
 
+        .. tag-diff-insert.
+
         {{format_name_with_domain(sch)}}
         {{'=' * len(format_name_with_domain(sch))}}
 
         **Version**
 
-        *Onnx name:* `{{sch.name}} <{{build_doc_url(sch)}}{{sch.name}}>`_
+        * **name**: `{{sch.name}} (GitHub) <{{build_doc_url(sch)}}{{sch.name}}>`_
+        * **domain**: **{{sch.domain}}**
+        * **since_version**: **{{sch.since_version}}**
+        * **function**: {{sch.has_function}}**
+        * **support_level**: {{sch.support_level}}**
+        * **shape inference**: {{sch.has_type_and_shape_inference_function}}**
 
         {% if sch.support_level == OpSchema.SupportType.EXPERIMENTAL %}
         No versioning maintained for experimental ops.
         {% else %}
         This version of the operator has been {% if
-        sch.deprecated %}deprecated{% else %}available{% endif %} since
-        version {{sch.since_version}}{% if
-        sch.domain %} of domain {{sch.domain}}{% endif %}.
+        sch.deprecated %}deprecated{% else %}available{% endif %}
+        **since version {{sch.since_version}}{% if
+        sch.domain %} of domain {{sch.domain}}{% endif %}**.
         {% if len(sch.versions) > 1 %}
         Other versions of this operator:
         {% for v in sch.version[:-1] %} {{v}} {% endfor %}
@@ -65,9 +77,9 @@ def _get_doc_template():
         **Attributes**
 
         {% for _, attr in sorted(sch.attributes.items()) %}* *{{attr.name}}*{%
-          if attr.required %} (required){% endif %}: {{attr.description}} {%
-          if attr.default_value %}Default value is
-          ``{{str(attr.default_value).replace('\\n', ' ').strip()}}``{%
+          if attr.required %} (required){% endif %}:
+        {{text_wrap(attr.description, 2)}} {%
+          if attr.default_value %}{{clean_default_value(attr.default_value)}}{%
           endif %}
         {% endfor %}
         {% endif %}
@@ -79,8 +91,8 @@ def _get_doc_template():
         }} and {{sch.max_input}} inputs.
         {% endif %}
         {% for ii, inp in enumerate(sch.inputs) %}
-        * *{{getname(inp, ii)}}*{{format_option(inp)}}{{inp.typeStr}}: {{
-        inp.description}}{% endfor %}
+        * *{{getname(inp, ii)}}*{{format_option(inp)}} - **{{inp.typeStr}}**:
+        {{text_wrap(inp.description, 2)}}{% endfor %}
         {% endif %}
 
         {% if sch.outputs %}
@@ -90,16 +102,16 @@ def _get_doc_template():
         }} and {{sch.max_output}} outputs.
         {% endif %}
         {% for ii, out in enumerate(sch.outputs) %}
-        * *{{getname(out, ii)}}*{{format_option(out)}}{{out.typeStr}}: {{
-        out.description}}{% endfor %}
+        * *{{getname(out, ii)}}*{{format_option(out)}} - **{{out.typeStr}}**:
+        {{text_wrap(out.description, 2)}}{% endfor %}
         {% endif %}
 
         {% if sch.type_constraints %}
         **Type Constraints**
 
         {% for ii, type_constraint in enumerate(sch.type_constraints)
-        %}* {{getconstraint(type_constraint, ii)}}: {{
-        type_constraint.description}}
+        %}* {{get_constraint(type_constraint, ii)}}:
+        {{text_wrap(type_constraint.description, 2)}}
         {% endfor %}
         {% endif %}
 
@@ -108,6 +120,21 @@ def _get_doc_template():
 
 
 _template_operator = _get_doc_template()
+_get_all_schemas_with_history = None
+
+
+def _populate__get_all_schemas_with_history():
+    res = {}
+    for schema in onnx.defs.get_all_schemas_with_history():
+        domain = schema.domain
+        version = schema.since_version
+        name = schema.name
+        if domain not in res:
+            res[domain] = {}
+        if name not in res[domain]:
+            res[domain][name] = {}
+        res[domain][name][version] = schema
+    return res
 
 
 def get_domain_list():
@@ -118,40 +145,75 @@ def get_domain_list():
                                onnx.defs.get_all_schemas_with_history()))))
 
 
-def get_rst_doc(op_name=None):
+def get_operator_schemas(op_name, version=None, domain=None):
+    """
+    Returns all schemas mapped to an operator name.
+
+    :param op_name: name of the operator
+    :param version: version
+    :param domain: domain
+    :return: list of schemas
+    """
+    global _get_all_schemas_with_history  # pylint: disable=W0603
+    if version == 'last':
+        if domain is not None:
+            return [onnx.defs.get_schema(op_name, domain=domain)]
+    if _get_all_schemas_with_history is None:
+        _get_all_schemas_with_history = _populate__get_all_schemas_with_history()
+    if domain is None:
+        domains = []
+        for dom, ops in _get_all_schemas_with_history.items():
+            if op_name in ops:
+                domains.append(dom)
+    else:
+        domains = [domain]
+
+    # schemas
+    sch = []
+    for dom in domains:
+        ops = _get_all_schemas_with_history[dom]
+        if op_name in ops:
+            if version is None:
+                sch.extend(ops[op_name].values())
+            elif version in ops[op_name]:
+                sch.append(ops[op_name][version])
+
+    # sort
+    vals = [(s.domain, s.name, -s.since_version, s) for s in sch]
+    vals.sort()
+    return [v[-1] for v in vals]
+
+
+def get_rst_doc(op_name=None, domain=None, version='last', clean=True,
+                diff=False):
     """
     Returns a documentation in RST format
     for all :class:`OnnxOperator`.
 
     :param op_name: operator name of None for all
+    :param domain: domain
+    :param version: version, None for all, `'last'` for the most recent one
+    :param clean: clean empty lines
+    :param diff: highlights differences between two versions
     :return: string
 
     The function relies on module :epkg:`jinja2` or replaces it
     with a simple rendering if not present.
     """
-    if op_name is None:
-        schemas = onnx.defs.get_all_schemas_with_history()
-    elif isinstance(op_name, str):
-        schemas = [
-            schema for schema in onnx.defs.get_all_schemas_with_history()
-            if schema.name == op_name]
-        if len(schemas) > 1:  # pragma: no cover
-            raise RuntimeError(
-                "Multiple operators have the same name '{}'.".format(op_name))
-    elif not isinstance(op_name, list):
-        schemas = [op_name]
-    if len(schemas) == 0:
-        raise ValueError(  # pragma: no cover
-            "Unable to find any operator with name '{}'.".format(op_name))
+    schemas = get_operator_schemas(op_name, domain=domain, version=version)
 
     # from onnx.backend.sample.ops import collect_sample_implementations
     # from onnx.backend.test.case import collect_snippets
     # SNIPPETS = collect_snippets()
     # SAMPLE_IMPLEMENTATIONS = collect_sample_implementations()
     def format_name_with_domain(sch):
+        if version == 'last':
+            if sch.domain:
+                return '{} ({})'.format(sch.name, sch.domain)
+            return sch.name
         if sch.domain:
-            return '{} ({})'.format(sch.name, sch.domain)
-        return sch.name
+            return '{} - {} ({})'.format(sch.name, sch.since_version, sch.domain)
+        return '%s - %d' % (sch.name, sch.since_version)
 
     def format_option(obj):
         opts = []
@@ -165,13 +227,15 @@ def get_rst_doc(op_name=None):
             return " (%s)" % ", ".join(opts)
         return ""
 
-    def getconstraint(const, ii):
+    def get_constraint(const, ii):
         if const.type_param_str:
             name = const.type_param_str
         else:
             name = str(ii)
+        name = "**%s** in (" % name
         if const.allowed_type_strs:
-            name += " " + ", ".join(const.allowed_type_strs)
+            text = ",\n  ".join(sorted(const.allowed_type_strs))
+            name += "\n  " + text + "\n  )"
         return name
 
     def getname(obj, i):
@@ -227,15 +291,76 @@ def get_rst_doc(op_name=None):
             doc_url += sch.domain + "."
         return doc_url
 
+    def clean_default_value(value):
+        res = str(value).replace('\\n', ' ').strip()
+        if len(res) > 0:
+            return "Default value is ``%s``." % res
+        return ""
+
+    def text_wrap(text, indent):
+        s = ' ' * indent
+        lines = textwrap.wrap(text, initial_indent=s, subsequent_indent=s)
+        return '\n'.join(lines)
+
     fnwd = format_name_with_domain
     tmpl = _template_operator
     docs = tmpl.render(schemas=schemas, OpSchema=OpSchema,
                        len=len, getattr=getattr, sorted=sorted,
                        format_option=format_option,
-                       getconstraint=getconstraint,
+                       get_constraint=get_constraint,
                        getname=getname, enumerate=enumerate,
                        format_name_with_domain=fnwd,
                        process_documentation=process_documentation,
-                       build_doc_url=build_doc_url,
-                       str=str)
+                       build_doc_url=build_doc_url, text_wrap=text_wrap,
+                       str=str, clean_default_value=clean_default_value)
+    if diff:
+        lines = docs.split('\n')
+        new_lines = ['']
+        for line in lines:
+            line = line.rstrip('\r\t ')
+            if len(line) == 0 and len(new_lines[-1]) == 0:
+                continue
+            new_lines.append(line)
+        docs = '\n'.join(new_lines)
+        docs = _insert_diff(docs, '.. tag-diff-insert.')
+
+    if clean:
+        lines = docs.split('\n')
+        new_lines = ['']
+        for line in lines:
+            line = line.rstrip('\r\t ')
+            if len(line) == 0 and len(new_lines[-1]) == 0:
+                continue
+            new_lines.append(line)
+        docs = '\n'.join(new_lines)
+
     return docs
+
+
+def _insert_diff(docs, split='.. tag-diff-insert.'):
+    """
+    Splits a using `split`, insert HTML differences between pieces.
+    The function relies on package :epkg:`pyquickhelper`.
+    """
+    spl = docs.split(split)
+    if len(spl) <= 1:
+        return docs
+
+    from pyquickhelper.texthelper.edit_text_diff import (
+        edit_distance_text, diff2html)
+
+    pieces = [spl[0]]
+    for i in range(1, len(spl)):
+        spl1 = spl[i - 1].strip('\n ')
+        spl2 = spl[i].strip('\n ')
+        if len(spl1) < 5 or len(spl2) < 5:
+            pieces.append(spl[i])
+            continue
+
+        _, aligned, final = edit_distance_text(  # pylint: disable=W0632
+            spl1, spl2, threshold=0.5)
+        ht = diff2html(spl1, spl2, aligned, final, two_columns=True)
+        ht = '    ' + '\n    '.join(ht.split('\n'))
+        pieces.extend(['', '.. html::', '', ht, '', spl[i]])
+
+    return '\n'.join(pieces)
