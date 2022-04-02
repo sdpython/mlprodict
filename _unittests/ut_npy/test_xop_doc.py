@@ -4,7 +4,8 @@
 import unittest
 from pyquickhelper.pycode import ExtTestCase
 from mlprodict.npy.xop import _dynamic_class_creation, Xop
-from mlprodict.npy.xop_auto import get_rst_doc, get_operator_schemas
+from mlprodict.npy.xop_auto import (
+    get_rst_doc, get_operator_schemas, get_onnx_example)
 
 
 class TestXopDoc(ExtTestCase):
@@ -43,6 +44,7 @@ class TestXopDoc(ExtTestCase):
     def test_onnxt_rst_transpose(self):
         rst = get_rst_doc('Transpose', version=13)
         self.assertIn("  tensor(int64),", rst)
+        self.assertIn(".. _l-onnx-op-transpose-13:", rst)
         rstall = get_rst_doc('Transpose', version=None)
         self.assertIn('Transpose - 13', rstall)
         self.assertIn('Transpose - 1', rstall)
@@ -51,7 +53,34 @@ class TestXopDoc(ExtTestCase):
         self.assertIn('Transpose - 1', rstdiff)
         self.assertIn('.. html::', rstdiff)
 
+    def test_onnxt_get_example(self):
+        content = get_onnx_example('Transpose')
+        self.assertIsInstance(content, dict)
+        self.assertGreater(len(content), 2)
+        for v in content.values():
+            self.assertIn('expect(', v)
+
+    def test_onnxt_rst_transpose_example(self):
+        rst = get_rst_doc('Transpose', version=13, example=True)
+        self.assertIn('all_permutations', rst)
+        self.assertIn('Examples', rst)
+        self.assertIn('data = np.random.random_sample', rst)
+
+    def test_onnxt_rst_transpose_example_all(self):
+        rst = get_rst_doc('Transpose', example=True, version=None)
+        self.assertIn('all_permutations', rst)
+        self.assertIn('Examples', rst)
+        self.assertIn('data = np.random.random_sample', rst)
+        spl = rst.split('**Examples**')
+        if len(spl) > 2:
+            raise AssertionError(
+                "Too many example sections:\n%s" % rst)
+
+    def test_missing_examples(self):
+        res = get_onnx_example('tttt')
+        self.assertEqual({}, res)
+
 
 if __name__ == "__main__":
-    # TestXopDoc().test_onnxt_rst_transpose()
+    # TestXopDoc().test_onnxt_rst_transpose_example_all()
     unittest.main(verbosity=2)

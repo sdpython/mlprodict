@@ -12,8 +12,8 @@ install:
   - "%PYTHON%\\python -m pip install --upgrade pip"
   - pip install wheel versioneer
   - pip install numpy pandas scipy matplotlib scikit-learn --only-binary=:all:
-  - pip install onnx onnxruntime onnxruntime-extensions --no-deps
-  - "%PYTHON%\\Scripts\\pip install -r requirements-win.txt --upgrade-strategy eager"
+  - pip install onnx onnxruntime --no-deps --only-binary=:all:
+  - pip install -r requirements-win.txt --upgrade-strategy eager
 
 build: off
 

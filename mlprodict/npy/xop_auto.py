@@ -11,8 +11,11 @@ documentation for the Xop API.
 .. versionadded:: 0.9
 """
 import textwrap
+import importlib
+import inspect
 import onnx
 import onnx.defs
+from onnx.backend.test.case.base import _Exporter
 from onnx.defs import OpSchema
 
 
@@ -43,6 +46,8 @@ def _get_doc_template():
         {% for sch in schemas %}
 
         .. tag-diff-insert.
+
+        .. _l-onnx-op{{sch.domain.lower().replace(".", "-")}}-{{sch.name.lower()}}-{{str(sch.since_version)}}:
 
         {{format_name_with_domain(sch)}}
         {{'=' * len(format_name_with_domain(sch))}}
@@ -115,6 +120,19 @@ def _get_doc_template():
         {% endfor %}
         {% endif %}
 
+        {% if get_onnx_example and is_last_schema(sch): %}
+        **Examples**
+
+        {% for example, code in get_onnx_example(sch.name).items(): %}
+        **{{ example }}**
+
+        ::
+
+        {{ format_example(code) }}
+
+        {% endfor %}
+        {% endif %}
+
         {% endfor %}
     """))
 
@@ -155,7 +173,7 @@ def get_operator_schemas(op_name, version=None, domain=None):
     :return: list of schemas
     """
     global _get_all_schemas_with_history  # pylint: disable=W0603
-    if version == 'last':
+    if version == 'last' and op_name is not None:
         if domain is not None:
             return [onnx.defs.get_schema(op_name, domain=domain)]
     if _get_all_schemas_with_history is None:
@@ -163,7 +181,7 @@ def get_operator_schemas(op_name, version=None, domain=None):
     if domain is None:
         domains = []
         for dom, ops in _get_all_schemas_with_history.items():
-            if op_name in ops:
+            if op_name is None or op_name in ops:
                 domains.append(dom)
     else:
         domains = [domain]
@@ -172,7 +190,16 @@ def get_operator_schemas(op_name, version=None, domain=None):
     sch = []
     for dom in domains:
         ops = _get_all_schemas_with_history[dom]
-        if op_name in ops:
+        if op_name is None:
+            for op, v in ops.items():
+                if version is None:
+                    sch.extend(v.values())
+                elif version == 'last':
+                    sch.append(
+                        onnx.defs.get_schema(op, domain=dom))
+                else:
+                    sch.append(v[version])
+        elif op_name in ops:
             if version is None:
                 sch.extend(ops[op_name].values())
             elif version in ops[op_name]:
@@ -185,7 +212,7 @@ def get_operator_schemas(op_name, version=None, domain=None):
 
 
 def get_rst_doc(op_name=None, domain=None, version='last', clean=True,
-                diff=False):
+                diff=False, example=False):
     """
     Returns a documentation in RST format
     for all :class:`OnnxOperator`.
@@ -195,6 +222,7 @@ def get_rst_doc(op_name=None, domain=None, version='last', clean=True,
     :param version: version, None for all, `'last'` for the most recent one
     :param clean: clean empty lines
     :param diff: highlights differences between two versions
+    :param example: add example to the documentation
     :return: string
 
     The function relies on module :epkg:`jinja2` or replaces it
@@ -226,6 +254,10 @@ def get_rst_doc(op_name=None, domain=None, version='last', clean=True,
         if opts:
             return " (%s)" % ", ".join(opts)
         return ""
+
+    def format_example(code):
+        code = textwrap.indent(code, '    ')
+        return code
 
     def get_constraint(const, ii):
         if const.type_param_str:
@@ -312,7 +344,10 @@ def get_rst_doc(op_name=None, domain=None, version='last', clean=True,
                        format_name_with_domain=fnwd,
                        process_documentation=process_documentation,
                        build_doc_url=build_doc_url, text_wrap=text_wrap,
-                       str=str, clean_default_value=clean_default_value)
+                       str=str, clean_default_value=clean_default_value,
+                       get_onnx_example=get_onnx_example if example else None,
+                       format_example=format_example,
+                       is_last_schema=is_last_schema)
     if diff:
         lines = docs.split('\n')
         new_lines = ['']
@@ -364,3 +399,56 @@ def _insert_diff(docs, split='.. tag-diff-insert.'):
         pieces.extend(['', '.. html::', '', ht, '', spl[i]])
 
     return '\n'.join(pieces)
+
+
+def get_onnx_example(op_name):
+    """
+    Retrieves examples associated to one operator
+    stored in onnx packages.
+
+    :param op_name: operator name
+    :param fmt: rendering format
+    :return: dictionary
+    """
+    module = 'onnx.backend.test.case.node.%s' % op_name.lower()
+    try:
+        mod = importlib.import_module(module)
+    except ImportError:
+        return {}
+    results = {}
+    for v in mod.__dict__.values():
+        if not isinstance(v, _Exporter):
+            continue
+        code_cls = inspect.getsource(v)
+        codes = code_cls.split('@staticmethod')
+        for me in v.__dict__:
+            if not me.startswith('export_'):
+                continue
+            sub = ' %s()' % me
+            found = None
+            for code in codes:
+                if sub in code:
+                    found = code
+            if found is None:
+                raise RuntimeError(
+                    "Unable to find %r in\n%s" % (sub, code_cls))
+            found = textwrap.dedent(found)
+            lines = found.split('\n')
+            first = 0
+            for i in range(len(lines)):
+                if lines[i].startswith('def '):
+                    first = i + 1
+            found = textwrap.dedent('\n'.join(lines[first:]))
+            results[me[len('export_'):]] = found
+    return results
+
+
+def is_last_schema(sch):
+    """
+    Tells if this is the most recent schema for this operator.
+
+    :param sch: schema
+    :return: True
+    """
+    last = onnx.defs.get_schema(sch.name, domain=sch.domain)
+    return last.since_version == sch.since_version
