@@ -5,9 +5,9 @@ environment:
   - TOXENV: py39
 
 init:
-  - @echo on
+  - echo on
   - echo %PYTHON% %PYTHON_VERSION% %PYTHON_ARCH%
-  - @echo off
+  - echo off
 
 install:
   - pip install wheel
