@@ -22,7 +22,7 @@ before_test:
   - "%PYTHONEXE% -u setup.py build_ext --inplace"
 
 test_script:
-  - "%PYTHONEXE% -u setup.py unittests -d 15 -g \".*((LONG)|(SKIP)|(notebooks)).*\""
+  - "%PYTHONEXE% -u setup.py unittests -d 15 -g \".*((LONG)|(SKIP)|(notebooks)|(asv)).*\""
 
 after_test:
   - "%PYTHONEXE% -u setup.py bdist_wheel"
