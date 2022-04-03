@@ -1344,6 +1344,7 @@ class OnnxOperator(OnnxOperatorBase):
                 raise RuntimeError(
                     "output_names cannot be None for OnnxExisting, "
                     "subop is %r." % (inp.inputs[0], ))
+            # We need to check that this input was not already added.
             inp = inp.inputs[0].output_names[0]
             new_inputs.append(InputDetectedVariable(node, inp))
         elif isinstance(inp, OnnxOperator):
