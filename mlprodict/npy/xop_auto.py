@@ -134,7 +134,7 @@ def _get_doc_template():
 
 
 _template_operator = _get_doc_template()
-_get_all_schemas_with_history = None
+__get_all_schemas_with_history = None
 
 
 def _populate__get_all_schemas_with_history():
@@ -149,6 +149,13 @@ def _populate__get_all_schemas_with_history():
             res[domain][name] = {}
         res[domain][name][version] = schema
     return res
+
+
+def _get_all_schemas_with_history():
+    global __get_all_schemas_with_history  # pylint: disable=W0603
+    if __get_all_schemas_with_history is None:
+        __get_all_schemas_with_history = _populate__get_all_schemas_with_history()
+    return __get_all_schemas_with_history
 
 
 def get_domain_list():
@@ -168,15 +175,13 @@ def get_operator_schemas(op_name, version=None, domain=None):
     :param domain: domain
     :return: list of schemas
     """
-    global _get_all_schemas_with_history  # pylint: disable=W0603
     if version == 'last' and op_name is not None:
         if domain is not None:
             return [onnx.defs.get_schema(op_name, domain=domain)]
-    if _get_all_schemas_with_history is None:
-        _get_all_schemas_with_history = _populate__get_all_schemas_with_history()
+    all_schemas = _get_all_schemas_with_history()
     if domain is None:
         domains = []
-        for dom, ops in _get_all_schemas_with_history.items():
+        for dom, ops in all_schemas.items():
             if op_name is None or op_name in ops:
                 domains.append(dom)
     else:
@@ -185,7 +190,7 @@ def get_operator_schemas(op_name, version=None, domain=None):
     # schemas
     sch = []
     for dom in domains:
-        ops = _get_all_schemas_with_history[dom]
+        ops = all_schemas[dom]
         if op_name is None:
             for op, v in ops.items():
                 if version is None:
@@ -476,22 +481,20 @@ def onnx_documentation_folder(folder, ops=None, title='ONNX operators',
     :param fLOG: logging function
     :return: list of creates files
     """
-    global _get_all_schemas_with_history
+    all_schemas = _get_all_schemas_with_history()
     if not os.path.exists(folder):
         os.makedirs(folder)
-    if _get_all_schemas_with_history is None:
-        _get_all_schemas_with_history = _populate__get_all_schemas_with_history()
     index = ['', title, '=' * len(title), '', '.. contents::', '    :local:',
              '']
     pages = []
 
     if ops is not None:
         ops = set(ops)
-    for dom in sorted(_get_all_schemas_with_history):
+    for dom in sorted(all_schemas):
         sdom = 'main' if dom == '' else dom
         index_dom = [sdom, '+' * len(sdom), '', '.. toctree::',
                      '    :maxdepth: 1', '']
-        sub = _get_all_schemas_with_history[dom]
+        sub = all_schemas[dom]
         do = []
         if ops is None:
             do.extend(sub)
