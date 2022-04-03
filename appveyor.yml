@@ -5,26 +5,25 @@ environment:
   - TOXENV: py39
 
 init:
-  - echo on
-  - echo %PYTHON% %PYTHON_VERSION% %PYTHON_ARCH%
-  - echo off
+  - python -V
+  - python3.9 -V
 
 install:
-  - pip install wheel
-  - pip install numpy pandas scipy matplotlib scikit-learn
-  - pip install onnx onnxruntime --no-deps
-  - pip install -r requirements-win.txt --upgrade-strategy eager
+  - python3.9 -m pip install wheel
+  - python3.9 -m pip install numpy pandas scipy matplotlib scikit-learn
+  - python3.9 -m pip install onnx onnxruntime --no-deps
+  - python3.9 -m pip install -r requirements-win.txt --upgrade-strategy eager
 
 build: off
 
 before_test:
-  - "%PYTHON%\\python -u setup.py build_ext --inplace"
+  - python3.9 -m -u setup.py build_ext --inplace
 
 test_script:
-  - "%PYTHON%\\python -u setup.py unittests -d 15 -g \".*((LONG)|(SKIP)|(notebooks)).*\""
+  - python3.9 -m -u setup.py unittests -d 15 -g ".*((LONG)|(SKIP)|(notebooks)).*"
 
 after_test:
-  - "%PYTHON%\\python -u setup.py bdist_wheel"
+  - python3.9 -m -u setup.py bdist_wheel
 
 artifacts:
   - path: dist
