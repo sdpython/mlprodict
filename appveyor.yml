@@ -2,28 +2,30 @@ image:
   - Visual Studio 2019
 environment:
   matrix:
-  - TOXENV: py39
+    - PYTHON: "C:\\Python39-x64"
+      PYTHON_VERSION: "3.9.x"
+      PYTHON_ARCH: "64"
 
 init:
-  - python -V
-  - py -V
+  - set pythonexe=%PYTHON%\python
+  - %pythonexe% -V
 
 install:
-  - py -m pip install wheel
-  - py -m pip install numpy pandas scipy matplotlib scikit-learn
-  - py -m pip install onnx onnxruntime --no-deps
-  - py -m pip install -r requirements-win.txt --upgrade-strategy eager
+  - %pythonexe% -m pip install wheel
+  - %pythonexe% -m pip install numpy pandas scipy matplotlib scikit-learn
+  - %pythonexe% -m pip install onnx onnxruntime
+  - %pythonexe% -m pip install -r requirements-win.txt
 
 build: false
 
 before_test:
-  - py -u setup.py build_ext --inplace
+  - %pythonexe% -u setup.py build_ext --inplace
 
 test_script:
-  - py -u setup.py unittests -d 15 -g ".*((LONG)|(SKIP)|(notebooks)).*"
+  - %pythonexe% -u setup.py unittests -d 15 -g ".*((LONG)|(SKIP)|(notebooks)).*"
 
 after_test:
-  - py -u setup.py bdist_wheel
+  - %pythonexe% -u setup.py bdist_wheel
 
 artifacts:
   - path: dist
