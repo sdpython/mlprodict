@@ -2253,132 +2253,134 @@ class TestOnnxrtPythonRuntime(ExtTestCase):  # pylint: disable=R0904
 
     @wraplog()
     def test_onnxt_runtime_cum_sum(self):
-        x = numpy.array([1., 2., 3., 4., 5.]).astype(numpy.float64)
-        axis = numpy.array([0]).astype(numpy.int32)
-        exp = numpy.array([1., 3., 6., 10., 15.]).astype(numpy.float64)
-        onx = OnnxCumSum('X', 'axis', output_names=['Y'],
-                         op_version=TARGET_OPSET)
-        model_def = onx.to_onnx({'X': x, 'axis': axis},
-                                outputs=[('Y', DoubleTensorType())],
-                                target_opset=TARGET_OPSET)
-        self._check_shape_inference(OnnxCumSum, model_def)
-        oinf = OnnxInference(model_def)
-        got = oinf.run({'X': x.astype(numpy.float64),
-                        'axis': axis})
-        self.assertEqualArray(exp, got['Y'])
-        self.common_expected_shapes_types(
-            oinf, {'X': x.astype(numpy.float64),
-                   'axis': axis},
-            got, OnnxCumSum, model_def)
-
-        python_tested.append(OnnxCumSum)
-        oinfpy = OnnxInference(model_def, runtime="python", inplace=True)
-        validate_python_inference(oinfpy, {'X': x, 'axis': axis})
-
-        # reverse = 1
-        x = numpy.array([1., 2., 3., 4., 5.]).astype(numpy.float64)
-        axis = numpy.array([0]).astype(numpy.int32)
-        exp = numpy.array([15., 14., 12., 9., 5.]).astype(numpy.float64)
-        onx = OnnxCumSum('X', 'axis', output_names=['Y'], reverse=1,
-                         op_version=TARGET_OPSET)
-        model_def = onx.to_onnx({'X': x, 'axis': axis},
-                                outputs=[('Y', DoubleTensorType())],
-                                target_opset=TARGET_OPSET)
-        try:
-            got = OnnxInference(model_def).run({'X': x, 'axis': axis})
-            self.assertEqualArray(exp, got['Y'])
-        except NotImplementedError:
-            pass
-
-        # exclusive = 1
-        x = numpy.array([1., 2., 3., 4., 5.]).astype(numpy.float64)
-        axis = numpy.array([0]).astype(numpy.int32)
-        exp = numpy.array([0., 1., 3., 6., 10.]).astype(numpy.float64)
-        onx = OnnxCumSum('X', 'axis', output_names=['Y'], exclusive=1,
-                         op_version=TARGET_OPSET)
-        model_def = onx.to_onnx({'X': x, 'axis': axis},
-                                outputs=[('Y', DoubleTensorType())],
-                                target_opset=TARGET_OPSET)
-        try:
-            got = OnnxInference(model_def).run({'X': x, 'axis': axis})
-            self.assertEqualArray(exp, got['Y'])
-        except NotImplementedError:
-            pass
-
-        # 2d axis = 0
-        x = numpy.array([1., 2., 3., 4., 5., 6.]).astype(
-            numpy.float64).reshape((2, 3))
-        axis = numpy.array([0]).astype(numpy.int32)
-        exp = numpy.array([1., 2., 3., 5., 7., 9.]).astype(
-            numpy.float64).reshape((2, 3))
-        onx = OnnxCumSum('X', 'axis', output_names=['Y'],
-                         op_version=TARGET_OPSET)
-        model_def = onx.to_onnx({'X': x, 'axis': axis},
-                                outputs=[('Y', DoubleTensorType())],
-                                target_opset=TARGET_OPSET)
-        got = OnnxInference(model_def).run({'X': x, 'axis': axis})
-        self.assertEqualArray(exp, got['Y'])
-
-        # 2d axis = 1
-        x = numpy.array([1., 2., 3., 4., 5., 6.]).astype(
-            numpy.float64).reshape((2, 3))
-        axis = numpy.array([-1]).astype(numpy.int32)
-        exp = numpy.array([1., 3., 6., 4., 9., 15.]).astype(
-            numpy.float64).reshape((2, 3))
-        onx = OnnxCumSum('X', 'axis', output_names=['Y'],
-                         op_version=TARGET_OPSET)
-        model_def = onx.to_onnx({'X': x, 'axis': axis},
-                                outputs=[('Y', DoubleTensorType())],
-                                target_opset=TARGET_OPSET)
-        got = OnnxInference(model_def).run({'X': x, 'axis': axis})
-        self.assertEqualArray(exp, got['Y'])
-
-        # 2d axis = 1, reverse
-        x = numpy.array([1., 2., 3., 4., 5., 6.]).astype(
-            numpy.float64).reshape((2, 3))
-        axis = numpy.array([-1]).astype(numpy.int32)
-        exp = numpy.array([1., 3., 6., 4., 9., 15.]).astype(
-            numpy.float64).reshape((2, 3))
-        onx = OnnxCumSum('X', 'axis', output_names=['Y'], reverse=1,
-                         op_version=TARGET_OPSET)
-        model_def = onx.to_onnx({'X': x, 'axis': axis},
-                                outputs=[('Y', DoubleTensorType())],
-                                target_opset=TARGET_OPSET)
-        try:
-            got = OnnxInference(model_def).run({'X': x, 'axis': axis})
-            self.assertEqualArray(exp, got['Y'])
-        except NotImplementedError:
-            pass
-
-        # no axis
-        x = numpy.array([1., 2., 3., 4., 5.]).astype(numpy.float64)
-        axis = numpy.array([0]).astype(numpy.int32)
-        exp = numpy.array([1., 3., 6., 10., 15.]).astype(numpy.float64)
-        try:
-            onx = OnnxCumSum('X', output_names=['Y'],
+        with self.subTest(case="2d axis = 1, reverse"):
+            x = numpy.array([1., 2., 3., 4., 5., 6.]).astype(
+                numpy.float64).reshape((2, 3))
+            axis = numpy.array([-1]).astype(numpy.int32)
+            exp = numpy.array([6., 5., 3., 15., 11., 6.]).astype(
+                numpy.float64).reshape((2, 3))
+            onx = OnnxCumSum('X', 'axis', output_names=['Y'], reverse=1,
                              op_version=TARGET_OPSET)
-            model_def = onx.to_onnx(
-                {'X': x}, outputs=[('Y', DoubleTensorType())],
-                target_opset=TARGET_OPSET)
-            got = OnnxInference(model_def).run({'X': x})
-            self.assertEqualArray(exp, got['Y'])
-        except RuntimeError:
-            pass
+            model_def = onx.to_onnx({'X': x, 'axis': axis},
+                                    outputs=[('Y', DoubleTensorType())],
+                                    target_opset=TARGET_OPSET)
+            try:
+                got = OnnxInference(model_def).run({'X': x, 'axis': axis})
+                self.assertEqualArray(exp, got['Y'])
+            except NotImplementedError:
+                pass
 
-        # reverse = 1
-        x = numpy.array([1., 2., 3., 4., 5.]).astype(numpy.float64)
-        axis = numpy.array([0]).astype(numpy.int32)
-        exp = numpy.array([15., 14., 12., 9., 5.]).astype(numpy.float64)
-        try:
-            onx = OnnxCumSum('X', output_names=['Y'], reverse=1,
+        with self.subTest(case="reverse"):
+            x = numpy.array([1., 2., 3., 4., 5.]).astype(numpy.float64)
+            axis = numpy.array([0]).astype(numpy.int32)
+            exp = numpy.array([15., 14., 12., 9., 5.]).astype(numpy.float64)
+            onx = OnnxCumSum('X', 'axis', output_names=['Y'], reverse=1,
                              op_version=TARGET_OPSET)
-            model_def = onx.to_onnx(
-                {'X': x}, outputs=[('Y', DoubleTensorType())],
-                target_opset=TARGET_OPSET)
-            got = OnnxInference(model_def).run({'X': x})
+            model_def = onx.to_onnx({'X': x, 'axis': axis},
+                                    outputs=[('Y', DoubleTensorType())],
+                                    target_opset=TARGET_OPSET)
+            try:
+                got = OnnxInference(model_def).run({'X': x, 'axis': axis})
+                self.assertEqualArray(exp, got['Y'])
+            except NotImplementedError:
+                pass
+
+        with self.subTest(case="default"):
+            x = numpy.array([1., 2., 3., 4., 5.]).astype(numpy.float64)
+            axis = numpy.array([0]).astype(numpy.int32)
+            exp = numpy.array([1., 3., 6., 10., 15.]).astype(numpy.float64)
+            onx = OnnxCumSum('X', 'axis', output_names=['Y'],
+                             op_version=TARGET_OPSET)
+            model_def = onx.to_onnx({'X': x, 'axis': axis},
+                                    outputs=[('Y', DoubleTensorType())],
+                                    target_opset=TARGET_OPSET)
+            self._check_shape_inference(OnnxCumSum, model_def)
+            oinf = OnnxInference(model_def)
+            got = oinf.run({'X': x.astype(numpy.float64),
+                            'axis': axis})
             self.assertEqualArray(exp, got['Y'])
-        except RuntimeError:
-            pass
+            self.common_expected_shapes_types(
+                oinf, {'X': x.astype(numpy.float64),
+                       'axis': axis},
+                got, OnnxCumSum, model_def)
+
+            python_tested.append(OnnxCumSum)
+
+            oinfpy = OnnxInference(model_def, runtime="python", inplace=True)
+            validate_python_inference(oinfpy, {'X': x, 'axis': axis})
+
+        with self.subTest(case="exclusive"):
+            x = numpy.array([1., 2., 3., 4., 5.]).astype(numpy.float64)
+            axis = numpy.array([0]).astype(numpy.int32)
+            exp = numpy.array([0., 1., 3., 6., 10.]).astype(numpy.float64)
+            onx = OnnxCumSum('X', 'axis', output_names=['Y'], exclusive=1,
+                             op_version=TARGET_OPSET)
+            model_def = onx.to_onnx({'X': x, 'axis': axis},
+                                    outputs=[('Y', DoubleTensorType())],
+                                    target_opset=TARGET_OPSET)
+            try:
+                got = OnnxInference(model_def).run({'X': x, 'axis': axis})
+                self.assertEqualArray(exp, got['Y'])
+            except NotImplementedError:
+                pass
+
+        with self.subTest(case="2d axis = 0"):
+            x = numpy.array([1., 2., 3., 4., 5., 6.]).astype(
+                numpy.float64).reshape((2, 3))
+            axis = numpy.array([0]).astype(numpy.int32)
+            exp = numpy.array([1., 2., 3., 5., 7., 9.]).astype(
+                numpy.float64).reshape((2, 3))
+            onx = OnnxCumSum('X', 'axis', output_names=['Y'],
+                             op_version=TARGET_OPSET)
+            model_def = onx.to_onnx({'X': x, 'axis': axis},
+                                    outputs=[('Y', DoubleTensorType())],
+                                    target_opset=TARGET_OPSET)
+            got = OnnxInference(model_def).run({'X': x, 'axis': axis})
+            self.assertEqualArray(exp, got['Y'])
+
+        with self.subTest(case="2d axis = 1"):
+            x = numpy.array([1., 2., 3., 4., 5., 6.]).astype(
+                numpy.float64).reshape((2, 3))
+            axis = numpy.array([-1]).astype(numpy.int32)
+            exp = numpy.array([1., 3., 6., 4., 9., 15.]).astype(
+                numpy.float64).reshape((2, 3))
+            onx = OnnxCumSum('X', 'axis', output_names=['Y'],
+                             op_version=TARGET_OPSET)
+            model_def = onx.to_onnx({'X': x, 'axis': axis},
+                                    outputs=[('Y', DoubleTensorType())],
+                                    target_opset=TARGET_OPSET)
+            got = OnnxInference(model_def).run({'X': x, 'axis': axis})
+            self.assertEqualArray(exp, got['Y'])
+
+        with self.subTest(case="no axis"):
+            x = numpy.array([1., 2., 3., 4., 5.]).astype(numpy.float64)
+            axis = numpy.array([0]).astype(numpy.int32)
+            exp = numpy.array([1., 3., 6., 10., 15.]).astype(numpy.float64)
+            try:
+                onx = OnnxCumSum('X', output_names=['Y'],
+                                 op_version=TARGET_OPSET)
+                model_def = onx.to_onnx(
+                    {'X': x}, outputs=[('Y', DoubleTensorType())],
+                    target_opset=TARGET_OPSET)
+                got = OnnxInference(model_def).run({'X': x})
+                self.assertEqualArray(exp, got['Y'])
+            except RuntimeError:
+                pass
+
+        with self.subTest(case="reverse = 1"):
+            x = numpy.array([1., 2., 3., 4., 5.]).astype(numpy.float64)
+            axis = numpy.array([0]).astype(numpy.int32)
+            exp = numpy.array([15., 14., 12., 9., 5.]).astype(numpy.float64)
+            try:
+                onx = OnnxCumSum('X', output_names=['Y'], reverse=1,
+                                 op_version=TARGET_OPSET)
+                model_def = onx.to_onnx(
+                    {'X': x}, outputs=[('Y', DoubleTensorType())],
+                    target_opset=TARGET_OPSET)
+                got = OnnxInference(model_def).run({'X': x})
+                self.assertEqualArray(exp, got['Y'])
+            except RuntimeError:
+                pass
 
     @wraplog()
     def test_onnxt_runtime_det(self):
@@ -4718,5 +4720,5 @@ class TestOnnxrtPythonRuntime(ExtTestCase):  # pylint: disable=R0904
 
 if __name__ == "__main__":
     # Working
-    # TestOnnxrtPythonRuntime().test_softmax_cross_entropy_loss_multi_output()
+    # TestOnnxrtPythonRuntime().test_onnxt_runtime_cum_sum()
     unittest.main(verbosity=2)

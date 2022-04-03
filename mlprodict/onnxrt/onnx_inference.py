@@ -191,6 +191,9 @@ class OnnxInference:
                     for d in shape.dim:
                         if (d.dim_value == 0 and "0" in str(d) and
                                 'dim_param' not in str(d)):
+                            if len(shape.dim) <= 1:
+                                shape = None
+                                break
                             # d.dim_value returns 0 whether is is 0 or empty.
                             # it may be a parameter as well
                             raise RuntimeError(  # pragma: no cover

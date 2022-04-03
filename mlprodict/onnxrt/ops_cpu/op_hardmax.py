@@ -27,7 +27,8 @@ class Hardmax(OpRunUnaryNum):
     def to_python(self, inputs):
         return ("import numpy",
                 "\n".join([
-                    "{0}_argmax = numpy.argmax({0}, axis=axis)".format(inputs[0]),
+                    "{0}_argmax = numpy.argmax({0}, axis=axis)".format(
+                        inputs[0]),
                     "{0}y = numpy.zeros_like({0})".format(inputs[0]),
                     "numpy.put_along_axis({0}y,".format(inputs[0]),
                     "    numpy.expand_dims(",
