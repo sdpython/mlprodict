@@ -78,6 +78,7 @@ def validate_python_inference(oinf, inputs, tolerance=0.):
           'fft2': numpy.fft.fft2,
           'npy_det': npy_det, 'ndarray': numpy.ndarray,
           '_leaky_relu': _leaky_relu,
+          'nan': numpy.nan,
           'TENSOR_TYPE_TO_NP_TYPE': TENSOR_TYPE_TO_NP_TYPE}
 
     for fct in pyrt_fcts:
@@ -95,7 +96,7 @@ def validate_python_inference(oinf, inputs, tolerance=0.):
     except (NameError, TypeError, SyntaxError,  # pragma: no cover
             IndexError, ValueError) as e:
         raise RuntimeError(
-            "Unable to execute code\n-----\n{}".format(code)) from e
+            "Unable to execute code.\n{}\n-----\n{}".format(e, code)) from e
 
     got = loc['res']
     keys = list(sorted(exp))

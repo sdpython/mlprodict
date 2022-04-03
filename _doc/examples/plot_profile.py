@@ -22,7 +22,7 @@ from sklearn.tree import DecisionTreeRegressor
 from pyquickhelper.pycode.profiling import profile
 from mlprodict.onnx_conv import to_onnx
 from mlprodict.onnxrt import OnnxInference
-from mlprodict.onnxrt import get_ir_version
+from mlprodict import get_ir_version
 
 data = load_boston()
 X, y = data.data, data.target

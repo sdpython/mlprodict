@@ -1019,7 +1019,160 @@ class TestOnnxBackEnd(ExtTestCase):
             done += 1
         self.assertEqual(done, 1)
 
+    def test_onnx_backend_test_bernoulli(self):
+        name = 'test_bernoulli'
+        code = []
+        for te in enumerate_onnx_tests('node', lambda folder: folder == name):
+            code.append(te.to_python())
+        self.assertEqual(len(code), 1)
+        self.assertIn(
+            'def test_bernoulli(self):', code[0])
+        self.assertIn('from onnx.helper', code[0])
+        self.assertIn('for y, gy in zip(ys, goty):', code[0])
+        # if __name__ == '__main__':
+        #    print(code[0])
+
+    def test_bernoulli(self):
+
+        def create_model():
+            initializers = []
+            nodes = []
+            inputs = []
+            outputs = []
+            functions = []
+
+            opsets = {'': 15}
+            inputs.append(make_tensor_value_info('x', 11, [10]))
+            outputs.append(make_tensor_value_info('y', 11, [10]))
+            node = make_node('Bernoulli', ['x'], ['y'], domain='')
+            nodes.append(node)
+            opset_imports = [make_opsetid(domain, 1 if version is None else version)
+                             for domain, version in opsets.items()]
+
+            graph = make_graph(
+                nodes, 'test_bernoulli', inputs, outputs, initializers)
+
+            onnx_model = make_model(
+                graph, opset_imports=opset_imports, functions=functions)
+            onnx_model.ir_version = 8
+            onnx_model.producer_name = 'backend-test'
+            onnx_model.producer_version = ''
+            onnx_model.domain = ''
+            onnx_model.model_version = 0
+            onnx_model.doc_string = ''
+            set_model_props(onnx_model, {})
+            return onnx_model
+
+        onnx_model = create_model()
+
+        oinf = OnnxInference(onnx_model)
+        xs = [array([0.5488135, 0.71518937, 0.60276338, 0.54488318, 0.4236548,
+                     0.64589411, 0.43758721, 0.891773, 0.96366276, 0.38344152])]
+        ys = [array([0., 1., 1., 0., 0., 1., 0., 1., 1., 1.])]
+        feeds = {n: x for n, x in zip(oinf.input_names, xs)}
+        got = oinf.run(feeds)
+        goty = [got[k] for k in oinf.output_names]
+        for y, gy in zip(ys, goty):
+            self.assertEqual(y.dtype, gy.dtype)
+            self.assertEqual(y.shape, gy.shape)
+
+    def test_enumerate_onnx_tests_test_bernoulli_cpu(self):
+        done = 0
+        for te in enumerate_onnx_tests(
+                'node', lambda folder: folder == 'test_bernoulli'):
+            self.assertIn(te.name, repr(te))
+            self.assertGreater(len(te), 0)
+            te.run(TestOnnxBackEnd.load_fct, TestOnnxBackEnd.run_fct)
+            done += 1
+        self.assertEqual(done, 1)
+
+    def test_constantofshape_int_shape_zero_code(self):
+        name = 'test_constantofshape_int_shape_zero'
+        code = []
+        for te in enumerate_onnx_tests('node', lambda folder: folder == name):
+            code.append(te.to_python())
+        self.assertEqual(len(code), 1)
+        self.assertIn(
+            'def test_constantofshape_int_shape_zero(self):', code[0])
+        self.assertIn('from onnx.helper', code[0])
+        self.assertIn('for y, gy in zip(ys, goty):', code[0])
+        # if __name__ == '__main__':
+        #     print(code[0])
+
+    def test_constantofshape_int_shape_zero2(self):
+
+        def create_model():
+            initializers = []
+            nodes = []
+            inputs = []
+            outputs = []
+            functions = []
+
+            opsets = {'': 12}
+            inputs.append(make_tensor_value_info('x', 7, [1]))
+            outputs.append(make_tensor_value_info('y', 6, [None]))
+            node = make_node(
+                'ConstantOfShape', ['x'], ['y'],
+                value=make_tensor(
+                    "value", TensorProto.INT32, dims=[1], vals=[0]), domain='')
+            nodes.append(node)
+
+            opset_imports = [make_opsetid(domain, 1 if version is None else version)
+                             for domain, version in opsets.items()]
+            graph = make_graph(
+                nodes, 'test_constantofshape_int_shape_zero', inputs, outputs, initializers)
+            onnx_model = make_model(
+                graph, opset_imports=opset_imports, functions=functions)
+            onnx_model.ir_version = 6
+            onnx_model.producer_name = 'backend-test'
+            onnx_model.producer_version = ''
+            onnx_model.domain = ''
+            onnx_model.model_version = 0
+            onnx_model.doc_string = ''
+            set_model_props(onnx_model, {})
+            return onnx_model
+
+        onnx_model = create_model()
+        oinf = OnnxInference(onnx_model)
+        xs = [array([0], dtype=int64)]
+        ys = [array([], dtype=int32)]
+        feeds = {n: x for n, x in zip(oinf.input_names, xs)}
+        got = oinf.run(feeds)
+        goty = [got[k] for k in oinf.output_names]
+        for y, gy in zip(ys, goty):
+            self.assertEqualArray(y, gy)
+
+    def test_enumerate_onnx_test_constantofshape_int_shape_zero_code(self):
+        done = 0
+        for te in enumerate_onnx_tests(
+                'node', lambda folder: folder == 'test_constantofshape_int_shape_zero'):
+            self.assertIn(te.name, repr(te))
+            self.assertGreater(len(te), 0)
+            te.run(TestOnnxBackEnd.load_fct, TestOnnxBackEnd.run_fct)
+            done += 1
+        self.assertEqual(done, 1)
+
+    def test_enumerate_onnx_test_cumsum_1d_exclusive(self):
+        done = 0
+        for te in enumerate_onnx_tests(
+                'node', lambda folder: folder == 'test_cumsum_1d_exclusive'):
+            self.assertIn(te.name, repr(te))
+            self.assertGreater(len(te), 0)
+            te.run(TestOnnxBackEnd.load_fct, TestOnnxBackEnd.run_fct)
+            done += 1
+        self.assertEqual(done, 1)
+
+    def test_enumerate_onnx_test_min_example(self):
+        done = 0
+        for te in enumerate_onnx_tests(
+                'node', lambda folder: folder == 'test_min_example'):
+            self.assertIn(te.name, repr(te))
+            self.assertGreater(len(te), 0)
+            te.run(TestOnnxBackEnd.load_fct, TestOnnxBackEnd.run_fct)
+            done += 1
+        self.assertEqual(done, 1)
+
 
 if __name__ == "__main__":
-    # TestOnnxBackEnd().test_enumerate_onnx_tests_test_clip_default_inbounds()
+    # TestOnnxBackEnd().test_enumerate_onnx_test_min_example()
     unittest.main()

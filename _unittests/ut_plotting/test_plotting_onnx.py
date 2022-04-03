@@ -7,7 +7,8 @@ import warnings
 import unittest
 import numpy
 from pyquickhelper.pycode import (
-    ExtTestCase, skipif_travis, skipif_circleci, get_temp_folder)
+    ExtTestCase, skipif_travis, skipif_circleci, get_temp_folder,
+    skipif_appveyor)
 from skl2onnx.algebra.onnx_ops import OnnxConcat  # pylint: disable=E0611
 from skl2onnx.common.data_types import FloatTensorType
 from mlprodict.plotting.plotting import plot_onnx
@@ -17,6 +18,7 @@ class TestPlotOnnx(ExtTestCase):
 
     @skipif_travis('graphviz is not installed')
     @skipif_circleci('graphviz is not installed')
+    @skipif_appveyor('graphviz is not installed')
     def test_plot_onnx(self):
 
         cst = numpy.array([[1, 2]], dtype=numpy.float32)

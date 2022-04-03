@@ -36,7 +36,7 @@ try:
     from tensorflow.math import reduce_sum as tf_reduce_sum
     from tensorflow import convert_to_tensor
 except ImportError:
-    reduce_sum = None
+    tf_reduce_sum = None
 try:
     from torch import sum as torch_sum, from_numpy
 except ImportError:

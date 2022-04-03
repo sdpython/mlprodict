@@ -18,7 +18,17 @@ class _CommonRandom(OpRun):
     def __init__(self, *args, **kwargs):
         OpRun.__init__(self, *args, **kwargs)
 
-    def _dtype(self, *data):
+    def _dtype(self, *data, dtype_first=False):
+        if dtype_first:
+            if self.dtype != 0:
+                return self.numpy_type
+            if len(data) > 0:
+                return data[0].dtype
+            raise RuntimeError(  # pragma: no cover
+                "dtype cannot be None for operator %s, "
+                "self.numpy_type=%r, len(data)=%r."
+                "" % (self.__class__.__name__,
+                      self.numpy_type, len(data)))
         res = None
         if len(data) == 0:
             res = self.numpy_type
@@ -44,21 +54,30 @@ class _CommonRandom(OpRun):
         res = self.run(*args, **kwargs)
         return (dict(temp=0), ) + res
 
+    def _get_state(self, seed):
+        if numpy.isnan(self.seed):
+            state = numpy.random.RandomState()
+        else:
+            state = numpy.random.RandomState(seed=self.seed)
+        return state
+
 
 class Bernoulli(_CommonRandom):
 
-    atts = {'dtype': 1,
-            'seed': None}
+    atts = {'dtype': 0,
+            'seed': numpy.nan}
 
     def __init__(self, onnx_node, desc=None, **options):
         _CommonRandom.__init__(self, onnx_node, desc=desc,
                                expected_attributes=Bernoulli.atts,
                                **options)
-        self.numpy_type = TENSOR_TYPE_TO_NP_TYPE[self.dtype]
+        self.numpy_type = (
+            TENSOR_TYPE_TO_NP_TYPE[self.dtype] if self.dtype > 0
+            else None)
 
     def _run(self, x):  # pylint: disable=W0221
-        dtype = self._dtype(x)
-        state = numpy.random.RandomState(seed=self.seed)
+        dtype = self._dtype(x, dtype_first=True)
+        state = self._get_state(self.seed)
         res = state.binomial(1, p=x).astype(dtype)
         return (res.astype(dtype), )
 
@@ -68,7 +87,8 @@ class Bernoulli(_CommonRandom):
             'state = numpy.random.RandomState(seed=seed)',
             'return state.binomial(1, %s).astype(numpy_dtype)' % (
                 inputs[0], )]
-        return ("import numpy\nfrom onnx.mapping import TENSOR_TYPE_TO_NP_TYPE",
+        return ("import numpy\nfrom numpy import nan\n"
+                "from onnx.mapping import TENSOR_TYPE_TO_NP_TYPE",
                 "\n".join(lines))
 
 
@@ -77,7 +97,7 @@ class RandomUniform(_CommonRandom):
     atts = {'dtype': 1,
             'low': 0.,
             'high': 1.,
-            'seed': None,
+            'seed': numpy.nan,
             'shape': []}
 
     def __init__(self, onnx_node, desc=None, **options):
@@ -95,7 +115,7 @@ class RandomUniform(_CommonRandom):
             raise RuntimeError(  # pragma: no cover
                 "Operator %s cannot have inputs." % self.__class__.__name__)
         dtype = self._dtype(*args)
-        state = numpy.random.RandomState(seed=self.seed)
+        state = self._get_state(self.seed)
         res = state.rand(*self.shape).astype(dtype)
         res *= (self.high - self.low)
         res += self.low
@@ -115,7 +135,7 @@ class RandomUniformLike(_CommonRandom):
 
     atts = {'low': 0.,
             'high': 1.,
-            'seed': None,
+            'seed': numpy.nan,
             'dtype': 0}
 
     def __init__(self, onnx_node, desc=None, **options):
@@ -127,7 +147,7 @@ class RandomUniformLike(_CommonRandom):
 
     def _run(self, x):  # pylint: disable=W0221
         dtype = self._dtype(x)
-        state = numpy.random.RandomState(seed=self.seed)
+        state = self._get_state(self.seed)
         res = state.rand(*x.shape).astype(dtype)
         res *= (self.high - self.low)
         res += self.low
@@ -154,7 +174,7 @@ class RandomNormal(_CommonRandom):
     atts = {'dtype': 1,
             'mean': 0.,
             'scale': 1.,
-            'seed': None,
+            'seed': numpy.nan,
             'shape': []}
 
     def __init__(self, onnx_node, desc=None, **options):
@@ -171,7 +191,7 @@ class RandomNormal(_CommonRandom):
         if len(args) != 0:
             raise RuntimeError(  # pragma: no cover
                 "Operator %s cannot have inputs." % self.__class__.__name__)
-        state = numpy.random.RandomState(seed=self.seed)
+        state = self._get_state(self.seed)
         res = state.randn(*self.shape).astype(self.numpy_type)
         res *= self.scale
         res += self.mean
@@ -192,7 +212,7 @@ class RandomNormalLike(_CommonRandom):
     atts = {'dtype': 0,
             'mean': 0.,
             'scale': 1.,
-            'seed': None}
+            'seed': numpy.nan}
 
     def __init__(self, onnx_node, desc=None, **options):
         _CommonRandom.__init__(self, onnx_node, desc=desc,
@@ -203,7 +223,7 @@ class RandomNormalLike(_CommonRandom):
 
     def _run(self, x):  # pylint: disable=W0221
         dtype = self._dtype(x)
-        state = numpy.random.RandomState(seed=self.seed)
+        state = self._get_state(self.seed)
         res = state.randn(*x.shape).astype(dtype)
         res *= self.scale
         res += self.mean

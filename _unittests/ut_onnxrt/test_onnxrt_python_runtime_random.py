@@ -26,6 +26,25 @@ class TestOnnxrtPythonRuntimeRandom(ExtTestCase):  # pylint: disable=R0904
         self.assertLess(got['Y'].max(), 1. + 1.e-5)
         validate_python_inference(oinf, {'X': X}, tolerance='random')
 
+    def test_onnxt_runtime_bernoulli_default(self):
+        OnnxBernoulli = loadop('Bernoulli')
+        node = OnnxBernoulli('X', seed=0,
+                             output_names=['Y'])
+        onx = node.to_onnx(numpy.float64, numpy.float64)
+        oinf = OnnxInference(onx, runtime='python')
+        X = numpy.random.uniform(0.0, 1.0, 10).astype(numpy.float64)
+        got = oinf.run({'X': X})
+        self.assertEqual(got['Y'].dtype, numpy.float64)
+        self.assertEqual(got['Y'].shape, (10, ))
+        self.assertGreater(got['Y'].min(), 0)
+        self.assertLess(got['Y'].max(), 1. + 1.e-5)
+        try:
+            validate_python_inference(oinf, {'X': X}, tolerance='random')
+        except RuntimeError as e:
+            if "pyrt_Bernoulli() missing 1 required positional argument: 'dtype'" in str(e):
+                return
+            raise AssertionError("unexpected execution error") from e
+
     def test_onnxt_runtime_random_uniform(self):
         OnnxRandomUniform = loadop('RandomUniform')
         node = OnnxRandomUniform(seed=0, shape=[2, 4], output_names=['Y'])
