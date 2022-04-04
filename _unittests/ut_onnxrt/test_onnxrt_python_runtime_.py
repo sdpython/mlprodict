@@ -3216,7 +3216,6 @@ class TestOnnxrtPythonRuntime(ExtTestCase):  # pylint: disable=R0904
                     nodes=[node]))
             return model_def
 
-        ignore_index = numpy.int64(-1)
         node = onnx.helper.make_node(
             'NegativeLogLikelihoodLoss', inputs=['x', 'target'], outputs=['z'],
             reduction='mean')

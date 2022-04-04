@@ -4,7 +4,7 @@
 import unittest
 import numpy
 from numpy.linalg import eig, eigvals
-from onnx import TensorProto
+from onnx import TensorProto  # pylint: disable=W0611
 from pyquickhelper.pycode import ExtTestCase
 from sklearn.datasets import load_iris
 from sklearn.base import TransformerMixin, BaseEstimator

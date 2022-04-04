@@ -559,7 +559,8 @@ class GraphBuilder:
                 kwargs.pop("ends"))
             axes = self._convert_to_attribute(  # pragma: no cover
                 kwargs.pop("axes", None), is_optional=True)
-            attr = {"starts": starts, "ends": ends, "axes": axes}  # pragma: no cover
+            attr = {"starts": starts, "ends": ends,
+                    "axes": axes}  # pragma: no cover
             inputs = [data]  # pragma: no cover
         else:
             # slice-10 has 3 required inputs "data", "starts", "ends"l

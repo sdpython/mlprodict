@@ -30,7 +30,8 @@ def _compute_negative_log_likelihood_loss(x, target, weight=None,
         # when the target value is > C or < 0, it doesn't matter which value we are
         # taking in gather_weight, since it will be set to 0 in the following if-block
         # use numpy.int32 to make it compatible with x86 machines
-        gather_weight = numpy.take(weight, numpy.array(target, dtype=numpy.int32), mode='clip')
+        gather_weight = numpy.take(weight, numpy.array(
+            target, dtype=numpy.int32), mode='clip')
         # set `ignore_index`'s loss weight to 0.
         # The loss tensor will be multiplied by this weight tensor,
         # so `ingore_index`'s loss value will be eliminated.
@@ -77,7 +78,6 @@ def _compute_negative_log_likelihood_loss(x, target, weight=None,
     return (loss, )
 
 
-
 class NegativeLogLikelihoodLoss(OpRun):
     """
     Python runtime for function *NegativeLogLikelihoodLoss*.
@@ -91,7 +91,6 @@ class NegativeLogLikelihoodLoss(OpRun):
                        **options)
 
     def _run(self, x, target, weight=None):  # pylint: disable=W0221
-        n_outputs = len(self.onnx_node.output)
         return _compute_negative_log_likelihood_loss(
             x, target, weight=weight, reduction=self.reduction,  # pylint: disable=E1101
             ignore_index=self.ignore_index)  # pylint: disable=E1101
