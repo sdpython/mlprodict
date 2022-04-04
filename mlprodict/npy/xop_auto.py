@@ -406,8 +406,8 @@ def _insert_diff(docs, split='.. tag-diff-insert.'):
             continue
 
         _, aligned, final = edit_distance_text(  # pylint: disable=W0632
-            spl1, spl2, threshold=0.5)
-        ht = diff2html(spl1, spl2, aligned, final, two_columns=True)
+            spl2, spl1, threshold=0.5)
+        ht = diff2html(spl2, spl1, aligned, final, two_columns=True)
         ht = ht.replace(">``<", "><")
         ht = '    ' + '\n    '.join(ht.split('\n'))
         pieces.extend(['', '**Differences**', '', '.. raw:: html',
