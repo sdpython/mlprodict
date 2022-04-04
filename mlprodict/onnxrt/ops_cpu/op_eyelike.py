@@ -20,13 +20,21 @@ class EyeLike(OpRun):
                        **options)
         self.dtype_ = proto2dtype(self.dtype)
 
-    def _run(self, shape, *args):  # pylint: disable=W0221
-        return (numpy.eye(*shape, k=self.k, dtype=self.dtype_), )
+    def _run(self, data, *args):  # pylint: disable=W0221
+        shape = data.shape
+        if len(shape) == 1:
+            sh = (shape[0], shape[0])
+        elif len(shape) == 2:
+            sh = shape
+        else:
+            raise RuntimeError(  # pragma: no cover
+                "EyeLike only accept 1D or 2D tensors not %r." % (shape, ))
+        return (numpy.eye(*sh, k=self.k, dtype=self.dtype_), )
 
-    def _infer_shapes(self, shape):  # pylint: disable=W0221
+    def _infer_shapes(self, data):  # pylint: disable=W0221
         return (ShapeObject(None, dtype=self.dtype_), )
 
-    def _infer_types(self, shape):  # pylint: disable=W0221
+    def _infer_types(self, data):  # pylint: disable=W0221
         return (self.dtype_, )
 
     def _infer_sizes(self, *args):  # pylint: disable=W0221
@@ -36,5 +44,5 @@ class EyeLike(OpRun):
     def to_python(self, inputs):
         return (
             "import numpy",
-            "return numpy.eye(*%s, k=%d, dtype=numpy.%s)" % (
+            "return numpy.eye(*(%s.shape), k=%d, dtype=numpy.%s)" % (
                 inputs[0], self.k, dtype_name(self.dtype_)))

@@ -134,8 +134,18 @@ def shape_hardsigmoid(known_shapes, node):
     return _element_unary(known_shapes, node)
 
 
+def shape_identity(known_shapes, node):
+    "Infers shape for operator Identity."
+    return _element_unary(known_shapes, node)
+
+
 def shape_isnan(known_shapes, node):
     "Infers shape for operator IsNan."
+    return _element_unary(known_shapes, node, numpy.bool_)
+
+
+def shape_isinf(known_shapes, node):
+    "Infers shape for operator IsInf."
     return _element_unary(known_shapes, node, numpy.bool_)
 
 
@@ -152,11 +162,6 @@ def shape_log(known_shapes, node):
 def shape_logsoftmax(known_shapes, node):
     "Infers shape for operator LogSoftmax."
     return shape_softmax(known_shapes, node)
-
-
-def shape_identity(known_shapes, node):
-    "Infers shape for operator Identity."
-    return _element_unary(known_shapes, node)
 
 
 def shape_neg(known_shapes, node):

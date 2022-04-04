@@ -2341,12 +2341,12 @@ class _GraphBuilder:
         key = function_proto.domain, function_proto.name
         if key in self.functions:
             if raise_if_exist:
-                raise RuntimeError(
+                raise RuntimeError(  # pragma: no cover
                     "Function %r is added for the second time." % (key, ))
             if check_unique:
                 hs = _hash(function_proto)
                 if hs != self.function_hashes[key]:
-                    raise RuntimeError(
+                    raise RuntimeError(  # pragma: no cover
                         "Function %r is added for the second time "
                         "and the content is not the same." % (key, ))
                 return

@@ -552,13 +552,16 @@ class GraphBuilder:
             # "data" is string
             # "starts", "ends" and "axes" are attributes,
             # and "axes" is optional.
-            data = kwargs.pop("data")
-            starts = self._convert_to_attribute(kwargs.pop("starts"))
-            ends = self._convert_to_attribute(kwargs.pop("ends"))
-            axes = self._convert_to_attribute(
+            data = kwargs.pop("data")  # pragma: no cover
+            starts = self._convert_to_attribute(  # pragma: no cover
+                kwargs.pop("starts"))
+            ends = self._convert_to_attribute(  # pragma: no cover
+                kwargs.pop("ends"))
+            axes = self._convert_to_attribute(  # pragma: no cover
                 kwargs.pop("axes", None), is_optional=True)
-            attr = {"starts": starts, "ends": ends, "axes": axes}
-            inputs = [data]
+            attr = {"starts": starts, "ends": ends,
+                    "axes": axes}  # pragma: no cover
+            inputs = [data]  # pragma: no cover
         else:
             # slice-10 has 3 required inputs "data", "starts", "ends"l
             # and 2 optional inputs "axes", "steps"
@@ -663,11 +666,11 @@ class GraphBuilder:
         outputs = kwargs.pop("outputs", None)
 
         if self.graph.opset < 13:
-            data = kwargs.pop("data")
-            axes = self._convert_to_attribute(
+            data = kwargs.pop("data")  # pragma: no cover
+            axes = self._convert_to_attribute(  # pragma: no cover
                 kwargs.pop("axes", None), is_optional=True)
-            attr = {"axes": axes}
-            inputs = [data]
+            attr = {"axes": axes}  # pragma: no cover
+            inputs = [data]  # pragma: no cover
         else:
             data = kwargs.pop("data")
             axes = self._convert_to_input(

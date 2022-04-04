@@ -156,7 +156,8 @@ class OpRun:
         Should be overwritten.
         """
         raise NotImplementedError(  # pragma: no cover
-            "This method should be overwritten.")
+            "Method '_run' or 'to_python' should be overwritten for operator %s."
+            "" % self.__class__.__name__)
 
     def run(self, *args, **kwargs):  # pylint: disable=E0202
         """

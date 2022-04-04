@@ -15,6 +15,8 @@ from scipy.special import (  # pylint: disable=E0611
 from scipy.spatial.distance import cdist
 import onnx
 from onnx.backend.test.case.node.softmaxcrossentropy import softmaxcrossentropy
+from onnx.backend.test.case.node.negativeloglikelihoodloss import (
+    compute_negative_log_likelihood_loss)
 from onnx import TensorProto, __version__ as onnx_version
 from onnx.helper import make_sparse_tensor, make_tensor
 from onnx.defs import onnx_opset_version
@@ -48,11 +50,11 @@ from skl2onnx.algebra.onnx_ops import (  # pylint: disable=E0611
     OnnxFlatten, OnnxFloor,
     OnnxGreater, OnnxGreaterOrEqual, OnnxGemm, OnnxGlobalAveragePool,
     OnnxHardmax, OnnxHardSigmoid, OnnxHardSwish,
-    OnnxIdentity, OnnxIsNaN,
+    OnnxIdentity, OnnxIsInf, OnnxIsNaN,
     OnnxLeakyRelu, OnnxLess, OnnxLessOrEqual,
     OnnxLog, OnnxLogSoftmax, OnnxLpNormalization,
     OnnxMatMul, OnnxMax, OnnxMaxPool, OnnxMean, OnnxMin, OnnxMod, OnnxMul,
-    OnnxNeg, OnnxNot,
+    OnnxNeg, OnnxNot, OnnxNegativeLogLikelihoodLoss,
     OnnxOr,
     OnnxPad, OnnxPow, OnnxPRelu,
     OnnxQLinearConv, OnnxQuantizeLinear,
@@ -118,6 +120,8 @@ from mlprodict.onnxrt.ops_cpu.op_constant import Constant_12, Constant_11, Const
 from mlprodict.onnxrt.ops_shape.shape_excs import ShapeInferenceException
 from mlprodict.plotting.text_plot import onnx_simple_text_plot
 from mlprodict import __max_supported_opset__ as TARGET_OPSET, get_ir_version
+from mlprodict.onnxrt.ops_cpu.op_negative_log_likelihood_loss import (
+    _compute_negative_log_likelihood_loss)
 
 from skl2onnx.common.data_types import (  # pylint: disable=C0412
     FloatTensorType, Int64TensorType, DoubleTensorType, StringTensorType,
@@ -709,7 +713,7 @@ class TestOnnxrtPythonRuntime(ExtTestCase):  # pylint: disable=R0904
             if onnx_cl == OnnxDet:
                 self.assertEqual(shape['X'].dtype, shape['Y'].dtype)
                 self.assertEqual(shape['Y'].shape, [])
-            elif onnx_cl == OnnxIsNaN:
+            elif onnx_cl in (OnnxIsNaN, OnnxIsInf):
                 self.assertEqual(shape['X'].shape, shape['Y'].shape)
                 self.assertEqual(shape['Y'].dtype, numpy.bool_)
             else:
@@ -2888,6 +2892,45 @@ class TestOnnxrtPythonRuntime(ExtTestCase):  # pylint: disable=R0904
         self.common_test_onnxt_runtime_unary(OnnxIsNaN, numpy.isnan)
 
     @wraplog()
+    def test_onnxt_runtime_isinf(self):
+        self.common_test_onnxt_runtime_unary(OnnxIsInf, numpy.isinf)
+
+    @wraplog()
+    def test_onnxt_runtime_isinf_cases(self):
+        X = numpy.array([1, numpy.inf, -numpy.inf], dtype=numpy.float32)
+
+        onx = OnnxIsInf('X', output_names=['Y'], op_version=TARGET_OPSET)
+        model_def = onx.to_onnx({'X': X}, target_opset=TARGET_OPSET)
+        oinf = OnnxInference(model_def)
+        got = oinf.run({'X': X})
+        exp = numpy.array([False, True, True])
+        self.assertEqualArray(got['Y'], exp)
+
+        onx = OnnxIsInf('X', output_names=['Y'], op_version=TARGET_OPSET,
+                        detect_positive=0)
+        model_def = onx.to_onnx({'X': X}, target_opset=TARGET_OPSET)
+        oinf = OnnxInference(model_def)
+        got = oinf.run({'X': X})
+        exp = numpy.array([False, True, False])
+        self.assertEqualArray(got['Y'], exp)
+
+        onx = OnnxIsInf('X', output_names=['Y'], op_version=TARGET_OPSET,
+                        detect_negative=0)
+        model_def = onx.to_onnx({'X': X}, target_opset=TARGET_OPSET)
+        oinf = OnnxInference(model_def)
+        got = oinf.run({'X': X})
+        exp = numpy.array([False, False, True])
+        self.assertEqualArray(got['Y'], exp)
+
+        onx = OnnxIsInf('X', output_names=['Y'], op_version=TARGET_OPSET,
+                        detect_positive=0, detect_negative=0)
+        model_def = onx.to_onnx({'X': X}, target_opset=TARGET_OPSET)
+        oinf = OnnxInference(model_def)
+        got = oinf.run({'X': X})
+        exp = numpy.array([False, False, False])
+        self.assertEqualArray(got['Y'], exp)
+
+    @wraplog()
     def test_onnxt_runtime_leaky_relu(self):
         self.common_test_onnxt_runtime_unary(
             OnnxLeakyRelu, lambda x: numpy.where(x > 0, x, x * 0.01))
@@ -3153,6 +3196,45 @@ class TestOnnxrtPythonRuntime(ExtTestCase):  # pylint: disable=R0904
     @wraplog()
     def test_onnxt_runtime_neg(self):
         self.common_test_onnxt_runtime_unary(OnnxNeg, numpy.negative)
+
+    @wraplog()
+    def test_negative_log_likelihood_loss(self):
+
+        def _make_model(node, opset=15):
+            ginputs = [
+                onnx.helper.make_tensor_value_info(
+                    name, (TensorProto.FLOAT if i % 2 == 0 else TensorProto.INT64), [])
+                for i, name in enumerate(node.input)]
+            goutputs = [
+                onnx.helper.make_tensor_value_info(o, TensorProto.FLOAT, [])
+                for o in node.output]
+            model_def = onnx.helper.make_model(
+                opset_imports=[onnx.helper.make_operatorsetid('', opset)],
+                graph=onnx.helper.make_graph(
+                    name='test_softmax_cross_entropy_loss',
+                    inputs=ginputs, outputs=goutputs,
+                    nodes=[node]))
+            return model_def
+
+        node = onnx.helper.make_node(
+            'NegativeLogLikelihoodLoss', inputs=['x', 'target'], outputs=['z'],
+            reduction='mean')
+        model_def = _make_model(node)
+
+        N, C = 3, 5
+        numpy.random.seed(0)
+        x = numpy.random.rand(N, C).astype(numpy.float32)
+        target = numpy.random.randint(0, high=C, size=(N, )).astype(numpy.int64)
+
+        outputs = compute_negative_log_likelihood_loss(x, target, weight=None, reduction='mean')
+        outputs_2 = _compute_negative_log_likelihood_loss(x, target, weight=None, reduction=b'mean')
+        self.assertEqualArray(outputs, outputs_2)
+
+        oinf = OnnxInference(model_def)
+        got = oinf.run({'x': x, 'target': target})
+        self.assertEqual(len(got), 1)
+        self.assertEqualArray(outputs, got['z'])
+        python_tested.append(OnnxNegativeLogLikelihoodLoss)
 
     @wraplog()
     def test_onnxt_runtime_not(self):
@@ -4720,5 +4802,5 @@ class TestOnnxrtPythonRuntime(ExtTestCase):  # pylint: disable=R0904
 
 if __name__ == "__main__":
     # Working
-    # TestOnnxrtPythonRuntime().test_onnxt_runtime_cum_sum()
+    # TestOnnxrtPythonRuntime().test_negative_log_likelihood_loss()
     unittest.main(verbosity=2)

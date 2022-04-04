@@ -68,6 +68,7 @@ from .op_hard_sigmoid import HardSigmoid
 from .op_floor import Floor
 from .op_identity import Identity
 from .op_if import If
+from .op_isinf import IsInf
 from .op_imputer import Imputer
 from .op_isnan import IsNaN
 from .op_label_encoder import LabelEncoder
@@ -87,6 +88,7 @@ from .op_min import Min
 from .op_mod import Mod
 from .op_mul import Mul
 from .op_neg import Neg
+from .op_negative_log_likelihood_loss import NegativeLogLikelihoodLoss
 from .op_normalizer import Normalizer
 from .op_not import Not
 from .op_one_hot_encoder import OneHotEncoder
@@ -120,7 +122,7 @@ from .op_rnn import RNN
 from .op_scaler import Scaler
 from .op_scan import Scan
 from .op_scatter_elements import ScatterElements
-from .op_sce import SoftmaxCrossEntropyLoss
+from .op_softmax_cross_entropy_loss import SoftmaxCrossEntropyLoss
 from .op_selu import Selu
 from .op_sequence_at import SequenceAt
 from .op_sequence_construct import SequenceConstruct
