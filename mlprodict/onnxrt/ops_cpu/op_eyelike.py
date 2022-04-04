@@ -44,5 +44,5 @@ class EyeLike(OpRun):
     def to_python(self, inputs):
         return (
             "import numpy",
-            "return numpy.eye(*%s, k=%d, dtype=numpy.%s)" % (
+            "return numpy.eye(*(%s.shape), k=%d, dtype=numpy.%s)" % (
                 inputs[0], self.k, dtype_name(self.dtype_)))

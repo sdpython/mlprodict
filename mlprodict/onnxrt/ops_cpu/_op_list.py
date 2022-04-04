@@ -68,6 +68,7 @@ from .op_hard_sigmoid import HardSigmoid
 from .op_floor import Floor
 from .op_identity import Identity
 from .op_if import If
+from .op_isinf import IsInf
 from .op_imputer import Imputer
 from .op_isnan import IsNaN
 from .op_label_encoder import LabelEncoder

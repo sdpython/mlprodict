@@ -48,7 +48,7 @@ from skl2onnx.algebra.onnx_ops import (  # pylint: disable=E0611
     OnnxFlatten, OnnxFloor,
     OnnxGreater, OnnxGreaterOrEqual, OnnxGemm, OnnxGlobalAveragePool,
     OnnxHardmax, OnnxHardSigmoid, OnnxHardSwish,
-    OnnxIdentity, OnnxIsNaN,
+    OnnxIdentity, OnnxIsInf, OnnxIsNaN,
     OnnxLeakyRelu, OnnxLess, OnnxLessOrEqual,
     OnnxLog, OnnxLogSoftmax, OnnxLpNormalization,
     OnnxMatMul, OnnxMax, OnnxMaxPool, OnnxMean, OnnxMin, OnnxMod, OnnxMul,
@@ -709,7 +709,7 @@ class TestOnnxrtPythonRuntime(ExtTestCase):  # pylint: disable=R0904
             if onnx_cl == OnnxDet:
                 self.assertEqual(shape['X'].dtype, shape['Y'].dtype)
                 self.assertEqual(shape['Y'].shape, [])
-            elif onnx_cl == OnnxIsNaN:
+            elif onnx_cl in (OnnxIsNaN, OnnxIsInf):
                 self.assertEqual(shape['X'].shape, shape['Y'].shape)
                 self.assertEqual(shape['Y'].dtype, numpy.bool_)
             else:
@@ -2886,6 +2886,45 @@ class TestOnnxrtPythonRuntime(ExtTestCase):  # pylint: disable=R0904
     @wraplog()
     def test_onnxt_runtime_isnan(self):
         self.common_test_onnxt_runtime_unary(OnnxIsNaN, numpy.isnan)
+
+    @wraplog()
+    def test_onnxt_runtime_isinf(self):
+        self.common_test_onnxt_runtime_unary(OnnxIsInf, numpy.isinf)
+
+    @wraplog()
+    def test_onnxt_runtime_isinf_cases(self):
+        X = numpy.array([1, numpy.inf, -numpy.inf], dtype=numpy.float32)
+
+        onx = OnnxIsInf('X', output_names=['Y'], op_version=TARGET_OPSET)
+        model_def = onx.to_onnx({'X': X}, target_opset=TARGET_OPSET)
+        oinf = OnnxInference(model_def)
+        got = oinf.run({'X': X})
+        exp = numpy.array([False, True, True])
+        self.assertEqualArray(got['Y'], exp)
+
+        onx = OnnxIsInf('X', output_names=['Y'], op_version=TARGET_OPSET,
+                        detect_positive=0)
+        model_def = onx.to_onnx({'X': X}, target_opset=TARGET_OPSET)
+        oinf = OnnxInference(model_def)
+        got = oinf.run({'X': X})
+        exp = numpy.array([False, True, False])
+        self.assertEqualArray(got['Y'], exp)
+
+        onx = OnnxIsInf('X', output_names=['Y'], op_version=TARGET_OPSET,
+                        detect_negative=0)
+        model_def = onx.to_onnx({'X': X}, target_opset=TARGET_OPSET)
+        oinf = OnnxInference(model_def)
+        got = oinf.run({'X': X})
+        exp = numpy.array([False, False, True])
+        self.assertEqualArray(got['Y'], exp)
+
+        onx = OnnxIsInf('X', output_names=['Y'], op_version=TARGET_OPSET,
+                        detect_positive=0, detect_negative=0)
+        model_def = onx.to_onnx({'X': X}, target_opset=TARGET_OPSET)
+        oinf = OnnxInference(model_def)
+        got = oinf.run({'X': X})
+        exp = numpy.array([False, False, False])
+        self.assertEqualArray(got['Y'], exp)
 
     @wraplog()
     def test_onnxt_runtime_leaky_relu(self):

@@ -12,7 +12,7 @@ from ._element_unary import (
     shape_clip, shape_cos, shape_cosh,
     shape_elu, shape_erf, shape_exp, shape_floor,
     shape_hardmax, shape_hardsigmoid,
-    shape_identity, shape_isnan,
+    shape_identity, shape_isinf, shape_isnan,
     shape_leakyrelu, shape_log, shape_logsoftmax,
     shape_neg, shape_not, shape_reciprocal, shape_relu, shape_round,
     shape_selu,
