@@ -4228,7 +4228,7 @@ class TestOnnxrtPythonRuntime(ExtTestCase):  # pylint: disable=R0904
         gamma = 1.05070102214813232421875
         self.common_test_onnxt_runtime_unary(
             OnnxSelu, lambda x: numpy.where(
-                x > 0, x * gamma, numpy.exp(x) * alpha - alpha))
+                x > 0, x, numpy.exp(x) * alpha - alpha) * gamma)
 
     @wraplog()
     def test_onnxt_runtime_sequence_at(self):

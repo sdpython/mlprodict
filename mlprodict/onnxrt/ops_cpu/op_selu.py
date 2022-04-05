@@ -19,12 +19,13 @@ class Selu(OpRunUnaryNum):
                                **options)
 
     def _run(self, x):  # pylint: disable=W0221
-        return (numpy.where(x > 0, x * self.gamma,
-                            numpy.exp(x) * self.alpha - self.alpha), )
+        return (numpy.where(
+            x > 0, x,
+            numpy.exp(x) * self.alpha - self.alpha) * self.gamma, )
 
     def to_python(self, inputs):
         return (
             "import numpy",
-            ("return numpy.where({0} > 0, {0} * {1}, "
-             "numpy.exp({0}) * {2} - {2})").format(
+            ("return numpy.where({0} > 0, {0}, "
+             "numpy.exp({0}) * {2} - {2}) * {1}").format(
                 inputs[0], self.gamma, self.alpha))
