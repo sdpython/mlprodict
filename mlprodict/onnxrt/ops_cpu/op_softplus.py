@@ -5,7 +5,7 @@
 @brief Runtime operator.
 """
 import numpy
-from ._op import OpRunBinaryNum
+from ._op import OpRunUnaryNum
 
 
 class Softplus(OpRunUnaryNum):
