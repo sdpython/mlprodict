@@ -72,7 +72,7 @@ from skl2onnx.algebra.onnx_ops import (  # pylint: disable=E0611
     OnnxRound,
     OnnxScatterElements,
     OnnxSelu, OnnxSequenceAt, OnnxSequenceConstruct,
-    OnnxShape, OnnxSlice, OnnxSigmoid, OnnxSign,
+    OnnxShape, OnnxShrink, OnnxSlice, OnnxSigmoid, OnnxSign,
     OnnxSin, OnnxSinh,
     OnnxSize, OnnxSoftmax, OnnxSoftmaxCrossEntropyLoss,
     OnnxSoftplus, OnnxSoftsign,
@@ -4283,6 +4283,16 @@ class TestOnnxrtPythonRuntime(ExtTestCase):  # pylint: disable=R0904
         self.common_expected_shapes_types(
             oinf, {'X': x}, got, OnnxShape, model_def)
         python_tested.append(OnnxShape)
+
+    @wraplog()
+    def test_onnxt_runtime_shrink(self):
+
+        def loc(x, bias=0, lambd=0.5):
+            return numpy.where(
+                x < -lambd, x + bias,
+                numpy.where(x > lambd, x - bias, 0))
+
+        self.common_test_onnxt_runtime_unary(OnnxShrink, loc)
 
     @wraplog()
     def test_onnxt_runtime_sigmoid(self):

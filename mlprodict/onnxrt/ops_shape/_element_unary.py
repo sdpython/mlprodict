@@ -199,6 +199,11 @@ def shape_selu(known_shapes, node):
     return _element_unary(known_shapes, node)
 
 
+def shape_shrink(known_shapes, node):
+    "Infers shape for operator Shrink."
+    return _element_unary(known_shapes, node)
+
+
 def shape_sigmoid(known_shapes, node):
     "Infers shape for operator Sigmoid."
     return _element_unary(known_shapes, node)

@@ -129,6 +129,7 @@ from .op_sequence_at import SequenceAt
 from .op_sequence_construct import SequenceConstruct
 from .op_sequence_insert import SequenceInsert
 from .op_shape import Shape
+from .op_shrink import Shrink
 from .op_sigmoid import Sigmoid
 from .op_sign import Sign
 from .op_sin import Sin
