@@ -208,7 +208,7 @@ class TestOnnxConvTreeEnsemble(ExtTestCase):
                                 exp, got['probabilities'].ravel(), decimal=decimal)
                         except AssertionError as e:
                             if (dtype != numpy.float64 or
-                                    gbm.__class__  == HistGradientBoostingClassifier):
+                                    gbm.__class__ == HistGradientBoostingClassifier):
                                 # DecisionTree, RandomForest are comparing
                                 # a double threshold and a float feature,
                                 # the comparison may introduce discrepancies if
