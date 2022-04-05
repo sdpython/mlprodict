@@ -15,6 +15,7 @@ from scipy.special import (  # pylint: disable=E0611
 from scipy.spatial.distance import cdist
 import onnx
 from onnx.backend.test.case.node.softmaxcrossentropy import softmaxcrossentropy
+from onnx.backend.test.case.node.unique import specify_int64
 from onnx.backend.test.case.node.negativeloglikelihoodloss import (
     compute_negative_log_likelihood_loss)
 from onnx import TensorProto, __version__ as onnx_version
@@ -78,7 +79,7 @@ from skl2onnx.algebra.onnx_ops import (  # pylint: disable=E0611
     OnnxSqrt, OnnxSub, OnnxSum,
     OnnxSqueeze, OnnxSqueezeApi11,
     OnnxTan, OnnxTanh, OnnxTopK, OnnxTranspose, OnnxTrilu,
-    OnnxUnsqueeze, OnnxUnsqueezeApi11,
+    OnnxUnique, OnnxUnsqueeze, OnnxUnsqueezeApi11,
     OnnxXor
 )
 try:
@@ -4795,6 +4796,72 @@ class TestOnnxrtPythonRuntime(ExtTestCase):  # pylint: disable=R0904
             OnnxTrilu, lambda x: numpy.triu(x, 0))
 
     @wraplog()
+    def test_onnxt_runtime_unique(self):
+        x = numpy.array([2.0, 1.0, 1.0, 3.0, 4.0, 3.0], dtype=numpy.float32)
+
+        # sorted_without_axis
+        onx = OnnxUnique('X', op_version=TARGET_OPSET,
+                         output_names=['Y', 'indices', 'inverse_indices', 'counts'])
+        model_def = onx.to_onnx({'X': x.astype(numpy.float32)},
+                                target_opset=TARGET_OPSET)
+        self._check_shape_inference(OnnxTranspose, model_def)
+        oinf = OnnxInference(model_def)
+        got = oinf.run({'X': x})
+        self.assertEqual(list(sorted(got)), ['Y', 'counts', 'indices', 'inverse_indices'])
+
+        y, indices, inverse_indices, counts = numpy.unique(x, True, True, True)
+        indices, inverse_indices, counts = specify_int64(indices, inverse_indices, counts)
+        self.assertEqualArray(y, got['Y'])
+        self.assertEqualArray(indices, got['indices'])
+        self.assertEqualArray(inverse_indices, got['inverse_indices'])
+        self.assertEqualArray(counts, got['counts'])
+
+        # sorted_with_axis
+        x = numpy.array([[1, 0, 0], [1, 0, 0], [2, 3, 4]], dtype=numpy.float32)
+        onx = OnnxUnique('X', op_version=TARGET_OPSET, sorted=1, axis=0,
+                         output_names=['Y', 'indices', 'inverse_indices', 'counts'])
+        model_def = onx.to_onnx({'X': x.astype(numpy.float32)},
+                                target_opset=TARGET_OPSET)
+        self._check_shape_inference(OnnxTranspose, model_def)
+        oinf = OnnxInference(model_def)
+        got = oinf.run({'X': x})
+        self.assertEqual(list(sorted(got)), ['Y', 'counts', 'indices', 'inverse_indices'])
+
+        y, indices, inverse_indices, counts = numpy.unique(x, True, True, True, axis=0)
+        indices, inverse_indices, counts = specify_int64(indices, inverse_indices, counts)
+        self.assertEqualArray(y, got['Y'])
+        self.assertEqualArray(indices, got['indices'])
+        self.assertEqualArray(inverse_indices, got['inverse_indices'])
+        self.assertEqualArray(counts, got['counts'])
+
+        # not_sorted_without_axis
+        x = numpy.array([2.0, 1.0, 1.0, 3.0, 4.0, 3.0], dtype=numpy.float32)
+        onx = OnnxUnique('X', op_version=TARGET_OPSET, sorted=0,
+                         output_names=['Y', 'indices', 'inverse_indices', 'counts'])
+        model_def = onx.to_onnx({'X': x.astype(numpy.float32)},
+                                target_opset=TARGET_OPSET)
+        self._check_shape_inference(OnnxTranspose, model_def)
+        oinf = OnnxInference(model_def)
+        got = oinf.run({'X': x})
+        self.assertEqual(list(sorted(got)), ['Y', 'counts', 'indices', 'inverse_indices'])
+
+        y, indices, inverse_indices, counts = numpy.unique(x, True, True, True)
+        argsorted_indices = numpy.argsort(indices)
+        inverse_indices_map = {i: si for i, si in zip(argsorted_indices, numpy.arange(len(argsorted_indices)))}
+        indices = indices[argsorted_indices]
+        y = numpy.take(x, indices, axis=0)
+        inverse_indices = numpy.asarray([inverse_indices_map[i] for i in inverse_indices], dtype=numpy.int64)
+        counts = counts[argsorted_indices]
+        indices, inverse_indices, counts = specify_int64(indices, inverse_indices, counts)
+
+        self.assertEqualArray(y, got['Y'])
+        self.assertEqualArray(indices, got['indices'])
+        self.assertEqualArray(inverse_indices, got['inverse_indices'])
+        self.assertEqualArray(counts, got['counts'])
+
+        python_tested.append(OnnxTranspose)
+
+    @wraplog()
     def test_onnxt_runtime_xor(self):
         self.common_test_onnxt_runtime_binary(
             OnnxXor, numpy.logical_xor, dtype=numpy.bool_)
@@ -4802,5 +4869,5 @@ class TestOnnxrtPythonRuntime(ExtTestCase):  # pylint: disable=R0904
 
 if __name__ == "__main__":
     # Working
-    # TestOnnxrtPythonRuntime().test_negative_log_likelihood_loss()
+    # TestOnnxrtPythonRuntime().test_onnxt_runtime_unique()
     unittest.main(verbosity=2)
