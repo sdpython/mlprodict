@@ -25,7 +25,7 @@ class Cast(OpRun):
         self._cast = lambda x: x.astype(self._dtype)
 
     def _run(self, x):  # pylint: disable=W0221
-        if self.inplaces.get(0, False):
+        if self.inplaces.get(0, False) and x.flags['WRITEABLE']:
             return self._run_inplace(x)
         return (self._cast(x), )
 
@@ -51,7 +51,7 @@ class CastLike(OpRun):
         OpRun.__init__(self, onnx_node, desc=desc, **options)
 
     def _run(self, x, y):  # pylint: disable=W0221
-        if self.inplaces.get(0, False):
+        if self.inplaces.get(0, False) and x.flags['WRITEABLE']:
             return self._run_inplace(x, y)
         return (x.astype(y.dtype), )
 

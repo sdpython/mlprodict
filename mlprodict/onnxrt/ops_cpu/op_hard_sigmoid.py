@@ -18,7 +18,7 @@ class HardSigmoid(OpRunUnaryNum):
                                **options)
 
     def _run(self, x):  # pylint: disable=W0221
-        if self.inplaces.get(0, False):
+        if self.inplaces.get(0, False) and x.flags['WRITEABLE']:
             return self._run_inplace(x)
         y = numpy.maximum(0, numpy.minimum(1, x * self.alpha + self.beta))
         return (y, )

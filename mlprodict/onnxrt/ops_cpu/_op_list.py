@@ -136,6 +136,8 @@ from .op_size import Size
 from .op_slice import Slice, Slice_1, Slice_10
 from .op_split import Split, Split_2, Split_11, Split_13
 from .op_softmax import Softmax, SoftmaxGrad, SoftmaxGrad_13
+from .op_softplus import Softplus
+from .op_softsign import Softsign
 from .op_solve import Solve
 from .op_sqrt import Sqrt
 from .op_squeeze import Squeeze, Squeeze_1, Squeeze_11, Squeeze_13

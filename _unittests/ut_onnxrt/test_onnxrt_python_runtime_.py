@@ -75,6 +75,7 @@ from skl2onnx.algebra.onnx_ops import (  # pylint: disable=E0611
     OnnxShape, OnnxSlice, OnnxSigmoid, OnnxSign,
     OnnxSin, OnnxSinh,
     OnnxSize, OnnxSoftmax, OnnxSoftmaxCrossEntropyLoss,
+    OnnxSoftplus, OnnxSoftsign,
     OnnxSplit, OnnxSplitApi11,
     OnnxSqrt, OnnxSub, OnnxSum,
     OnnxSqueeze, OnnxSqueezeApi11,
@@ -4593,6 +4594,18 @@ class TestOnnxrtPythonRuntime(ExtTestCase):  # pylint: disable=R0904
         self.assertEqual(len(got), 2)
         self.assertEqualArray(outputs[0], got['z'])
         self.assertEqualArray(outputs[1], got['log_prob'])
+
+    @wraplog()
+    def test_onnxt_runtime_softplus(self):
+        def sp(x):
+            return numpy.log(numpy.exp(x) + 1)
+        self.common_test_onnxt_runtime_unary(OnnxSoftplus, sp)
+
+    @wraplog()
+    def test_onnxt_runtime_softsign(self):
+        def sp(x):
+            return x / (numpy.abs(x) + 1)
+        self.common_test_onnxt_runtime_unary(OnnxSoftsign, sp)
 
     @wraplog()
     def test_onnxt_runtime_sub(self):
