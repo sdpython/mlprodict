@@ -19,7 +19,7 @@ class Softmax(OpRunUnaryNum):
                                **options)
 
     def _run(self, X):  # pylint: disable=W0221
-        if self.inplaces.get(0, False):
+        if self.inplaces.get(0, False) and X.flags['WRITEABLE']:
             return self._run_inplace(X)
         tmp = X - X.max(axis=self.axis, keepdims=1)
         Y = numpy.exp(tmp)

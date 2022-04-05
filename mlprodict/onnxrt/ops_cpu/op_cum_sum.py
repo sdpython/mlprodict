@@ -24,7 +24,7 @@ class CumSum(OpRun):
             if self.reverse or self.exclusive:
                 raise NotImplementedError(  # pragma no cover
                     'reverse=1 or exclusive=1 not implemented')
-            if self.inplaces.get(0, False):
+            if self.inplaces.get(0, False) and x.flags['WRITEABLE']:
                 return (numpy.cumsum(x, out=x), )
             return (numpy.cumsum(x), )
         if not isinstance(axis, (numpy.int32, numpy.int64)):
@@ -47,7 +47,7 @@ class CumSum(OpRun):
             res = numpy.zeros(x.shape, dtype=x.dtype)
             numpy.cumsum(x[indices_c], axis=axis, out=res[indices_d])
         else:
-            if self.inplaces.get(0, False):
+            if self.inplaces.get(0, False) and x.flags['WRITEABLE']:
                 res = numpy.cumsum(x, axis=axis, out=x)
             else:
                 res = numpy.cumsum(x, axis=axis)

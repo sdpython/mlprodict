@@ -721,7 +721,7 @@ class OpRunBinaryNumpy(OpRunBinaryNum):
         if (self._cannot_inplace_int and
                 numpy.issubdtype(a.dtype, numpy.integer)):
             return (self.numpy_fct(a, b), )
-        if self.inplaces.get(0, False) and a.size >= b.size:
+        if self.inplaces.get(0, False) and a.flags['WRITEABLE'] and a.size >= b.size:
             if len(a.shape) == 1 and b.shape == (1, 1):
                 a = a.reshape(1, a.shape[0])
             try:
@@ -729,7 +729,7 @@ class OpRunBinaryNumpy(OpRunBinaryNum):
                 return (a, )
             except (ValueError, TypeError):
                 return (self.numpy_fct(a, b), )
-        if self.inplaces.get(1, False) and a.size <= b.size:
+        if self.inplaces.get(1, False) and b.flags['WRITEABLE'] and a.size <= b.size:
             if len(b.shape) == 1 and a.shape == (1, 1):
                 b = b.reshape(b.shape[0], 1)
             try:

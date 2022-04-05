@@ -19,7 +19,7 @@ class Compress(OpRun):
                        **options)
 
     def _run(self, x, condition):  # pylint: disable=W0221
-        if self.inplaces.get(0, False):
+        if self.inplaces.get(0, False) and x.flags['WRITEABLE']:
             return (numpy.compress(condition, x, axis=self.axis, out=x), )
         return (numpy.compress(condition, x, axis=self.axis), )
 

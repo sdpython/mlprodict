@@ -224,6 +224,16 @@ def shape_softmax(known_shapes, node):
     return _element_unary(known_shapes, node)
 
 
+def shape_softplus(known_shapes, node):
+    "Infers shape for operator Softplus."
+    return _element_unary(known_shapes, node)
+
+
+def shape_softsign(known_shapes, node):
+    "Infers shape for operator Softsign."
+    return _element_unary(known_shapes, node)
+
+
 def shape_sqrt(known_shapes, node):
     "Infers shape for operator Sqrt."
     return _element_unary(known_shapes, node)

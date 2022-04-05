@@ -21,7 +21,7 @@ class Clip_6(OpRunUnaryNum):
                                **options)
 
     def _run(self, data):  # pylint: disable=W0221
-        if self.inplaces.get(0, False):
+        if self.inplaces.get(0, False) and data.flags['WRITEABLE']:
             return self._run_inplace(data)
         res = numpy.clip(data, self.min, self.max)
         return (res, ) if res.dtype == data.dtype else (res.astype(data.dtype), )
@@ -60,7 +60,7 @@ class Clip_11(OpRunUnaryNum):
         return res
 
     def _run(self, data, *minmax):  # pylint: disable=W0221
-        if self.inplaces.get(0, False):
+        if self.inplaces.get(0, False) and data.flags['WRITEABLE']:
             return self._run_inplace(data, *minmax)
         le = len(minmax)
         amin = minmax[0] if le > 0 else None  # -3.4028234663852886e+38
