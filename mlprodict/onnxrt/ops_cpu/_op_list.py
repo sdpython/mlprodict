@@ -59,6 +59,7 @@ from .op_fft2d import FFT2D
 from .op_flatten import Flatten
 from .op_fused_matmul import FusedMatMul
 from .op_gather import Gather
+from .op_gathernd import GatherND
 from .op_gather_elements import GatherElements
 from .op_gemm import Gemm
 from .op_global_average_pool import GlobalAveragePool
