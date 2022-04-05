@@ -5,8 +5,42 @@
 History
 =======
 
-current - 2022-03-10 - 0.00Mb
+current - 2022-04-05 - 0.00Mb
 =============================
+
+* #409: Fixes bug with EyeLike in python runtime (2022-04-04)
+* #408: Improves backtest coverage, update documentation (2022-04-03)
+* #406: Supports operator Bernoulli for python runtime (2022-03-30)
+* #407: Supports operator Hardmax for python runtime (2022-03-30)
+* #401: Removes parameter device, adds parameter provider (2022-03-30)
+* #404: Fixes Trilu (2022-03-30)
+* #403: Supports ReduceLogSum for python runtime (2022-03-30)
+* #405: Supports operator PRelu for python runtime (2022-03-30)
+* #402: Supports operator Xor for python runtime (2022-03-30)
+* #400: Supports local functions calling local functions for python runtime (2022-03-28)
+* #399: Supports function SoftmaxCrossEntropyLoss for python runtime (2022-03-28)
+* #396: Move grammar_sklearn to subfolder. (2022-03-27)
+* #397: Implements method f in OnnxOperatorItem (2022-03-27)
+* #395: Supports eager evaluation in XOP API (2022-03-27)
+* #394: Enables expression OnnxCos[15](...) (2022-03-26)
+* #392: Supports random operators for python runtime (2022-03-25)
+* #393: Adds domain in function onnx_simple_text_plot (2022-03-25)
+* #391: Adds support for onnx predefined functions for python runtime (2022-03-24)
+* #387: Supports operator Elu for python runtime (2022-03-23)
+* #390: Adds support for operator HardSigmoid for python runtime (2022-03-23)
+* #389: Adds support for operator Selu for python runtime (2022-03-23)
+* #388: Adds support for operator Trilu in python runtime (2022-03-23)
+* #386: Supports operator BitShift for python runtime (2022-03-23)
+* #384: Supports FunctionProto in XOP API. (2022-03-21)
+* #383: Improves python runtime for ONNX (2022-03-19)
+* #382: Adds one unit test to check lightgbm conversion with opsetml==3 (2022-03-18)
+* #381: Documentation, more notebooks on FFT (2022-03-17)
+* #380: Removes method get_output in xop API (2022-03-16)
+* #379: Improves python runtime coverage (2022-03-14)
+* #378: Adds function export2xop, exports onnx graph to XOP API (2022-03-12)
+
+0.8.1762 - 2022-03-10 - 2.01Mb
+==============================
 
 * #377: Implements TreeEnsemble* for opsetml==3 (2022-03-10)
 * #376: Avoids one circular import. (2022-03-07)
@@ -337,10 +371,6 @@ current - 2022-03-10 - 0.00Mb
 * #114: Add more parameters to specify benchmark time (2020-03-30)
 * #113: Add operators for opset 12 (2020-03-26)
 * #112: Number of feature is wrong for problem num-tr-clus (2020-03-20)
-
-0.3.1029 - 2020-03-17 - 0.28Mb
-==============================
-
 * #111: Reduce the number of allocation in TreeEnsemble when it is parallelized (cache) (2020-03-13)
 * #110: Implements runtime for operator Constant-12 (2020-03-06)
 * #109: Generate a benchmark with asv to compare different runtime. Update modules in asv. (2020-03-06)
