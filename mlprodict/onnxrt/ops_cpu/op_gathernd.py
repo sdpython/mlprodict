@@ -33,7 +33,7 @@ def _gather_nd_impl(data, indices, batch_dims):
         batch_dims_shape + list(indices.shape)[batch_dims:-1]
         if (indices.shape[-1] == data_rank - batch_dims)
         else batch_dims_shape + list(indices.shape)[batch_dims:-1] +
-            list(data.shape)[batch_dims + indices.shape[-1]:])
+        list(data.shape)[batch_dims + indices.shape[-1]:])
 
     # Placeholder for output data.
     output_data_buffer = []
@@ -49,7 +49,8 @@ def _gather_nd_impl(data, indices, batch_dims):
     for batch_dim in range(reshaped_indices.shape[0]):
         for outer_dim in range(reshaped_indices.shape[1]):
             gather_index = tuple(reshaped_indices[batch_dim][outer_dim])
-            output_data_buffer.append(reshaped_data[(batch_dim,) + gather_index])
+            output_data_buffer.append(
+                reshaped_data[(batch_dim,) + gather_index])
     return (numpy.asarray(output_data_buffer,
                           dtype=data.dtype).reshape(output_shape), )
 
@@ -67,7 +68,7 @@ class GatherND(OpRun):
                        **options)
 
     def _run(self, data, indices):  # pylint: disable=W0221
-        return _gather_nd_impl(data, indices, self.batch_dims)
+        return _gather_nd_impl(data, indices, self.batch_dims)  # pylint: disable=E1101
 
     def _infer_shapes(self, x, target, weight=None):  # pylint: disable=W0221
         return (ShapeObject(None, dtype=x.dtype), )
