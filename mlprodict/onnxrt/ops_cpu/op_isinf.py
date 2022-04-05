@@ -21,12 +21,11 @@ class IsInf(OpRunUnary):
         if self.detect_negative:
             if self.detect_positive:
                 return (numpy.isinf(data), )
-            return (numpy.isposinf(data), )
-        elif self.detect_positive:
             return (numpy.isneginf(data), )
-        else:
-            res = numpy.full(data.shape, dtype=numpy.bool_, fill_value=False)
-            return (res, )
+        if self.detect_positive:
+            return (numpy.isposinf(data), )
+        res = numpy.full(data.shape, dtype=numpy.bool_, fill_value=False)
+        return (res, )
 
     def _infer_shapes(self, x):  # pylint: disable=W0221
         return (x.copy(dtype=numpy.bool_), )

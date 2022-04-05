@@ -2913,7 +2913,7 @@ class TestOnnxrtPythonRuntime(ExtTestCase):  # pylint: disable=R0904
         model_def = onx.to_onnx({'X': X}, target_opset=TARGET_OPSET)
         oinf = OnnxInference(model_def)
         got = oinf.run({'X': X})
-        exp = numpy.array([False, True, False])
+        exp = numpy.array([False, False, True])
         self.assertEqualArray(got['Y'], exp)
 
         onx = OnnxIsInf('X', output_names=['Y'], op_version=TARGET_OPSET,
@@ -2921,7 +2921,7 @@ class TestOnnxrtPythonRuntime(ExtTestCase):  # pylint: disable=R0904
         model_def = onx.to_onnx({'X': X}, target_opset=TARGET_OPSET)
         oinf = OnnxInference(model_def)
         got = oinf.run({'X': X})
-        exp = numpy.array([False, False, True])
+        exp = numpy.array([False, True, False])
         self.assertEqualArray(got['Y'], exp)
 
         onx = OnnxIsInf('X', output_names=['Y'], op_version=TARGET_OPSET,
