@@ -69,7 +69,7 @@ def _compute_negative_log_likelihood_loss(x, target, weight=None,
         loss = gather_weight * loss
         if reduction == b'mean':
             loss = loss.sum() / gather_weight.sum()
-            return loss
+            return (loss, )
 
     if reduction == b'mean':
         loss = numpy.mean(loss)

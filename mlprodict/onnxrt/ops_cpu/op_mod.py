@@ -18,6 +18,8 @@ class Mod(OpRun):
                        **options)
 
     def _run(self, a, b):  # pylint: disable=W0221
+        if a.dtype in (numpy.float16, numpy.float32, numpy.float64):
+            return (numpy.nan_to_num(numpy.fmod(a, b)), )
         return (numpy.nan_to_num(numpy.mod(a, b)), )
 
     def _infer_shapes(self, x, b):  # pylint: disable=W0221

@@ -3,7 +3,7 @@
 """
 import os
 import unittest
-from numpy import array, float32, int64, int8, int32
+from numpy import array, float32, int64, int8, int32, uint8
 from onnx import TensorProto
 from onnx.helper import (
     make_model, make_node, set_model_props, make_graph,
@@ -1222,7 +1222,67 @@ class TestOnnxBackEnd(ExtTestCase):
             done += 1
         self.assertEqual(done, 1)
 
+    def test_enumerate_onnx_test_sce_mean_weight_expanded(self):
+        done = 0
+        for te in enumerate_onnx_tests(
+                'node', lambda folder: folder == 'test_sce_mean_weight_expanded'):
+            self.assertIn(te.name, repr(te))
+            self.assertGreater(len(te), 0)
+            te.run(TestOnnxBackEnd.load_fct, TestOnnxBackEnd.run_fct)
+            done += 1
+        self.assertEqual(done, 1)
+
+    def test_enumerate_onnx_test_shape_end(self):
+        done = 0
+        for te in enumerate_onnx_tests(
+                'node', lambda folder: folder == 'test_shape_end_1'):
+            self.assertIn(te.name, repr(te))
+            self.assertGreater(len(te), 0)
+            te.run(TestOnnxBackEnd.load_fct, TestOnnxBackEnd.run_fct)
+            done += 1
+        self.assertEqual(done, 1)
+
+    def test_enumerate_onnx_test_nonzero_example(self):
+        done = 0
+        for te in enumerate_onnx_tests(
+                'node', lambda folder: folder == 'test_nonzero_example'):
+            self.assertIn(te.name, repr(te))
+            self.assertGreater(len(te), 0)
+            te.run(TestOnnxBackEnd.load_fct, TestOnnxBackEnd.run_fct)
+            done += 1
+        self.assertEqual(done, 1)
+
+    def test_enumerate_onnx_test_mod_mixed_sign_float16(self):
+        done = 0
+        for te in enumerate_onnx_tests(
+                'node', lambda folder: folder == 'test_mod_mixed_sign_float16'):
+            self.assertIn(te.name, repr(te))
+            self.assertGreater(len(te), 0)
+            te.run(TestOnnxBackEnd.load_fct, TestOnnxBackEnd.run_fct)
+            done += 1
+        self.assertEqual(done, 1)
+
+    def test_enumerate_onnx_test_max_one_input(self):
+        done = 0
+        for te in enumerate_onnx_tests(
+                'node', lambda folder: folder == 'test_max_one_input'):
+            self.assertIn(te.name, repr(te))
+            self.assertGreater(len(te), 0)
+            te.run(TestOnnxBackEnd.load_fct, TestOnnxBackEnd.run_fct)
+            done += 1
+        self.assertEqual(done, 1)
+
+    def test_enumerate_onnx_test_eyelike_without_dtype(self):
+        done = 0
+        for te in enumerate_onnx_tests(
+                'node', lambda folder: folder == 'test_eyelike_without_dtype'):
+            self.assertIn(te.name, repr(te))
+            self.assertGreater(len(te), 0)
+            te.run(TestOnnxBackEnd.load_fct, TestOnnxBackEnd.run_fct)
+            done += 1
+        self.assertEqual(done, 1)
+
 
 if __name__ == "__main__":
-    # TestOnnxBackEnd().test_enumerate_onnx_test_isinf_negative()
+    # TestOnnxBackEnd().test_enumerate_onnx_test_eyelike_without_dtype()
     unittest.main()

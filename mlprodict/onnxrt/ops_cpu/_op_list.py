@@ -91,6 +91,7 @@ from .op_mul import Mul
 from .op_neg import Neg
 from .op_negative_log_likelihood_loss import NegativeLogLikelihoodLoss
 from .op_normalizer import Normalizer
+from .op_non_zero import NonZero
 from .op_not import Not
 from .op_one_hot_encoder import OneHotEncoder
 from .op_or import Or
