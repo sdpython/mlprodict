@@ -3,7 +3,7 @@
 """
 import os
 import unittest
-from numpy import array, float32, int64, int8, int32, uint8
+from numpy import array, float32, int64, int8, int32
 from onnx import TensorProto
 from onnx.helper import (
     make_model, make_node, set_model_props, make_graph,
@@ -1272,7 +1272,7 @@ class TestOnnxBackEnd(ExtTestCase):
             done += 1
         self.assertEqual(done, 1)
 
-    def test_enumerate_onnx_test_eyelike_without_dtype(self):
+    def test_enumerate_onnx_test_eyelike_without_dtype_2(self):
         done = 0
         for te in enumerate_onnx_tests(
                 'node', lambda folder: folder == 'test_eyelike_without_dtype'):

@@ -5,7 +5,6 @@
 @brief Runtime operator.
 """
 import numpy
-from onnx.defs import onnx_opset_version
 from ..shape_object import ShapeObject
 from ._op import OpRun
 
