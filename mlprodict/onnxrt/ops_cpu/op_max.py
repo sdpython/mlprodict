@@ -19,8 +19,8 @@ class Max(OpRunBinaryNumpy):
             return OpRunBinaryNumpy.run(self, *data)
         if len(data) == 1:
             if self.inplaces.get(0, False):
-                return (data, )
-            return (data.copy(), )
+                return (data[0], )
+            return (data[0].copy(), )
         if len(data) > 2:
             a = data[0]
             for i in range(1, len(data)):
