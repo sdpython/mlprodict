@@ -15,7 +15,7 @@ from ._element_unary import (
     shape_identity, shape_isinf, shape_isnan,
     shape_leakyrelu, shape_log, shape_logsoftmax,
     shape_neg, shape_not, shape_reciprocal, shape_relu, shape_round,
-    shape_selu,
+    shape_selu, shape_shrink,
     shape_sigmoid, shape_sign, shape_sin, shape_sinh, shape_softmax,
     shape_softplus, shape_softsign,
     shape_sqrt, shape_tan, shape_tanh, shape_trilu)
