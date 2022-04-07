@@ -32,7 +32,8 @@ def _is_out(ind, shape):
 
 def im2col_naive_implementation(data, kernel_shape, fill_value=0):
     """
-    Naive implementation for im2col.
+    Naive implementation for `im2col` or
+    :func:`torch.nn.Unfold` (but with `padding=1`).
 
     :param image: image (float)
     :param kernel_shape: kernel shape
@@ -67,6 +68,8 @@ def im2col_recursive(data, kernel_shape, fill_value=0, fall_back_dim=2):
     """
     Recursive implementation, falls back to
     @see fn im2col_naive_implementation for dimension `<= fall_back_dim`.
+    The function is equivalent to
+    :func:`torch.nn.Unfold` (but with `padding=1` on all dimensions).
 
     :param image: image (float)
     :param kernel_shape: kernel shape
@@ -107,7 +110,9 @@ def im2col_recursive(data, kernel_shape, fill_value=0, fall_back_dim=2):
 
 def im2col(data, kernel_shape=None, fill_value=0):
     """
-    Returns the result of Im2Col on a image `NHCW` where N is 1.
+    Returns the result of `im2col` on a image `NHCW` where N is 1.
+    The function is equivalent to
+    :func:`torch.nn.Unfold` (but with `padding=1` on all dimensions).
 
     :param image: image (float)
     :param kernel_shape: kernel shape

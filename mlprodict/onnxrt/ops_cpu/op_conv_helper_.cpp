@@ -46,20 +46,37 @@ void im2col_1d_inplace(
     const T* begin = data.data();
     size_t N = (size_t)data_shape[0];
     size_t k = p_kernel_shape[0];
+    size_t lag = k / 2;
+    ssize_t d;
     if (k >= N) {
-        
+        for (size_t i = 0; i < N; ++i) {
+            for (size_t j = 0; j < k; ++j) {
+                d = i + j - lag;
+                p_result[i * k + j] = d < 0 ? fill_value : (
+                    d >= (int)N ? fill_value : begin[d]);
+            }
+        }
     }
     else {
-        size_t i;
         size_t Nk = N - k;
-        for(i = 0; i < k; ++i) {
-            
+        size_t i;
+        for (i = 0; i < k; ++i) {
+            for (size_t j = 0; j < k; ++j) {
+                d = i + j - lag;
+                p_result[i * k + j] = d < 0 ? fill_value : (
+                    d >= (int)N ? fill_value : begin[d]);
+            }
         }
         for(; i < Nk; ++i) {
-        
+            d = i - lag;
+            std::copy(begin + d, begin + d + k, p_result + i * k);
         }
         for(; i < N; ++i) {
-        
+            for (size_t j = 0; j < k; ++j) {
+                d = i + j - lag;
+                p_result[i * k + j] = d < 0 ? fill_value : (
+                    d >= (int)N ? fill_value : begin[d]);
+            }
         }
     }
 }
@@ -79,7 +96,10 @@ in :epkg:`onnxruntime`.)pbdoc"
     ;
 
     m.def("im2col_1d_inplace_float", &im2col_1d_inplace<float>, "Applies im2col_1d on a single vector.",
-          py::arg("result"), py::arg("data"), py::arg("kernel_shape"), py::arg("fill_value"));
+          py::arg("result"), py::arg("data"), py::arg("kernel_shape"), py::arg("fill_value"),
+          R"pbdoc(The function duplicates the one dimensional tensor so that 
+the convolution can be done through a matrix multiplication. It returns 
+a matrix `Nxk` where *N* is the tensor dimension and *k* the kernal shape.)pbdoc");
 }
 
 #endif

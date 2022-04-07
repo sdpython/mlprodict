@@ -15,6 +15,18 @@ Implementation of ONNX operators
 
 Experimental implementations for algorithm.
 
+Conv
+^^^^
+
+Function `im2col` transforms an image in order to replace a convolution
+by a matrix multiplication.
+
+.. autosignature:: mlprodict.onnxrt.ops_cpu.op_conv_helper.im2col
+
+.. autosignature:: mlprodict.onnxrt.ops_cpu.op_conv_helper.im2col_naive_implementation
+
+.. autosignature:: mlprodict.onnxrt.ops_cpu.op_conv_helper.im2col_recursive
+
 Einsum
 ^^^^^^
 

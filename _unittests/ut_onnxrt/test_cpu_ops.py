@@ -193,7 +193,6 @@ class TestCpuOps(ExtTestCase):
         self.assertEqual(res2.shape, (9, 15))
         img2 = col2im_indices(res2, x_shape=img.shape)
         self.assertEqual(img.shape, img2.shape)
-        print(img.shape, res2.shape)
 
     def test_im2col(self):
         data = numpy.arange(5).astype(numpy.float32) + 10
@@ -202,6 +201,13 @@ class TestCpuOps(ExtTestCase):
         expected = numpy.array([[11, 10, 0], [12, 11, 10], [13, 12, 11],
                                 [14, 13, 12], [0, 14, 13]], dtype=numpy.float32)
         expected = expected[:, ::-1]
+        self.assertEqualArray(expected.astype(
+            numpy.int16), res.astype(numpy.int16))
+
+        data = numpy.arange(10).astype(numpy.float32) + 10
+        res = im2col(data, fill_value=0)
+        self.assertEqual(res.shape, (10, 3))
+        expected = im2col_naive_implementation(data, (3, ), fill_value=0)
         self.assertEqualArray(expected.astype(
             numpy.int16), res.astype(numpy.int16))
 

@@ -154,6 +154,8 @@ Versions
 Type conversion
 ===============
 
+You should look into :epkg:`ONNX mappings`.
+
 .. autosignature:: mlprodict.onnx_conv.convert.guess_initial_types
 
 .. autosignature:: mlprodict.onnx_tools.onnx2py_helper.guess_numpy_type_from_string
