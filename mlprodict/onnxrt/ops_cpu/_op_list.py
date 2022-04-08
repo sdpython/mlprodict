@@ -42,6 +42,7 @@ from .op_cosh import Cosh
 from .op_cum_sum import CumSum
 from .op_debug import DEBUG
 from .op_det import Det
+from .op_depth_to_space import DepthToSpace, SpaceToDepth
 from .op_dequantize_linear import DequantizeLinear
 from .op_dict_vectorizer import DictVectorizer
 from .op_div import Div
