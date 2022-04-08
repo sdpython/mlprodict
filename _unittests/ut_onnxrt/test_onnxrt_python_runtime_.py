@@ -4945,5 +4945,5 @@ class TestOnnxrtPythonRuntime(ExtTestCase):  # pylint: disable=R0904
 
 if __name__ == "__main__":
     # Working
-    # TestOnnxrtPythonRuntime().test_onnxt_runtime_unique()
+    # TestOnnxrtPythonRuntime().test_onnxt_runtime_space_to_depth()
     unittest.main(verbosity=2)
