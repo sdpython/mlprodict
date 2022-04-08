@@ -39,7 +39,7 @@ class DepthToSpace(OpRun):
         y = numpy.reshape(transposed, finalshape)
         return (y, )
 
-    def _infer_shapes(self, data):
+    def _infer_shapes(self, data):  # pylint: disable=W0221
         return (ShapeObject(None, dtype=data.dtype), )
 
 
@@ -66,5 +66,5 @@ class SpaceToDepth(OpRun):
         y = numpy.reshape(transposed, finalshape)
         return (y, )
 
-    def _infer_shapes(self, data):
+    def _infer_shapes(self, data):  # pylint: disable=W0221
         return (ShapeObject(None, dtype=data.dtype), )
