@@ -45,7 +45,7 @@ from skl2onnx.algebra.onnx_ops import (  # pylint: disable=E0611
     OnnxCos, OnnxCosh,
     OnnxCumSum,
     OnnxDequantizeLinear,
-    OnnxDet, OnnxDiv,
+    OnnxDepthToSpace, OnnxDet, OnnxDiv,
     OnnxDropout, OnnxDropout_7,
     OnnxEinsum, OnnxElu, OnnxEqual, OnnxErf, OnnxExp, OnnxExpand, OnnxEyeLike,
     OnnxFlatten, OnnxFloor,
@@ -72,11 +72,12 @@ from skl2onnx.algebra.onnx_ops import (  # pylint: disable=E0611
     OnnxRound,
     OnnxScatterElements,
     OnnxSelu, OnnxSequenceAt, OnnxSequenceConstruct,
-    OnnxShape, OnnxShrink, OnnxSlice, OnnxSigmoid, OnnxSign,
+    OnnxShape, OnnxShrink, OnnxSigmoid, OnnxSign,
     OnnxSin, OnnxSinh,
-    OnnxSize, OnnxSoftmax, OnnxSoftmaxCrossEntropyLoss,
+    OnnxSize, OnnxSlice,
+    OnnxSoftmax, OnnxSoftmaxCrossEntropyLoss,
     OnnxSoftplus, OnnxSoftsign,
-    OnnxSplit, OnnxSplitApi11,
+    OnnxSpaceToDepth, OnnxSplit, OnnxSplitApi11,
     OnnxSqrt, OnnxSub, OnnxSum,
     OnnxSqueeze, OnnxSqueezeApi11,
     OnnxTan, OnnxTanh, OnnxTopK, OnnxTranspose, OnnxTrilu,
@@ -2389,6 +2390,36 @@ class TestOnnxrtPythonRuntime(ExtTestCase):  # pylint: disable=R0904
                 pass
 
     @wraplog()
+    def test_onnxt_runtime_depth_to_space(self):
+        x = numpy.array(
+            [[[[0., 1., 2.], [3., 4., 5.]],
+              [[9., 10., 11.], [12., 13., 14.]],
+              [[18., 19., 20.], [21., 22., 23.]],
+              [[27., 28., 29.], [30., 31., 32.]],
+              [[36., 37., 38.], [39., 40., 41.]],
+              [[45., 46., 47.], [48., 49., 50.]],
+              [[54., 55., 56.], [57., 58., 59.]],
+              [[63., 64., 65.], [66., 67., 68.]]]]).astype(numpy.float32)
+        y = numpy.array(
+            [[[[0., 18., 1., 19., 2., 20.],
+               [36., 54., 37., 55., 38., 56.],
+               [3., 21., 4., 22., 5., 23.],
+               [39., 57., 40., 58., 41., 59.]],
+              [[9., 27., 10., 28., 11., 29.],
+               [45., 63., 46., 64., 47., 65.],
+               [12., 30., 13., 31., 14., 32.],
+               [48., 66., 49., 67., 50., 68.]]]]).astype(numpy.float32)
+        onx = OnnxDepthToSpace(
+            'X', output_names=['Y'], blocksize=2, mode='DCR',
+            op_version=TARGET_OPSET)
+        model_def = onx.to_onnx({'X': x}, target_opset=TARGET_OPSET)
+        oinf = OnnxInference(model_def)
+        got = oinf.run({'X': x})
+        self.assertEqual(list(sorted(got)), ['Y'])
+        self.assertEqualArray(y, got['Y'], decimal=5)
+        python_tested.append(OnnxDepthToSpace)
+
+    @wraplog()
     def test_onnxt_runtime_det(self):
         self.common_test_onnxt_runtime_unary(
             OnnxDet, lambda x: numpy.array([numpy.linalg.det(x)]),
@@ -4432,6 +4463,28 @@ class TestOnnxrtPythonRuntime(ExtTestCase):  # pylint: disable=R0904
                 self.assertEqualArray(y, got['Y'])
 
     @wraplog()
+    def test_onnxt_runtime_space_to_depth(self):
+        x = numpy.array(
+            [[[[0, 6, 1, 7, 2, 8],
+               [12, 18, 13, 19, 14, 20],
+               [3, 9, 4, 10, 5, 11],
+               [15, 21, 16, 22, 17, 23]]]]).astype(numpy.float32)
+        y = numpy.array(
+            [[[[0, 1, 2], [3, 4, 5]],
+              [[6, 7, 8], [9, 10, 11]],
+              [[12, 13, 14], [15, 16, 17]],
+              [[18, 19, 20], [21, 22, 23]]]]).astype(numpy.float32)
+        onx = OnnxSpaceToDepth(
+            'X', output_names=['Y'], blocksize=2,
+            op_version=TARGET_OPSET)
+        model_def = onx.to_onnx({'X': x}, target_opset=TARGET_OPSET)
+        oinf = OnnxInference(model_def)
+        got = oinf.run({'X': x})
+        self.assertEqual(list(sorted(got)), ['Y'])
+        self.assertEqualArray(y, got['Y'], decimal=5)
+        python_tested.append(OnnxSpaceToDepth)
+
+    @wraplog()
     def test_onnxt_runtime_split(self):
         # opset=13, 14, ...
         for opset in [10, 11, 12, 13, 14, 15, TARGET_OPSET]:
@@ -4892,5 +4945,5 @@ class TestOnnxrtPythonRuntime(ExtTestCase):  # pylint: disable=R0904
 
 if __name__ == "__main__":
     # Working
-    # TestOnnxrtPythonRuntime().test_onnxt_runtime_unique()
+    # TestOnnxrtPythonRuntime().test_onnxt_runtime_space_to_depth()
     unittest.main(verbosity=2)
