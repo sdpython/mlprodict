@@ -5,7 +5,96 @@
 @brief Helpers for operators Conv, ConvTranspose.
 """
 import numpy
-from .op_conv_helper_ import im2col_1d_inplace_float  # pylint: disable=E0611
+from .op_conv_helper_ import (  # pylint: disable=E0611
+    im2col_1d_inplace_float,
+    tch_im2col_2d_float, tch_col2im_2d_float,
+    new_array as _new_array)
+
+
+def im2col_nn(res):
+    """
+    Functions @see fn nn_im2col_2d and @see fn im2col returns the
+    same results but with different shapes. This function
+    converts a result from @see fn nn_im2col_2d into the same
+    shape as a return from @see fn nn_im2col_2d.
+    """
+    if len(res.shape) % 2 != 0:
+        raise ValueError(  # pragma: no cover
+            "Number of dimensions should be even.")
+    m = len(res.shape) // 2
+    data = numpy.prod(res.shape[:m])
+    ker = numpy.prod(res.shape[m:])
+    resh = res.reshape((data, ker))
+    tr = numpy.transpose(resh, [1, 0])
+    return tr[numpy.newaxis, ...]
+
+
+def new_array(shape, dtype=numpy.float32):
+    """
+    Creates a new empty array.
+
+    :param shape: shape
+    :param dtype: dtype
+    :return: new array
+    """
+    if dtype == numpy.float32:
+        dtype = numpy.dtype('float32')
+    return _new_array(list(shape), dtype)
+
+
+def nn_im2col_2d(data, kernel_shape, dilations, padding, fill_value=0):
+    """
+    C++ implementation for `im2col` or :func:`torch.nn.Unfold`.
+
+    :param data: image (float), 2 dimensions.
+    :param kernel_shape: kernel shape
+    :param dilations: dilations
+    :param padding: padding
+    :param fill_value: fill value
+    :return: result
+    """
+    strides = (1, 1)
+    ext_shape = (
+        (data.shape[0] + 2 * padding[0] - dilations[0]
+         * (kernel_shape[0] - 1) - 1) // strides[0] + 1,
+        (data.shape[1] + 2 * padding[1] - dilations[1] * (kernel_shape[1] - 1) - 1) // strides[1] + 1)
+    kernel_size = kernel_shape[0] * kernel_shape[1]
+    shape = (kernel_size, ext_shape[0] * ext_shape[1])
+    result = numpy.empty(shape, dtype=data.dtype)
+    if data.dtype == numpy.float32:
+        tch_im2col_2d_float(result, data,
+                            numpy.array(kernel_shape, dtype=numpy.int64),
+                            numpy.array(dilations, dtype=numpy.int64),
+                            numpy.array(padding, dtype=numpy.int64),
+                            fill_value)
+    else:
+        raise NotImplementedError(  # pragma: no cover
+            "Unexpected dtype %r for data." % data.dtype)
+    return result
+
+
+def nn_col2im_2d(data, output_shape, kernel_shape, dilations, padding):
+    """
+    C++ implementation for `col2im` or :func:`torch.nn.Fold`.
+
+    :param data: image (float), 2 dimensions.
+    :param output_shape: output size
+    :param kernel_shape: kernel shape
+    :param dilations: dilations
+    :param padding: padding
+    :return: result
+    """
+    result = numpy.empty(output_shape, dtype=data.dtype)
+    if data.dtype == numpy.float32:
+        tch_col2im_2d_float(result, data,
+                            numpy.array(output_shape, dtype=numpy.int64),
+                            numpy.array(kernel_shape, dtype=numpy.int64),
+                            numpy.array(dilations, dtype=numpy.int64),
+                            numpy.array(padding, dtype=numpy.int64))
+    else:
+        raise NotImplementedError(  # pragma: no cover
+            "Unexpected dtype %r for data." % data.dtype)
+    return result
 
 
 def _get_indices(i, shape):

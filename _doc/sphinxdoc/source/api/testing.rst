@@ -25,7 +25,13 @@ by a matrix multiplication.
 
 .. autosignature:: mlprodict.onnxrt.ops_cpu.op_conv_helper.im2col_naive_implementation
 
+.. autosignature:: mlprodict.onnxrt.ops_cpu.op_conv_helper.im2col_nn
+
 .. autosignature:: mlprodict.onnxrt.ops_cpu.op_conv_helper.im2col_recursive
+
+.. autosignature:: mlprodict.onnxrt.ops_cpu.op_conv_helper.nn_im2col_2d
+
+.. autosignature:: mlprodict.onnxrt.ops_cpu.op_conv_helper.nn_col2im_2d
 
 Einsum
 ^^^^^^

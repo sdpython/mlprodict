@@ -1,5 +1,5 @@
 """
-@brief      test log(time=3s)
+@brief      test log(time=5s)
 """
 import unittest
 from logging import getLogger
@@ -18,8 +18,8 @@ from mlprodict.testing.test_utils.tests_helper import fit_multilabel_classificat
 from mlprodict import __max_supported_opset__ as TARGET_OPSET
 from mlprodict.onnxrt.ops_cpu._op_helper import dtype_name
 from mlprodict.onnxrt.ops_cpu.op_conv_helper import (
-    im2col, im2col_indices, col2im_indices, im2col_recursive,
-    im2col_naive_implementation)
+    im2col, im2col_indices, col2im_indices, im2col_recursive, im2col_nn,
+    im2col_naive_implementation, nn_im2col_2d, nn_col2im_2d, new_array)
 
 
 class TestCpuOps(ExtTestCase):
@@ -302,7 +302,57 @@ class TestCpuOps(ExtTestCase):
                 data, kernel_shape, fill_value=0)
             self.assertEqualArray(expected, res)
 
+    def test_nn_im2col_2d(self):
+        data = (numpy.arange(13 * 19).astype(numpy.float32) + 10).reshape((13, 19))
+        res = im2col_naive_implementation(data, (3, 3), fill_value=0)
+        res_th = res.reshape((data.shape[0] * data.shape[1], -1)).T
+        res_th2 = im2col_nn(res)[0]
+        self.assertEqual(res_th, res_th2)
+
+        try:
+            import torch
+        except ImportError:
+            torch = None
+        if torch is not None:
+            unfold = torch.nn.Unfold(kernel_size=(3, 3), dilation=1, padding=1)
+            sh = torch.from_numpy(data.reshape((1, 1) + data.shape))
+            th = unfold(sh)
+            self.assertEqual(tuple(th.shape)[1:], res_th.shape)
+            self.assertEqualArray(th.numpy().reshape(res_th.shape), res_th)
+
+        res2 = nn_im2col_2d(data, (3, 3), (1, 1), (1, 1))
+        self.assertEqual(res_th.shape, res2.shape)
+        self.assertEqualArray(res_th, res2)
+
+    def test_new_array(self):
+        shape = (4, 5)
+        a = new_array(shape)
+        self.assertEqual(a.shape, shape)
+        self.assertEqual(a.strides, (20, 4))
+        a = numpy.empty((4, 5), dtype=numpy.float32)
+        self.assertEqual(a.shape, shape)
+        self.assertEqual(a.strides, (20, 4))
+
+    def test_nn_col2im_2d(self):
+        data = (numpy.arange(13 * 19).astype(numpy.float32) + 10).reshape((13, 19))
+        col = nn_im2col_2d(data, (3, 3), (1, 1), (1, 1))
+        res = nn_col2im_2d(col, (13, 19), (3, 3), (1, 1), (1, 1))
+        self.assertEqual(res.shape, data.shape)
+
+        try:
+            import torch
+        except ImportError:
+            torch = None
+        if torch is not None:
+            fold = torch.nn.Fold(output_size=(
+                13, 19), kernel_size=(3, 3), dilation=1, padding=1)
+            sh = torch.from_numpy(col.reshape((1, ) + col.shape))
+            th = fold(sh)
+            self.assertEqual(tuple(th.shape)[2:], data.shape)
+            self.assertEqualArray(th.numpy().reshape(data.shape).astype(numpy.int16),
+                                  res.astype(numpy.int16))
+
 
 if __name__ == "__main__":
-    # TestCpuOps().test_im2col_3d()
+    TestCpuOps().test_nn_col2im_2d()
     unittest.main()
