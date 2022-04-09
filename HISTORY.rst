@@ -5,31 +5,40 @@
 History
 =======
 
-current - 2022-04-05 - 0.00Mb
+current - 2022-04-09 - 0.00Mb
 =============================
 
+* #417: C++ implementation for Im2col and Col2Im in 2D (2022-04-09)
+* #418: Adds support for operator OneHot, ScatterND for python runtime (2022-04-09)
+* #416: Adds support for DepthToSpace and SpaceToDepth for python runtime (2022-04-08)
+* #415: Implements experimentation im2col (used in image convolution) (2022-04-08)
+* #414: Adds support for operator NonZero in python runtime (2022-04-06)
+* #413: Adds support for operator Shink for python runtime (2022-04-06)
+* #412: Adds support for DynamicQuantizeLinear for python runtime (2022-04-05)
+* #411: Adds support for operators Unique, SoftPlus, SoftSign for python runtime (2022-04-05)
+* #410: Supports operator GatherND for python runtime (2022-04-05)
 * #409: Fixes bug with EyeLike in python runtime (2022-04-04)
 * #408: Improves backtest coverage, update documentation (2022-04-03)
-* #406: Supports operator Bernoulli for python runtime (2022-03-30)
 * #407: Supports operator Hardmax for python runtime (2022-03-30)
-* #401: Removes parameter device, adds parameter provider (2022-03-30)
+* #406: Supports operator Bernoulli for python runtime (2022-03-30)
+* #405: Supports operator PRelu for python runtime (2022-03-30)
 * #404: Fixes Trilu (2022-03-30)
 * #403: Supports ReduceLogSum for python runtime (2022-03-30)
-* #405: Supports operator PRelu for python runtime (2022-03-30)
 * #402: Supports operator Xor for python runtime (2022-03-30)
+* #401: Removes parameter device, adds parameter provider (2022-03-30)
 * #400: Supports local functions calling local functions for python runtime (2022-03-28)
 * #399: Supports function SoftmaxCrossEntropyLoss for python runtime (2022-03-28)
-* #396: Move grammar_sklearn to subfolder. (2022-03-27)
 * #397: Implements method f in OnnxOperatorItem (2022-03-27)
+* #396: Move grammar_sklearn to subfolder. (2022-03-27)
 * #395: Supports eager evaluation in XOP API (2022-03-27)
 * #394: Enables expression OnnxCos[15](...) (2022-03-26)
-* #392: Supports random operators for python runtime (2022-03-25)
 * #393: Adds domain in function onnx_simple_text_plot (2022-03-25)
+* #392: Supports random operators for python runtime (2022-03-25)
 * #391: Adds support for onnx predefined functions for python runtime (2022-03-24)
-* #387: Supports operator Elu for python runtime (2022-03-23)
 * #390: Adds support for operator HardSigmoid for python runtime (2022-03-23)
 * #389: Adds support for operator Selu for python runtime (2022-03-23)
 * #388: Adds support for operator Trilu in python runtime (2022-03-23)
+* #387: Supports operator Elu for python runtime (2022-03-23)
 * #386: Supports operator BitShift for python runtime (2022-03-23)
 * #384: Supports FunctionProto in XOP API. (2022-03-21)
 * #383: Improves python runtime for ONNX (2022-03-19)
@@ -362,10 +371,6 @@ current - 2022-04-05 - 0.00Mb
 * #120: Fix discrepencies for SVM classifier (ONNX) (2020-04-30)
 * #119: Keep order in topk implementation (2020-04-17)
 * #118: opset is not propagated in OnnxTransformer (2020-04-09)
-
-0.3.1070 - 2020-04-07 - 0.29Mb
-==============================
-
 * #115: Add a function to replay a benchmark when this one was dumped (more accurate) (2020-04-06)
 * #116: Makes ZipMapDictionary picklable (2020-03-30)
 * #114: Add more parameters to specify benchmark time (2020-03-30)
