@@ -16,8 +16,10 @@ from scipy.spatial.distance import cdist
 import onnx
 from onnx.backend.test.case.node.softmaxcrossentropy import softmaxcrossentropy
 from onnx.backend.test.case.node.unique import specify_int64
+from onnx.backend.test.case.node.onehot import one_hot
 from onnx.backend.test.case.node.negativeloglikelihoodloss import (
     compute_negative_log_likelihood_loss)
+from onnx.backend.test.case.node.scatternd import scatter_nd_impl
 from onnx import TensorProto, __version__ as onnx_version
 from onnx.helper import make_sparse_tensor, make_tensor
 from onnx.defs import onnx_opset_version
@@ -56,7 +58,7 @@ from skl2onnx.algebra.onnx_ops import (  # pylint: disable=E0611
     OnnxLog, OnnxLogSoftmax, OnnxLpNormalization,
     OnnxMatMul, OnnxMax, OnnxMaxPool, OnnxMean, OnnxMin, OnnxMod, OnnxMul,
     OnnxNeg, OnnxNot, OnnxNegativeLogLikelihoodLoss,
-    OnnxOr,
+    OnnxOneHot, OnnxOr,
     OnnxPad, OnnxPow, OnnxPRelu,
     OnnxQLinearConv, OnnxQuantizeLinear,
     OnnxRange,
@@ -70,7 +72,7 @@ from skl2onnx.algebra.onnx_ops import (  # pylint: disable=E0611
     OnnxReduceSumSquare,
     OnnxRelu, OnnxReshape,
     OnnxRound,
-    OnnxScatterElements,
+    OnnxScatterElements, OnnxScatterND,
     OnnxSelu, OnnxSequenceAt, OnnxSequenceConstruct,
     OnnxShape, OnnxShrink, OnnxSigmoid, OnnxSign,
     OnnxSin, OnnxSinh,
@@ -3274,6 +3276,30 @@ class TestOnnxrtPythonRuntime(ExtTestCase):  # pylint: disable=R0904
         self.common_test_onnxt_runtime_unary(OnnxNot, numpy.logical_not)
 
     @wraplog()
+    def test_onnxt_runtime_one_hot(self):
+        on_value = 5
+        off_value = 2
+        output_type = numpy.int32
+
+        indices = numpy.array([0, 7, 8], dtype=numpy.int64)
+        depth = numpy.float32(12)
+        values = numpy.array([off_value, on_value], dtype=output_type)
+        y = one_hot(indices, depth, dtype=output_type)
+        expected = y * (on_value - off_value) + off_value
+
+        onx = OnnxOneHot(
+            'indices', 'depth', 'values', output_names=['Y'],
+            op_version=TARGET_OPSET)
+        model_def = onx.to_onnx(
+            {'indices': indices, 'depth': depth, 'values': values},
+            target_opset=TARGET_OPSET)
+
+        oinf = OnnxInference(model_def)
+        got = oinf.run({'indices': indices, 'depth': depth, 'values': values})
+        self.assertEqualArray(expected, got['Y'])
+        python_tested.append(OnnxOneHot)
+
+    @wraplog()
     def test_onnxt_runtime_or(self):
         self.common_test_onnxt_runtime_binary(
             OnnxOr, numpy.logical_or, dtype=numpy.bool_)
@@ -4252,6 +4278,35 @@ class TestOnnxrtPythonRuntime(ExtTestCase):  # pylint: disable=R0904
                     target_opset=opset)
                 got = OnnxInference(model_def).run({'X': x})
                 self.assertEqualArray(y, got['Y'])
+
+    @wraplog()
+    def test_onnxt_runtime_scatter_nd(self):
+        data = numpy.array(
+            [[[1, 2, 3, 4], [5, 6, 7, 8], [8, 7, 6, 5], [4, 3, 2, 1]],
+             [[1, 2, 3, 4], [5, 6, 7, 8], [8, 7, 6, 5], [4, 3, 2, 1]],
+             [[8, 7, 6, 5], [4, 3, 2, 1], [1, 2, 3, 4], [5, 6, 7, 8]],
+             [[8, 7, 6, 5], [4, 3, 2, 1], [1, 2, 3, 4], [5, 6, 7, 8]]],
+            dtype=numpy.float32)
+        indices = numpy.array([[0], [2]], dtype=numpy.int64)
+        updates = numpy.array(
+            [[[5, 5, 5, 5], [6, 6, 6, 6], [7, 7, 7, 7], [8, 8, 8, 8]],
+             [[1, 1, 1, 1], [2, 2, 2, 2], [3, 3, 3, 3], [4, 4, 4, 4]]],
+            dtype=numpy.float32)
+        output = scatter_nd_impl(data, indices, updates)
+        for opset in [11, TARGET_OPSET]:
+            if opset > TARGET_OPSET:
+                continue
+            with self.subTest(opset=opset):
+                onx = OnnxScatterND(
+                    'X', 'I', 'U', output_names=['Y'], op_version=opset)
+                model_def = onx.to_onnx(
+                    {'X': data, 'I': indices, 'U': updates},
+                    target_opset=opset)
+                got = OnnxInference(model_def).run(
+                    {'X': data, 'I': indices, 'U': updates})
+                self.assertEqualArray(output, got['Y'])
+
+        python_tested.append(OnnxScatterND)
 
     @wraplog()
     def test_onnxt_runtime_selu(self):

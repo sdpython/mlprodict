@@ -459,9 +459,14 @@ def _var_as_dict(var):
         return dict(name=var)
     if str(var) == '':
         return None
+    if isinstance(var, ValueInfoProto):
+        return dict(name=var.name,
+                    type=dict(elem='unk', kind='tensor', shape=('?', )))
     raise NotImplementedError(  # pragma: no cover
-        "Unable to guess which object it is type is %r value is %r."
-        "" % (type(var), str(var)))
+        "Unable to guess which object it is type is %r value is %r "
+        "(hasattr(var,'type')=%r, var.type=%s."
+        "" % (type(var), str(var), hasattr(var, 'type'),
+              str(getattr(var, 'type', None))))
 
 
 def get_dtype_shape(obj):

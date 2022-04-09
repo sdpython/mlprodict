@@ -94,6 +94,7 @@ from .op_negative_log_likelihood_loss import NegativeLogLikelihoodLoss
 from .op_normalizer import Normalizer
 from .op_non_zero import NonZero
 from .op_not import Not
+from .op_one_hot import OneHot
 from .op_one_hot_encoder import OneHotEncoder
 from .op_or import Or
 from .op_pad import Pad
@@ -125,6 +126,7 @@ from .op_rnn import RNN
 from .op_scaler import Scaler
 from .op_scan import Scan
 from .op_scatter_elements import ScatterElements
+from .op_scatternd import ScatterND
 from .op_softmax_cross_entropy_loss import SoftmaxCrossEntropyLoss
 from .op_selu import Selu
 from .op_sequence_at import SequenceAt

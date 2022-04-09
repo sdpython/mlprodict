@@ -408,7 +408,8 @@ class OnnxInferenceNode:
                 raise RuntimeError(  # pragma: no cover
                     "Results of an operator should be a tuple for operator "
                     "'{}'.".format(type(self.ops_)))
-            if len(self.outputs) != len(res):
+            if (len(self.outputs) != len(res) and
+                    self.ops_.__class__.__name__ not in {'Loop'}):
                 raise RuntimeError(  # pragma: no cover
                     "Mismatch number of outputs got {} != {} for names {} "
                     "(node='{}').\n{}".format(

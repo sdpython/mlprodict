@@ -221,8 +221,8 @@ class OpRun:
         for a in res:
             if not isinstance(a, ShapeObject):
                 raise TypeError(  # pragma: no cover
-                    "One shape is not a ShapeObject but {} (operator '{}')".format(
-                        type(a), self.__class__.__name__))
+                    "One shape is not a ShapeObject but {} (operator '{}')"
+                    "".format(type(a), self.__class__.__name__))
         return res
 
     def _infer_shapes(self, *args, **kwargs):
