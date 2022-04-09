@@ -254,6 +254,11 @@ def shape_tanh(known_shapes, node):
     return _element_unary(known_shapes, node)
 
 
+def shape_thresholdedrelu(known_shapes, node):
+    "Infers shape for operator ThresholdedRelu."
+    return _element_unary(known_shapes, node)
+
+
 def shape_trilu(known_shapes, node):
     "Infers shape for operator Trilu."
     return _element_unary(known_shapes, node)

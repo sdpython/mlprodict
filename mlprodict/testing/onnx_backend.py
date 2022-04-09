@@ -137,7 +137,7 @@ class OnnxBackendTest:
         "Returns the number of tests."
         return len(self.tests)
 
-    def _compare_results(self, index, i, e, o):
+    def _compare_results(self, index, i, e, o, decimal=None):
         """
         Compares the expected output and the output produced
         by the runtime. Raises an exception if not equal.
@@ -146,14 +146,19 @@ class OnnxBackendTest:
         :param i: output index
         :param e: expected output
         :param o: output
+        :param decimal: precision
         """
-        decimal = 7
         if isinstance(e, numpy.ndarray):
             if isinstance(o, numpy.ndarray):
-                if e.dtype == numpy.float32:
-                    decimal = 6
-                elif e.dtype == numpy.float64:
-                    decimal = 12
+                if decimal is None:
+                    if e.dtype == numpy.float32:
+                        deci = 6
+                    elif e.dtype == numpy.float64:
+                        deci = 12
+                    else:
+                        deci = 7
+                else:
+                    deci = decimal
                 if e.dtype == dtype_object:
                     try:
                         assert_almost_equal_string(e, o)
@@ -163,7 +168,7 @@ class OnnxBackendTest:
                                 i, index, self.folder)) from ex
                 else:
                     try:
-                        assert_almost_equal(e, o, decimal=decimal)
+                        assert_almost_equal(e, o, decimal=deci)
                     except AssertionError as ex:
                         raise AssertionError(
                             "Output %d of test %d in folder %r failed." % (
@@ -190,7 +195,7 @@ class OnnxBackendTest:
             return True
         return False
 
-    def run(self, load_fct, run_fct, index=None, decimal=5):
+    def run(self, load_fct, run_fct, index=None, decimal=None):
         """
         Executes a tests or all tests if index is None.
         The function crashes if the tests fails.
@@ -200,10 +205,11 @@ class OnnxBackendTest:
         :param run_fct: running function, takes the result of previous
             function, the inputs, and returns the outputs
         :param index: index of the test to run or all.
+        :param decimal: requested precision to compare results
         """
         if index is None:
             for i in range(len(self)):
-                self.run(load_fct, run_fct, index=i)
+                self.run(load_fct, run_fct, index=i, decimal=decimal)
             return
 
         obj = load_fct(self.onnx_model)
@@ -228,7 +234,7 @@ class OnnxBackendTest:
                         "(shape mismatch %r != %r)." % (
                             i, index, self.folder, e.shape, o.shape))
             else:
-                self._compare_results(index, i, e, o)
+                self._compare_results(index, i, e, o, decimal=decimal)
 
     def to_python(self):
         """
