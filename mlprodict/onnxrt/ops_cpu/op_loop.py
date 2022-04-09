@@ -13,9 +13,7 @@ from ..shape_object import ShapeObject
 
 class Loop(OpRun):
 
-    atts = {
-        'body': None,
-    }
+    atts = {'body': None}
 
     def __init__(self, onnx_node, desc=None, **options):
         OpRun.__init__(self, onnx_node, desc=desc,
@@ -100,10 +98,23 @@ class Loop(OpRun):
         ret = []
         for name in self.body.output_names[1:]:
             if name in res:
-                ret.append(res[name])
+                if res[name] is None:
+                    shape = ShapeObject(None, dtype=numpy.float32)
+                    shape._dtype = None
+                else:
+                    ret.append(res[name])
             else:
                 find = outputs[name]
-                ret.append(ShapeObject(find[0], dtype=find[1]))
+                try:
+                    shape = ShapeObject(find[0], dtype=find[1])
+                except TypeError as e:
+                    if find[0] == ('?',):
+                        shape = ShapeObject(None, dtype=numpy.float32)
+                        shape._dtype = None
+                    else:
+                        raise TypeError(
+                            "Unable to create shape for %r." % (find, )) from e
+                ret.append(shape)
         return tuple(ret)
 
     def _infer_types(self, M, cond, v_initial, *args):  # pylint: disable=W0221
