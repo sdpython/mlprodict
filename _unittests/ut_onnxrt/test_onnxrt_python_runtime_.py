@@ -14,12 +14,13 @@ from scipy.special import (  # pylint: disable=E0611
     expit as logistic_sigmoid, erf)
 from scipy.spatial.distance import cdist
 import onnx
-from onnx.backend.test.case.node.softmaxcrossentropy import softmaxcrossentropy
-from onnx.backend.test.case.node.unique import specify_int64
-from onnx.backend.test.case.node.onehot import one_hot
 from onnx.backend.test.case.node.negativeloglikelihoodloss import (
     compute_negative_log_likelihood_loss)
+from onnx.backend.test.case.node.onehot import one_hot
+from onnx.backend.test.case.node.unique import specify_int64
 from onnx.backend.test.case.node.scatternd import scatter_nd_impl
+from onnx.backend.test.case.node.softmaxcrossentropy import softmaxcrossentropy
+from onnx.backend.test.case.node.rnn import RNN_Helper
 from onnx import TensorProto, __version__ as onnx_version
 from onnx.helper import make_sparse_tensor, make_tensor
 from onnx.defs import onnx_opset_version
@@ -71,6 +72,7 @@ from skl2onnx.algebra.onnx_ops import (  # pylint: disable=E0611
     OnnxReduceSum_13, OnnxReduceSum_11, OnnxReduceSum_1,
     OnnxReduceSumSquare,
     OnnxRelu, OnnxReshape,
+    OnnxRNN,
     OnnxRound,
     OnnxScatterElements, OnnxScatterND,
     OnnxSelu, OnnxSequenceAt, OnnxSequenceConstruct,
@@ -82,7 +84,8 @@ from skl2onnx.algebra.onnx_ops import (  # pylint: disable=E0611
     OnnxSpaceToDepth, OnnxSplit, OnnxSplitApi11,
     OnnxSqrt, OnnxSub, OnnxSum,
     OnnxSqueeze, OnnxSqueezeApi11,
-    OnnxTan, OnnxTanh, OnnxTopK, OnnxTranspose, OnnxTrilu,
+    OnnxTan, OnnxTanh, OnnxThresholdedRelu,
+    OnnxTopK, OnnxTranspose, OnnxTrilu,
     OnnxUnique, OnnxUnsqueeze, OnnxUnsqueezeApi11,
     OnnxXor
 )
@@ -4540,6 +4543,65 @@ class TestOnnxrtPythonRuntime(ExtTestCase):  # pylint: disable=R0904
         python_tested.append(OnnxSpaceToDepth)
 
     @wraplog()
+    def test_onnxt_runtime_rnn_default(self):
+        input_size = 2
+        hidden_size = 4
+        weight_scale = 0.1
+
+        X = numpy.array([[[1., 2.], [3., 4.], [5., 6.]]]).astype(numpy.float32)
+        W = (weight_scale * numpy.ones((1, hidden_size, input_size))).astype(numpy.float32)
+        R = (weight_scale * numpy.ones((1, hidden_size, hidden_size))).astype(numpy.float32)
+
+        rnn = RNN_Helper(X=X, W=W, R=R)
+        _, Y_h = rnn.step()
+
+        onx = OnnxRNN('X', 'W', 'R', output_names=['Y', 'Y_h'],
+                      op_version=TARGET_OPSET,
+                      hidden_size=hidden_size)
+        model_def = onx.to_onnx(
+            {'X': X, 'W': W, 'R': R},
+            outputs=[('Y', FloatTensorType()),
+                     ('Y_h', FloatTensorType())],
+            target_opset=TARGET_OPSET)
+
+        oinf = OnnxInference(model_def)
+        got = oinf.run({'X': X, 'W': W, 'R': R})
+        self.assertEqualArray(Y_h, got['Y_h'])
+        python_tested.append(OnnxRNN)
+
+    @wraplog()
+    def test_onnxt_runtime_rnn_batchwise(self):
+        input_size = 2
+        hidden_size = 4
+        weight_scale = 0.5
+        layout = 1
+
+        X = numpy.array([[[1., 2.], [3., 4.], [5., 6.]]]).astype(numpy.float32)
+        W = (weight_scale * numpy.ones((1, hidden_size, input_size))).astype(numpy.float32)
+        R = (weight_scale * numpy.ones((1, hidden_size, hidden_size))).astype(numpy.float32)
+
+        rnn = RNN_Helper(X=X, W=W, R=R, layout=layout)
+        try:
+            Y, Y_h = rnn.step()
+        except ValueError:
+            # Unexpected error.
+            return
+
+        onx = OnnxRNN('X', 'W', 'R', output_names=['Y', 'Y_h'],
+                      op_version=TARGET_OPSET,
+                      hidden_size=hidden_size, layout=layout)
+        model_def = onx.to_onnx(
+            {'X': X, 'W': W, 'R': R},
+            outputs=[('Y', FloatTensorType()),
+                     ('Y_h', FloatTensorType())],
+            target_opset=TARGET_OPSET)
+
+        oinf = OnnxInference(model_def)
+        got = oinf.run({'X': X, 'W': W, 'R': R})
+        self.assertEqualArray(Y_h, got['Y_h'])
+        self.assertEqualArray(Y, got['Y'])
+
+    @wraplog()
     def test_onnxt_runtime_split(self):
         # opset=13, 14, ...
         for opset in [10, 11, 12, 13, 14, 15, TARGET_OPSET]:
@@ -4922,6 +4984,11 @@ class TestOnnxrtPythonRuntime(ExtTestCase):  # pylint: disable=R0904
         python_tested.append(OnnxUnsqueeze)
 
     @wraplog()
+    def test_onnxt_runtime_threshold_relu(self):
+        self.common_test_onnxt_runtime_unary(
+            OnnxThresholdedRelu, lambda x: numpy.maximum(x, 1))
+
+    @wraplog()
     def test_onnxt_runtime_trilu(self):
         self.common_test_onnxt_runtime_unary(
             OnnxTrilu, lambda x: numpy.triu(x, 0))
@@ -5000,5 +5067,5 @@ class TestOnnxrtPythonRuntime(ExtTestCase):  # pylint: disable=R0904
 
 if __name__ == "__main__":
     # Working
-    # TestOnnxrtPythonRuntime().test_onnxt_runtime_space_to_depth()
+    # TestOnnxrtPythonRuntime().test_onnxt_runtime_threshold_relu()
     unittest.main(verbosity=2)

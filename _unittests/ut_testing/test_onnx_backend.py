@@ -1431,7 +1431,21 @@ class TestOnnxBackEnd(ExtTestCase):
             done += 1
         self.assertEqual(done, 1)
 
+    @unittest.skipIf(True, reason="onnx example is probably wrong")
+    def test_enumerate_onnx_test_simple_rnn_batchwise(self):
+        # The test may fail but the numerical result may be different
+        # depending on the machine.
+        done = 0
+        for te in enumerate_onnx_tests(
+                'node', lambda folder: folder == 'test_simple_rnn_batchwise'):
+            self.assertIn(te.name, repr(te))
+            self.assertGreater(len(te), 0)
+            te.run(TestOnnxBackEnd.load_fct, TestOnnxBackEnd.run_fct,
+                   decimal=2)
+            done += 1
+        self.assertEqual(done, 1)
+
 
 if __name__ == "__main__":
-    # TestOnnxBackEnd().test_enumerate_onnx_test_range_float_type_positive_delta_expanded()
+    # TestOnnxBackEnd().test_enumerate_onnx_test_simple_rnn_batchwise()
     unittest.main()
