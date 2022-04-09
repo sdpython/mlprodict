@@ -55,9 +55,10 @@ def nn_im2col_2d(data, kernel_shape, dilations, padding, fill_value=0):
     """
     strides = (1, 1)
     ext_shape = (
-        (data.shape[0] + 2 * padding[0] - dilations[0]
-         * (kernel_shape[0] - 1) - 1) // strides[0] + 1,
-        (data.shape[1] + 2 * padding[1] - dilations[1] * (kernel_shape[1] - 1) - 1) // strides[1] + 1)
+        (data.shape[0] + 2 * padding[0] - dilations[0] * (
+            kernel_shape[0] - 1) - 1) // strides[0] + 1,
+        (data.shape[1] + 2 * padding[1] - dilations[1] * (
+            kernel_shape[1] - 1) - 1) // strides[1] + 1)
     kernel_size = kernel_shape[0] * kernel_shape[1]
     shape = (kernel_size, ext_shape[0] * ext_shape[1])
     result = numpy.empty(shape, dtype=data.dtype)
