@@ -1239,6 +1239,8 @@ class OnnxOperator(OnnxOperatorBase):
         elif isinstance(inp, Variable):
             if inp.name in set_inputs:
                 return
+            if inp.name == '':
+                return
             set_inputs.add(inp.name)
             if inputs is None and inputs_dtype is None:
                 new_inputs.append(InputDetectedVariable(node, inp))
@@ -2399,7 +2401,16 @@ class _GraphBuilder:
         self.node.append(node)
         return node
 
-    def _process_io(self, inputs, input_names):
+    def _process_io(self, inputs, input_names_):
+        if input_names_ is None:
+            input_names = None
+        else:
+            input_names = []
+            for inp in input_names_:
+                if inp.var.name == '':
+                    continue
+                input_names.append(inp)
+
         if inputs is None:
             return [
                 make_tensor_value_info(
@@ -2454,8 +2465,8 @@ class _GraphBuilder:
         # common parts
         if len(input_names) != len(inputs):
             raise RuntimeError(  # pragma: no cover
-                "Mismatch between %r and %r." % (
-                    input_names, inputs))
+                "Mismatch between (%r != %r) %r and %r." % (
+                    len(input_names), len(inputs), input_names, inputs))
 
         if isinstance(input_names, list):
             d_input_names = {}

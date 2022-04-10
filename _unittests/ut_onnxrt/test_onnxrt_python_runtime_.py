@@ -17,10 +17,12 @@ import onnx
 from onnx.backend.test.case.node.negativeloglikelihoodloss import (
     compute_negative_log_likelihood_loss)
 from onnx.backend.test.case.node.onehot import one_hot
-from onnx.backend.test.case.node.unique import specify_int64
-from onnx.backend.test.case.node.scatternd import scatter_nd_impl
 from onnx.backend.test.case.node.softmaxcrossentropy import softmaxcrossentropy
+from onnx.backend.test.case.node.scatternd import scatter_nd_impl
+from onnx.backend.test.case.node.resize import (
+    nearest_coeffs, interpolate_nd, linear_coeffs)
 from onnx.backend.test.case.node.rnn import RNN_Helper
+from onnx.backend.test.case.node.unique import specify_int64
 from onnx import TensorProto, __version__ as onnx_version
 from onnx.helper import make_sparse_tensor, make_tensor
 from onnx.defs import onnx_opset_version
@@ -130,6 +132,7 @@ from mlprodict.plotting.text_plot import onnx_simple_text_plot
 from mlprodict import __max_supported_opset__ as TARGET_OPSET, get_ir_version
 from mlprodict.onnxrt.ops_cpu.op_negative_log_likelihood_loss import (
     _compute_negative_log_likelihood_loss)
+from mlprodict.onnxrt.ops_cpu.op_resize import _interpolate_nd, _linear_coeffs
 
 from skl2onnx.common.data_types import (  # pylint: disable=C0412
     FloatTensorType, Int64TensorType, DoubleTensorType, StringTensorType,
@@ -4201,10 +4204,6 @@ class TestOnnxrtPythonRuntime(ExtTestCase):  # pylint: disable=R0904
         self.common_test_onnxt_runtime_unary(
             OnnxRelu, lambda x: numpy.maximum(x, 0))
 
-    @wraplog()
-    def test_onnxt_runtime_round(self):
-        self.common_test_onnxt_runtime_unary(OnnxRound, numpy.round)
-
     @ignore_warnings(category=(RuntimeWarning, DeprecationWarning))
     @wraplog()
     def test_onnxt_runtime_reshape(self):
@@ -4224,6 +4223,63 @@ class TestOnnxrtPythonRuntime(ExtTestCase):  # pylint: disable=R0904
             oinf, {'X': X.astype(numpy.float32)}, got,
             OnnxReshape, model_def)
         python_tested.append(OnnxReshape)
+
+    @wraplog()
+    def test_onnxt_runtime_resize(self):
+        from mlprodict.npy.xop import loadop
+        OnnxResize = loadop('Resize')
+
+        with self.subTest(example='resize_tf_crop_and_resize'):
+            data = numpy.array([[[[1, 2, 3, 4],
+                                  [5, 6, 7, 8],
+                                  [9, 10, 11, 12],
+                                  [13, 14, 15, 16]]]],
+                               dtype=numpy.float32)
+
+            roi = numpy.array([0, 0, 0.4, 0.6, 1, 1, 0.6, 0.8],
+                              dtype=numpy.float32)
+            sizes = numpy.array([1, 1, 3, 3], dtype=numpy.int64)
+
+            expected = interpolate_nd(
+                data, linear_coeffs, output_size=sizes, roi=roi,
+                coordinate_transformation_mode='tf_crop_and_resize').astype(
+                    numpy.float32)
+            check = _interpolate_nd(
+                data, _linear_coeffs, output_size=sizes, roi=roi,
+                coordinate_transformation_mode=b'tf_crop_and_resize').astype(
+                    numpy.float32)
+            self.assertEqualArray(expected, check)
+
+            onx = OnnxResize(
+                'X', 'roi', '', 'sizes', mode='linear', output_names=['Y'],
+                coordinate_transformation_mode='tf_crop_and_resize',
+                op_version=TARGET_OPSET)
+            model_def = onx.to_onnx(
+                {'X': data, 'roi': roi, 'sizes': sizes},
+                target_opset=TARGET_OPSET)
+            oinf = OnnxInference(model_def)
+            got = oinf.run({'X': data, 'roi': roi, 'sizes': sizes})
+            self.assertEqualArray(expected, got['Y'])
+
+        with self.subTest(example='resize_upsample_scales_nearest'):
+            data = numpy.array([[[[1, 2], [3, 4]]]], dtype=numpy.float32)
+            scales = numpy.array([1.0, 1.0, 2.0, 3.0], dtype=numpy.float32)
+            expected = interpolate_nd(
+                data, nearest_coeffs, scale_factors=scales).astype(numpy.float32)
+            onx = OnnxResize(
+                'X', '', 'scales', mode='nearest', output_names=['Y'],
+                op_version=TARGET_OPSET)
+            model_def = onx.to_onnx(
+                {'X': data, 'scales': scales}, target_opset=TARGET_OPSET)
+            oinf = OnnxInference(model_def)
+            got = oinf.run({'X': data, 'scales': scales})
+            self.assertEqualArray(expected, got['Y'])
+
+        python_tested.append(OnnxResize)
+
+    @wraplog()
+    def test_onnxt_runtime_round(self):
+        self.common_test_onnxt_runtime_unary(OnnxRound, numpy.round)
 
     @wraplog()
     def test_onnxt_runtime_scatter_elements1(self):
@@ -5067,5 +5123,5 @@ class TestOnnxrtPythonRuntime(ExtTestCase):  # pylint: disable=R0904
 
 if __name__ == "__main__":
     # Working
-    # TestOnnxrtPythonRuntime().test_onnxt_runtime_threshold_relu()
+    # TestOnnxrtPythonRuntime().test_onnxt_runtime_resize()
     unittest.main(verbosity=2)
