@@ -9,6 +9,8 @@ from ._op import OpRun
 from .op_abs import Abs
 from .op_acos import Acos
 from .op_acosh import Acosh
+from .op_adagrad import Adagrad
+from .op_adam import Adam
 from .op_add import Add
 from .op_and import And
 from .op_argmax import ArgMax
