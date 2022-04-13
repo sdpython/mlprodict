@@ -7,7 +7,7 @@
 import numpy
 from ..shape_object import ShapeObject
 from ._op import OpRun
-from .op_non_max_suppression_ import RuntimeNonMaxSuppression
+from .op_non_max_suppression_ import RuntimeNonMaxSuppression  # pylint: disable=E0611
 
 
 class NonMaxSuppression(OpRun):
@@ -29,9 +29,10 @@ class NonMaxSuppression(OpRun):
             iou_threshold = numpy.array([], dtype=numpy.float32)
         if score_threshold is None:
             score_threshold = numpy.array([], dtype=numpy.float32)
-        return (self.inst.compute(
-            boxes, scores, max_output_boxes_per_class,
-            iou_threshold, score_threshold), )
+        res = self.inst.compute(boxes, scores, max_output_boxes_per_class,
+                                iou_threshold, score_threshold)
+        res = res.reshape((-1, 3))
+        return (res, )
 
     def _infer_shapes(self, boxes, scores, max_output_boxes_per_class=None,  # pylint: disable=W0221
                       iou_threshold=None, score_threshold=None):

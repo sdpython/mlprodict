@@ -1,5 +1,5 @@
 // Inspired from 
-// https://github.com/microsoft/onnxruntime/blob/master/onnxruntime/core/providers/cpu/ml/tree_ensemble_classifier.cc.
+// https://github.com/microsoft/onnxruntime/blob/master/onnxruntime/core/providers/cpu/object_detection/non_max_suppression.cc.
 
 #if !defined(_CRT_SECURE_NO_WARNINGS)
 #define _CRT_SECURE_NO_WARNINGS
@@ -11,6 +11,7 @@
 #include <pybind11/stl.h>
 #include <pybind11/numpy.h>
 //#include <numpy/arrayobject.h>
+#include "op_common_.hpp"
 
 #if USE_OPENMP
 #include <omp.h>
@@ -167,11 +168,25 @@ class RuntimeNonMaxSuppression {
 
     public:
 
-        void init(const int64_t& value) {
-            center_point_box_ = value;
+        void init(const int64_t& center_point_box) {
+            center_point_box_ = center_point_box;
         }
 
-        void compute(py::array_t<int64_t>& result,
+        py::array_t<int64_t> compute(const py::array_t<float, py::array::c_style | py::array::forcecast>& boxes_tensor,
+                                     const py::array_t<float, py::array::c_style | py::array::forcecast>& scores_tensor,
+                                     const py::array_t<int64_t, py::array::c_style | py::array::forcecast>& max_output_boxes_per_class_tensor,
+                                     const py::array_t<float, py::array::c_style | py::array::forcecast>& iou_threshold_tensor,
+                                     const py::array_t<float, py::array::c_style | py::array::forcecast>& score_threshold_tensor) const {
+            py::array_t<int64_t> result;
+            Compute(result, boxes_tensor, scores_tensor,
+                    max_output_boxes_per_class_tensor,
+                    iou_threshold_tensor, score_threshold_tensor);
+            return result;
+        }
+
+    protected:
+
+        void Compute(py::array_t<int64_t>& result,
                      const py::array_t<float>& boxes_tensor,
                      const py::array_t<float>& scores_tensor,
                      const py::array_t<int64_t>& max_output_boxes_per_class_tensor,
@@ -189,7 +204,7 @@ class RuntimeNonMaxSuppression {
             GetThresholdsFromInputs(pc, max_output_boxes_per_class, iou_threshold, score_threshold);
 
             if (max_output_boxes_per_class_tensor.ndim() == 0) {
-                result = py::array_t<int64_t>(std::vector<int64_t>{0, 3});
+                result = py::array_t<int64_t>();
                 return;
             }
 
@@ -245,17 +260,15 @@ class RuntimeNonMaxSuppression {
                             selected_indices.emplace_back(batch_index, class_index, next_top_score.index_);
                         }
                         sorted_boxes.pop();
-                    }  //while
-                }    //for class_index
-            }      //for batch_index
+                    }
+                }
+            }
 
             const auto num_selected = selected_indices.size();
-            result.reshape({num_selected});
+            result = py::array_t<int64_t>(num_selected * sizeof(SelectedIndex) / sizeof(int64_t));
             memcpy((int64_t*)result.data(), selected_indices.data(),
                    num_selected * sizeof(SelectedIndex));
         }
-
-    protected:
 
         void GetThresholdsFromInputs(
                         const PrepareContext& pc, int64_t& max_output_boxes_per_class,
@@ -313,7 +326,8 @@ PYBIND11_MODULE(op_non_max_suppression_, m) {
     "Implements runtime for operator NonMaxSuppression."
     #else
     R"pbdoc(Implements runtime for operator NonMaxSuppression. The code is inspired from
-`tfidfvectorizer.cc <https://github.com/microsoft/onnxruntime/blob/master/onnxruntime/core/providers/cpu/nn/tfidfvectorizer.cc>`_
+`non_max_suppression.cc
+<https://github.com/microsoft/onnxruntime/blob/master/onnxruntime/core/providers/cpu/object_detection/non_max_suppression.cc>`_
 in :epkg:`onnxruntime`.)pbdoc"
     #endif
     ;
@@ -324,21 +338,12 @@ in :epkg:`onnxruntime`.)pbdoc"
 in :epkg:`onnxruntime`.)pbdoc");
 
     cli.def(py::init<>());
-    cli.def("init", &RuntimeNonMaxSuppression::init);
+    cli.def("init", &RuntimeNonMaxSuppression::init, "initialization", py::arg("center_point_box"));
 
-    cli.def("compute", [](RuntimeNonMaxSuppression& self,
-                          const py::array_t<float>& boxes_tensor,
-                          const py::array_t<float>& scores_tensor,
-                          const py::array_t<int64_t>& max_output_boxes_per_class_tensor,
-                          const py::array_t<float>& iou_threshold_tensor,
-                          const py::array_t<float>& score_threshold_tensor) {
-        py::array_t<int64_t> result;
-        self.compute(result, boxes_tensor, scores_tensor,
-                     max_output_boxes_per_class_tensor,
-                     iou_threshold_tensor,
-                     score_threshold_tensor);
-        return result;
-    }, "Computes NonMaxSuppression.");
+    cli.def("compute", &RuntimeNonMaxSuppression::compute, "Computes NonMaxSuppression.",
+            py::arg("boxes"), py::arg("scores"),
+            py::arg("max_output_boxes_per_class"),
+            py::arg("iou_threshold"), py::arg("score_threshold"));
 }
 
 #endif
