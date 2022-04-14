@@ -30,6 +30,7 @@ class TestCodeStyle(ExtTestCase):
                          "__init__.py:1: R0401: Cyclic import",
                          "R0401: Cyclic import (mlprodict -> mlprodict.nb_helper",
                          "onnx_pipeline.py:1: R0401: Cyclic import",
+                         "validate.py:1: R0401: Cyclic import",
                          "c_compilation.py:1: R0401: Cyclic import (mlprodict.npy.xop ->",
                          ])
 

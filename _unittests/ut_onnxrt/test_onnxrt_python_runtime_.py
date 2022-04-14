@@ -60,7 +60,7 @@ from skl2onnx.algebra.onnx_ops import (  # pylint: disable=E0611
     OnnxLeakyRelu, OnnxLess, OnnxLessOrEqual,
     OnnxLog, OnnxLogSoftmax, OnnxLpNormalization,
     OnnxMatMul, OnnxMax, OnnxMaxPool, OnnxMean, OnnxMin, OnnxMod, OnnxMul,
-    OnnxNeg, OnnxNot, OnnxNegativeLogLikelihoodLoss,
+    OnnxNeg, OnnxNonMaxSuppression, OnnxNot, OnnxNegativeLogLikelihoodLoss,
     OnnxOneHot, OnnxOr,
     OnnxPad, OnnxPow, OnnxPRelu,
     OnnxQLinearConv, OnnxQuantizeLinear,
@@ -3278,6 +3278,37 @@ class TestOnnxrtPythonRuntime(ExtTestCase):  # pylint: disable=R0904
         python_tested.append(OnnxNegativeLogLikelihoodLoss)
 
     @wraplog()
+    def test_onnxt_runtime_non_max_suppression(self):
+        boxes = numpy.array([[
+            [0.0, 0.0, 1.0, 1.0],
+            [0.0, 0.1, 1.0, 1.1],
+            [0.0, -0.1, 1.0, 0.9],
+            [0.0, 10.0, 1.0, 11.0],
+            [0.0, 10.1, 1.0, 11.1],
+            [0.0, 100.0, 1.0, 101.0]
+        ]]).astype(numpy.float32)
+        scores = numpy.array([[[0.9, 0.75, 0.6, 0.95, 0.5, 0.3]]]).astype(numpy.float32)
+        max_output_boxes_per_class = numpy.array([3]).astype(numpy.int64)
+        iou_threshold = numpy.array([0.5]).astype(numpy.float32)
+        score_threshold = numpy.array([0.0]).astype(numpy.float32)
+        selected_indices = numpy.array([[0, 0, 3], [0, 0, 0], [0, 0, 5]]).astype(numpy.int64)
+
+        inputs = {'boxes': boxes, 'scores': scores,
+                  'max_output_boxes_per_class': max_output_boxes_per_class,
+                  'iou_threshold': iou_threshold,
+                  'score_threshold': score_threshold}
+        onx = OnnxNonMaxSuppression(
+            'boxes', 'scores', 'max_output_boxes_per_class',
+            'iou_threshold', 'score_threshold',
+            output_names=['Y'],
+            op_version=TARGET_OPSET)
+        model_def = onx.to_onnx(inputs, target_opset=TARGET_OPSET)
+        oinf = OnnxInference(model_def)
+        got = oinf.run(inputs)
+        self.assertEqualArray(selected_indices, got['Y'])
+        python_tested.append(OnnxNonMaxSuppression)
+
+    @wraplog()
     def test_onnxt_runtime_not(self):
         self.common_test_onnxt_runtime_unary(OnnxNot, numpy.logical_not)
 
@@ -5123,5 +5154,5 @@ class TestOnnxrtPythonRuntime(ExtTestCase):  # pylint: disable=R0904
 
 if __name__ == "__main__":
     # Working
-    # TestOnnxrtPythonRuntime().test_onnxt_runtime_resize()
+    # TestOnnxrtPythonRuntime().test_onnxt_runtime_non_max_suppression()
     unittest.main(verbosity=2)
