@@ -65,7 +65,7 @@ from .op_gather import Gather
 from .op_gathernd import GatherND
 from .op_gather_elements import GatherElements
 from .op_gemm import Gemm
-from .op_global_average_pool import GlobalAveragePool
+from .op_global_average_pool import GlobalAveragePool, GlobalMaxPool
 from .op_greater import Greater, GreaterOrEqual
 from .op_hardmax import Hardmax
 from .op_hard_sigmoid import HardSigmoid
@@ -90,6 +90,7 @@ from .op_max_pool import MaxPool
 from .op_mean import Mean
 from .op_min import Min
 from .op_mod import Mod
+from .op_momentum import Momentum
 from .op_mul import Mul
 from .op_neg import Neg
 from .op_negative_log_likelihood_loss import NegativeLogLikelihoodLoss
