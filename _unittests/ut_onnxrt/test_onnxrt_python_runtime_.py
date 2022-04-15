@@ -54,7 +54,8 @@ from skl2onnx.algebra.onnx_ops import (  # pylint: disable=E0611
     OnnxDropout, OnnxDropout_7,
     OnnxEinsum, OnnxElu, OnnxEqual, OnnxErf, OnnxExp, OnnxExpand, OnnxEyeLike,
     OnnxFlatten, OnnxFloor,
-    OnnxGreater, OnnxGreaterOrEqual, OnnxGemm, OnnxGlobalAveragePool,
+    OnnxGreater, OnnxGreaterOrEqual, OnnxGemm,
+    OnnxGlobalAveragePool, OnnxGlobalMaxPool,
     OnnxHardmax, OnnxHardSigmoid, OnnxHardSwish,
     OnnxIdentity, OnnxIsInf, OnnxIsNaN,
     OnnxLeakyRelu, OnnxLess, OnnxLessOrEqual,
@@ -106,7 +107,8 @@ from mlprodict.onnxrt.ops_cpu.op_batch_normalization import (
     _batchnorm_test_mode, _batchnorm_training_mode)
 from mlprodict.onnxrt.ops_cpu.op_average_pool import (
     _get_output_shape, _pool, _get_pad_shape)
-from mlprodict.onnxrt.ops_cpu.op_global_average_pool import _global_average_pool
+from mlprodict.onnxrt.ops_cpu.op_global_average_pool import (
+    _global_average_pool, _global_max_pool)
 from mlprodict.onnxrt.ops_cpu._op_onnx_numpy import (  # pylint: disable=E0611,E0401
     topk_element_min_double, topk_element_max_double,
     topk_element_fetch_double,
@@ -2889,6 +2891,42 @@ class TestOnnxrtPythonRuntime(ExtTestCase):  # pylint: disable=R0904
         self.assertEqualArray(y, got['Y'])
 
         python_tested.append(OnnxGlobalAveragePool)
+
+    @wraplog()
+    def test_onnxt_runtime_global_max_pool(self):
+        x = x = numpy.random.randn(1, 3, 5, 5).astype(numpy.float32)
+        y = _global_max_pool(x).astype(numpy.float32)
+
+        onx = OnnxGlobalMaxPool(
+            'X', output_names=['Y'],
+            op_version=TARGET_OPSET)
+        model_def = onx.to_onnx({'X': x.astype(numpy.float32)},
+                                target_opset=TARGET_OPSET)
+        self._check_shape_inference(OnnxGlobalMaxPool, model_def)
+        oinf = OnnxInference(model_def)
+        got = oinf.run({'X': x})
+        self.assertEqual(list(sorted(got)), ['Y'])
+        self.assertEqualArray(y, got['Y'])
+        self.common_expected_shapes_types(
+            oinf, {'X': x}, got, OnnxGlobalMaxPool, model_def)
+
+        x = numpy.array([[[
+            [1, 2, 3],
+            [4, 5, 6],
+            [7, 8, 9],
+        ]]]).astype(numpy.float32)
+        y = numpy.array([[[[9]]]]).astype(numpy.float32)
+        onx = OnnxGlobalMaxPool(
+            'X', output_names=['Y'],
+            op_version=TARGET_OPSET)
+        model_def = onx.to_onnx({'X': x.astype(numpy.float32)},
+                                target_opset=TARGET_OPSET)
+        oinf = OnnxInference(model_def)
+        got = oinf.run({'X': x})
+        self.assertEqual(list(sorted(got)), ['Y'])
+        self.assertEqualArray(y, got['Y'])
+
+        python_tested.append(OnnxGlobalMaxPool)
 
     def test_onnxt_runtime_greater(self):
         self.common_test_onnxt_runtime_binary(OnnxGreater, numpy.greater)
