@@ -4,7 +4,6 @@
 @file
 @brief Runtime operator.
 """
-import numpy
 from ..shape_object import ShapeObject
 from ._op import OpRun
 

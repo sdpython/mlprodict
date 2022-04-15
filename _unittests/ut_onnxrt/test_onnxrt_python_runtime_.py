@@ -108,7 +108,7 @@ from mlprodict.onnxrt.ops_cpu.op_batch_normalization import (
 from mlprodict.onnxrt.ops_cpu.op_average_pool import (
     _get_output_shape, _pool, _get_pad_shape)
 from mlprodict.onnxrt.ops_cpu.op_global_average_pool import (
-    _global_average_pool,  _global_max_pool)
+    _global_average_pool, _global_max_pool)
 from mlprodict.onnxrt.ops_cpu._op_onnx_numpy import (  # pylint: disable=E0611,E0401
     topk_element_min_double, topk_element_max_double,
     topk_element_fetch_double,
