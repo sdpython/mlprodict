@@ -70,6 +70,7 @@ intersphinx_mapping.update({
     'onnxruntime': (
         'http://www.xavierdupre.fr/app/onnxruntime/helpsphinx/', None),
     'skl2onnx': ('http://onnx.ai/sklearn-onnx/', None),
+    'torch': ('https://pytorch.org/docs/master/', None),
 })
 
 epkg_dictionary.update({
