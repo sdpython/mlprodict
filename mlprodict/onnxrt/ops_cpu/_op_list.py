@@ -67,6 +67,7 @@ from .op_gather_elements import GatherElements
 from .op_gemm import Gemm
 from .op_global_average_pool import GlobalAveragePool, GlobalMaxPool
 from .op_greater import Greater, GreaterOrEqual
+from .op_gru import GRU
 from .op_hardmax import Hardmax
 from .op_hard_sigmoid import HardSigmoid
 from .op_floor import Floor

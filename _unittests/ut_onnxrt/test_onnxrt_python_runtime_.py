@@ -14,6 +14,7 @@ from scipy.special import (  # pylint: disable=E0611
     expit as logistic_sigmoid, erf)
 from scipy.spatial.distance import cdist
 import onnx
+from onnx.backend.test.case.node.gru import GRU_Helper
 from onnx.backend.test.case.node.negativeloglikelihoodloss import (
     compute_negative_log_likelihood_loss)
 from onnx.backend.test.case.node.onehot import one_hot
@@ -54,8 +55,8 @@ from skl2onnx.algebra.onnx_ops import (  # pylint: disable=E0611
     OnnxDropout, OnnxDropout_7,
     OnnxEinsum, OnnxElu, OnnxEqual, OnnxErf, OnnxExp, OnnxExpand, OnnxEyeLike,
     OnnxFlatten, OnnxFloor,
-    OnnxGreater, OnnxGreaterOrEqual, OnnxGemm,
-    OnnxGlobalAveragePool, OnnxGlobalMaxPool,
+    OnnxGemm, OnnxGlobalAveragePool, OnnxGlobalMaxPool,
+    OnnxGreater, OnnxGreaterOrEqual, OnnxGRU,
     OnnxHardmax, OnnxHardSigmoid, OnnxHardSwish,
     OnnxIdentity, OnnxIsInf, OnnxIsNaN,
     OnnxLeakyRelu, OnnxLess, OnnxLessOrEqual,
@@ -2936,6 +2937,34 @@ class TestOnnxrtPythonRuntime(ExtTestCase):  # pylint: disable=R0904
         self.common_test_onnxt_runtime_binary(
             OnnxGreaterOrEqual, numpy.greater_equal)
 
+    @wraplog()
+    def test_onnxt_runtime_gru_default(self):
+        input_size = 2
+        hidden_size = 5
+        weight_scale = 0.1
+        number_of_gates = 3
+
+        X = numpy.array([[[1., 2.], [3., 4.], [5., 6.]]]).astype(numpy.float32)
+        W = (weight_scale * numpy.ones((1, number_of_gates * hidden_size, input_size))).astype(numpy.float32)
+        R = (weight_scale * numpy.ones((1, number_of_gates * hidden_size, hidden_size))).astype(numpy.float32)
+
+        gru = GRU_Helper(X=X, W=W, R=R)
+        _, Y_h = gru.step()
+
+        onx = OnnxGRU('X', 'W', 'R', output_names=['Y', 'Y_h'],
+                      op_version=TARGET_OPSET,
+                      hidden_size=hidden_size)
+        model_def = onx.to_onnx(
+            {'X': X, 'W': W, 'R': R},
+            outputs=[('Y', FloatTensorType()),
+                     ('Y_h', FloatTensorType())],
+            target_opset=TARGET_OPSET)
+
+        oinf = OnnxInference(model_def)
+        got = oinf.run({'X': X, 'W': W, 'R': R})
+        self.assertEqualArray(Y_h, got['Y_h'])
+        python_tested.append(OnnxGRU)
+
     def test_onnxt_runtime_hard_sigmoid(self):
         self.common_test_onnxt_runtime_unary(
             OnnxHardSigmoid, lambda x: numpy.maximum(
@@ -5192,5 +5221,5 @@ class TestOnnxrtPythonRuntime(ExtTestCase):  # pylint: disable=R0904
 
 if __name__ == "__main__":
     # Working
-    # TestOnnxrtPythonRuntime().test_onnxt_runtime_non_max_suppression()
+    # TestOnnxrtPythonRuntime().test_onnxt_runtime_gru_default()
     unittest.main(verbosity=2)
