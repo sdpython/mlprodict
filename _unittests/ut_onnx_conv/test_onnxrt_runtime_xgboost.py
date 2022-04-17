@@ -54,9 +54,6 @@ class TestOnnxrtRuntimeXGBoost(ExtTestCase):
             'multi:softmax': (XGBClassifier, fct_id,
                               make_classification(n_features=4, n_classes=3,
                                                   n_clusters_per_class=1)),
-            'multi:softmax2': (XGBClassifier, fct_cl3,
-                               make_classification(n_features=4, n_classes=3,
-                                                   n_clusters_per_class=1)),
             'multi:softprob': (XGBClassifier, fct_id,
                                make_classification(n_features=4, n_classes=3,
                                                    n_clusters_per_class=1)),
@@ -86,10 +83,17 @@ class TestOnnxrtRuntimeXGBoost(ExtTestCase):
                     for X_train, X_test, y_train in probs:
                         obj = objective.replace(
                             'reg:squarederror2', 'reg:squarederror')
+                        obj = obj.replace(
+                            'multi:softmax2', 'multi:softmax')
                         clr = cl(objective=obj, n_estimators=n_estimators)
                         if len(y_train.shape) == 2:
                             y_train = y_train[:, 1]
-                        clr.fit(X_train, y_train)
+                        try:
+                            clr.fit(X_train, y_train)
+                        except ValueError as e:
+                            raise AssertionError(
+                                "Unable to train with objective %r and data %r." % (
+                                    objective, y_train))
 
                         model_def = to_onnx(clr, X_train.astype(numpy.float32),
                                             target_opset=TARGET_OPSET)
@@ -102,11 +106,12 @@ class TestOnnxrtRuntimeXGBoost(ExtTestCase):
                             self.assertEqualArray(
                                 exp, y['variable'].ravel(), decimal=5)
                         else:
-                            exp = clr.predict_proba(X_test)
-                            self.assertEqual(list(sorted(y)), [
-                                             'output_label', 'output_probability'])
-                            got = DataFrame(y['output_probability']).values
-                            self.assertEqualArray(exp, got, decimal=5)
+                            if 'softmax' not in obj:
+                                exp = clr.predict_proba(X_test)
+                                self.assertEqual(list(sorted(y)), [
+                                                 'output_label', 'output_probability'])
+                                got = DataFrame(y['output_probability']).values
+                                self.assertEqualArray(exp, got, decimal=5)
 
                             exp = clr.predict(X_test[:10])
                             self.assertEqualArray(exp, y['output_label'][:10])
@@ -123,7 +128,7 @@ class TestOnnxrtRuntimeXGBoost(ExtTestCase):
         X, y = iris.data, iris.target
         X_train, X_test, y_train, y_test = train_test_split(
             X, y, random_state=10)
-        clr = XGBClassifier(objective="multi:softmax",
+        clr = XGBClassifier(objective="multi:softprob",
                             max_depth=1, n_estimators=2)
         clr.fit(X_train, y_train, eval_set=[
                 (X_test, y_test)], early_stopping_rounds=40)
