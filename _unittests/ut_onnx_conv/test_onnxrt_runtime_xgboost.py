@@ -93,7 +93,7 @@ class TestOnnxrtRuntimeXGBoost(ExtTestCase):
                         except ValueError as e:
                             raise AssertionError(
                                 "Unable to train with objective %r and data %r." % (
-                                    objective, y_train))
+                                    objective, y_train)) from e
 
                         model_def = to_onnx(clr, X_train.astype(numpy.float32),
                                             target_opset=TARGET_OPSET)
