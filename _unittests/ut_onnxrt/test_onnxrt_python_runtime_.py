@@ -5,6 +5,7 @@ import unittest
 import pprint
 import warnings
 import sys
+import math
 from logging import getLogger
 from contextlib import redirect_stdout
 from io import StringIO
@@ -61,7 +62,7 @@ from skl2onnx.algebra.onnx_ops import (  # pylint: disable=E0611
     OnnxHardmax, OnnxHardSigmoid, OnnxHardSwish,
     OnnxIdentity, OnnxIsInf, OnnxIsNaN,
     OnnxLeakyRelu, OnnxLess, OnnxLessOrEqual,
-    OnnxLog, OnnxLogSoftmax, OnnxLpNormalization, OnnxLSTM,
+    OnnxLog, OnnxLogSoftmax, OnnxLpNormalization, OnnxLRN, OnnxLSTM,
     OnnxMatMul, OnnxMax, OnnxMaxPool, OnnxMean, OnnxMin, OnnxMod, OnnxMul,
     OnnxNeg, OnnxNonMaxSuppression, OnnxNot, OnnxNegativeLogLikelihoodLoss,
     OnnxOneHot, OnnxOr,
@@ -3098,6 +3099,48 @@ class TestOnnxrtPythonRuntime(ExtTestCase):  # pylint: disable=R0904
                            [0.9486833, -0.8944272]], dtype=numpy.float32)
         self.assertEqualArray(got['Y'], exp)
         python_tested.append(OnnxLpNormalization)
+
+    @wraplog()
+    def test_onnxt_runtime_lrn(self):
+
+        def _make_model(node, opset=15):
+            ginputs = [
+                onnx.helper.make_tensor_value_info(
+                    name, (TensorProto.FLOAT if i % 2 == 0 else TensorProto.INT64), [])
+                for i, name in enumerate(node.input)]
+            goutputs = [
+                onnx.helper.make_tensor_value_info(o, TensorProto.FLOAT, [])
+                for o in node.output]
+            model_def = onnx.helper.make_model(
+                opset_imports=[onnx.helper.make_operatorsetid('', opset)],
+                graph=onnx.helper.make_graph(
+                    name='test_lrn',
+                    inputs=ginputs, outputs=goutputs,
+                    nodes=[node]))
+            return model_def
+
+        alpha = 0.0002
+        beta = 0.5
+        bias = 2.0
+        nsize = 3
+        node = onnx.helper.make_node(
+            'LRN', inputs=['x'], outputs=['y'],
+            alpha=alpha, beta=beta, bias=bias, size=nsize)
+        model_def = _make_model(node)
+        oinf = OnnxInference(model_def)
+        
+        x = numpy.random.randn(5, 5, 5, 5).astype(numpy.float32)
+        square_sum = numpy.zeros((5, 5, 5, 5)).astype(numpy.float32)
+        for n, c, h, w in numpy.ndindex(x.shape):
+            square_sum[n, c, h, w] = sum(
+                x[n, max(0, c - int(math.floor((nsize - 1) / 2))):min(5, c + int(math.ceil((nsize - 1) / 2)) + 1),
+                h, w] ** 2)
+        y = x / ((bias + (alpha / nsize) * square_sum) ** beta)
+        
+        got = oinf.run({'x': x})
+        self.assertEqual(len(got), 1)
+        self.assertEqualArray(y, got['y'])
+        python_tested.append(OnnxLRN)
 
     @wraplog()
     def test_onnxt_runtime_lstm_default(self):
