@@ -15,6 +15,7 @@ from scipy.special import (  # pylint: disable=E0611
 from scipy.spatial.distance import cdist
 import onnx
 from onnx.backend.test.case.node.gru import GRU_Helper
+from onnx.backend.test.case.node.lstm import LSTM_Helper
 from onnx.backend.test.case.node.negativeloglikelihoodloss import (
     compute_negative_log_likelihood_loss)
 from onnx.backend.test.case.node.onehot import one_hot
@@ -60,7 +61,7 @@ from skl2onnx.algebra.onnx_ops import (  # pylint: disable=E0611
     OnnxHardmax, OnnxHardSigmoid, OnnxHardSwish,
     OnnxIdentity, OnnxIsInf, OnnxIsNaN,
     OnnxLeakyRelu, OnnxLess, OnnxLessOrEqual,
-    OnnxLog, OnnxLogSoftmax, OnnxLpNormalization,
+    OnnxLog, OnnxLogSoftmax, OnnxLpNormalization, OnnxLSTM,
     OnnxMatMul, OnnxMax, OnnxMaxPool, OnnxMean, OnnxMin, OnnxMod, OnnxMul,
     OnnxNeg, OnnxNonMaxSuppression, OnnxNot, OnnxNegativeLogLikelihoodLoss,
     OnnxOneHot, OnnxOr,
@@ -3097,6 +3098,34 @@ class TestOnnxrtPythonRuntime(ExtTestCase):  # pylint: disable=R0904
                            [0.9486833, -0.8944272]], dtype=numpy.float32)
         self.assertEqualArray(got['Y'], exp)
         python_tested.append(OnnxLpNormalization)
+
+    @wraplog()
+    def test_onnxt_runtime_lstm_default(self):
+        input_size = 2
+        hidden_size = 3
+        weight_scale = 0.1
+        number_of_gates = 4
+
+        X = numpy.array([[[1., 2.], [3., 4.], [5., 6.]]]).astype(numpy.float32)
+        W = weight_scale * numpy.ones((1, number_of_gates * hidden_size, input_size)).astype(numpy.float32)
+        R = weight_scale * numpy.ones((1, number_of_gates * hidden_size, hidden_size)).astype(numpy.float32)
+
+        gru = LSTM_Helper(X=X, W=W, R=R)
+        _, Y_h = gru.step()
+
+        onx = OnnxLSTM('X', 'W', 'R', output_names=['Y', 'Y_h'],
+                      op_version=TARGET_OPSET,
+                      hidden_size=hidden_size)
+        model_def = onx.to_onnx(
+            {'X': X, 'W': W, 'R': R},
+            outputs=[('Y', FloatTensorType()),
+                     ('Y_h', FloatTensorType())],
+            target_opset=TARGET_OPSET)
+
+        oinf = OnnxInference(model_def)
+        got = oinf.run({'X': X, 'W': W, 'R': R})
+        self.assertEqualArray(Y_h, got['Y_h'])
+        python_tested.append(OnnxLSTM)
 
     @wraplog()
     def test_onnxt_runtime_matmul(self):

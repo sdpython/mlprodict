@@ -9,7 +9,7 @@ from ._op import OpRun
 from ..shape_object import ShapeObject
 
 
-class CommonGRU(OpRun):
+class CommonLSTM(OpRun):
 
     def __init__(self, onnx_node, expected_attributes=None, desc=None,
                  **options):
@@ -25,7 +25,10 @@ class CommonGRU(OpRun):
     def g(self, x):
         return numpy.tanh(x)
 
-    def _step(self, X, R, B, W, H_0):
+    def h(self, x):
+        return numpy.tanh(x)
+
+    def _step(self, X, R, B, W, H_0, C_0, P):
         seq_length = X.shape[0]
         hidden_size = H_0.shape[-1]
         batch_size = X.shape[1]
@@ -34,29 +37,22 @@ class CommonGRU(OpRun):
             [seq_length, self.num_directions, batch_size, hidden_size])
         h_list = []
 
-        [w_z, w_r, w_h] = numpy.split(W, 3)  # pylint: disable=W0632
-        [r_z, r_r, r_h] = numpy.split(R, 3)  # pylint: disable=W0632
-        [w_bz, w_br, w_bh, r_bz, r_br, r_bh] = numpy.split(
-            B, 6)  # pylint: disable=W0632
-        gates_w = numpy.transpose(numpy.concatenate((w_z, w_r)))
-        gates_r = numpy.transpose(numpy.concatenate((r_z, r_r)))
-        gates_b = numpy.add(numpy.concatenate((w_bz, w_br)),
-                            numpy.concatenate((r_bz, r_br)))
-
+        [p_i, p_o, p_f] = numpy.split(P, 3)
         H_t = H_0
+        C_t = C_0
         for x in numpy.split(X, X.shape[0], axis=0):
-            gates = numpy.dot(x, gates_w) + numpy.dot(H_t, gates_r) + gates_b
-            z, r = numpy.split(gates, 2, -1)  # pylint: disable=W0632
-            z = self.f(z)
-            r = self.f(r)
-            h_default = self.g(numpy.dot(x, numpy.transpose(
-                w_h)) + numpy.dot(r * H_t, numpy.transpose(r_h)) + w_bh + r_bh)
-            h_linear = self.g(numpy.dot(x, numpy.transpose(
-                w_h)) + r * (numpy.dot(H_t, numpy.transpose(r_h)) + r_bh) + w_bh)
-            h = h_linear if self.linear_before_reset else h_default
-            H = (1 - z) * h + z * H_t
+            gates = numpy.dot(x, numpy.transpose(W)) + numpy.dot(H_t, numpy.transpose(R)) + numpy.add(
+                *numpy.split(B, 2))
+            i, o, f, c = numpy.split(gates, 4, -1)
+            i = self.f(i + p_i * C_t)
+            f = self.f(f + p_f * C_t)
+            c = self.g(c)
+            C = f * C_t + i * c
+            o = self.f(o + p_o * C)
+            H = o * self.h(C)
             h_list.append(H)
             H_t = H
+            C_t = C
 
         concatenated = numpy.concatenate(h_list)
         if self.num_directions == 1:
@@ -70,7 +66,12 @@ class CommonGRU(OpRun):
 
         return Y, Y_h
 
-    def _run(self, X, W, R, B=None, sequence_lens=None, initial_h=None):  # pylint: disable=W0221
+    def _run(self, X, W, R, B=None, sequence_lens=None,  # pylint: disable=W0221
+             initial_h=None, initial_c=None, P=None):
+        number_of_gates = 4
+        number_of_peepholes = 3
+
+        required_inputs = [X, W, R]
         self.num_directions = W.shape[0]
 
         if self.num_directions == 1:
@@ -82,27 +83,39 @@ class CommonGRU(OpRun):
                 sequence_lens = numpy.squeeze(sequence_lens, axis=0)
             if initial_h is not None:
                 initial_h = numpy.squeeze(initial_h, axis=0)
+            if initial_c is not None:
+                initial_c = numpy.squeeze(initial_c, axis=0)
+            if P is not None:
+                P = numpy.squeeze(P, axis=0)
 
             hidden_size = R.shape[-1]
             batch_size = X.shape[1]
 
-            b = (B if B is not None else
-                 numpy.zeros(2 * self.number_of_gates * hidden_size, dtype=X.dtype))
-            h_0 = (initial_h if initial_h is not None else
-                   numpy.zeros((batch_size, hidden_size), dtype=X.dtype))
-
-            B = b
-            H_0 = h_0
+            if self.layout != 0:
+                X = numpy.swapaxes(X, 0, 1)
+            if B is None:
+                B = numpy.zeros(2 * number_of_gates *
+                                hidden_size, dtype=numpy.float32)
+            if P is None:
+                P = numpy.zeros(number_of_peepholes *
+                                hidden_size, dtype=numpy.float32)
+            if initial_h is None:
+                initial_h = numpy.zeros(
+                    (batch_size, hidden_size), dtype=numpy.float32)
+            if initial_c is None:
+                initial_c = numpy.zeros(
+                    (batch_size, hidden_size), dtype=numpy.float32)
         else:
             raise NotImplementedError(  # pragma: no cover
                 "Unsupported value %r for num_directions and operator %r." % (
                     self.num_directions, self.__class__.__name__))
 
-        Y, Y_h = self._step(X, R, B, W, H_0)
+        Y, Y_h = self._step(X, R, B, W, initial_h, initial_c, P)
 
         return (Y, ) if self.nb_outputs == 1 else (Y, Y_h)
 
-    def _infer_shapes(self, X, W, R, B=None, sequence_lens=None, initial_h=None):  # pylint: disable=W0221
+    def _infer_shapes(self, X, W, R, B=None, sequence_lens=None,  # pylint: disable=W0221
+                      initial_h=None, initial_c=None, P=None):
         num_directions = W.shape[0]
         hidden_size = R[-1]
         batch_size = X[1]
@@ -117,11 +130,12 @@ class CommonGRU(OpRun):
             (num_directions, batch_size, hidden_size), dtype=X.dtype)
         return (y_shape, y_h_shape)
 
-    def _infer_types(self, X, W, R, B=None, sequence_lens=None, initial_h=None):  # pylint: disable=W0221
+    def _infer_types(self, X, W, R, B=None, sequence_lens=None,  # pylint: disable=W0221
+                     initial_h=None, initial_c=None, P=None):
         return (X, X)
 
 
-class GRU(CommonGRU):
+class LSTM(CommonLSTM):
 
     atts = {
         'activation_alpha': [0.],
@@ -131,10 +145,10 @@ class GRU(CommonGRU):
         'direction': b'forward',
         'hidden_size': None,
         'layout': 0,
-        'linear_before_reset': 0,
+        'input_forget': 0,
     }
 
     def __init__(self, onnx_node, desc=None, **options):
-        CommonGRU.__init__(self, onnx_node, desc=desc,
-                           expected_attributes=GRU.atts,
-                           **options)
+        CommonLSTM.__init__(self, onnx_node, desc=desc,
+                            expected_attributes=LSTM.atts,
+                            **options)

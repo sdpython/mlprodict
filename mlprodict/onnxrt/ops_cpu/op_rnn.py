@@ -18,7 +18,7 @@ class CommonRNN(OpRun):
                        expected_attributes=expected_attributes,
                        **options)
 
-        if self.direction in ("forward", "reverse"):
+        if self.direction in (b"forward", b"reverse"):
             self.num_directions = 1
         elif self.direction == "bidirectional":
             self.num_directions = 2
@@ -134,7 +134,7 @@ class RNN_7(CommonRNN):
         'activation_beta': [0.],
         'activations': [b'Tanh', b'Tanh'],
         'clip': [],
-        'direction': 'forward',
+        'direction': b'forward',
         'hidden_size': None,
     }
 
@@ -151,7 +151,7 @@ class RNN_14(CommonRNN):
         'activation_beta': [0.],
         'activations': [b'Tanh', b'Tanh'],
         'clip': [],
-        'direction': 'forward',
+        'direction': b'forward',
         'hidden_size': None,
         'layout': 0,
     }

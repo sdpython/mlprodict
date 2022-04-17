@@ -85,6 +85,7 @@ from .op_log import Log
 from .op_log_softmax import LogSoftmax
 from .op_loop import Loop
 from .op_lp_normalization import LpNormalization
+from .op_lstm import LSTM
 from .op_matmul import MatMul
 from .op_max import Max
 from .op_max_pool import MaxPool
