@@ -3128,15 +3128,14 @@ class TestOnnxrtPythonRuntime(ExtTestCase):  # pylint: disable=R0904
             alpha=alpha, beta=beta, bias=bias, size=nsize)
         model_def = _make_model(node)
         oinf = OnnxInference(model_def)
-        
+
         x = numpy.random.randn(5, 5, 5, 5).astype(numpy.float32)
         square_sum = numpy.zeros((5, 5, 5, 5)).astype(numpy.float32)
         for n, c, h, w in numpy.ndindex(x.shape):
             square_sum[n, c, h, w] = sum(
-                x[n, max(0, c - int(math.floor((nsize - 1) / 2))):min(5, c + int(math.ceil((nsize - 1) / 2)) + 1),
-                h, w] ** 2)
+                x[n, max(0, c - int(math.floor((nsize - 1) / 2))):min(5, c + int(math.ceil((nsize - 1) / 2)) + 1), h, w] ** 2)
         y = x / ((bias + (alpha / nsize) * square_sum) ** beta)
-        
+
         got = oinf.run({'x': x})
         self.assertEqual(len(got), 1)
         self.assertEqualArray(y, got['y'])
@@ -3157,8 +3156,8 @@ class TestOnnxrtPythonRuntime(ExtTestCase):  # pylint: disable=R0904
         _, Y_h = gru.step()
 
         onx = OnnxLSTM('X', 'W', 'R', output_names=['Y', 'Y_h'],
-                      op_version=TARGET_OPSET,
-                      hidden_size=hidden_size)
+                       op_version=TARGET_OPSET,
+                       hidden_size=hidden_size)
         model_def = onx.to_onnx(
             {'X': X, 'W': W, 'R': R},
             outputs=[('Y', FloatTensorType()),

@@ -37,13 +37,13 @@ class CommonLSTM(OpRun):
             [seq_length, self.num_directions, batch_size, hidden_size])
         h_list = []
 
-        [p_i, p_o, p_f] = numpy.split(P, 3)
+        [p_i, p_o, p_f] = numpy.split(P, 3)  # pylint: disable=W0632
         H_t = H_0
         C_t = C_0
         for x in numpy.split(X, X.shape[0], axis=0):
             gates = numpy.dot(x, numpy.transpose(W)) + numpy.dot(H_t, numpy.transpose(R)) + numpy.add(
                 *numpy.split(B, 2))
-            i, o, f, c = numpy.split(gates, 4, -1)
+            i, o, f, c = numpy.split(gates, 4, -1)  # pylint: disable=W0632
             i = self.f(i + p_i * C_t)
             f = self.f(f + p_f * C_t)
             c = self.g(c)
@@ -71,7 +71,6 @@ class CommonLSTM(OpRun):
         number_of_gates = 4
         number_of_peepholes = 3
 
-        required_inputs = [X, W, R]
         self.num_directions = W.shape[0]
 
         if self.num_directions == 1:

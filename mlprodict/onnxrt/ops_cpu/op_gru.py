@@ -36,7 +36,7 @@ class CommonGRU(OpRun):
 
         [w_z, w_r, w_h] = numpy.split(W, 3)  # pylint: disable=W0632
         [r_z, r_r, r_h] = numpy.split(R, 3)  # pylint: disable=W0632
-        [w_bz, w_br, w_bh, r_bz, r_br, r_bh] = numpy.split(
+        [w_bz, w_br, w_bh, r_bz, r_br, r_bh] = numpy.split(  # pylint: disable=W0632
             B, 6)  # pylint: disable=W0632
         gates_w = numpy.transpose(numpy.concatenate((w_z, w_r)))
         gates_r = numpy.transpose(numpy.concatenate((r_z, r_r)))
