@@ -5,6 +5,7 @@ import unittest
 import pprint
 import warnings
 import sys
+import math
 from logging import getLogger
 from contextlib import redirect_stdout
 from io import StringIO
@@ -14,6 +15,8 @@ from scipy.special import (  # pylint: disable=E0611
     expit as logistic_sigmoid, erf)
 from scipy.spatial.distance import cdist
 import onnx
+from onnx.backend.test.case.node.gru import GRU_Helper
+from onnx.backend.test.case.node.lstm import LSTM_Helper
 from onnx.backend.test.case.node.negativeloglikelihoodloss import (
     compute_negative_log_likelihood_loss)
 from onnx.backend.test.case.node.onehot import one_hot
@@ -54,12 +57,12 @@ from skl2onnx.algebra.onnx_ops import (  # pylint: disable=E0611
     OnnxDropout, OnnxDropout_7,
     OnnxEinsum, OnnxElu, OnnxEqual, OnnxErf, OnnxExp, OnnxExpand, OnnxEyeLike,
     OnnxFlatten, OnnxFloor,
-    OnnxGreater, OnnxGreaterOrEqual, OnnxGemm,
-    OnnxGlobalAveragePool, OnnxGlobalMaxPool,
+    OnnxGemm, OnnxGlobalAveragePool, OnnxGlobalMaxPool,
+    OnnxGreater, OnnxGreaterOrEqual, OnnxGRU,
     OnnxHardmax, OnnxHardSigmoid, OnnxHardSwish,
     OnnxIdentity, OnnxIsInf, OnnxIsNaN,
     OnnxLeakyRelu, OnnxLess, OnnxLessOrEqual,
-    OnnxLog, OnnxLogSoftmax, OnnxLpNormalization,
+    OnnxLog, OnnxLogSoftmax, OnnxLpNormalization, OnnxLRN, OnnxLSTM,
     OnnxMatMul, OnnxMax, OnnxMaxPool, OnnxMean, OnnxMin, OnnxMod, OnnxMul,
     OnnxNeg, OnnxNonMaxSuppression, OnnxNot, OnnxNegativeLogLikelihoodLoss,
     OnnxOneHot, OnnxOr,
@@ -2936,6 +2939,34 @@ class TestOnnxrtPythonRuntime(ExtTestCase):  # pylint: disable=R0904
         self.common_test_onnxt_runtime_binary(
             OnnxGreaterOrEqual, numpy.greater_equal)
 
+    @wraplog()
+    def test_onnxt_runtime_gru_default(self):
+        input_size = 2
+        hidden_size = 5
+        weight_scale = 0.1
+        number_of_gates = 3
+
+        X = numpy.array([[[1., 2.], [3., 4.], [5., 6.]]]).astype(numpy.float32)
+        W = (weight_scale * numpy.ones((1, number_of_gates * hidden_size, input_size))).astype(numpy.float32)
+        R = (weight_scale * numpy.ones((1, number_of_gates * hidden_size, hidden_size))).astype(numpy.float32)
+
+        gru = GRU_Helper(X=X, W=W, R=R)
+        _, Y_h = gru.step()
+
+        onx = OnnxGRU('X', 'W', 'R', output_names=['Y', 'Y_h'],
+                      op_version=TARGET_OPSET,
+                      hidden_size=hidden_size)
+        model_def = onx.to_onnx(
+            {'X': X, 'W': W, 'R': R},
+            outputs=[('Y', FloatTensorType()),
+                     ('Y_h', FloatTensorType())],
+            target_opset=TARGET_OPSET)
+
+        oinf = OnnxInference(model_def)
+        got = oinf.run({'X': X, 'W': W, 'R': R})
+        self.assertEqualArray(Y_h, got['Y_h'])
+        python_tested.append(OnnxGRU)
+
     def test_onnxt_runtime_hard_sigmoid(self):
         self.common_test_onnxt_runtime_unary(
             OnnxHardSigmoid, lambda x: numpy.maximum(
@@ -3068,6 +3099,75 @@ class TestOnnxrtPythonRuntime(ExtTestCase):  # pylint: disable=R0904
                            [0.9486833, -0.8944272]], dtype=numpy.float32)
         self.assertEqualArray(got['Y'], exp)
         python_tested.append(OnnxLpNormalization)
+
+    @wraplog()
+    def test_onnxt_runtime_lrn(self):
+
+        def _make_model(node, opset=15):
+            ginputs = [
+                onnx.helper.make_tensor_value_info(
+                    name, (TensorProto.FLOAT if i % 2 == 0 else TensorProto.INT64), [])
+                for i, name in enumerate(node.input)]
+            goutputs = [
+                onnx.helper.make_tensor_value_info(o, TensorProto.FLOAT, [])
+                for o in node.output]
+            model_def = onnx.helper.make_model(
+                opset_imports=[onnx.helper.make_operatorsetid('', opset)],
+                graph=onnx.helper.make_graph(
+                    name='test_lrn',
+                    inputs=ginputs, outputs=goutputs,
+                    nodes=[node]))
+            return model_def
+
+        alpha = 0.0002
+        beta = 0.5
+        bias = 2.0
+        nsize = 3
+        node = onnx.helper.make_node(
+            'LRN', inputs=['x'], outputs=['y'],
+            alpha=alpha, beta=beta, bias=bias, size=nsize)
+        model_def = _make_model(node)
+        oinf = OnnxInference(model_def)
+
+        x = numpy.random.randn(5, 5, 5, 5).astype(numpy.float32)
+        square_sum = numpy.zeros((5, 5, 5, 5)).astype(numpy.float32)
+        for n, c, h, w in numpy.ndindex(x.shape):
+            square_sum[n, c, h, w] = sum(
+                x[n, max(0, c - int(math.floor((nsize - 1) / 2))):min(5, c + int(math.ceil((nsize - 1) / 2)) + 1), h, w] ** 2)
+        y = x / ((bias + (alpha / nsize) * square_sum) ** beta)
+
+        got = oinf.run({'x': x})
+        self.assertEqual(len(got), 1)
+        self.assertEqualArray(y, got['y'])
+        python_tested.append(OnnxLRN)
+
+    @wraplog()
+    def test_onnxt_runtime_lstm_default(self):
+        input_size = 2
+        hidden_size = 3
+        weight_scale = 0.1
+        number_of_gates = 4
+
+        X = numpy.array([[[1., 2.], [3., 4.], [5., 6.]]]).astype(numpy.float32)
+        W = weight_scale * numpy.ones((1, number_of_gates * hidden_size, input_size)).astype(numpy.float32)
+        R = weight_scale * numpy.ones((1, number_of_gates * hidden_size, hidden_size)).astype(numpy.float32)
+
+        gru = LSTM_Helper(X=X, W=W, R=R)
+        _, Y_h = gru.step()
+
+        onx = OnnxLSTM('X', 'W', 'R', output_names=['Y', 'Y_h'],
+                       op_version=TARGET_OPSET,
+                       hidden_size=hidden_size)
+        model_def = onx.to_onnx(
+            {'X': X, 'W': W, 'R': R},
+            outputs=[('Y', FloatTensorType()),
+                     ('Y_h', FloatTensorType())],
+            target_opset=TARGET_OPSET)
+
+        oinf = OnnxInference(model_def)
+        got = oinf.run({'X': X, 'W': W, 'R': R})
+        self.assertEqualArray(Y_h, got['Y_h'])
+        python_tested.append(OnnxLSTM)
 
     @wraplog()
     def test_onnxt_runtime_matmul(self):
@@ -5192,5 +5292,5 @@ class TestOnnxrtPythonRuntime(ExtTestCase):  # pylint: disable=R0904
 
 if __name__ == "__main__":
     # Working
-    # TestOnnxrtPythonRuntime().test_onnxt_runtime_non_max_suppression()
+    # TestOnnxrtPythonRuntime().test_onnxt_runtime_gru_default()
     unittest.main(verbosity=2)

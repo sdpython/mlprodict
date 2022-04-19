@@ -67,6 +67,7 @@ from .op_gather_elements import GatherElements
 from .op_gemm import Gemm
 from .op_global_average_pool import GlobalAveragePool, GlobalMaxPool
 from .op_greater import Greater, GreaterOrEqual
+from .op_gru import GRU
 from .op_hardmax import Hardmax
 from .op_hard_sigmoid import HardSigmoid
 from .op_floor import Floor
@@ -84,6 +85,8 @@ from .op_log import Log
 from .op_log_softmax import LogSoftmax
 from .op_loop import Loop
 from .op_lp_normalization import LpNormalization
+from .op_lrn import LRN
+from .op_lstm import LSTM
 from .op_matmul import MatMul
 from .op_max import Max
 from .op_max_pool import MaxPool

@@ -5,73 +5,70 @@
 @brief Runtime operator.
 """
 import numpy
-from onnx.defs import onnx_opset_version
 from ._op import OpRun
 from ..shape_object import ShapeObject
 
 
-class CommonRNN(OpRun):
+class CommonGRU(OpRun):
 
     def __init__(self, onnx_node, expected_attributes=None, desc=None,
                  **options):
         OpRun.__init__(self, onnx_node, desc=desc,
                        expected_attributes=expected_attributes,
                        **options)
-
-        if self.direction in (b"forward", b"reverse"):
-            self.num_directions = 1
-        elif self.direction == "bidirectional":
-            self.num_directions = 2
-        else:
-            raise RuntimeError(  # pragma: no cover
-                "Unknown direction '{}'.".format(self.direction))
-
-        if len(self.activation_alpha) != self.num_directions:
-            raise RuntimeError(  # pragma: no cover
-                "activation_alpha must have the same size as num_directions={}".format(
-                    self.num_directions))
-        if len(self.activation_beta) != self.num_directions:
-            raise RuntimeError(  # pragma: no cover
-                "activation_beta must have the same size as num_directions={}".format(
-                    self.num_directions))
-
-        self.f1 = self.choose_act(
-            self.activations[0],
-            self.activation_alpha[0] if len(
-                self.activation_alpha) > 0 else None,
-            self.activation_beta[0] if len(self.activation_beta) > 0 else None)
-        if len(self.activations) > 1:
-            self.f2 = self.choose_act(
-                self.activations[1],
-                self.activation_alpha[1] if len(
-                    self.activation_alpha) > 1 else None,
-                self.activation_beta[1] if len(self.activation_beta) > 1 else None)
         self.nb_outputs = len(onnx_node.output)
+        self.number_of_gates = 3
 
-    def choose_act(self, name, alpha, beta):
-        if name in (b"Tanh", b'tanh', 'tanh', 'Tanh'):
-            return self._f_tanh
-        if name in (b"Affine", b"affine", 'Affine', 'affine'):
-            return lambda x: x * alpha + beta
-        raise RuntimeError(  # pragma: no cover
-            "Unknown activation function '{}'.".format(name))
+    def f(self, x):
+        return 1 / (1 + numpy.exp(-x))
 
-    def _f_tanh(self, x):
+    def g(self, x):
         return numpy.tanh(x)
 
     def _step(self, X, R, B, W, H_0):
+        seq_length = X.shape[0]
+        hidden_size = H_0.shape[-1]
+        batch_size = X.shape[1]
+
+        Y = numpy.empty(
+            [seq_length, self.num_directions, batch_size, hidden_size])
         h_list = []
+
+        [w_z, w_r, w_h] = numpy.split(W, 3)  # pylint: disable=W0632
+        [r_z, r_r, r_h] = numpy.split(R, 3)  # pylint: disable=W0632
+        [w_bz, w_br, w_bh, r_bz, r_br, r_bh] = numpy.split(  # pylint: disable=W0632
+            B, 6)  # pylint: disable=W0632
+        gates_w = numpy.transpose(numpy.concatenate((w_z, w_r)))
+        gates_r = numpy.transpose(numpy.concatenate((r_z, r_r)))
+        gates_b = numpy.add(numpy.concatenate((w_bz, w_br)),
+                            numpy.concatenate((r_bz, r_br)))
+
         H_t = H_0
         for x in numpy.split(X, X.shape[0], axis=0):
-            H = self.f1(numpy.dot(x, numpy.transpose(W)) +
-                        numpy.dot(H_t, numpy.transpose(R)) +
-                        numpy.add(*numpy.split(B, 2)))
+            gates = numpy.dot(x, gates_w) + numpy.dot(H_t, gates_r) + gates_b
+            z, r = numpy.split(gates, 2, -1)  # pylint: disable=W0632
+            z = self.f(z)
+            r = self.f(r)
+            h_default = self.g(numpy.dot(x, numpy.transpose(
+                w_h)) + numpy.dot(r * H_t, numpy.transpose(r_h)) + w_bh + r_bh)
+            h_linear = self.g(numpy.dot(x, numpy.transpose(
+                w_h)) + r * (numpy.dot(H_t, numpy.transpose(r_h)) + r_bh) + w_bh)
+            h = h_linear if self.linear_before_reset else h_default
+            H = (1 - z) * h + z * H_t
             h_list.append(H)
             H_t = H
+
         concatenated = numpy.concatenate(h_list)
         if self.num_directions == 1:
-            output = numpy.expand_dims(concatenated, 1)
-        return output, h_list[-1]
+            Y[:, 0, :, :] = concatenated
+
+        if self.layout == 0:
+            Y_h = Y[-1]
+        else:
+            Y = numpy.transpose(Y, [2, 0, 1, 3])
+            Y_h = Y[:, :, -1, :]
+
+        return Y, Y_h
 
     def _run(self, X, W, R, B=None, sequence_lens=None, initial_h=None):  # pylint: disable=W0221
         self.num_directions = W.shape[0]
@@ -90,7 +87,7 @@ class CommonRNN(OpRun):
             batch_size = X.shape[1]
 
             b = (B if B is not None else
-                 numpy.zeros(2 * hidden_size, dtype=X.dtype))
+                 numpy.zeros(2 * self.number_of_gates * hidden_size, dtype=X.dtype))
             h_0 = (initial_h if initial_h is not None else
                    numpy.zeros((batch_size, hidden_size), dtype=X.dtype))
 
@@ -102,9 +99,6 @@ class CommonRNN(OpRun):
                     self.num_directions, self.__class__.__name__))
 
         Y, Y_h = self._step(X, R, B, W, H_0)
-        # if self.layout == 1:
-        #    #Y = numpy.transpose(Y, [2, 0, 1, 3])
-        #    Y_h = Y[:, :, -1, :]
 
         return (Y, ) if self.nb_outputs == 1 else (Y, Y_h)
 
@@ -127,24 +121,7 @@ class CommonRNN(OpRun):
         return (X, X)
 
 
-class RNN_7(CommonRNN):
-
-    atts = {
-        'activation_alpha': [0.],
-        'activation_beta': [0.],
-        'activations': [b'Tanh', b'Tanh'],
-        'clip': [],
-        'direction': b'forward',
-        'hidden_size': None,
-    }
-
-    def __init__(self, onnx_node, desc=None, **options):
-        CommonRNN.__init__(self, onnx_node, desc=desc,
-                           expected_attributes=RNN_7.atts,
-                           **options)
-
-
-class RNN_14(CommonRNN):
+class GRU(CommonGRU):
 
     atts = {
         'activation_alpha': [0.],
@@ -154,15 +131,10 @@ class RNN_14(CommonRNN):
         'direction': b'forward',
         'hidden_size': None,
         'layout': 0,
+        'linear_before_reset': 0,
     }
 
     def __init__(self, onnx_node, desc=None, **options):
-        CommonRNN.__init__(self, onnx_node, desc=desc,
-                           expected_attributes=RNN_14.atts,
+        CommonGRU.__init__(self, onnx_node, desc=desc,
+                           expected_attributes=GRU.atts,
                            **options)
-
-
-if onnx_opset_version() >= 14:
-    RNN = RNN_14
-else:  # pragma: no cover
-    RNN = RNN_7

@@ -332,6 +332,13 @@ class XGBClassifierConverter(XGBConverter):
                 operator.output_full_names,
                 name=scope.get_unique_operator_name(op_name),
                 op_domain='ai.onnx.ml', op_version=1, **attr_pairs)
+        elif objective == "multi:softmax":
+            ncl = len(js_trees) // params['n_estimators']
+            container.add_node(
+                op_name, operator.input_full_names,
+                operator.output_full_names,
+                name=scope.get_unique_operator_name(op_name),
+                op_domain='ai.onnx.ml', op_version=1, **attr_pairs)
         elif objective == "reg:logistic":
             ncl = len(js_trees) // params['n_estimators']
             if ncl == 1:
