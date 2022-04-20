@@ -58,7 +58,7 @@ from skl2onnx.algebra.onnx_ops import (  # pylint: disable=E0611
     OnnxEinsum, OnnxElu, OnnxEqual, OnnxErf, OnnxExp, OnnxExpand, OnnxEyeLike,
     OnnxFlatten, OnnxFloor,
     OnnxGemm, OnnxGlobalAveragePool, OnnxGlobalMaxPool,
-    OnnxGreater, OnnxGreaterOrEqual, OnnxGRU,
+    OnnxGreater, OnnxGreaterOrEqual, OnnxGridSample, OnnxGRU,
     OnnxHardmax, OnnxHardSigmoid, OnnxHardSwish,
     OnnxIdentity, OnnxIsInf, OnnxIsNaN,
     OnnxLeakyRelu, OnnxLess, OnnxLessOrEqual,
@@ -2938,6 +2938,90 @@ class TestOnnxrtPythonRuntime(ExtTestCase):  # pylint: disable=R0904
     def test_onnxt_runtime_greater_or_equal(self):
         self.common_test_onnxt_runtime_binary(
             OnnxGreaterOrEqual, numpy.greater_equal)
+
+    @wraplog()
+    def test_onnxt_runtime_grid_sample(self):
+
+        def _make_model(node, opset=15):
+            ginputs = [
+                onnx.helper.make_tensor_value_info(name, TensorProto.FLOAT, [])
+                for i, name in enumerate(node.input)]
+            goutputs = [
+                onnx.helper.make_tensor_value_info(o, TensorProto.FLOAT, [])
+                for o in node.output]
+            model_def = onnx.helper.make_model(
+                opset_imports=[onnx.helper.make_operatorsetid('', opset)],
+                graph=onnx.helper.make_graph(
+                    name='test_grid_sample',
+                    inputs=ginputs, outputs=goutputs,
+                    nodes=[node]))
+            return model_def
+
+        node = onnx.helper.make_node(
+            'GridSample',
+            inputs=['X', 'Grid'],
+            outputs=['Y'],
+            mode='bilinear',
+            padding_mode='zeros',
+            align_corners=0)
+        X = numpy.array([[[[0., 1., 2., 3.],
+                        [4., 5., 6., 7.],
+                        [8., 9., 10., 11.],
+                        [12., 13., 14., 15.]]]],
+                     dtype=numpy.float32)
+        Grid = numpy.array(
+                     [[[[-1.0000, -1.0000],
+                        [-0.6000, -1.0000],
+                        [-0.2000, -1.0000],
+                        [0.2000, -1.0000],
+                        [0.6000, -1.0000],
+                        [1.0000, -1.0000]],
+                       [[-1.0000, -0.6000],
+                        [-0.6000, -0.6000],
+                        [-0.2000, -0.6000],
+                        [0.2000, -0.6000],
+                        [0.6000, -0.6000],
+                        [1.0000, -0.6000]],
+                       [[-1.0000, -0.2000],
+                        [-0.6000, -0.2000],
+                        [-0.2000, -0.2000],
+                        [0.2000, -0.2000],
+                        [0.6000, -0.2000],
+                        [1.0000, -0.2000]],
+                       [[-1.0000, 0.2000],
+                        [-0.6000, 0.2000],
+                        [-0.2000, 0.2000],
+                        [0.2000, 0.2000],
+                        [0.6000, 0.2000],
+                        [1.0000, 0.2000]],
+                       [[-1.0000, 0.6000],
+                        [-0.6000, 0.6000],
+                        [-0.2000, 0.6000],
+                        [0.2000, 0.6000],
+                        [0.6000, 0.6000],
+                        [1.0000, 0.6000]],
+                       [[-1.0000, 1.0000],
+                        [-0.6000, 1.0000],
+                        [-0.2000, 1.0000],
+                        [0.2000, 1.0000],
+                        [0.6000, 1.0000],
+                        [1.0000, 1.0000]]]],
+                     dtype=numpy.float32)
+        Y = numpy.array([[[[0.0000, 0.1500, 0.5500, 0.9500, 1.3500, 0.7500],
+                           [0.6000, 1.5000, 2.3000, 3.1000, 3.9000, 2.1000],
+                           [2.2000, 4.7000, 5.5000, 6.3000, 7.1000, 3.7000],
+                           [3.8000, 7.9000, 8.7000, 9.5000, 10.3000, 5.3000],
+                           [5.4000, 11.1000, 11.9000, 12.7000, 13.5000, 6.9000],
+                           [3.0000, 6.1500, 6.5500, 6.9500, 7.3500, 3.7500]]]],
+                        dtype=numpy.float32)
+
+        model_def = _make_model(node)
+        oinf = OnnxInference(model_def)
+
+        got = oinf.run({'X': X, 'Grid': Grid})
+        self.assertEqual(len(got), 1)
+        self.assertEqualArray(Y, got['Y'], decimal=5)
+        python_tested.append(OnnxGridSample)
 
     @wraplog()
     def test_onnxt_runtime_gru_default(self):
