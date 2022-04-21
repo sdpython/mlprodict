@@ -60,11 +60,11 @@ class GridSample {
     
     private:
 
-        T GridSample<T>::GsDenormalize(T n, int64_t length, bool align_corners) const;
-        T GridSample<T>::GsReflect(T x, T x_min, T x_max) const;
-        void GridSample<T>::GsGetCubicCoeffs(T x, T coeffs[4]) const;
+        T GsDenormalize(T n, int64_t length, bool align_corners) const;
+        T GsReflect(T x, T x_min, T x_max) const;
+        void GsGetCubicCoeffs(T x, T coeffs[4]) const;
         T GsBicubicInterpolate(T p[4][4], T x, T y) const;
-        T PixelAtGrid(const T* image, int64_t r, int64_t c, int64_t H, int64_t W, float border[/* 4 */]) const;
+        T PixelAtGrid(const T* image, int64_t r, int64_t c, int64_t H, int64_t W, T border[/* 4 */]) const;
 };
 
 
@@ -139,7 +139,7 @@ T GridSample<T>::GsBicubicInterpolate(T p[4][4], T x, T y) const {
 }
 
 template <typename T>
-T GridSample<T>::PixelAtGrid(const T* image, int64_t r, int64_t c, int64_t H, int64_t W, float border[/* 4 */]) const {
+T GridSample<T>::PixelAtGrid(const T* image, int64_t r, int64_t c, int64_t H, int64_t W, T border[/* 4 */]) const {
     T pixel = {};  // default 0
     if (padding_mode_ == Zeros) {
         if (c >= 0 && c < W && r >= 0 && r < H) {
