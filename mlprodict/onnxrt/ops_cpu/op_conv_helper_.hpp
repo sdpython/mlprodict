@@ -39,7 +39,7 @@ void im2col_1d_inplace(
     const int64_t* p_kernel_shape = kernel_shape.data();
     
     std::vector<ssize_t> result_shape{data_shape[0], p_kernel_shape[0]};
-    int64_t result_size = data_shape[0] * p_kernel_shape[0];
+    // int64_t result_size = data_shape[0] * p_kernel_shape[0];
 
     T* p_result = (T*)result.data();
 

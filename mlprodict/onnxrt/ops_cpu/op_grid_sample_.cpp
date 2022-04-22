@@ -212,10 +212,10 @@ py::array_t<T> GridSample<T>::compute(
     py::array_t<T, py::array::c_style | py::array::forcecast> Y(y_dims);
     
     // Force float here to avoid possible issue in integer T case
-    float x_min = -0.5f;
-    float x_max = W_in - 0.5f;
-    float y_min = -0.5f;
-    float y_max = H_in - 0.5f;
+    T x_min = -0.5f;
+    T x_max = W_in - 0.5f;
+    T y_min = -0.5f;
+    T y_max = H_in - 0.5f;
 
     if (align_corners_) {
         x_min = 0.f;
@@ -223,7 +223,7 @@ py::array_t<T> GridSample<T>::compute(
         y_min = 0.f;
         y_max = H_in - 1.f;
     }
-    float border[] = {x_min, y_min, x_max, y_max};  // l-t-r-b
+    T border[] = {x_min, y_min, x_max, y_max};  // l-t-r-b
     const T* X_data_0 = X.data(0);
     const T* grid_data_0 = grid.data(0);
     T* Y_data_0 = (T*)Y.data(0);
@@ -246,8 +246,8 @@ py::array_t<T> GridSample<T>::compute(
                     auto y = GsDenormalize(ny, H_in, align_corners_);
 
                     if (mode_ == Nearest) {
-                        x = static_cast<T>(std::nearbyintf(static_cast<float>(x)));
-                        y = static_cast<T>(std::nearbyintf(static_cast<float>(y)));
+                        x = static_cast<T>(std::nearbyintf(static_cast<T>(x)));
+                        y = static_cast<T>(std::nearbyintf(static_cast<T>(y)));
                     }
 
                     if (x < x_min || x > x_max || y < y_min || y > y_max) {  // out of bound
@@ -297,7 +297,7 @@ py::array_t<T> GridSample<T>::compute(
                         }
                         T dx = static_cast<T>(x - x0 - 1);
                         T dy = static_cast<T>(y - y0 - 1);
-                        *Y_gridpoint = GsBicubicInterpolate(p, static_cast<float>(dx), static_cast<float>(dy));
+                        *Y_gridpoint = GsBicubicInterpolate(p, static_cast<T>(dx), static_cast<T>(dy));
                     }
                 }
             }
