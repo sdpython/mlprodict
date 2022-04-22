@@ -7,7 +7,7 @@
 import numpy
 from ..shape_object import ShapeObject
 from ._op import OpRun
-from .op_grid_sample_ import GridSampleFloat, GridSampleDouble
+from .op_grid_sample_ import GridSampleFloat, GridSampleDouble  # pylint: disable=E0611
 
 
 class GridSample(OpRun):
