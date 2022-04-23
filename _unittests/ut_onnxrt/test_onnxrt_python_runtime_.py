@@ -20,11 +20,12 @@ from onnx.backend.test.case.node.lstm import LSTM_Helper
 from onnx.backend.test.case.node.negativeloglikelihoodloss import (
     compute_negative_log_likelihood_loss)
 from onnx.backend.test.case.node.onehot import one_hot
-from onnx.backend.test.case.node.softmaxcrossentropy import softmaxcrossentropy
-from onnx.backend.test.case.node.scatternd import scatter_nd_impl
 from onnx.backend.test.case.node.resize import (
     nearest_coeffs, interpolate_nd, linear_coeffs)
 from onnx.backend.test.case.node.rnn import RNN_Helper
+from onnx.backend.test.case.node.roialign import get_roi_align_input_values
+from onnx.backend.test.case.node.softmaxcrossentropy import softmaxcrossentropy
+from onnx.backend.test.case.node.scatternd import scatter_nd_impl
 from onnx.backend.test.case.node.unique import specify_int64
 from onnx import TensorProto, __version__ as onnx_version
 from onnx.helper import make_sparse_tensor, make_tensor
@@ -79,7 +80,7 @@ from skl2onnx.algebra.onnx_ops import (  # pylint: disable=E0611
     OnnxReduceSumSquare,
     OnnxRelu, OnnxReshape,
     OnnxRNN,
-    OnnxRound,
+    OnnxRoiAlign, OnnxRound,
     OnnxScatterElements, OnnxScatterND,
     OnnxSelu, OnnxSequenceAt, OnnxSequenceConstruct,
     OnnxShape, OnnxShrink, OnnxSigmoid, OnnxSign,
@@ -4528,6 +4529,61 @@ class TestOnnxrtPythonRuntime(ExtTestCase):  # pylint: disable=R0904
             self.assertEqualArray(expected, got['Y'])
 
         python_tested.append(OnnxResize)
+
+
+    @wraplog()
+    def test_onnxt_runtime_grid_sample(self):
+
+        def _make_model(node, opset=15):
+            ginputs = [
+                onnx.helper.make_tensor_value_info(name, TensorProto.FLOAT, [])
+                for i, name in enumerate(node.input)]
+            goutputs = [
+                onnx.helper.make_tensor_value_info(o, TensorProto.FLOAT, [])
+                for o in node.output]
+            model_def = onnx.helper.make_model(
+                opset_imports=[onnx.helper.make_operatorsetid('', opset)],
+                graph=onnx.helper.make_graph(
+                    name='test_grid_sample',
+                    inputs=ginputs, outputs=goutputs,
+                    nodes=[node]))
+            return model_def
+
+        node = onnx.helper.make_node(
+                "RoiAlign",
+                inputs=["X", "rois", "batch_indices"],
+                outputs=["Y"],
+                spatial_scale=1.0,
+                output_height=5,
+                output_width=5,
+                sampling_ratio=2,
+                coordinate_transformation_mode="output_half_pixel")
+        X, batch_indices, rois = get_roi_align_input_values()
+        # (num_rois, C, output_height, output_width)
+        Y = numpy.array(
+                [[[[0.4664, 0.4466, 0.3405, 0.5688, 0.6068],
+                   [0.3714, 0.4296, 0.3835, 0.5562, 0.3510],
+                   [0.2768, 0.4883, 0.5222, 0.5528, 0.4171],
+                   [0.4713, 0.4844, 0.6904, 0.4920, 0.8774],
+                   [0.6239, 0.7125, 0.6289, 0.3355, 0.3495]]],
+                 [[[0.3022, 0.4305, 0.4696, 0.3978, 0.5423],
+                   [0.3656, 0.7050, 0.5165, 0.3172, 0.7015],
+                   [0.2912, 0.5059, 0.6476, 0.6235, 0.8299],
+                   [0.5916, 0.7389, 0.7048, 0.8372, 0.8893],
+                   [0.6227, 0.6153, 0.7097, 0.6154, 0.4585]]],
+                 [[[0.2384, 0.3379, 0.3717, 0.6100, 0.7601],
+                   [0.3767, 0.3785, 0.7147, 0.9243, 0.9727],
+                   [0.5749, 0.5826, 0.5709, 0.7619, 0.8770],
+                   [0.5355, 0.2566, 0.2141, 0.2796, 0.3600],
+                   [0.4365, 0.3504, 0.2887, 0.3661, 0.2349]]]],
+                dtype=numpy.float32)
+        model_def = _make_model(node)
+        oinf = OnnxInference(model_def)
+
+        got = oinf.run({'X': X, 'rois': rois, 'batch_indices': batch_indices})
+        self.assertEqual(len(got), 1)
+        self.assertEqualArray(Y, got['Y'], decimal=3)
+        python_tested.append(OnnxRoiAlign)
 
     @wraplog()
     def test_onnxt_runtime_round(self):

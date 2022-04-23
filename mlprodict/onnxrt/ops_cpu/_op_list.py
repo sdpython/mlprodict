@@ -130,6 +130,7 @@ from .op_relu import Relu, ThresholdedRelu
 from .op_reshape import Reshape, Reshape_5, Reshape_13, Reshape_14
 from .op_resize import Resize
 from .op_rfft import RFFT
+from .op_roi_align import RoiAlign
 from .op_round import Round
 from .op_rnn import RNN
 from .op_scaler import Scaler
