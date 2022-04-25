@@ -1360,6 +1360,8 @@ class OnnxOperator(OnnxOperatorBase):
         elif isinstance(inp, Variable):
             if inp.name in set_inputs:
                 return
+            if inp.name == '':
+                return
             set_inputs.add(inp.name)
             if inputs is None and inputs_dtype is None:
                 new_inputs.append(InputDetectedVariable(node, inp))
@@ -2520,12 +2522,12 @@ class _GraphBuilder:
         key = function_proto.domain, function_proto.name
         if key in self.functions:
             if raise_if_exist:
-                raise RuntimeError(
+                raise RuntimeError(  # pragma: no cover
                     "Function %r is added for the second time." % (key, ))
             if check_unique:
                 hs = _hash(function_proto)
                 if hs != self.function_hashes[key]:
-                    raise RuntimeError(
+                    raise RuntimeError(  # pragma: no cover
                         "Function %r is added for the second time "
                         "and the content is not the same." % (key, ))
                 return
@@ -2578,7 +2580,16 @@ class _GraphBuilder:
         self.node.append(node)
         return node
 
-    def _process_io(self, inputs, input_names):
+    def _process_io(self, inputs, input_names_):
+        if input_names_ is None:
+            input_names = None
+        else:
+            input_names = []
+            for inp in input_names_:
+                if inp.var.name == '':
+                    continue
+                input_names.append(inp)
+
         if inputs is None:
             return [
                 make_tensor_value_info(

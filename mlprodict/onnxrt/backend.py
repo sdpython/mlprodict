@@ -74,18 +74,18 @@ class OnnxInferenceBackendRep(BackendRep):
         elif isinstance(inputs, numpy.ndarray):
             names = self._session.input_names
             if len(names) != 1:
-                raise RuntimeError(
+                raise RuntimeError(  # pragma: no cover
                     "Expecting one input not %d." % len(names))
             feeds = {names[0]: inputs}
         else:
-            raise TypeError(
+            raise TypeError(  # pragma: no cover
                 "Unexpected input type %r." % type(inputs))
         outs = self._session.run(feeds)
         output_names = self._session.output_names
         if output_names is None and hasattr(self._session, 'expected_outputs'):
             output_names = [n[0] for n in self._session.expected_outputs]
         if output_names is None:
-            raise RuntimeError(
+            raise RuntimeError(  # pragma: no cover
                 "output_names cannot be None for type %r." % type(self._session))
         return [outs[name] for name in output_names]
 
@@ -214,7 +214,7 @@ class OnnxInferenceBackend(Backend):
         check_model(bin_or_model)
         opset_supported, error_message = cls.is_opset_supported(model)
         if not opset_supported:
-            raise unittest.SkipTest(error_message)
+            raise unittest.SkipTest(error_message)  # pragma: no cover
         binm = bin_or_model
         if not isinstance(binm, (str, bytes)):
             binm = binm.SerializeToString()
@@ -322,7 +322,7 @@ class OnnxInferenceBackendShape(OnnxInferenceBackend):
         results = rep.onnx_inference.run(inputs, **kwargs)
         for k, v in results.items():
             if not shapes[k].is_compatible(v):
-                raise RuntimeError(
+                raise RuntimeError(  # pragma: no cover
                     "Incompatible shapes %r and %r for output %r." % (
                         shapes[k], v.shape, k))
         return results
@@ -365,7 +365,7 @@ class OnnxInferenceBackendPyEval(OnnxInferenceBackend):
         results = rep.onnx_inference.run(inputs, **kwargs)
         for k, v in results.items():
             if not shapes[k].is_compatible(v):
-                raise RuntimeError(
+                raise RuntimeError(  # pragma: no cover
                     "Incompatible shapes %r and %r for output %r." % (
                         shapes[k], v.shape, k))
         return results

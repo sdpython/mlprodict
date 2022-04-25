@@ -689,7 +689,7 @@ class TestXOps(ExtTestCase):
         onx = last.to_onnx(numpy.int64, numpy.int64, verbose=0)
         self.assertNotIn("elem_type: 0", str(onx))
         oinf = OnnxInference(onx)
-        x = numpy.array([[-2, 2], [0, 3]], dtype=numpy.float32)
+        x = numpy.array([[-2, 2], [0, 3]], dtype=numpy.int64)
         got = oinf.run({'X': x})
         self.assertEqualArray(x % 10, got['Y'])
 

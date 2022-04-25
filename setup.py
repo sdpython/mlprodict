@@ -100,6 +100,41 @@ def get_extensions():
     root = os.path.abspath(os.path.dirname(__file__))
     (libraries_thread, extra_compile_args,
      extra_link_args, define_macros) = get_compile_args()
+
+    ext_roi_align = Extension(
+        'mlprodict.onnxrt.ops_cpu.op_roi_align_',
+        [os.path.join(root, 'mlprodict/onnxrt/ops_cpu/op_roi_align_.cpp'),
+         os.path.join(root, 'mlprodict/onnxrt/ops_cpu/op_conv_matrices_.cpp'),
+         os.path.join(root, 'mlprodict/onnxrt/ops_cpu/op_common_.cpp'),
+         os.path.join(root, 'mlprodict/onnxrt/ops_cpu/op_common_num_.cpp')],
+        extra_compile_args=extra_compile_args,
+        extra_link_args=extra_link_args,
+        include_dirs=[
+            # Path to pybind11 headers
+            get_pybind_include(),
+            get_pybind_include(user=True),
+            os.path.join(root, 'mlprodict/onnxrt/ops_cpu')
+        ],
+        define_macros=define_macros,
+        language='c++')
+
+    ext_grid_sample = Extension(
+        'mlprodict.onnxrt.ops_cpu.op_grid_sample_',
+        [os.path.join(root, 'mlprodict/onnxrt/ops_cpu/op_grid_sample_.cpp'),
+         os.path.join(root, 'mlprodict/onnxrt/ops_cpu/op_conv_matrices_.cpp'),
+         os.path.join(root, 'mlprodict/onnxrt/ops_cpu/op_common_.cpp'),
+         os.path.join(root, 'mlprodict/onnxrt/ops_cpu/op_common_num_.cpp')],
+        extra_compile_args=extra_compile_args,
+        extra_link_args=extra_link_args,
+        include_dirs=[
+            # Path to pybind11 headers
+            get_pybind_include(),
+            get_pybind_include(user=True),
+            os.path.join(root, 'mlprodict/onnxrt/ops_cpu')
+        ],
+        define_macros=define_macros,
+        language='c++')
+
     ext_max_pool = Extension(
         'mlprodict.onnxrt.ops_cpu.op_max_pool_',
         [os.path.join(root, 'mlprodict/onnxrt/ops_cpu/op_max_pool_.cpp'),
@@ -296,6 +331,21 @@ def get_extensions():
         define_macros=define_macros,
         language='c++')
 
+    ext_conv_helper = Extension(
+        'mlprodict.onnxrt.ops_cpu.op_conv_helper_',
+        [os.path.join(root, 'mlprodict/onnxrt/ops_cpu/op_conv_helper_.cpp'),
+         os.path.join(root, 'mlprodict/onnxrt/ops_cpu/op_common_.cpp')],
+        extra_compile_args=extra_compile_args,
+        extra_link_args=extra_link_args,
+        include_dirs=[
+            # Path to pybind11 headers
+            get_pybind_include(),
+            get_pybind_include(user=True),
+            os.path.join(root, 'mlprodict/onnxrt/ops_cpu')
+        ],
+        define_macros=define_macros,
+        language='c++')
+
     ext_conv_transpose = Extension(
         'mlprodict.onnxrt.ops_cpu.op_conv_transpose_',
         [os.path.join(root, 'mlprodict/onnxrt/ops_cpu/op_conv_transpose_.cpp'),
@@ -327,6 +377,21 @@ def get_extensions():
         define_macros=define_macros,
         language='c++')
 
+    ext_non_max_suppression = Extension(
+        'mlprodict.onnxrt.ops_cpu.op_non_max_suppression_',
+        [os.path.join(
+            root, 'mlprodict/onnxrt/ops_cpu/op_non_max_suppression_.cpp')],
+        extra_compile_args=extra_compile_args,
+        extra_link_args=extra_link_args,
+        include_dirs=[
+            # Path to pybind11 headers
+            get_pybind_include(),
+            get_pybind_include(user=True),
+            os.path.join(root, 'mlprodict/onnxrt/ops_cpu')
+        ],
+        define_macros=define_macros,
+        language='c++')
+
     cython_ext = [
         Extension("mlprodict.testing.einsum.direct_blas_lapack",
                   ['mlprodict/testing/einsum/direct_blas_lapack.pyx'],
@@ -343,11 +408,15 @@ def get_extensions():
 
     ext_modules = [
         ext_conv,
+        ext_conv_helper,
         ext_conv_transpose,
         ext_experimental_c,
         ext_gather,
+        ext_grid_sample,
         ext_max_pool,
+        ext_non_max_suppression,
         ext_qlinearconv,
+        ext_roi_align,
         ext_svm_classifier,
         ext_svm_regressor,
         ext_tfidfvectorizer,

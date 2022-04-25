@@ -5,6 +5,7 @@ import unittest
 import pprint
 import warnings
 import sys
+import math
 from logging import getLogger
 from contextlib import redirect_stdout
 from io import StringIO
@@ -14,7 +15,18 @@ from scipy.special import (  # pylint: disable=E0611
     expit as logistic_sigmoid, erf)
 from scipy.spatial.distance import cdist
 import onnx
+from onnx.backend.test.case.node.gru import GRU_Helper
+from onnx.backend.test.case.node.lstm import LSTM_Helper
+from onnx.backend.test.case.node.negativeloglikelihoodloss import (
+    compute_negative_log_likelihood_loss)
+from onnx.backend.test.case.node.onehot import one_hot
+from onnx.backend.test.case.node.resize import (
+    nearest_coeffs, interpolate_nd, linear_coeffs)
+from onnx.backend.test.case.node.rnn import RNN_Helper
+from onnx.backend.test.case.node.roialign import get_roi_align_input_values
 from onnx.backend.test.case.node.softmaxcrossentropy import softmaxcrossentropy
+from onnx.backend.test.case.node.scatternd import scatter_nd_impl
+from onnx.backend.test.case.node.unique import specify_int64
 from onnx import TensorProto, __version__ as onnx_version
 from onnx.helper import make_sparse_tensor, make_tensor
 from onnx.defs import onnx_opset_version
@@ -42,18 +54,19 @@ from skl2onnx.algebra.onnx_ops import (  # pylint: disable=E0611
     OnnxCos, OnnxCosh,
     OnnxCumSum,
     OnnxDequantizeLinear,
-    OnnxDet, OnnxDiv,
+    OnnxDepthToSpace, OnnxDet, OnnxDiv,
     OnnxDropout, OnnxDropout_7,
     OnnxEinsum, OnnxElu, OnnxEqual, OnnxErf, OnnxExp, OnnxExpand, OnnxEyeLike,
     OnnxFlatten, OnnxFloor,
-    OnnxGreater, OnnxGreaterOrEqual, OnnxGemm, OnnxGlobalAveragePool,
+    OnnxGemm, OnnxGlobalAveragePool, OnnxGlobalMaxPool,
+    OnnxGreater, OnnxGreaterOrEqual, OnnxGridSample, OnnxGRU,
     OnnxHardmax, OnnxHardSigmoid, OnnxHardSwish,
-    OnnxIdentity, OnnxIsNaN,
+    OnnxIdentity, OnnxIsInf, OnnxIsNaN,
     OnnxLeakyRelu, OnnxLess, OnnxLessOrEqual,
-    OnnxLog, OnnxLogSoftmax, OnnxLpNormalization,
+    OnnxLog, OnnxLogSoftmax, OnnxLpNormalization, OnnxLRN, OnnxLSTM,
     OnnxMatMul, OnnxMax, OnnxMaxPool, OnnxMean, OnnxMin, OnnxMod, OnnxMul,
-    OnnxNeg, OnnxNot,
-    OnnxOr,
+    OnnxNeg, OnnxNonMaxSuppression, OnnxNot, OnnxNegativeLogLikelihoodLoss,
+    OnnxOneHot, OnnxOr,
     OnnxPad, OnnxPow, OnnxPRelu,
     OnnxQLinearConv, OnnxQuantizeLinear,
     OnnxRange,
@@ -66,17 +79,21 @@ from skl2onnx.algebra.onnx_ops import (  # pylint: disable=E0611
     OnnxReduceSum_13, OnnxReduceSum_11, OnnxReduceSum_1,
     OnnxReduceSumSquare,
     OnnxRelu, OnnxReshape,
-    OnnxRound,
-    OnnxScatterElements,
+    OnnxRNN,
+    OnnxRoiAlign, OnnxRound,
+    OnnxScatterElements, OnnxScatterND,
     OnnxSelu, OnnxSequenceAt, OnnxSequenceConstruct,
-    OnnxShape, OnnxSlice, OnnxSigmoid, OnnxSign,
+    OnnxShape, OnnxShrink, OnnxSigmoid, OnnxSign,
     OnnxSin, OnnxSinh,
-    OnnxSize, OnnxSoftmax, OnnxSoftmaxCrossEntropyLoss,
-    OnnxSplit, OnnxSplitApi11,
+    OnnxSize, OnnxSlice,
+    OnnxSoftmax, OnnxSoftmaxCrossEntropyLoss,
+    OnnxSoftplus, OnnxSoftsign,
+    OnnxSpaceToDepth, OnnxSplit, OnnxSplitApi11,
     OnnxSqrt, OnnxSub, OnnxSum,
     OnnxSqueeze, OnnxSqueezeApi11,
-    OnnxTan, OnnxTanh, OnnxTopK, OnnxTranspose, OnnxTrilu,
-    OnnxUnsqueeze, OnnxUnsqueezeApi11,
+    OnnxTan, OnnxTanh, OnnxThresholdedRelu,
+    OnnxTopK, OnnxTranspose, OnnxTrilu,
+    OnnxUnique, OnnxUnsqueeze, OnnxUnsqueezeApi11,
     OnnxXor
 )
 try:
@@ -94,7 +111,8 @@ from mlprodict.onnxrt.ops_cpu.op_batch_normalization import (
     _batchnorm_test_mode, _batchnorm_training_mode)
 from mlprodict.onnxrt.ops_cpu.op_average_pool import (
     _get_output_shape, _pool, _get_pad_shape)
-from mlprodict.onnxrt.ops_cpu.op_global_average_pool import _global_average_pool
+from mlprodict.onnxrt.ops_cpu.op_global_average_pool import (
+    _global_average_pool, _global_max_pool)
 from mlprodict.onnxrt.ops_cpu._op_onnx_numpy import (  # pylint: disable=E0611,E0401
     topk_element_min_double, topk_element_max_double,
     topk_element_fetch_double,
@@ -118,6 +136,9 @@ from mlprodict.onnxrt.ops_cpu.op_constant import Constant_12, Constant_11, Const
 from mlprodict.onnxrt.ops_shape.shape_excs import ShapeInferenceException
 from mlprodict.plotting.text_plot import onnx_simple_text_plot
 from mlprodict import __max_supported_opset__ as TARGET_OPSET, get_ir_version
+from mlprodict.onnxrt.ops_cpu.op_negative_log_likelihood_loss import (
+    _compute_negative_log_likelihood_loss)
+from mlprodict.onnxrt.ops_cpu.op_resize import _interpolate_nd, _linear_coeffs
 
 from skl2onnx.common.data_types import (  # pylint: disable=C0412
     FloatTensorType, Int64TensorType, DoubleTensorType, StringTensorType,
@@ -709,7 +730,7 @@ class TestOnnxrtPythonRuntime(ExtTestCase):  # pylint: disable=R0904
             if onnx_cl == OnnxDet:
                 self.assertEqual(shape['X'].dtype, shape['Y'].dtype)
                 self.assertEqual(shape['Y'].shape, [])
-            elif onnx_cl == OnnxIsNaN:
+            elif onnx_cl in (OnnxIsNaN, OnnxIsInf):
                 self.assertEqual(shape['X'].shape, shape['Y'].shape)
                 self.assertEqual(shape['Y'].dtype, numpy.bool_)
             else:
@@ -2383,6 +2404,36 @@ class TestOnnxrtPythonRuntime(ExtTestCase):  # pylint: disable=R0904
                 pass
 
     @wraplog()
+    def test_onnxt_runtime_depth_to_space(self):
+        x = numpy.array(
+            [[[[0., 1., 2.], [3., 4., 5.]],
+              [[9., 10., 11.], [12., 13., 14.]],
+              [[18., 19., 20.], [21., 22., 23.]],
+              [[27., 28., 29.], [30., 31., 32.]],
+              [[36., 37., 38.], [39., 40., 41.]],
+              [[45., 46., 47.], [48., 49., 50.]],
+              [[54., 55., 56.], [57., 58., 59.]],
+              [[63., 64., 65.], [66., 67., 68.]]]]).astype(numpy.float32)
+        y = numpy.array(
+            [[[[0., 18., 1., 19., 2., 20.],
+               [36., 54., 37., 55., 38., 56.],
+               [3., 21., 4., 22., 5., 23.],
+               [39., 57., 40., 58., 41., 59.]],
+              [[9., 27., 10., 28., 11., 29.],
+               [45., 63., 46., 64., 47., 65.],
+               [12., 30., 13., 31., 14., 32.],
+               [48., 66., 49., 67., 50., 68.]]]]).astype(numpy.float32)
+        onx = OnnxDepthToSpace(
+            'X', output_names=['Y'], blocksize=2, mode='DCR',
+            op_version=TARGET_OPSET)
+        model_def = onx.to_onnx({'X': x}, target_opset=TARGET_OPSET)
+        oinf = OnnxInference(model_def)
+        got = oinf.run({'X': x})
+        self.assertEqual(list(sorted(got)), ['Y'])
+        self.assertEqualArray(y, got['Y'], decimal=5)
+        python_tested.append(OnnxDepthToSpace)
+
+    @wraplog()
     def test_onnxt_runtime_det(self):
         self.common_test_onnxt_runtime_unary(
             OnnxDet, lambda x: numpy.array([numpy.linalg.det(x)]),
@@ -2845,6 +2896,42 @@ class TestOnnxrtPythonRuntime(ExtTestCase):  # pylint: disable=R0904
 
         python_tested.append(OnnxGlobalAveragePool)
 
+    @wraplog()
+    def test_onnxt_runtime_global_max_pool(self):
+        x = x = numpy.random.randn(1, 3, 5, 5).astype(numpy.float32)
+        y = _global_max_pool(x).astype(numpy.float32)
+
+        onx = OnnxGlobalMaxPool(
+            'X', output_names=['Y'],
+            op_version=TARGET_OPSET)
+        model_def = onx.to_onnx({'X': x.astype(numpy.float32)},
+                                target_opset=TARGET_OPSET)
+        self._check_shape_inference(OnnxGlobalMaxPool, model_def)
+        oinf = OnnxInference(model_def)
+        got = oinf.run({'X': x})
+        self.assertEqual(list(sorted(got)), ['Y'])
+        self.assertEqualArray(y, got['Y'])
+        self.common_expected_shapes_types(
+            oinf, {'X': x}, got, OnnxGlobalMaxPool, model_def)
+
+        x = numpy.array([[[
+            [1, 2, 3],
+            [4, 5, 6],
+            [7, 8, 9],
+        ]]]).astype(numpy.float32)
+        y = numpy.array([[[[9]]]]).astype(numpy.float32)
+        onx = OnnxGlobalMaxPool(
+            'X', output_names=['Y'],
+            op_version=TARGET_OPSET)
+        model_def = onx.to_onnx({'X': x.astype(numpy.float32)},
+                                target_opset=TARGET_OPSET)
+        oinf = OnnxInference(model_def)
+        got = oinf.run({'X': x})
+        self.assertEqual(list(sorted(got)), ['Y'])
+        self.assertEqualArray(y, got['Y'])
+
+        python_tested.append(OnnxGlobalMaxPool)
+
     def test_onnxt_runtime_greater(self):
         self.common_test_onnxt_runtime_binary(OnnxGreater, numpy.greater)
 
@@ -2852,6 +2939,117 @@ class TestOnnxrtPythonRuntime(ExtTestCase):  # pylint: disable=R0904
     def test_onnxt_runtime_greater_or_equal(self):
         self.common_test_onnxt_runtime_binary(
             OnnxGreaterOrEqual, numpy.greater_equal)
+
+    @wraplog()
+    def test_onnxt_runtime_grid_sample(self):
+
+        def _make_model(node, opset=15):
+            ginputs = [
+                onnx.helper.make_tensor_value_info(name, TensorProto.FLOAT, [])
+                for i, name in enumerate(node.input)]
+            goutputs = [
+                onnx.helper.make_tensor_value_info(o, TensorProto.FLOAT, [])
+                for o in node.output]
+            model_def = onnx.helper.make_model(
+                opset_imports=[onnx.helper.make_operatorsetid('', opset)],
+                graph=onnx.helper.make_graph(
+                    name='test_grid_sample',
+                    inputs=ginputs, outputs=goutputs,
+                    nodes=[node]))
+            return model_def
+
+        node = onnx.helper.make_node(
+            'GridSample',
+            inputs=['X', 'Grid'],
+            outputs=['Y'],
+            mode='bilinear',
+            padding_mode='zeros',
+            align_corners=0)
+        X = numpy.array([[[[0., 1., 2., 3.],
+                           [4., 5., 6., 7.],
+                           [8., 9., 10., 11.],
+                           [12., 13., 14., 15.]]]],
+                        dtype=numpy.float32)
+        Grid = numpy.array([[[[-1.0000, -1.0000],
+                              [-0.6000, -1.0000],
+                              [-0.2000, -1.0000],
+                              [0.2000, -1.0000],
+                              [0.6000, -1.0000],
+                              [1.0000, -1.0000]],
+                             [[-1.0000, -0.6000],
+                              [-0.6000, -0.6000],
+                              [-0.2000, -0.6000],
+                              [0.2000, -0.6000],
+                              [0.6000, -0.6000],
+                              [1.0000, -0.6000]],
+                             [[-1.0000, -0.2000],
+                              [-0.6000, -0.2000],
+                              [-0.2000, -0.2000],
+                              [0.2000, -0.2000],
+                              [0.6000, -0.2000],
+                              [1.0000, -0.2000]],
+                             [[-1.0000, 0.2000],
+                              [-0.6000, 0.2000],
+                              [-0.2000, 0.2000],
+                              [0.2000, 0.2000],
+                              [0.6000, 0.2000],
+                              [1.0000, 0.2000]],
+                             [[-1.0000, 0.6000],
+                              [-0.6000, 0.6000],
+                              [-0.2000, 0.6000],
+                              [0.2000, 0.6000],
+                              [0.6000, 0.6000],
+                              [1.0000, 0.6000]],
+                             [[-1.0000, 1.0000],
+                              [-0.6000, 1.0000],
+                              [-0.2000, 1.0000],
+                              [0.2000, 1.0000],
+                              [0.6000, 1.0000],
+                              [1.0000, 1.0000]]]],
+                           dtype=numpy.float32)
+        Y = numpy.array([[[[0.0000, 0.1500, 0.5500, 0.9500, 1.3500, 0.7500],
+                           [0.6000, 1.5000, 2.3000, 3.1000, 3.9000, 2.1000],
+                           [2.2000, 4.7000, 5.5000, 6.3000, 7.1000, 3.7000],
+                           [3.8000, 7.9000, 8.7000, 9.5000, 10.3000, 5.3000],
+                           [5.4000, 11.1000, 11.9000, 12.7000, 13.5000, 6.9000],
+                           [3.0000, 6.1500, 6.5500, 6.9500, 7.3500, 3.7500]]]],
+                        dtype=numpy.float32)
+
+        model_def = _make_model(node)
+        oinf = OnnxInference(model_def)
+
+        got = oinf.run({'X': X, 'Grid': Grid})
+        self.assertEqual(len(got), 1)
+        self.assertEqualArray(Y, got['Y'], decimal=5)
+        python_tested.append(OnnxGridSample)
+
+    @wraplog()
+    def test_onnxt_runtime_gru_default(self):
+        input_size = 2
+        hidden_size = 5
+        weight_scale = 0.1
+        number_of_gates = 3
+
+        X = numpy.array([[[1., 2.], [3., 4.], [5., 6.]]]).astype(numpy.float32)
+        W = (weight_scale * numpy.ones((1, number_of_gates * hidden_size, input_size))).astype(numpy.float32)
+        R = (weight_scale * numpy.ones((1, number_of_gates * hidden_size, hidden_size))).astype(numpy.float32)
+
+        gru = GRU_Helper(X=X, W=W, R=R)
+        _, Y_h = gru.step()
+
+        onx = OnnxGRU('X', 'W', 'R', output_names=['Y', 'Y_h'],
+                      op_version=TARGET_OPSET,
+                      hidden_size=hidden_size)
+        model_def = onx.to_onnx(
+            {'X': X, 'W': W, 'R': R},
+            outputs=[('Y', FloatTensorType()),
+                     ('Y_h', FloatTensorType())],
+            target_opset=TARGET_OPSET)
+
+        oinf = OnnxInference(model_def)
+        got = oinf.run({'X': X, 'W': W, 'R': R})
+        self.assertEqualArray(Y_h, got['Y_h'])
+        python_tested.append(OnnxGRU)
 
     def test_onnxt_runtime_hard_sigmoid(self):
         self.common_test_onnxt_runtime_unary(
@@ -2886,6 +3084,45 @@ class TestOnnxrtPythonRuntime(ExtTestCase):  # pylint: disable=R0904
     @wraplog()
     def test_onnxt_runtime_isnan(self):
         self.common_test_onnxt_runtime_unary(OnnxIsNaN, numpy.isnan)
+
+    @wraplog()
+    def test_onnxt_runtime_isinf(self):
+        self.common_test_onnxt_runtime_unary(OnnxIsInf, numpy.isinf)
+
+    @wraplog()
+    def test_onnxt_runtime_isinf_cases(self):
+        X = numpy.array([1, numpy.inf, -numpy.inf], dtype=numpy.float32)
+
+        onx = OnnxIsInf('X', output_names=['Y'], op_version=TARGET_OPSET)
+        model_def = onx.to_onnx({'X': X}, target_opset=TARGET_OPSET)
+        oinf = OnnxInference(model_def)
+        got = oinf.run({'X': X})
+        exp = numpy.array([False, True, True])
+        self.assertEqualArray(got['Y'], exp)
+
+        onx = OnnxIsInf('X', output_names=['Y'], op_version=TARGET_OPSET,
+                        detect_positive=0)
+        model_def = onx.to_onnx({'X': X}, target_opset=TARGET_OPSET)
+        oinf = OnnxInference(model_def)
+        got = oinf.run({'X': X})
+        exp = numpy.array([False, False, True])
+        self.assertEqualArray(got['Y'], exp)
+
+        onx = OnnxIsInf('X', output_names=['Y'], op_version=TARGET_OPSET,
+                        detect_negative=0)
+        model_def = onx.to_onnx({'X': X}, target_opset=TARGET_OPSET)
+        oinf = OnnxInference(model_def)
+        got = oinf.run({'X': X})
+        exp = numpy.array([False, True, False])
+        self.assertEqualArray(got['Y'], exp)
+
+        onx = OnnxIsInf('X', output_names=['Y'], op_version=TARGET_OPSET,
+                        detect_positive=0, detect_negative=0)
+        model_def = onx.to_onnx({'X': X}, target_opset=TARGET_OPSET)
+        oinf = OnnxInference(model_def)
+        got = oinf.run({'X': X})
+        exp = numpy.array([False, False, False])
+        self.assertEqualArray(got['Y'], exp)
 
     @wraplog()
     def test_onnxt_runtime_leaky_relu(self):
@@ -2946,6 +3183,75 @@ class TestOnnxrtPythonRuntime(ExtTestCase):  # pylint: disable=R0904
                            [0.9486833, -0.8944272]], dtype=numpy.float32)
         self.assertEqualArray(got['Y'], exp)
         python_tested.append(OnnxLpNormalization)
+
+    @wraplog()
+    def test_onnxt_runtime_lrn(self):
+
+        def _make_model(node, opset=15):
+            ginputs = [
+                onnx.helper.make_tensor_value_info(
+                    name, (TensorProto.FLOAT if i % 2 == 0 else TensorProto.INT64), [])
+                for i, name in enumerate(node.input)]
+            goutputs = [
+                onnx.helper.make_tensor_value_info(o, TensorProto.FLOAT, [])
+                for o in node.output]
+            model_def = onnx.helper.make_model(
+                opset_imports=[onnx.helper.make_operatorsetid('', opset)],
+                graph=onnx.helper.make_graph(
+                    name='test_lrn',
+                    inputs=ginputs, outputs=goutputs,
+                    nodes=[node]))
+            return model_def
+
+        alpha = 0.0002
+        beta = 0.5
+        bias = 2.0
+        nsize = 3
+        node = onnx.helper.make_node(
+            'LRN', inputs=['x'], outputs=['y'],
+            alpha=alpha, beta=beta, bias=bias, size=nsize)
+        model_def = _make_model(node)
+        oinf = OnnxInference(model_def)
+
+        x = numpy.random.randn(5, 5, 5, 5).astype(numpy.float32)
+        square_sum = numpy.zeros((5, 5, 5, 5)).astype(numpy.float32)
+        for n, c, h, w in numpy.ndindex(x.shape):
+            square_sum[n, c, h, w] = sum(
+                x[n, max(0, c - int(math.floor((nsize - 1) / 2))):min(5, c + int(math.ceil((nsize - 1) / 2)) + 1), h, w] ** 2)
+        y = x / ((bias + (alpha / nsize) * square_sum) ** beta)
+
+        got = oinf.run({'x': x})
+        self.assertEqual(len(got), 1)
+        self.assertEqualArray(y, got['y'])
+        python_tested.append(OnnxLRN)
+
+    @wraplog()
+    def test_onnxt_runtime_lstm_default(self):
+        input_size = 2
+        hidden_size = 3
+        weight_scale = 0.1
+        number_of_gates = 4
+
+        X = numpy.array([[[1., 2.], [3., 4.], [5., 6.]]]).astype(numpy.float32)
+        W = weight_scale * numpy.ones((1, number_of_gates * hidden_size, input_size)).astype(numpy.float32)
+        R = weight_scale * numpy.ones((1, number_of_gates * hidden_size, hidden_size)).astype(numpy.float32)
+
+        gru = LSTM_Helper(X=X, W=W, R=R)
+        _, Y_h = gru.step()
+
+        onx = OnnxLSTM('X', 'W', 'R', output_names=['Y', 'Y_h'],
+                       op_version=TARGET_OPSET,
+                       hidden_size=hidden_size)
+        model_def = onx.to_onnx(
+            {'X': X, 'W': W, 'R': R},
+            outputs=[('Y', FloatTensorType()),
+                     ('Y_h', FloatTensorType())],
+            target_opset=TARGET_OPSET)
+
+        oinf = OnnxInference(model_def)
+        got = oinf.run({'X': X, 'W': W, 'R': R})
+        self.assertEqualArray(Y_h, got['Y_h'])
+        python_tested.append(OnnxLSTM)
 
     @wraplog()
     def test_onnxt_runtime_matmul(self):
@@ -3155,8 +3461,102 @@ class TestOnnxrtPythonRuntime(ExtTestCase):  # pylint: disable=R0904
         self.common_test_onnxt_runtime_unary(OnnxNeg, numpy.negative)
 
     @wraplog()
+    def test_negative_log_likelihood_loss(self):
+
+        def _make_model(node, opset=15):
+            ginputs = [
+                onnx.helper.make_tensor_value_info(
+                    name, (TensorProto.FLOAT if i % 2 == 0 else TensorProto.INT64), [])
+                for i, name in enumerate(node.input)]
+            goutputs = [
+                onnx.helper.make_tensor_value_info(o, TensorProto.FLOAT, [])
+                for o in node.output]
+            model_def = onnx.helper.make_model(
+                opset_imports=[onnx.helper.make_operatorsetid('', opset)],
+                graph=onnx.helper.make_graph(
+                    name='test_softmax_cross_entropy_loss',
+                    inputs=ginputs, outputs=goutputs,
+                    nodes=[node]))
+            return model_def
+
+        node = onnx.helper.make_node(
+            'NegativeLogLikelihoodLoss', inputs=['x', 'target'], outputs=['z'],
+            reduction='mean')
+        model_def = _make_model(node)
+
+        N, C = 3, 5
+        numpy.random.seed(0)
+        x = numpy.random.rand(N, C).astype(numpy.float32)
+        target = numpy.random.randint(0, high=C, size=(N, )).astype(numpy.int64)
+
+        outputs = compute_negative_log_likelihood_loss(x, target, weight=None, reduction='mean')
+        outputs_2 = _compute_negative_log_likelihood_loss(x, target, weight=None, reduction=b'mean')
+        self.assertEqualArray(outputs, outputs_2)
+
+        oinf = OnnxInference(model_def)
+        got = oinf.run({'x': x, 'target': target})
+        self.assertEqual(len(got), 1)
+        self.assertEqualArray(outputs, got['z'])
+        python_tested.append(OnnxNegativeLogLikelihoodLoss)
+
+    @wraplog()
+    def test_onnxt_runtime_non_max_suppression(self):
+        boxes = numpy.array([[
+            [0.0, 0.0, 1.0, 1.0],
+            [0.0, 0.1, 1.0, 1.1],
+            [0.0, -0.1, 1.0, 0.9],
+            [0.0, 10.0, 1.0, 11.0],
+            [0.0, 10.1, 1.0, 11.1],
+            [0.0, 100.0, 1.0, 101.0]
+        ]]).astype(numpy.float32)
+        scores = numpy.array([[[0.9, 0.75, 0.6, 0.95, 0.5, 0.3]]]).astype(numpy.float32)
+        max_output_boxes_per_class = numpy.array([3]).astype(numpy.int64)
+        iou_threshold = numpy.array([0.5]).astype(numpy.float32)
+        score_threshold = numpy.array([0.0]).astype(numpy.float32)
+        selected_indices = numpy.array([[0, 0, 3], [0, 0, 0], [0, 0, 5]]).astype(numpy.int64)
+
+        inputs = {'boxes': boxes, 'scores': scores,
+                  'max_output_boxes_per_class': max_output_boxes_per_class,
+                  'iou_threshold': iou_threshold,
+                  'score_threshold': score_threshold}
+        onx = OnnxNonMaxSuppression(
+            'boxes', 'scores', 'max_output_boxes_per_class',
+            'iou_threshold', 'score_threshold',
+            output_names=['Y'],
+            op_version=TARGET_OPSET)
+        model_def = onx.to_onnx(inputs, target_opset=TARGET_OPSET)
+        oinf = OnnxInference(model_def)
+        got = oinf.run(inputs)
+        self.assertEqualArray(selected_indices, got['Y'])
+        python_tested.append(OnnxNonMaxSuppression)
+
+    @wraplog()
     def test_onnxt_runtime_not(self):
         self.common_test_onnxt_runtime_unary(OnnxNot, numpy.logical_not)
+
+    @wraplog()
+    def test_onnxt_runtime_one_hot(self):
+        on_value = 5
+        off_value = 2
+        output_type = numpy.int32
+
+        indices = numpy.array([0, 7, 8], dtype=numpy.int64)
+        depth = numpy.float32(12)
+        values = numpy.array([off_value, on_value], dtype=output_type)
+        y = one_hot(indices, depth, dtype=output_type)
+        expected = y * (on_value - off_value) + off_value
+
+        onx = OnnxOneHot(
+            'indices', 'depth', 'values', output_names=['Y'],
+            op_version=TARGET_OPSET)
+        model_def = onx.to_onnx(
+            {'indices': indices, 'depth': depth, 'values': values},
+            target_opset=TARGET_OPSET)
+
+        oinf = OnnxInference(model_def)
+        got = oinf.run({'indices': indices, 'depth': depth, 'values': values})
+        self.assertEqualArray(expected, got['Y'])
+        python_tested.append(OnnxOneHot)
 
     @wraplog()
     def test_onnxt_runtime_or(self):
@@ -4057,10 +4457,6 @@ class TestOnnxrtPythonRuntime(ExtTestCase):  # pylint: disable=R0904
         self.common_test_onnxt_runtime_unary(
             OnnxRelu, lambda x: numpy.maximum(x, 0))
 
-    @wraplog()
-    def test_onnxt_runtime_round(self):
-        self.common_test_onnxt_runtime_unary(OnnxRound, numpy.round)
-
     @ignore_warnings(category=(RuntimeWarning, DeprecationWarning))
     @wraplog()
     def test_onnxt_runtime_reshape(self):
@@ -4080,6 +4476,116 @@ class TestOnnxrtPythonRuntime(ExtTestCase):  # pylint: disable=R0904
             oinf, {'X': X.astype(numpy.float32)}, got,
             OnnxReshape, model_def)
         python_tested.append(OnnxReshape)
+
+    @wraplog()
+    def test_onnxt_runtime_resize(self):
+        from mlprodict.npy.xop import loadop
+        OnnxResize = loadop('Resize')
+
+        with self.subTest(example='resize_tf_crop_and_resize'):
+            data = numpy.array([[[[1, 2, 3, 4],
+                                  [5, 6, 7, 8],
+                                  [9, 10, 11, 12],
+                                  [13, 14, 15, 16]]]],
+                               dtype=numpy.float32)
+
+            roi = numpy.array([0, 0, 0.4, 0.6, 1, 1, 0.6, 0.8],
+                              dtype=numpy.float32)
+            sizes = numpy.array([1, 1, 3, 3], dtype=numpy.int64)
+
+            expected = interpolate_nd(
+                data, linear_coeffs, output_size=sizes, roi=roi,
+                coordinate_transformation_mode='tf_crop_and_resize').astype(
+                    numpy.float32)
+            check = _interpolate_nd(
+                data, _linear_coeffs, output_size=sizes, roi=roi,
+                coordinate_transformation_mode=b'tf_crop_and_resize').astype(
+                    numpy.float32)
+            self.assertEqualArray(expected, check)
+
+            onx = OnnxResize(
+                'X', 'roi', '', 'sizes', mode='linear', output_names=['Y'],
+                coordinate_transformation_mode='tf_crop_and_resize',
+                op_version=TARGET_OPSET)
+            model_def = onx.to_onnx(
+                {'X': data, 'roi': roi, 'sizes': sizes},
+                target_opset=TARGET_OPSET)
+            oinf = OnnxInference(model_def)
+            got = oinf.run({'X': data, 'roi': roi, 'sizes': sizes})
+            self.assertEqualArray(expected, got['Y'])
+
+        with self.subTest(example='resize_upsample_scales_nearest'):
+            data = numpy.array([[[[1, 2], [3, 4]]]], dtype=numpy.float32)
+            scales = numpy.array([1.0, 1.0, 2.0, 3.0], dtype=numpy.float32)
+            expected = interpolate_nd(
+                data, nearest_coeffs, scale_factors=scales).astype(numpy.float32)
+            onx = OnnxResize(
+                'X', '', 'scales', mode='nearest', output_names=['Y'],
+                op_version=TARGET_OPSET)
+            model_def = onx.to_onnx(
+                {'X': data, 'scales': scales}, target_opset=TARGET_OPSET)
+            oinf = OnnxInference(model_def)
+            got = oinf.run({'X': data, 'scales': scales})
+            self.assertEqualArray(expected, got['Y'])
+
+        python_tested.append(OnnxResize)
+
+    @wraplog()
+    def test_onnxt_runtime_roi_align(self):
+
+        def _make_model(node, opset=15):
+            ginputs = [
+                onnx.helper.make_tensor_value_info(name, TensorProto.FLOAT, [])
+                for i, name in enumerate(node.input)]
+            goutputs = [
+                onnx.helper.make_tensor_value_info(o, TensorProto.FLOAT, [])
+                for o in node.output]
+            model_def = onnx.helper.make_model(
+                opset_imports=[onnx.helper.make_operatorsetid('', opset)],
+                graph=onnx.helper.make_graph(
+                    name='test_grid_sample',
+                    inputs=ginputs, outputs=goutputs,
+                    nodes=[node]))
+            return model_def
+
+        node = onnx.helper.make_node(
+                "RoiAlign",
+                inputs=["X", "rois", "batch_indices"],
+                outputs=["Y"],
+                spatial_scale=1.0,
+                output_height=5,
+                output_width=5,
+                sampling_ratio=2,
+                coordinate_transformation_mode="output_half_pixel")
+        X, batch_indices, rois = get_roi_align_input_values()
+        # (num_rois, C, output_height, output_width)
+        Y = numpy.array([[[[0.4664, 0.4466, 0.3405, 0.5688, 0.6068],
+                           [0.3714, 0.4296, 0.3835, 0.5562, 0.3510],
+                           [0.2768, 0.4883, 0.5222, 0.5528, 0.4171],
+                           [0.4713, 0.4844, 0.6904, 0.4920, 0.8774],
+                           [0.6239, 0.7125, 0.6289, 0.3355, 0.3495]]],
+                         [[[0.3022, 0.4305, 0.4696, 0.3978, 0.5423],
+                           [0.3656, 0.7050, 0.5165, 0.3172, 0.7015],
+                           [0.2912, 0.5059, 0.6476, 0.6235, 0.8299],
+                           [0.5916, 0.7389, 0.7048, 0.8372, 0.8893],
+                           [0.6227, 0.6153, 0.7097, 0.6154, 0.4585]]],
+                         [[[0.2384, 0.3379, 0.3717, 0.6100, 0.7601],
+                           [0.3767, 0.3785, 0.7147, 0.9243, 0.9727],
+                           [0.5749, 0.5826, 0.5709, 0.7619, 0.8770],
+                           [0.5355, 0.2566, 0.2141, 0.2796, 0.3600],
+                           [0.4365, 0.3504, 0.2887, 0.3661, 0.2349]]]],
+                        dtype=numpy.float32)
+        model_def = _make_model(node)
+        oinf = OnnxInference(model_def)
+
+        got = oinf.run({'X': X, 'rois': rois, 'batch_indices': batch_indices})
+        self.assertEqual(len(got), 1)
+        self.assertEqualArray(Y, got['Y'], decimal=3)
+        python_tested.append(OnnxRoiAlign)
+
+    @wraplog()
+    def test_onnxt_runtime_round(self):
+        self.common_test_onnxt_runtime_unary(OnnxRound, numpy.round)
 
     @wraplog()
     def test_onnxt_runtime_scatter_elements1(self):
@@ -4139,12 +4645,41 @@ class TestOnnxrtPythonRuntime(ExtTestCase):  # pylint: disable=R0904
                 self.assertEqualArray(y, got['Y'])
 
     @wraplog()
+    def test_onnxt_runtime_scatter_nd(self):
+        data = numpy.array(
+            [[[1, 2, 3, 4], [5, 6, 7, 8], [8, 7, 6, 5], [4, 3, 2, 1]],
+             [[1, 2, 3, 4], [5, 6, 7, 8], [8, 7, 6, 5], [4, 3, 2, 1]],
+             [[8, 7, 6, 5], [4, 3, 2, 1], [1, 2, 3, 4], [5, 6, 7, 8]],
+             [[8, 7, 6, 5], [4, 3, 2, 1], [1, 2, 3, 4], [5, 6, 7, 8]]],
+            dtype=numpy.float32)
+        indices = numpy.array([[0], [2]], dtype=numpy.int64)
+        updates = numpy.array(
+            [[[5, 5, 5, 5], [6, 6, 6, 6], [7, 7, 7, 7], [8, 8, 8, 8]],
+             [[1, 1, 1, 1], [2, 2, 2, 2], [3, 3, 3, 3], [4, 4, 4, 4]]],
+            dtype=numpy.float32)
+        output = scatter_nd_impl(data, indices, updates)
+        for opset in [11, TARGET_OPSET]:
+            if opset > TARGET_OPSET:
+                continue
+            with self.subTest(opset=opset):
+                onx = OnnxScatterND(
+                    'X', 'I', 'U', output_names=['Y'], op_version=opset)
+                model_def = onx.to_onnx(
+                    {'X': data, 'I': indices, 'U': updates},
+                    target_opset=opset)
+                got = OnnxInference(model_def).run(
+                    {'X': data, 'I': indices, 'U': updates})
+                self.assertEqualArray(output, got['Y'])
+
+        python_tested.append(OnnxScatterND)
+
+    @wraplog()
     def test_onnxt_runtime_selu(self):
         alpha = 1.67326319217681884765625
         gamma = 1.05070102214813232421875
         self.common_test_onnxt_runtime_unary(
             OnnxSelu, lambda x: numpy.where(
-                x > 0, x * gamma, numpy.exp(x) * alpha - alpha))
+                x > 0, x, numpy.exp(x) * alpha - alpha) * gamma)
 
     @wraplog()
     def test_onnxt_runtime_sequence_at(self):
@@ -4199,6 +4734,16 @@ class TestOnnxrtPythonRuntime(ExtTestCase):  # pylint: disable=R0904
         self.common_expected_shapes_types(
             oinf, {'X': x}, got, OnnxShape, model_def)
         python_tested.append(OnnxShape)
+
+    @wraplog()
+    def test_onnxt_runtime_shrink(self):
+
+        def loc(x, bias=0, lambd=0.5):
+            return numpy.where(
+                x < -lambd, x + bias,
+                numpy.where(x > lambd, x - bias, 0))
+
+        self.common_test_onnxt_runtime_unary(OnnxShrink, loc)
 
     @wraplog()
     def test_onnxt_runtime_sigmoid(self):
@@ -4336,6 +4881,87 @@ class TestOnnxrtPythonRuntime(ExtTestCase):  # pylint: disable=R0904
                                         target_opset=opset)
                 got = OnnxInference(model_def).run({'X': x})
                 self.assertEqualArray(y, got['Y'])
+
+    @wraplog()
+    def test_onnxt_runtime_space_to_depth(self):
+        x = numpy.array(
+            [[[[0, 6, 1, 7, 2, 8],
+               [12, 18, 13, 19, 14, 20],
+               [3, 9, 4, 10, 5, 11],
+               [15, 21, 16, 22, 17, 23]]]]).astype(numpy.float32)
+        y = numpy.array(
+            [[[[0, 1, 2], [3, 4, 5]],
+              [[6, 7, 8], [9, 10, 11]],
+              [[12, 13, 14], [15, 16, 17]],
+              [[18, 19, 20], [21, 22, 23]]]]).astype(numpy.float32)
+        onx = OnnxSpaceToDepth(
+            'X', output_names=['Y'], blocksize=2,
+            op_version=TARGET_OPSET)
+        model_def = onx.to_onnx({'X': x}, target_opset=TARGET_OPSET)
+        oinf = OnnxInference(model_def)
+        got = oinf.run({'X': x})
+        self.assertEqual(list(sorted(got)), ['Y'])
+        self.assertEqualArray(y, got['Y'], decimal=5)
+        python_tested.append(OnnxSpaceToDepth)
+
+    @wraplog()
+    def test_onnxt_runtime_rnn_default(self):
+        input_size = 2
+        hidden_size = 4
+        weight_scale = 0.1
+
+        X = numpy.array([[[1., 2.], [3., 4.], [5., 6.]]]).astype(numpy.float32)
+        W = (weight_scale * numpy.ones((1, hidden_size, input_size))).astype(numpy.float32)
+        R = (weight_scale * numpy.ones((1, hidden_size, hidden_size))).astype(numpy.float32)
+
+        rnn = RNN_Helper(X=X, W=W, R=R)
+        _, Y_h = rnn.step()
+
+        onx = OnnxRNN('X', 'W', 'R', output_names=['Y', 'Y_h'],
+                      op_version=TARGET_OPSET,
+                      hidden_size=hidden_size)
+        model_def = onx.to_onnx(
+            {'X': X, 'W': W, 'R': R},
+            outputs=[('Y', FloatTensorType()),
+                     ('Y_h', FloatTensorType())],
+            target_opset=TARGET_OPSET)
+
+        oinf = OnnxInference(model_def)
+        got = oinf.run({'X': X, 'W': W, 'R': R})
+        self.assertEqualArray(Y_h, got['Y_h'])
+        python_tested.append(OnnxRNN)
+
+    @wraplog()
+    def test_onnxt_runtime_rnn_batchwise(self):
+        input_size = 2
+        hidden_size = 4
+        weight_scale = 0.5
+        layout = 1
+
+        X = numpy.array([[[1., 2.], [3., 4.], [5., 6.]]]).astype(numpy.float32)
+        W = (weight_scale * numpy.ones((1, hidden_size, input_size))).astype(numpy.float32)
+        R = (weight_scale * numpy.ones((1, hidden_size, hidden_size))).astype(numpy.float32)
+
+        rnn = RNN_Helper(X=X, W=W, R=R, layout=layout)
+        try:
+            Y, Y_h = rnn.step()
+        except ValueError:
+            # Unexpected error.
+            return
+
+        onx = OnnxRNN('X', 'W', 'R', output_names=['Y', 'Y_h'],
+                      op_version=TARGET_OPSET,
+                      hidden_size=hidden_size, layout=layout)
+        model_def = onx.to_onnx(
+            {'X': X, 'W': W, 'R': R},
+            outputs=[('Y', FloatTensorType()),
+                     ('Y_h', FloatTensorType())],
+            target_opset=TARGET_OPSET)
+
+        oinf = OnnxInference(model_def)
+        got = oinf.run({'X': X, 'W': W, 'R': R})
+        self.assertEqualArray(Y_h, got['Y_h'])
+        self.assertEqualArray(Y, got['Y'])
 
     @wraplog()
     def test_onnxt_runtime_split(self):
@@ -4510,6 +5136,18 @@ class TestOnnxrtPythonRuntime(ExtTestCase):  # pylint: disable=R0904
         self.assertEqual(len(got), 2)
         self.assertEqualArray(outputs[0], got['z'])
         self.assertEqualArray(outputs[1], got['log_prob'])
+
+    @wraplog()
+    def test_onnxt_runtime_softplus(self):
+        def sp(x):
+            return numpy.log(numpy.exp(x) + 1)
+        self.common_test_onnxt_runtime_unary(OnnxSoftplus, sp)
+
+    @wraplog()
+    def test_onnxt_runtime_softsign(self):
+        def sp(x):
+            return x / (numpy.abs(x) + 1)
+        self.common_test_onnxt_runtime_unary(OnnxSoftsign, sp)
 
     @wraplog()
     def test_onnxt_runtime_sub(self):
@@ -4708,9 +5346,80 @@ class TestOnnxrtPythonRuntime(ExtTestCase):  # pylint: disable=R0904
         python_tested.append(OnnxUnsqueeze)
 
     @wraplog()
+    def test_onnxt_runtime_threshold_relu(self):
+        self.common_test_onnxt_runtime_unary(
+            OnnxThresholdedRelu, lambda x: numpy.maximum(x, 1))
+
+    @wraplog()
     def test_onnxt_runtime_trilu(self):
         self.common_test_onnxt_runtime_unary(
             OnnxTrilu, lambda x: numpy.triu(x, 0))
+
+    @wraplog()
+    def test_onnxt_runtime_unique(self):
+        x = numpy.array([2.0, 1.0, 1.0, 3.0, 4.0, 3.0], dtype=numpy.float32)
+
+        # sorted_without_axis
+        onx = OnnxUnique('X', op_version=TARGET_OPSET,
+                         output_names=['Y', 'indices', 'inverse_indices', 'counts'])
+        model_def = onx.to_onnx({'X': x.astype(numpy.float32)},
+                                target_opset=TARGET_OPSET)
+        self._check_shape_inference(OnnxTranspose, model_def)
+        oinf = OnnxInference(model_def)
+        got = oinf.run({'X': x})
+        self.assertEqual(list(sorted(got)), ['Y', 'counts', 'indices', 'inverse_indices'])
+
+        y, indices, inverse_indices, counts = numpy.unique(x, True, True, True)
+        indices, inverse_indices, counts = specify_int64(indices, inverse_indices, counts)
+        self.assertEqualArray(y, got['Y'])
+        self.assertEqualArray(indices, got['indices'])
+        self.assertEqualArray(inverse_indices, got['inverse_indices'])
+        self.assertEqualArray(counts, got['counts'])
+
+        # sorted_with_axis
+        x = numpy.array([[1, 0, 0], [1, 0, 0], [2, 3, 4]], dtype=numpy.float32)
+        onx = OnnxUnique('X', op_version=TARGET_OPSET, sorted=1, axis=0,
+                         output_names=['Y', 'indices', 'inverse_indices', 'counts'])
+        model_def = onx.to_onnx({'X': x.astype(numpy.float32)},
+                                target_opset=TARGET_OPSET)
+        self._check_shape_inference(OnnxTranspose, model_def)
+        oinf = OnnxInference(model_def)
+        got = oinf.run({'X': x})
+        self.assertEqual(list(sorted(got)), ['Y', 'counts', 'indices', 'inverse_indices'])
+
+        y, indices, inverse_indices, counts = numpy.unique(x, True, True, True, axis=0)
+        indices, inverse_indices, counts = specify_int64(indices, inverse_indices, counts)
+        self.assertEqualArray(y, got['Y'])
+        self.assertEqualArray(indices, got['indices'])
+        self.assertEqualArray(inverse_indices, got['inverse_indices'])
+        self.assertEqualArray(counts, got['counts'])
+
+        # not_sorted_without_axis
+        x = numpy.array([2.0, 1.0, 1.0, 3.0, 4.0, 3.0], dtype=numpy.float32)
+        onx = OnnxUnique('X', op_version=TARGET_OPSET, sorted=0,
+                         output_names=['Y', 'indices', 'inverse_indices', 'counts'])
+        model_def = onx.to_onnx({'X': x.astype(numpy.float32)},
+                                target_opset=TARGET_OPSET)
+        self._check_shape_inference(OnnxTranspose, model_def)
+        oinf = OnnxInference(model_def)
+        got = oinf.run({'X': x})
+        self.assertEqual(list(sorted(got)), ['Y', 'counts', 'indices', 'inverse_indices'])
+
+        y, indices, inverse_indices, counts = numpy.unique(x, True, True, True)
+        argsorted_indices = numpy.argsort(indices)
+        inverse_indices_map = {i: si for i, si in zip(argsorted_indices, numpy.arange(len(argsorted_indices)))}
+        indices = indices[argsorted_indices]
+        y = numpy.take(x, indices, axis=0)
+        inverse_indices = numpy.asarray([inverse_indices_map[i] for i in inverse_indices], dtype=numpy.int64)
+        counts = counts[argsorted_indices]
+        indices, inverse_indices, counts = specify_int64(indices, inverse_indices, counts)
+
+        self.assertEqualArray(y, got['Y'])
+        self.assertEqualArray(indices, got['indices'])
+        self.assertEqualArray(inverse_indices, got['inverse_indices'])
+        self.assertEqualArray(counts, got['counts'])
+
+        python_tested.append(OnnxTranspose)
 
     @wraplog()
     def test_onnxt_runtime_xor(self):
@@ -4720,5 +5429,5 @@ class TestOnnxrtPythonRuntime(ExtTestCase):  # pylint: disable=R0904
 
 if __name__ == "__main__":
     # Working
-    # TestOnnxrtPythonRuntime().test_onnxt_runtime_cum_sum()
+    # TestOnnxrtPythonRuntime().test_onnxt_runtime_gru_default()
     unittest.main(verbosity=2)

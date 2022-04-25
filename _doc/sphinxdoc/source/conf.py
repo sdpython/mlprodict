@@ -70,6 +70,7 @@ intersphinx_mapping.update({
     'onnxruntime': (
         'http://www.xavierdupre.fr/app/onnxruntime/helpsphinx/', None),
     'skl2onnx': ('http://onnx.ai/sklearn-onnx/', None),
+    'torch': ('https://pytorch.org/docs/master/', None),
 })
 
 epkg_dictionary.update({
@@ -116,11 +117,10 @@ epkg_dictionary.update({
     'openmp': 'https://www.openmp.org/',
     'ONNX': 'https://onnx.ai/',
     'onnx': 'https://github.com/onnx/onnx',
-    'Op': ('https://github.com/onnx/onnx/blob/master/docs/Operators.md',
-           ('https://github.com/onnx/onnx/blob/master/docs/Operators.md#{0}', 1)),
     'ONNX Backend': 'https://github.com/onnx/onnx/blob/main/docs/ImplementingAnOnnxBackend.md',
-    'ONNX Operators': 'https://github.com/onnx/onnx/blob/master/docs/Operators.md',
+    'ONNX mappings': 'http://www.xavierdupre.fr/app/onnxcustom/helpsphinx/api/onnx_python/spec.html?highlight=mapping#type-mappings',
     'ONNX ML Operators': 'https://github.com/onnx/onnx/blob/master/docs/Operators-ml.md',
+    'ONNX Operators': 'https://github.com/onnx/onnx/blob/master/docs/Operators.md',
     'ONNX Version': 'https://github.com/onnx/onnx/blob/main/docs/Versioning.md#released-versions',
     'ONNX Zoo': 'https://github.com/onnx/models',
     'onnxconverter_common': 'https://github.com/onnx/onnxmltools/tree/master/onnxutils/onnxconverter_common',
@@ -129,6 +129,8 @@ epkg_dictionary.update({
     'onnxruntime': 'https://github.com/microsoft/onnxruntime',
     'onnxruntime-extensions': 'https://github.com/microsoft/onnxruntime-extensions',
     'onnxruntime_perf_test': 'https://github.com/microsoft/onnxruntime/tree/master/onnxruntime/test/perftest',
+    'Op': ('https://github.com/onnx/onnx/blob/master/docs/Operators.md',
+           ('https://github.com/onnx/onnx/blob/master/docs/Operators.md#{0}', 1)),
     'opt-einsum': 'https://pypi.org/project/opt-einsum/',
     'pickle': 'https://docs.python.org/3/library/pickle.html',
     'pybind11': 'https://github.com/pybind/pybind11',

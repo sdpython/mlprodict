@@ -113,10 +113,9 @@ void TensorTranspose(const T* input, T* output, size_t M, size_t N) {
 
 
 template <typename T, typename TF, typename TI = int32_t>
-void QConvDepthwise(
-    const T** Input, TI InputZeroPoint, const TF* Filter,
-    TI FilterZeroPoint, bool FilterIsSigned, TI* Output,
-    size_t Channels, size_t OutputCount, size_t KernelSize) {
+void QConvDepthwise(const T** Input, TI InputZeroPoint, const TF* Filter,
+                    TI FilterZeroPoint, bool FilterIsSigned, TI* Output,
+                    size_t Channels, size_t OutputCount, size_t KernelSize) {
     // Signed version.
     while (OutputCount > 0) {
 
@@ -148,10 +147,9 @@ void QConvDepthwise(
 // The function adds value to C, assuming this array
 // was initialized.
 template <typename NTYPE>
-void gemm(
-    bool transA, bool transB,
-    size_t M, size_t N, size_t K, NTYPE alpha,
-    const NTYPE* A, const NTYPE* B, NTYPE beta, NTYPE* C) {
+void gemm(bool transA, bool transB,
+          size_t M, size_t N, size_t K, NTYPE alpha,
+          const NTYPE* A, const NTYPE* B, NTYPE beta, NTYPE* C) {
 
     if (transA) {
         if (transB) {
@@ -213,12 +211,11 @@ void gemm(
 
 // NTYPE is uint8_t or int8_t
 template <typename TA, typename TB, typename TOUT = int32_t>
-void QGemm(
-    bool transA, bool transB, size_t M, size_t N, size_t K, TOUT alpha,
-    const TA* A, const TB* B, TOUT beta,
-    TOUT* C, size_t lda, size_t ldb, size_t ldc,
-    TA ZeroPointA = 0, const TB* ZeroPointB = nullptr, bool BIsPacked = false,
-    bool PerColumnZeroPoints = false) {
+void QGemm(bool transA, bool transB, size_t M, size_t N, size_t K, TOUT alpha,
+           const TA* A, const TB* B, TOUT beta,
+           TOUT* C, size_t lda, size_t ldb, size_t ldc,
+           TA ZeroPointA = 0, const TB* ZeroPointB = nullptr, bool BIsPacked = false,
+           bool PerColumnZeroPoints = false) {
     if (alpha != 1)
         throw std::invalid_argument("Not implemented for alpha != 1 (QGemm<T>).");
     if (beta != 0)
@@ -266,11 +263,10 @@ void QGemm(
 
 
 template <typename T>
-static void Im2colWithEqualPadding(
-    int64_t output_h, int64_t output_w, const T* data_im, int64_t channels,
-    int64_t height, int64_t width, int64_t kernel_h, int64_t kernel_w,
-    int64_t dilation_h, int64_t dilation_w, int64_t pad_t, int64_t pad_l,
-    int64_t stride_h, int64_t stride_w, T* data_col, T padding_value) {
+static void Im2colWithEqualPadding(int64_t output_h, int64_t output_w, const T* data_im, int64_t channels,
+                                   int64_t height, int64_t width, int64_t kernel_h, int64_t kernel_w,
+                                   int64_t dilation_h, int64_t dilation_w, int64_t pad_t, int64_t pad_l,
+                                   int64_t stride_h, int64_t stride_w, T* data_col, T padding_value) {
     // From Intel, https://github.com/BVLC/caffe/pull/3536
     int64_t pad_h = pad_t;
     int64_t pad_w = pad_l;
@@ -304,14 +300,13 @@ static void Im2colWithEqualPadding(
 
 
 template <typename T>
-void Im2colNd_NCHW(
-    const T* data_img, const int64_t* im_shape,
-    const int64_t* col_shape, int64_t /*img_size*/,
-    int64_t /*col_size*/, const int64_t* kernel_shape,
-    const int64_t* stride, const int64_t* dilation,
-    const int64_t* pad, int64_t N, T* data_col,
-    bool accumulate_output = false,
-    T padding_value = 0) {
+void Im2colNd_NCHW(const T* data_img, const int64_t* im_shape,
+                   const int64_t* col_shape, int64_t /*img_size*/,
+                   int64_t /*col_size*/, const int64_t* kernel_shape,
+                   const int64_t* stride, const int64_t* dilation,
+                   const int64_t* pad, int64_t N, T* data_col,
+                   bool accumulate_output = false,
+                   T padding_value = 0) {
     int64_t kernel_size = 1;
     for (int64_t i = 0; i < N; ++i)
         kernel_size *= kernel_shape[i];
@@ -372,14 +367,13 @@ void Im2colNd_NCHW(
 
 
 template<typename T>
-void Im2col_NCHW(
-    const T* data_im, int64_t channels,
-    int64_t height, int64_t width,
-    int64_t kernel_h, int64_t kernel_w,
-    int64_t dilation_h, int64_t dilation_w,
-    int64_t pad_t, int64_t pad_l, int64_t pad_b, int64_t pad_r,
-    int64_t stride_h, int64_t stride_w, T* data_col,
-    T padding_value = 0) {
+void Im2col_NCHW(const T* data_im, int64_t channels,
+                 int64_t height, int64_t width,
+                 int64_t kernel_h, int64_t kernel_w,
+                 int64_t dilation_h, int64_t dilation_w,
+                 int64_t pad_t, int64_t pad_l, int64_t pad_b, int64_t pad_r,
+                 int64_t stride_h, int64_t stride_w, T* data_col,
+                 T padding_value = 0) {
     const int64_t output_h =
         (height + pad_b + pad_t - (dilation_h * (kernel_h - 1) + 1))
         / stride_h + 1;
@@ -477,11 +471,11 @@ inline bool NextPosition(int64_t N, const int64_t* shape, int64_t* dims) {
 
 
 template <typename T>
-void Im2col_NCHW(
-    const T* data_im, int64_t group_channels, int64_t input_channels, const int64_t* im_shape,
-    const int64_t* output_shape, const int64_t* kernel_shape, const int64_t* stride,
-    const int64_t* dilation, const int64_t* pad, ptrdiff_t rank,
-    T* data_col, T padding_value) {
+void Im2col_NCHW(const T* data_im, int64_t group_channels, int64_t input_channels,
+                 const int64_t* im_shape,
+                 const int64_t* output_shape, const int64_t* kernel_shape, const int64_t* stride,
+                 const int64_t* dilation, const int64_t* pad, ptrdiff_t rank,
+                 T* data_col, T padding_value) {
     // iterate dimensions on output image shape (without Batch and Channel)
     std::vector<int64_t> d_output(rank, 0);
     // inner iterate dimensions on kernel shape (without output channel and input channel)
@@ -515,11 +509,11 @@ void Im2col_NCHW(
 
 
 template <typename T>
-void Im2col_NHWC(
-    const T* data_im, int64_t input_channels, const int64_t* input_shape,
-    const int64_t* output_shape, const int64_t* kernel_shape, const int64_t* stride,
-    const int64_t* dilation, const int64_t* pad, ptrdiff_t rank,
-    int64_t output_start, int64_t output_count, T const** data_indirection, const T* padding_ptr) {
+void Im2col_NHWC(const T* data_im, int64_t input_channels, const int64_t* input_shape,
+                 const int64_t* output_shape, const int64_t* kernel_shape, const int64_t* stride,
+                 const int64_t* dilation, const int64_t* pad, ptrdiff_t rank,
+                 int64_t output_start, int64_t output_count, T const** data_indirection,
+                 const T* padding_ptr) {
     if (rank == 1) {
         int64_t stride_w = stride[0];
         int64_t kernel_w = kernel_shape[0];
@@ -617,25 +611,24 @@ void Im2col_NHWC(
 
 
 template <typename T>
-void Im2col_NHWC(
-    const T* data_im,
-    int64_t group_channels,
-    int64_t input_channels,
-    int64_t input_h,
-    int64_t input_w,
-    int64_t kernel_h,
-    int64_t kernel_w,
-    int64_t dilation_h,
-    int64_t dilation_w,
-    int64_t pad_t,
-    int64_t pad_l,
-    int64_t stride_h,
-    int64_t stride_w,
-    int64_t output_w,
-    int64_t output_start,
-    int64_t output_count,
-    T* data_col,
-    T padding_value) {
+void Im2col_NHWC(const T* data_im,
+                 int64_t group_channels,
+                 int64_t input_channels,
+                 int64_t input_h,
+                 int64_t input_w,
+                 int64_t kernel_h,
+                 int64_t kernel_w,
+                 int64_t dilation_h,
+                 int64_t dilation_w,
+                 int64_t pad_t,
+                 int64_t pad_l,
+                 int64_t stride_h,
+                 int64_t stride_w,
+                 int64_t output_w,
+                 int64_t output_start,
+                 int64_t output_count,
+                 T* data_col,
+                 T padding_value) {
     int64_t mh = output_start / output_w;
     int64_t mw = output_start % output_w;
     for (int64_t mz = output_start; mz < output_start + output_count; mz++) {
@@ -695,21 +688,19 @@ void Im2col_NHWC(
 }
 
 
-void ComputePadAndOutputShape(
-    int64_t in_dim, int64_t stride,
-    int64_t kernel, int64_t dilation,
-    AutoPadType pad_type, int64_t* pad_head,
-    int64_t* pad_tail, int64_t* out_dim,
-    bool ForceSymmetricAutoPadding);
+void ComputePadAndOutputShape(int64_t in_dim, int64_t stride,
+                              int64_t kernel, int64_t dilation,
+                              AutoPadType pad_type, int64_t* pad_head,
+                              int64_t* pad_tail, int64_t* out_dim,
+                              bool ForceSymmetricAutoPadding);
 
 
 template <typename T>
-void ComputeTransposePadAndOutputShape(
-    int64_t in_size, int64_t stride,
-    int64_t kernel, int64_t dilation,
-    int64_t adj, AutoPadType pad_type,
-    int64_t* pad_head, int64_t* pad_tail,
-    int64_t* out_size) {
+void ComputeTransposePadAndOutputShape(int64_t in_size, int64_t stride,
+                                       int64_t kernel, int64_t dilation,
+                                       int64_t adj, AutoPadType pad_type,
+                                       int64_t* pad_head, int64_t* pad_tail,
+                                       int64_t* out_size) {
     if (*out_size != -1) {
         // total padding size
         int64_t paddings = std::max<int64_t>(0, (in_size - 1) * stride + adj + (kernel - 1) * dilation + 1 - *out_size);

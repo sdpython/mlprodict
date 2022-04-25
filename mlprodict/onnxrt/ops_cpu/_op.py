@@ -156,7 +156,8 @@ class OpRun:
         Should be overwritten.
         """
         raise NotImplementedError(  # pragma: no cover
-            "This method should be overwritten.")
+            "Method '_run' or 'to_python' should be overwritten for operator %s."
+            "" % self.__class__.__name__)
 
     def run(self, *args, **kwargs):  # pylint: disable=E0202
         """
@@ -220,8 +221,8 @@ class OpRun:
         for a in res:
             if not isinstance(a, ShapeObject):
                 raise TypeError(  # pragma: no cover
-                    "One shape is not a ShapeObject but {} (operator '{}')".format(
-                        type(a), self.__class__.__name__))
+                    "One shape is not a ShapeObject but {} (operator '{}')"
+                    "".format(type(a), self.__class__.__name__))
         return res
 
     def _infer_shapes(self, *args, **kwargs):
@@ -720,7 +721,7 @@ class OpRunBinaryNumpy(OpRunBinaryNum):
         if (self._cannot_inplace_int and
                 numpy.issubdtype(a.dtype, numpy.integer)):
             return (self.numpy_fct(a, b), )
-        if self.inplaces.get(0, False) and a.size >= b.size:
+        if self.inplaces.get(0, False) and a.flags['WRITEABLE'] and a.size >= b.size:
             if len(a.shape) == 1 and b.shape == (1, 1):
                 a = a.reshape(1, a.shape[0])
             try:
@@ -728,7 +729,7 @@ class OpRunBinaryNumpy(OpRunBinaryNum):
                 return (a, )
             except (ValueError, TypeError):
                 return (self.numpy_fct(a, b), )
-        if self.inplaces.get(1, False) and a.size <= b.size:
+        if self.inplaces.get(1, False) and b.flags['WRITEABLE'] and a.size <= b.size:
             if len(b.shape) == 1 and a.shape == (1, 1):
                 b = b.reshape(b.shape[0], 1)
             try:

@@ -207,10 +207,16 @@ class TestOnnxConvTreeEnsemble(ExtTestCase):
                             self.assertEqualArray(
                                 exp, got['probabilities'].ravel(), decimal=decimal)
                         except AssertionError as e:
-                            raise AssertionError(
-                                "Discrepancies with onx=%s\n%s." % (
-                                    onnx_simple_text_plot(onx),
-                                    str(onx))) from e
+                            if (dtype != numpy.float64 or
+                                    gbm.__class__ == HistGradientBoostingClassifier):
+                                # DecisionTree, RandomForest are comparing
+                                # a double threshold and a float feature,
+                                # the comparison may introduce discrepancies if
+                                # the comparison is between both double.
+                                raise AssertionError(
+                                    "Discrepancies with onx=%s\n%s." % (
+                                        onnx_simple_text_plot(onx),
+                                        str(onx))) from e
                         self.assertEqual(got['probabilities'].dtype, dtype)
 
     @ignore_warnings((RuntimeWarning, UserWarning))

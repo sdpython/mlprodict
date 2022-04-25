@@ -3,7 +3,8 @@
 """
 import os
 import unittest
-from numpy import array, float32, int64, int8, int32
+import numpy
+from numpy import array, float32, int64, int8, int32, uint8
 from onnx import TensorProto
 from onnx.helper import (
     make_model, make_node, set_model_props, make_graph,
@@ -1172,7 +1173,279 @@ class TestOnnxBackEnd(ExtTestCase):
             done += 1
         self.assertEqual(done, 1)
 
+    def test_enumerate_onnx_test_eyelike_without_dtype(self):
+        done = 0
+        for te in enumerate_onnx_tests(
+                'node', lambda folder: folder == 'test_eyelike_without_dtype'):
+            self.assertIn(te.name, repr(te))
+            self.assertGreater(len(te), 0)
+            te.run(TestOnnxBackEnd.load_fct, TestOnnxBackEnd.run_fct)
+            done += 1
+        self.assertEqual(done, 1)
+
+    def test_enumerate_onnx_test_sce_mean_expanded(self):
+        done = 0
+        for te in enumerate_onnx_tests(
+                'node', lambda folder: folder == 'test_sce_mean_expanded'):
+            self.assertIn(te.name, repr(te))
+            self.assertGreater(len(te), 0)
+            te.run(TestOnnxBackEnd.load_fct, TestOnnxBackEnd.run_fct)
+            done += 1
+        self.assertEqual(done, 1)
+
+    def test_enumerate_onnx_test_dynamicquantizelinear(self):
+        done = 0
+        for te in enumerate_onnx_tests(
+                'node', lambda folder: folder == 'test_dynamicquantizelinear'):
+            self.assertIn(te.name, repr(te))
+            self.assertGreater(len(te), 0)
+            te.run(TestOnnxBackEnd.load_fct, TestOnnxBackEnd.run_fct)
+            done += 1
+        self.assertEqual(done, 1)
+
+    def test_enumerate_onnx_test_isinf_negative(self):
+        done = 0
+        for te in enumerate_onnx_tests(
+                'node', lambda folder: folder == 'test_isinf_negative'):
+            self.assertIn(te.name, repr(te))
+            self.assertGreater(len(te), 0)
+            te.run(TestOnnxBackEnd.load_fct, TestOnnxBackEnd.run_fct)
+            done += 1
+        self.assertEqual(done, 1)
+
+    def test_enumerate_onnx_test_selu(self):
+        done = 0
+        for te in enumerate_onnx_tests(
+                'node', lambda folder: folder == 'test_selu'):
+            self.assertIn(te.name, repr(te))
+            self.assertGreater(len(te), 0)
+            te.run(TestOnnxBackEnd.load_fct, TestOnnxBackEnd.run_fct)
+            done += 1
+        self.assertEqual(done, 1)
+
+    def test_enumerate_onnx_test_sce_mean_weight_expanded(self):
+        done = 0
+        for te in enumerate_onnx_tests(
+                'node', lambda folder: folder == 'test_sce_mean_weight_expanded'):
+            self.assertIn(te.name, repr(te))
+            self.assertGreater(len(te), 0)
+            te.run(TestOnnxBackEnd.load_fct, TestOnnxBackEnd.run_fct)
+            done += 1
+        self.assertEqual(done, 1)
+
+    def test_enumerate_onnx_test_shape_end(self):
+        done = 0
+        for te in enumerate_onnx_tests(
+                'node', lambda folder: folder == 'test_shape_end_1'):
+            self.assertIn(te.name, repr(te))
+            self.assertGreater(len(te), 0)
+            te.run(TestOnnxBackEnd.load_fct, TestOnnxBackEnd.run_fct)
+            done += 1
+        self.assertEqual(done, 1)
+
+    def test_enumerate_onnx_test_nonzero_example(self):
+        done = 0
+        for te in enumerate_onnx_tests(
+                'node', lambda folder: folder == 'test_nonzero_example'):
+            self.assertIn(te.name, repr(te))
+            self.assertGreater(len(te), 0)
+            te.run(TestOnnxBackEnd.load_fct, TestOnnxBackEnd.run_fct)
+            done += 1
+        self.assertEqual(done, 1)
+
+    def test_enumerate_onnx_test_mod_mixed_sign_float16(self):
+        done = 0
+        for te in enumerate_onnx_tests(
+                'node', lambda folder: folder == 'test_mod_mixed_sign_float16'):
+            self.assertIn(te.name, repr(te))
+            self.assertGreater(len(te), 0)
+            te.run(TestOnnxBackEnd.load_fct, TestOnnxBackEnd.run_fct)
+            done += 1
+        self.assertEqual(done, 1)
+
+    def test_enumerate_onnx_test_max_one_input(self):
+        done = 0
+        for te in enumerate_onnx_tests(
+                'node', lambda folder: folder == 'test_max_one_input'):
+            self.assertIn(te.name, repr(te))
+            self.assertGreater(len(te), 0)
+            te.run(TestOnnxBackEnd.load_fct, TestOnnxBackEnd.run_fct)
+            done += 1
+        self.assertEqual(done, 1)
+
+    def test_enumerate_onnx_test_eyelike_without_dtype_2(self):
+        done = 0
+        for te in enumerate_onnx_tests(
+                'node', lambda folder: folder == 'test_eyelike_without_dtype'):
+            self.assertIn(te.name, repr(te))
+            self.assertGreater(len(te), 0)
+            te.run(TestOnnxBackEnd.load_fct, TestOnnxBackEnd.run_fct)
+            done += 1
+        self.assertEqual(done, 1)
+
+    def test_dynamicquantizelinear_max_adjusted_expanded_code(self):
+        name = 'test_dynamicquantizelinear_max_adjusted_expanded'
+        code = []
+        for te in enumerate_onnx_tests('node', lambda folder: folder == name):
+            code.append(te.to_python())
+        self.assertEqual(len(code), 1)
+        self.assertIn(
+            'def test_dynamicquantizelinear_max_adjusted_expanded(self):', code[0])
+        self.assertIn('from onnx.helper', code[0])
+        self.assertIn('for y, gy in zip(ys, goty):', code[0])
+        # if __name__ == '__main__':
+        #     print(code[0])
+
+    def test_dynamicquantizelinear_max_adjusted_expanded(self):
+
+        def create_model():
+            initializers = []
+            nodes = []
+            inputs = []
+            outputs = []
+            functions = []
+
+            opsets = {'': 11}
+            inputs.append(make_tensor_value_info('x', 1, [6]))
+            outputs.append(make_tensor_value_info('y', 2, [6]))
+            outputs.append(make_tensor_value_info('y_scale', 1, None))
+            outputs.append(make_tensor_value_info('y_zero_point', 2, None))
+            node = make_node(
+                'Constant', [], ['var__functionQ_Min'],
+                value=make_tensor("value", TensorProto.FLOAT, dims=[], vals=[0.0]), domain='')
+            nodes.append(node)
+
+            node = make_node(
+                'Constant', [], ['var__functionQ_Max'],
+                value=make_tensor("value", TensorProto.FLOAT, dims=[], vals=[255.0]), domain='')
+            nodes.append(node)
+
+            node = make_node(
+                'ReduceMin', ['x'], ['var__functionX_Min'], keepdims=0, domain='')
+            nodes.append(node)
+
+            node = make_node(
+                'Min', ['var__functionX_Min', 'var__functionQ_Min'],
+                ['var__functionX_Min_Adjusted'], domain='')
+            nodes.append(node)
+
+            node = make_node(
+                'ReduceMax', ['x'], ['var__functionX_Max'], keepdims=0, domain='')
+            nodes.append(node)
+
+            node = make_node(
+                'Max', ['var__functionX_Max', 'var__functionQ_Min'],
+                ['var__functionX_Max_Adjusted'], domain='')
+            nodes.append(node)
+
+            node = make_node(
+                'Sub', ['var__functionX_Max_Adjusted',
+                        'var__functionX_Min_Adjusted'],
+                ['var__functionX_Range'], domain='')
+            nodes.append(node)
+
+            node = make_node(
+                'Div', ['var__functionX_Range', 'var__functionQ_Max'],
+                ['var__functionScale'], domain='')
+            nodes.append(node)
+
+            node = make_node(
+                'Div', ['var__functionX_Min_Adjusted', 'var__functionScale'],
+                ['var__functionMin_Scaled'], domain='')
+            nodes.append(node)
+
+            node = make_node(
+                'Sub', ['var__functionQ_Min', 'var__functionMin_Scaled'],
+                ['var__functionInitial_ZeroPoint_FP'], domain='')
+            nodes.append(node)
+
+            node = make_node(
+                'Clip', ['var__functionInitial_ZeroPoint_FP',
+                         'var__functionQ_Min', 'var__functionQ_Max'],
+                ['var__functionClipped_ZeroPoint_FP'], domain='')
+            nodes.append(node)
+
+            node = make_node(
+                'Round', ['var__functionClipped_ZeroPoint_FP'],
+                ['var__functionRounded_ZeroPoint_FP'], domain='')
+            nodes.append(node)
+
+            node = make_node(
+                'Cast', ['var__functionRounded_ZeroPoint_FP'],
+                ['var__functionZeropoint'], to=TensorProto.UINT8, domain='')
+            nodes.append(node)
+
+            node = make_node(
+                'Identity', ['var__functionScale'], ['y_scale'], domain='')
+            nodes.append(node)
+
+            node = make_node(
+                'Identity', ['var__functionZeropoint'], ['y_zero_point'], domain='')
+            nodes.append(node)
+
+            node = make_node(
+                'QuantizeLinear', [
+                    'x', 'var__functionScale', 'var__functionZeropoint'],
+                ['y'], domain='')
+            nodes.append(node)
+
+            opset_imports = [make_opsetid(domain, 1 if version is None else version)
+                             for domain, version in opsets.items()]
+
+            graph = make_graph(
+                nodes, 'test_dynamicquantizelinear_max_adjusted_expanded', inputs, outputs, initializers)
+
+            onnx_model = make_model(
+                graph, opset_imports=opset_imports, functions=functions)
+            onnx_model.ir_version = 5
+            onnx_model.producer_name = 'backend-test'
+            onnx_model.producer_version = ''
+            onnx_model.domain = ''
+            onnx_model.model_version = 0
+            onnx_model.doc_string = ''
+            set_model_props(onnx_model, {})
+
+            return onnx_model
+
+        onnx_model = create_model()
+
+        oinf = OnnxInference(onnx_model)
+        xs = [array([-1., -2.1, -1.3, -2.5, -3.34, -4.], dtype=float32)]
+        ys = [array([191, 121, 172, 96, 42, 0], dtype=uint8),
+              array(0.01568628, dtype=float32),
+              array(255, dtype=uint8)]
+        feeds = {n: x for n, x in zip(oinf.input_names, xs)}
+        got = oinf.run(feeds)
+        goty = [got[k] for k in oinf.output_names]
+        for y, gy in zip(ys, goty):
+            diff = numpy.abs(y - gy).sum()
+            self.assertLess(diff, 2)
+
+    def test_enumerate_onnx_test_range_float_type_positive_delta_expanded(self):
+        done = 0
+        for te in enumerate_onnx_tests(
+                'node', lambda folder: folder == 'test_range_float_type_positive_delta_expanded'):
+            self.assertIn(te.name, repr(te))
+            self.assertGreater(len(te), 0)
+            te.run(TestOnnxBackEnd.load_fct, TestOnnxBackEnd.run_fct)
+            done += 1
+        self.assertEqual(done, 1)
+
+    @unittest.skipIf(True, reason="onnx example is probably wrong")
+    def test_enumerate_onnx_test_simple_rnn_batchwise(self):
+        # The test may fail but the numerical result may be different
+        # depending on the machine.
+        done = 0
+        for te in enumerate_onnx_tests(
+                'node', lambda folder: folder == 'test_simple_rnn_batchwise'):
+            self.assertIn(te.name, repr(te))
+            self.assertGreater(len(te), 0)
+            te.run(TestOnnxBackEnd.load_fct, TestOnnxBackEnd.run_fct,
+                   decimal=2)
+            done += 1
+        self.assertEqual(done, 1)
+
 
 if __name__ == "__main__":
-    # TestOnnxBackEnd().test_enumerate_onnx_test_min_example()
+    # TestOnnxBackEnd().test_enumerate_onnx_test_simple_rnn_batchwise()
     unittest.main()

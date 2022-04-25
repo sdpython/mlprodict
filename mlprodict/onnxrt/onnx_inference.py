@@ -1303,6 +1303,7 @@ class OnnxInference:
                 "This method only works if the runtime is 'python' not "
                 "'{}'.".format(self.runtime))
         values = OrderedDict()
+        impossible = False
         for k, v in self.inputs_.items():
             # The function assumes the first dimension is unknown
             # and is the batch size.
@@ -1317,7 +1318,6 @@ class OnnxInference:
                     "Unable to guess shape for %r (shape=%r)." % (
                         k, v)) from e
 
-        impossible = False
         for k, v in self.statics_.items():
             # static inputs should be known.
             if k not in values:
@@ -1327,9 +1327,12 @@ class OnnxInference:
                     # default value is wrong
                     impossible = True
                     values[k] = None
+            if values[k] is None:
+                impossible = True
 
         for k, v in self.inits_.items():
             values[k] = ShapeObject(v['value'], name=k)
+
         last = None
         for i, node in enumerate(self.sequence_):
             try:
@@ -1344,8 +1347,15 @@ class OnnxInference:
                 for k in range(i + 1):
                     rows.append("{} --> {}".format(k, self.sequence_[k]))
                 if not impossible:
-                    raise RuntimeError("Unable to infer shape of node {}\n{}".format(
-                        i, '\n'.join(rows))) from e
+                    for v in values.values():
+                        if v is None:
+                            impossible = True
+                            break
+                if not impossible:
+                    raise RuntimeError(
+                        "Unable to infer shape of node type '{}' "
+                        "[impossible={}] {}\n{}".format(
+                            node.onnx_node.op_type, impossible, i, '\n'.join(rows))) from e
         return values
 
     def infer_shapes(self):

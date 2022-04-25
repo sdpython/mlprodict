@@ -14,7 +14,7 @@ class Mean(OpRun):
                        **options)
 
     def _run(self, *args):  # pylint: disable=W0221
-        if self.inplaces.get(0, False):
+        if self.inplaces.get(0, False) and args[0].flags['WRITEABLE']:
             return self._run_inplace(*args)
         res = args[0].copy()
         for m in args[1:]:
