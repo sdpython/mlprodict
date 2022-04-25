@@ -1024,14 +1024,14 @@ class TestXOps(ExtTestCase):
         onx = OnnxIf(
             OnnxGreater(OnnxReduceSum('X'),
                         numpy.array([0], dtype=numpy.float32)),
-            output_names=['Z']) \
-            .then_do(OnnxIdentity('X') - OnnxExisting(x2)) \
-            .else_do(OnnxIdentity('X') + OnnxExisting(x2))
+            output_names=['Z']
+        ).then_do(OnnxIdentity('X') - OnnxExisting(x2)) \
+         .else_do(OnnxIdentity('X') + OnnxExisting(x2))
 
         x = numpy.array([1, 2], dtype=numpy.float32)
         model_def = onx.to_onnx(
             {'X': numpy.float32}, {'Z': numpy.float32},
-            run_shape=False, verbose=0)
+            run_shape=False, verbose=1)
         spl = str(model_def).split('op_type: "Abs"')
         if len(spl) > 2:
             raise AssertionError(

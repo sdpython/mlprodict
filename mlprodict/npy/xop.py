@@ -696,6 +696,15 @@ class OnnxOperatorTuple(OnnxOperatorBase):
         raise NotImplementedError(  # pragma: no cover
             "OnnxOperatorTuple.inputs is missing.")
 
+    @property
+    def external_inputs(self):
+        if self.values is None:
+            return self.unique.external_inputs
+        res = []
+        for op in self.values:
+            res.extend(op.external_inputs)
+        return res
+
     def add_to(self, builder):
         """
         Adds to graph builder.
@@ -1743,8 +1752,10 @@ class OnnxOperator(OnnxOperatorBase):
         else:
             named_inputs = set(oxop.find_named_inputs())
             vars = []
+            added = set()
             for inp in inputs:
-                if inp.var.name in named_inputs:
+                if inp.var.name in named_inputs and inp.var.name not in added:
+                    added.add(inp.var.name)
                     vars.append(Variable(
                         inp.var.name, inp.var.dtype or inp.var.added_dtype))
             if verbose > 0:
@@ -2824,6 +2835,24 @@ class OnnxExisting(OnnxIdentity):
     not part of the subgraph it is used in.
     """
 
+    _unique_names = set()
+
+    @staticmethod
+    def get_unique_name(var):
+        if isinstance(var, OnnxOperator):
+            name = "%s_%s" % ((var.domain or "").lower().replace(".", ""),
+                              var.op_type.lower())
+        else:
+            raise TypeError(
+                "Unexpected type %r for var." % type(var))
+        i = 0
+        new_name = "_exist_%s_%d" % (name, i)
+        while new_name in OnnxExisting._unique_names:
+            i += 1
+            new_name = "_exist_%s_%d" % (var.name, i)
+        OnnxExisting._unique_names.add(new_name)
+        return new_name
+
     def __init__(self, *args, **kwargs):
         OnnxIdentity.__init__(self, *args, **kwargs)
         self.control_op_ = None
@@ -2834,8 +2863,9 @@ class OnnxExisting(OnnxIdentity):
             raise TypeError(
                 "Only input should a node not %r." % type(self.inputs[0]))
         if self.inputs[0].output_names is None:
-            new_names = [ExistingVariable("_existing_%d" % id(self.inputs[0]),
-                                          self.inputs[0])]
+            new_names = [
+                ExistingVariable(OnnxExisting.get_unique_name(self.inputs[0]),
+                                 self.inputs[0])]
             logger.debug("OnnxExisting.__init__:set-input:%r", new_names)
             self.inputs[0].output_names = new_names
 
