@@ -892,7 +892,7 @@ class OnnxOperator(OnnxOperatorBase):
             output_names = [output_names]
             if isinstance(output_names[0], str):
                 output_names[0] = Variable(output_names[0])
-        elif isinstance(output_names, list):
+        elif isinstance(output_names, (list, OnnxOperator._InputContainer)):
             if len(output_names) == 0:
                 raise ValueError(  # pragma: no cover
                     "output_names cannot be empty (operator %r)."
@@ -1121,7 +1121,7 @@ class OnnxOperator(OnnxOperatorBase):
     @output_names.setter
     def output_names(self, value):
         logger.debug("OnnxOperator:output_names:set(%r)", value)
-        if not isinstance(value, list):
+        if not isinstance(value, (list, OnnxOperator._InputContainer)):
             raise TypeError(  # pragma: no cover
                 "Value must be a list not %r." % type(value))
         res = []
@@ -1355,7 +1355,8 @@ class OnnxOperator(OnnxOperatorBase):
                     "subop is %r." % (inp.inputs[0], ))
             # We need to check that this input was not already added.
             inp = inp.inputs[0].output_names[0]
-            new_inputs.append(InputDetectedVariable(node, inp))
+            if not new_inputs.has_input(inp):
+                new_inputs.append(InputDetectedVariable(node, inp))
         elif isinstance(inp, OnnxOperator):
             new_stack.append(inp)
         elif isinstance(inp, OnnxOperatorItem):
@@ -1428,7 +1429,7 @@ class OnnxOperator(OnnxOperatorBase):
             if n not in outputs:
                 return None
             return outputs[n]
-        if isinstance(outputs, list):
+        if isinstance(outputs, (list, OnnxOperator._InputContainer)):
             raise NotImplementedError(  # pragma: no cover
                 "Unexpected type for name=%r, outputs=%r." % (
                     name, outputs))
@@ -1452,6 +1453,35 @@ class OnnxOperator(OnnxOperatorBase):
             result.append(v)
         return result
 
+    class _InputContainer:
+
+        def __init__(self):
+            self._c = []
+            self._names = set()
+
+        def has_input(self, inp):
+            if inp.name in self._names:
+                return True
+            return False
+
+        def append(self, inp):
+            name = inp.var.name
+            if not self.duplicate and name in self._names:
+                raise ValueError(  # pragma: no cover
+                    "One input is duplicated: %r in %r." % (name, self._names))
+            self._c.append(inp)
+            self._names.add(name)
+
+        def __len__(self):
+            return len(self._c)
+
+        def __repr__(self):
+            return "%s(\n %s)" % ('_InputContainer', pprint.pformat(self._c))
+
+        def __iter__(self):
+            for inp in self._c:
+                yield inp
+
     def _node_to_graph(self, other_outputs=None, inputs=None, outputs=None,
                        as_function=False):
         """
@@ -1470,7 +1500,7 @@ class OnnxOperator(OnnxOperatorBase):
         # preprocess inputs, outputs
         _keep_inputs = None
         inputs_dtype = None
-        if isinstance(inputs, list):
+        if isinstance(inputs, (list, OnnxOperator._InputContainer)):
             _keep_inputs = inputs
             inputs_dict = self._node_to_graph_preprocess_list(inputs)
         elif isinstance(inputs, dict):
@@ -1487,7 +1517,7 @@ class OnnxOperator(OnnxOperatorBase):
 
         _keep_outputs = None
         outputs_dtype = None
-        if isinstance(outputs, list):
+        if isinstance(outputs, (list, OnnxOperator._InputContainer)):
             _keep_outputs = outputs
             outputs_dict = self._node_to_graph_preprocess_list(outputs)
         elif isinstance(outputs, dict):
@@ -1517,7 +1547,7 @@ class OnnxOperator(OnnxOperatorBase):
 
         # walk through graph
         stack = list(node_outputs)
-        new_inputs = []
+        new_inputs = self._InputContainer()
         set_inputs = set()
         memo = []
         while len(stack) > 0:
@@ -1904,7 +1934,7 @@ class OnnxOperator(OnnxOperatorBase):
         if len(inputs) == 1 and isinstance(inputs[0], dict):
             dict_inputs = inputs[0]
             as_dict = True
-        elif not isinstance(inputs, (tuple, list)):
+        elif not isinstance(inputs, (tuple, list, OnnxOperator._InputContainer)):
             raise TypeError(  # pragma: no cover
                 "inputs must be a list not %r." % type(inputs))
         elif len(inputs) > 0 and isinstance(inputs[0], OnnxOperator):
@@ -1952,7 +1982,7 @@ class OnnxOperator(OnnxOperatorBase):
                         raise NotImplementedError(
                             "Not yet implemented in case when there are multiple "
                             "outputs (%r)." % list(out))
-                elif isinstance(out, list):
+                elif isinstance(out, (list, OnnxOperator._InputContainer)):
                     evaluated_inputs.extend(out)
                 else:
                     evaluated_inputs.append(out)
@@ -2569,10 +2599,10 @@ class _GraphBuilder:
         logger.debug("_GraphBuilder.add_node(%r, %r, "
                      "inputs=%r, outputs=%r, domain=%r, opset=%r)",
                      op_type, name, inputs, outputs, domain, opset)
-        if not isinstance(inputs, list):
+        if not isinstance(inputs, (list, OnnxOperator._InputContainer)):
             raise TypeError(  # pragma: no cover
                 "inputs must be a list not %r." % type(inputs))
-        if not isinstance(outputs, list):
+        if not isinstance(outputs, (list, OnnxOperator._InputContainer)):
             raise TypeError(  # pragma: no cover
                 "inputs must be a list not %r." % type(outputs))
         if any(map(lambda x: not isinstance(x, str), inputs)):
@@ -2607,7 +2637,7 @@ class _GraphBuilder:
                     'X', TensorProto.FLOAT, None)  # pylint: disable=E1101
                 for name in self.input_names]
 
-        if not isinstance(inputs, list):
+        if not isinstance(inputs, (list, OnnxOperator._InputContainer)):
             if is_numpy_dtype(inputs):
                 inputs = [inputs]
 
@@ -2645,7 +2675,7 @@ class _GraphBuilder:
                     "Unable to cross %r and %r or %r (set_names=%r)." % (
                         inputs, self.output_names_rev,
                         self.node_output_names_rev, set_names))
-        elif not isinstance(input_names, list):
+        elif not isinstance(input_names, (list, OnnxOperator._InputContainer)):
             raise RuntimeError(  # pragma: no cover
                 "Unexpected type for input_names %r." % type(input_names))
         else:
@@ -2659,7 +2689,7 @@ class _GraphBuilder:
                     len(input_names), len(inputs),
                     pprint.pformat(input_names), pprint.pformat(inputs)))
 
-        if isinstance(input_names, list):
+        if isinstance(input_names, (list, OnnxOperator._InputContainer)):
             d_input_names = {}
             for inp in input_names:
                 if inp.name in d_input_names:
