@@ -1034,13 +1034,13 @@ class TestXOps(ExtTestCase):
             {'X': numpy.float32}, {'Z': numpy.float32},
             run_shape=False, verbose=1)
         spl = str(model_def).split('op_type: "Abs"')
-        if len(spl) > 2:
-            raise AssertionError(
-                "Operator Abs should be duplicated (%d) in\n%s" % (
-                    len(spl), str(model_def)))
         if len(spl) < 2:
             raise AssertionError(
                 "Operator Abs is missing (%d) in\n%s" % (
+                    len(spl), str(model_def)))
+        if len(spl) > 2:
+            raise AssertionError(
+                "Operator Abs should not be duplicated (%d) in\n%s" % (
                     len(spl), str(model_def)))
         got = OnnxInference(model_def).run({'X': x})
         self.assertEqualArray(

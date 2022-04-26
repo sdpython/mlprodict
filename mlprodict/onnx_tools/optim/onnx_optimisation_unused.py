@@ -2,10 +2,29 @@
 @file
 @brief Optimisation of :epkg:`ONNX` graphs.
 """
-from onnx import FunctionProto
+from onnx import FunctionProto, GraphProto
 from onnx.helper import make_graph, make_function
 from ._onnx_optimisation_common import (  # pylint: disable=E0611
     _apply_optimisation_on_graph, _apply_remove_node_fct_node)
+
+
+def _process_node(node, data, edges, prefix=""):
+    node_name = prefix + node.name
+    data[node.name, 1] = node
+    for inp in node.input:
+        data[inp, 0] = node
+        edges[(inp, 0), (node_name, 1)] = node
+    for out in node.output:
+        data[out, 0] = node
+        edges[(node_name, 1), (out, 0)] = node
+    if len(node.attribute) > 0:
+        for att in node.attribute:
+            if not hasattr(att, 'g'):
+                continue
+            if not isinstance(att.g, GraphProto):
+                continue
+            for node in att.g.node:
+                _process_node(node, data, edges, prefix=node_name + ".")
 
 
 def onnx_remove_node_unused(onnx_model, recursive=True, debug_info=None, **options):
@@ -43,13 +62,7 @@ def onnx_remove_node_unused(onnx_model, recursive=True, debug_info=None, **optio
             data[init.name, 0] = init
 
     for node in graph.node:
-        data[node.name, 1] = node
-        for inp in node.input:
-            data[inp, 0] = node
-            edges[(inp, 0), (node.name, 1)] = node
-        for out in node.output:
-            data[out, 0] = node
-            edges[(node.name, 1), (out, 0)] = node
+        _process_node(node, data, edges)
 
     for out in graph.output:
         valid[out if is_function else out.name, 0] = True
@@ -63,6 +76,11 @@ def onnx_remove_node_unused(onnx_model, recursive=True, debug_info=None, **optio
                 modif += 1
 
     new_nodes = [n for n in graph.node if (n.name, 1) in valid]
+    if len(graph.node) > len(new_nodes):
+        import pprint
+        pprint.pprint(list(data))
+        pprint.pprint(list(edges))
+        pprint.pprint(list(valid))
     if not is_function:
         new_inits = [n for n in graph.initializer if (n.name, 0) in valid]
 

@@ -1354,9 +1354,10 @@ class OnnxOperator(OnnxOperatorBase):
                     "output_names cannot be None for OnnxExisting, "
                     "subop is %r." % (inp.inputs[0], ))
             # We need to check that this input was not already added.
-            inp = inp.inputs[0].output_names[0]
-            if not new_inputs.has_input(inp):
-                new_inputs.append(InputDetectedVariable(node, inp))
+            oinp = inp.inputs[0].output_names[0]
+            if not new_inputs.has_input(oinp):
+                new_stack.append(inp.inputs[0])
+                new_inputs.append(InputDetectedVariable(node, oinp))
         elif isinstance(inp, OnnxOperator):
             new_stack.append(inp)
         elif isinstance(inp, OnnxOperatorItem):
@@ -1562,12 +1563,11 @@ class OnnxOperator(OnnxOperatorBase):
                         self._node_to_graph_process_input(
                             inputs_dict, set_inputs, obj, inp, new_inputs,
                             new_stack, inputs_dtype, as_function=as_function)
-                    # inputs not directly used by the node but by the subgraphs.
-                    # TODO
-                    for inp in obj.external_inputs:
-                        self._node_to_graph_process_input(
-                            inputs_dict, set_inputs, obj, inp, new_inputs,
-                            new_stack, inputs_dtype, as_function=as_function)
+                    if len(obj.external_inputs) > 0:
+                        for inp in obj.external_inputs:
+                            self._node_to_graph_process_input(
+                                inputs_dict, set_inputs, obj, inp, new_inputs,
+                                new_stack, inputs_dtype, as_function=as_function)
                 else:
                     raise TypeError(  # pragma: no cover
                         "Unexpected type %r." % type(obj))
@@ -2375,7 +2375,7 @@ class _GraphBuilder:
         if output_names is None:
             return
         for index, var in enumerate(output_names):
-            if not isinstance(var, Variable):
+            if not isinstance(var, (Variable, ExistingVariable)):
                 raise TypeError(  # pragma: no cover
                     "Unexpected type %r for %r." % (type(var), var))
             self.reserve_name(node, var.name, index)
@@ -2680,11 +2680,19 @@ class _GraphBuilder:
             pass
 
         # common parts
-        if len(input_names) != len(inputs):
+        no_exists_names = [c for c in input_names if not isinstance(
+                                c.var, (ExistingVariable, OnnxExisting))]
+        no_exists = [c for c in inputs if not isinstance(
+                        c.var, (ExistingVariable, OnnxExisting))]
+        if len(no_exists_names) != len(no_exists):
             raise RuntimeError(  # pragma: no cover
-                "Mismatch between (%d != %d)\n%s\nand\n%s." % (
+                "Mismatch between (%d != %d (%d, %d))\n%s\nand\n%s\n---\n%s\nand\n%s." % (
+                    len(no_exists_names), len(no_exists),
                     len(input_names), len(inputs),
-                    pprint.pformat(input_names), pprint.pformat(inputs)))
+                    pprint.pformat(no_exists_names),
+                    pprint.pformat(no_exists),
+                    pprint.pformat(input_names),
+                    pprint.pformat(inputs)))
 
         if isinstance(input_names, (list, OnnxOperator._InputContainer)):
             d_input_names = {}
@@ -2702,7 +2710,7 @@ class _GraphBuilder:
 
         # mapping
         res = []
-        for inp in inputs:
+        for inp in no_exists:
             if not isinstance(inp, DetectedVariable):
                 raise TypeError(  # pragma: no cover
                     "inp not DetectedVariable but %r (%r)"
@@ -2729,7 +2737,9 @@ class _GraphBuilder:
                     inp.name, inp.var.proto_added_type,
                     inp.var.proto_added_shape))
 
-        return res
+        hidden = [c for c in input_names if isinstance(
+                    c.var, (ExistingVariable, OnnxExisting))]
+        return res, hidden
 
     def to_onnx(self, inputs=None, outputs=None,
                 target_opset=None, run_shape=False,
@@ -2762,10 +2772,16 @@ class _GraphBuilder:
         if not all(map(lambda x: isinstance(x, OutputDetectedVariable), outputs)):
             raise TypeError(  # pragma: no cover
                 "One of the outputs is not OutputDetectedVariable.")
-        self.input = self._process_io(inputs, list(self.input_names.values()))
-        self.output = self._process_io(outputs, None)
+        self.input, self.hidden_input = self._process_io(inputs, list(self.input_names.values()))
+        self.output, self.hidden_output = self._process_io(outputs, None)
+        if len(self.hidden_output) > 0:
+            raise RuntimeError(  # pragma: no cover
+                "Unexpected hidden output %r." % (self.hidden_output, ))
         logger.debug("_GraphBuilder.to_onnx:self.input=%r",
                      [i.name for i in self.input])
+        if len(self.hidden_input) > 0:
+            logger.debug("_GraphBuilder.to_onnx:self.hidden_input=%r",
+                         [i.name for i in self.hidden_input])
         logger.debug("_GraphBuilder.to_onnx:self.output=%r",
                      [i.name for i in self.output])
         logger.debug("_GraphBuilder.to_onnx:build:n_inputs=%r n_inits=%r n_nodes=%r "
@@ -2804,7 +2820,7 @@ class _GraphBuilder:
             opset2ir = _default_OPSET_TO_IR_VERSION()
             irv = opset2ir.get(opv, max(opset2ir.values()))
             onnx_model.ir_version = irv
-
+            
             logger.debug("_GraphBuilder.to_onnx:2onnx:n_inputs=%r n_inits=%r "
                          "n_nodes=%r n_outputs=%r",
                          len(onnx_model.graph.input),
