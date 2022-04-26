@@ -1466,9 +1466,6 @@ class OnnxOperator(OnnxOperatorBase):
 
         def append(self, inp):
             name = inp.var.name
-            if not self.duplicate and name in self._names:
-                raise ValueError(  # pragma: no cover
-                    "One input is duplicated: %r in %r." % (name, self._names))
             self._c.append(inp)
             self._names.add(name)
 
