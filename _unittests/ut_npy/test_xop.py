@@ -1014,10 +1014,11 @@ class TestXOps(ExtTestCase):
         self.assertEqualArray(x + 1, got['Z'])
 
     def test_zif_onnx_common_intermediate(self):
-        OnnxAbs, OnnxIf, OnnxGreater, OnnxIdentity, OnnxReduceSum = loadop(
-            "Abs", "If", "Greater", "Identity", "ReduceSum")
+        OnnxAbs, OnnxIf, OnnxGreater, OnnxIdentity, OnnxReduceSum, OnnxExp = loadop(
+            "Abs", "If", "Greater", "Identity", "ReduceSum", "Exp")
 
         x2 = OnnxAbs('X')
+        x3 = OnnxExp('X')
         ex = OnnxExisting(x2)
         self.assertEqual("OnnxExisting(1 in) -> ?", repr(ex))
 
@@ -1026,7 +1027,7 @@ class TestXOps(ExtTestCase):
                         numpy.array([0], dtype=numpy.float32)),
             output_names=['Z']
         ).then_do(OnnxIdentity('X') - OnnxExisting(x2)) \
-         .else_do(OnnxIdentity('X') + OnnxExisting(x2))
+         .else_do(OnnxIdentity('X') +  OnnxExisting(x2) + OnnxExisting(x3))
 
         x = numpy.array([1, 2], dtype=numpy.float32)
         model_def = onx.to_onnx(
