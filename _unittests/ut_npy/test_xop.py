@@ -1056,11 +1056,69 @@ class TestXOps(ExtTestCase):
         got = OnnxInference(model_def).run({'X': x})
         self.assertEqualArray(x + numpy.exp(x), got['Z'])
 
+    def test_abs_addd(self):
+        OnnxAbs, OnnxMax, OnnxIdentity = loadop("Abs", "Max", "Identity")
+
+        o = OnnxAbs('X')
+        ab1 = o - OnnxIdentity('X')
+        ab2 = o + OnnxIdentity('X')
+        onx = OnnxIdentity(
+            OnnxMax(ab1, ab2) / numpy.array([2], dtype=numpy.float32),
+            output_names=['Y'])
+
+        x = numpy.array([1, -2], dtype=numpy.float32)
+        model_def = onx.to_onnx(
+            {'X': numpy.float32}, {'Y': numpy.float32},
+            run_shape=False, verbose=0)
+        got = OnnxInference(model_def).run({'X': x}, verbose=0, fLOG=print)
+        self.assertEqualArray(
+            numpy.array(numpy.abs(x), dtype=numpy.float32), got['Y'])
+        text = onnx_simple_text_plot(model_def, recursive=True)
+        spl = text.split("Abs(X) ->")
+        self.assertEqual(len(spl), 2)
+
+    def test_zif_onnx_common_intermediate_level2(self):
+        OnnxIf, OnnxTranspose, OnnxShape, OnnxSize, OnnxIdentity = loadop(
+            "If", "Transpose", "Shape", "Size", "Identity")
+
+        shape = OnnxShape('X')
+        size = OnnxSize(shape)
+        onx = OnnxIf(
+            size == numpy.array([1], dtype=numpy.int64),
+            output_names=['Z']
+        ).then_do(OnnxIdentity('X')) \
+         .else_do(
+            OnnxIf(
+                OnnxIdentity('A') == numpy.array([0], dtype=numpy.int64)
+            ).then_do(OnnxIdentity('X')) \
+             .else_do(OnnxTranspose('X', perm=[1, 0]))
+         )
+
+        x = numpy.array([1, 2], dtype=numpy.float32)
+        model_def = onx.to_onnx(
+            {'X': numpy.float32, 'A': numpy.int64}, {'Z': numpy.float32},
+            run_shape=False, verbose=0)
+
+        text = onnx_simple_text_plot(model_def, recursive=True, verbose=False)
+        print(text)
+
+        a = numpy.array([0], dtype=int64)
+        got = OnnxInference(model_def).run({'X': x, 'A': a}, verbose=0, fLOG=print)
+        self.assertEqualArray(x, got['Z'])
+
+        x = x.reshape((-1, 1))
+        got = OnnxInference(model_def).run({'X': x, 'A': a}, verbose=0, fLOG=print)
+        self.assertEqualArray(x, got['Z'])
+
+        a = numpy.array([1], dtype=numpy.int64)
+        got = OnnxInference(model_def).run({'X': x, 'A': a}, verbose=0, fLOG=print)
+        self.assertEqualArray(x.T, got['Z'])
+
 
 if __name__ == "__main__":
     # import logging
     # logger = logging.getLogger('xop')
     # logger.setLevel(logging.DEBUG)
     # logging.basicConfig(level=logging.DEBUG)
-    # TestXOps().test_zif_onnx_common_intermediate()
+    TestXOps().test_zif_onnx_common_intermediate_level2()
     unittest.main(verbosity=2)
