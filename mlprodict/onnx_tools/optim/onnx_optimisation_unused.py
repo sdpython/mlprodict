@@ -38,8 +38,8 @@ def _process_node(node, data, edges, paths, prefix="", sep="::", path=None):
                 continue
             if not isinstance(att.g, GraphProto):
                 continue
-            for node in att.g.node:
-                _process_node(node, data, edges, paths,
+            for no in att.g.node:
+                _process_node(no, data, edges, paths,
                               prefix=node_name + sep, path=path)
 
 

@@ -292,7 +292,7 @@ class OnnxInferenceNode:
         """
         req = set()
         for att in self.onnx_node.attribute:
-            if hasattr(att, 'g') and att.g != None:
+            if hasattr(att, 'g') and att.g is not None:
                 req |= set(self._find_local_inputs(att.g))
         return req
 

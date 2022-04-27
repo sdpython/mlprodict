@@ -203,7 +203,7 @@ class TestPlotTextPlotting(ExtTestCase):
                       target_opset=15)
         text = onnx_simple_text_plot(onx, add_links=True)
         self.assertIn("Sqrt(Ad_C0) -> scores  <------", text)
-        self.assertIn("|-|", text)
+        self.assertIn("|-+-|", text)
 
     def test_scan_plot(self):
         (OnnxSub, OnnxIdentity, OnnxReduceSumSquare, OnnxScan,  # pylint: disable=W0621

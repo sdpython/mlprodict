@@ -700,6 +700,11 @@ class OnnxOperatorTuple(OnnxOperatorBase):
 
     @property
     def external_inputs(self):
+        """
+        Returns the list of implicit inputs the subgraph
+        assumes to be existing even if they are not referenced as
+        explicit input for the graph.
+        """
         if self.values is None:
             return self.unique.external_inputs
         res = []
@@ -766,7 +771,7 @@ class OnnxOperatorTuple(OnnxOperatorBase):
         or every output name of attribute 'values'.
         """
         logger.debug("OnnxOperatorTuple:output_names:set(%r)", value)
-        OnnxIdentity = loadop('Identity')
+        OnnxIdentity = loadop('Identity')  # pylint: disable=W0621
         if self.values is None:
             if (hasattr(self.unique, 'to_onnx') or
                     hasattr(self.unique, 'add_to')):
@@ -1470,11 +1475,13 @@ class OnnxOperator(OnnxOperatorBase):
             self._names = set()
 
         def has_input(self, inp):
+            "Checks that input *inp* is part the list of names."
             if inp.name in self._names:
                 return True
             return False
 
         def append(self, inp):
+            "Append one element to the list."
             name = inp.var.name
             self._c.append(inp)
             self._names.add(name)
@@ -2911,6 +2918,12 @@ class OnnxExisting(OnnxIdentity):
 
     @staticmethod
     def get_unique_name(var):
+        """
+        Returns a unique variable name.
+
+        :param var: an instance of OnnxOperator.
+        :return: unique variable name
+        """
         if isinstance(var, OnnxOperator):
             name = "%s_%s" % ((var.domain or "").lower().replace(".", ""),
                               var.op_type.lower())
@@ -2949,6 +2962,7 @@ class OnnxExisting(OnnxIdentity):
 
     def f(self, *inputs, verbose=0, fLOG=None,  # pylint: disable=W0221
           clear_cache=False, runtime=None):
+        "For the eager mode."
         raise NotImplementedError()
 
     def _set_control_op(self, op):

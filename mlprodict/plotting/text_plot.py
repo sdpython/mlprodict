@@ -254,6 +254,7 @@ def reorder_nodes_for_display(nodes, verbose=False):
     :return: reordered list of nodes
     """
     class temp:
+        "Fake GraphProto."
         def __init__(self, nodes):
             self.node = nodes
 
@@ -709,8 +710,7 @@ def onnx_simple_text_plot(model, verbose=False, att_display=None,
         rows.append("----- main graph ----")
 
     # successors, predecessors, it needs to support subgraphs
-    subgraphs, predecessors, successors, node_map = graph_predecessors_and_successors(
-        model)
+    subgraphs = graph_predecessors_and_successors(model)[0]
 
     # walk through nodes
     init_names = set()
