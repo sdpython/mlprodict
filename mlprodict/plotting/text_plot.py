@@ -255,6 +255,7 @@ def reorder_nodes_for_display(nodes, verbose=False):
     """
     class temp:
         "Fake GraphProto."
+
         def __init__(self, nodes):
             self.node = nodes
 

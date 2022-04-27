@@ -4549,14 +4549,10 @@ class TestOnnxrtPythonRuntime(ExtTestCase):  # pylint: disable=R0904
             return model_def
 
         node = onnx.helper.make_node(
-                "RoiAlign",
-                inputs=["X", "rois", "batch_indices"],
-                outputs=["Y"],
-                spatial_scale=1.0,
-                output_height=5,
-                output_width=5,
-                sampling_ratio=2,
-                coordinate_transformation_mode="output_half_pixel")
+            "RoiAlign", inputs=["X", "rois", "batch_indices"],
+            outputs=["Y"], spatial_scale=1.0, output_height=5,
+            output_width=5, sampling_ratio=2,
+            coordinate_transformation_mode="output_half_pixel")
         X, batch_indices, rois = get_roi_align_input_values()
         # (num_rois, C, output_height, output_width)
         Y = numpy.array([[[[0.4664, 0.4466, 0.3405, 0.5688, 0.6068],

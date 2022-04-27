@@ -2938,8 +2938,8 @@ class OnnxExisting(OnnxIdentity):
         OnnxExisting._unique_names.add(new_name)
         return new_name
 
-    def __init__(self, *args, **kwargs):
-        OnnxIdentity.__init__(self, *args, **kwargs)
+    def __init__(self, *args, **kwargs):  # pylint: disable=W0231
+        OnnxIdentity.__init__(self, *args, **kwargs)  # pylint: disable=W0233
         self.control_op_ = None
         if len(self.inputs) != 1:
             raise RuntimeError(
