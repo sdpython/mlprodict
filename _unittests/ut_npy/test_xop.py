@@ -1019,6 +1019,7 @@ class TestXOps(ExtTestCase):
 
         x2 = OnnxAbs('X')
         x3 = OnnxExp('X')
+        OnnxExisting._unique_names = set()
         ex = OnnxExisting(x2)
         self.assertEqual("OnnxExisting(1 in) -> ?", repr(ex))
 
@@ -1027,12 +1028,12 @@ class TestXOps(ExtTestCase):
                         numpy.array([0], dtype=numpy.float32)),
             output_names=['Z']
         ).then_do(OnnxIdentity('X') - OnnxExisting(x2)) \
-         .else_do(OnnxIdentity('X') +  OnnxExisting(x2) + OnnxExisting(x3))
+         .else_do(OnnxIdentity('X') + OnnxExisting(x3))
 
         x = numpy.array([1, 2], dtype=numpy.float32)
         model_def = onx.to_onnx(
             {'X': numpy.float32}, {'Z': numpy.float32},
-            run_shape=False, verbose=1)
+            run_shape=False, verbose=0)
         spl = str(model_def).split('op_type: "Abs"')
         if len(spl) < 2:
             raise AssertionError(
@@ -1042,14 +1043,18 @@ class TestXOps(ExtTestCase):
             raise AssertionError(
                 "Operator Abs should not be duplicated (%d) in\n%s" % (
                     len(spl), str(model_def)))
-        got = OnnxInference(model_def).run({'X': x})
+        text = onnx_simple_text_plot(model_def, recursive=True, verbose=False)
+        self.assertIn("If(out_gre_0) -> Z", text)
+        self.assertIn("Exp(X) -> _exist__exp_0\nIf(out_gre_0) -> Z", text)
+        self.assertIn("  Add(X, _exist__exp_0) -> out_add_0", text)
+        got = OnnxInference(model_def).run({'X': x}, verbose=0, fLOG=print)
         self.assertEqualArray(
             numpy.array(x - numpy.abs(x), dtype=numpy.float32), got['Z'])
 
         x = numpy.array([-1, -2], dtype=numpy.float32)
         model_def = onx.to_onnx({'X': numpy.float32}, {'Z': numpy.float32})
         got = OnnxInference(model_def).run({'X': x})
-        self.assertEqualArray(x + numpy.abs(x), got['Z'])
+        self.assertEqualArray(x + numpy.exp(x), got['Z'])
 
 
 if __name__ == "__main__":
@@ -1057,5 +1062,5 @@ if __name__ == "__main__":
     # logger = logging.getLogger('xop')
     # logger.setLevel(logging.DEBUG)
     # logging.basicConfig(level=logging.DEBUG)
-    TestXOps().test_zif_onnx_common_intermediate()
+    # TestXOps().test_zif_onnx_common_intermediate()
     unittest.main(verbosity=2)

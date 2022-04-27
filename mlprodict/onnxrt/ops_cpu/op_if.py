@@ -35,15 +35,20 @@ class If(OpRun):
         self._run_meth_else = (self.else_branch.run_in_scan
                                if hasattr(self.else_branch, 'run_in_scan')
                                else self.else_branch.run)
+        self.additional_inputs = list(
+            set(self.then_branch.input_names).union(
+                set(self.else_branch.input_names)))
+        then_local_inputs = set(self.local_inputs(self.then_branch.obj.graph))
+        else_local_inputs = set(self.local_inputs(self.else_branch.obj.graph))
+        self.additional_inputs = list(
+            set(self.additional_inputs).union(then_local_inputs.union(else_local_inputs)))
+        for n in self.additional_inputs:
+            self.then_branch.global_index(n)
+            self.else_branch.global_index(n)
 
     def need_context(self):
         "Share local scope."
         return True
-
-    @property
-    def additional_inputs(self):
-        return list(set(self.then_branch.input_names).union(
-            set(self.else_branch.input_names)))
 
     def _run(self, cond, context=None):  # pylint: disable=W0221
         if context is None:
