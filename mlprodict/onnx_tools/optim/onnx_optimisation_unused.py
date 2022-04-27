@@ -8,14 +8,29 @@ from ._onnx_optimisation_common import (  # pylint: disable=E0611
     _apply_optimisation_on_graph, _apply_remove_node_fct_node)
 
 
-def _process_node(node, data, edges, prefix=""):
+def _process_node(node, data, edges, paths, prefix="", sep="::", path=None):
     node_name = prefix + node.name
-    data[node.name, 1] = node
+    data[node_name, 1] = node
+    path = [] if path is None else path.copy()
+    paths[node_name, 1] = path
+    path = path.copy()
+    path.append(node_name)
     for inp in node.input:
         data[inp, 0] = node
         edges[(inp, 0), (node_name, 1)] = node
+        paths[inp, 0] = path
+        if '::' in node_name:
+            # We need to link an input to the parent node
+            # if the node is part of subgraph.
+            # path_r = paths[inp, 0]
+            if len(path) <= 1:
+                raise RuntimeError(  # pragma: no cover
+                    "Unexpected path %r." % (path, ))
+            edges[(inp, 0), (path[-2], 1)] = node
+
     for out in node.output:
         data[out, 0] = node
+        paths[out, 0] = node_name
         edges[(node_name, 1), (out, 0)] = node
     if len(node.attribute) > 0:
         for att in node.attribute:
@@ -24,7 +39,8 @@ def _process_node(node, data, edges, prefix=""):
             if not isinstance(att.g, GraphProto):
                 continue
             for node in att.g.node:
-                _process_node(node, data, edges, prefix=node_name + ".")
+                _process_node(node, data, edges, paths,
+                              prefix=node_name + sep, path=path)
 
 
 def onnx_remove_node_unused(onnx_model, recursive=True, debug_info=None, **options):
@@ -32,11 +48,11 @@ def onnx_remove_node_unused(onnx_model, recursive=True, debug_info=None, **optio
     Removes unused nodes of the graph. An unused node
     is not involved in the output computation.
 
-    @param      onnx_model      onnx model
-    @param      recursive       looks into subgraphs
-    @param      debug_info      debug information (private)
-    @param      options         unused
-    @return                     new onnx _model
+    :param onnx_model: onnx model
+    :param recursive: looks into subgraphs
+    :param debug_info: debug information (private)
+    :param options: unused
+    :return: new onnx _model
     """
     if debug_info is None:
         debug_info = [str(type(onnx_model)).rsplit(
@@ -56,13 +72,14 @@ def onnx_remove_node_unused(onnx_model, recursive=True, debug_info=None, **optio
     data = {}
     valid = {}
     edges = {}
+    paths = {}
 
     if not is_function:
         for init in graph.initializer:
             data[init.name, 0] = init
 
     for node in graph.node:
-        _process_node(node, data, edges)
+        _process_node(node, data, edges, paths)
 
     for out in graph.output:
         valid[out if is_function else out.name, 0] = True
@@ -76,11 +93,6 @@ def onnx_remove_node_unused(onnx_model, recursive=True, debug_info=None, **optio
                 modif += 1
 
     new_nodes = [n for n in graph.node if (n.name, 1) in valid]
-    if len(graph.node) > len(new_nodes):
-        import pprint
-        pprint.pprint(list(data))
-        pprint.pprint(list(edges))
-        pprint.pprint(list(valid))
     if not is_function:
         new_inits = [n for n in graph.initializer if (n.name, 0) in valid]
 

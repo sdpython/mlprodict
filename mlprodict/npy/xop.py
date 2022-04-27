@@ -1356,6 +1356,8 @@ class OnnxOperator(OnnxOperatorBase):
             # We need to check that this input was not already added.
             oinp = inp.inputs[0].output_names[0]
             if not new_inputs.has_input(oinp):
+                # TODO: complete
+                # print("++++", [oinp], inp.inputs[0])
                 new_stack.append(inp.inputs[0])
                 new_inputs.append(InputDetectedVariable(node, oinp))
         elif isinstance(inp, OnnxOperator):
