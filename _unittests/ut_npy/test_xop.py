@@ -1077,6 +1077,61 @@ class TestXOps(ExtTestCase):
         spl = text.split("Abs(X) ->")
         self.assertEqual(len(spl), 2)
 
+    def test_zif_onnx_common_intermediate_level1(self):
+        OnnxIf, OnnxIdentity = loadop("If", "Identity")
+
+        idy = OnnxIdentity('Y')
+        idz = OnnxIdentity('Z')
+        onx = OnnxIf(
+            OnnxIdentity('X') == numpy.array([1], dtype=numpy.int64),
+            output_names=['A']
+        ).then_do(OnnxExisting(idy)).else_do(OnnxExisting(idz))
+
+        x = numpy.array([1], dtype=numpy.int64)
+        y = numpy.array([1, 2], dtype=numpy.float32)
+        z = numpy.array([-3, -4], dtype=numpy.float32)
+        model_def = onx.to_onnx(
+            {'X': numpy.int64, 'Y': numpy.float32, 'Z': numpy.float32},
+            {'A': numpy.float32},
+            run_shape=False, verbose=1)
+
+        text = onnx_simple_text_plot(model_def, recursive=True, verbose=False)
+        self.assertIn("If", text)
+
+        a = numpy.array([0], dtype=int64)
+        got = OnnxInference(model_def).run({'X': x, 'Y': y, 'Z': z})
+        self.assertEqualArray(y, got['A'])
+
+        x = numpy.array([2], dtype=numpy.int64)
+        got = OnnxInference(model_def).run({'X': x, 'Y': y, 'Z': z})
+        self.assertEqualArray(z, got['A'])
+
+    def test_zif_onnx_common_intermediate_level11(self):
+        OnnxIf, OnnxIdentity = loadop("If", "Identity")
+
+        onx = OnnxIf(
+            OnnxIdentity('X') == numpy.array([1], dtype=numpy.int64),
+            output_names=['A']).then_do('Y').else_do('Z')
+
+        x = numpy.array([1], dtype=numpy.int64)
+        y = numpy.array([1, 2], dtype=numpy.float32)
+        z = numpy.array([-3, -4], dtype=numpy.float32)
+        model_def = onx.to_onnx(
+            {'X': numpy.int64, 'Y': numpy.float32, 'Z': numpy.float32},
+            {'A': numpy.float32},
+            run_shape=False, verbose=0)
+
+        text = onnx_simple_text_plot(model_def, recursive=True, verbose=False)
+        self.assertIn("If", text)
+
+        a = numpy.array([0], dtype=int64)
+        got = OnnxInference(model_def).run({'X': x, 'Y': y, 'Z': z})
+        self.assertEqualArray(y, got['A'])
+
+        x = numpy.array([2], dtype=numpy.int64)
+        got = OnnxInference(model_def).run({'X': x, 'Y': y, 'Z': z})
+        self.assertEqualArray(z, got['A'])
+
     def test_zif_onnx_common_intermediate_level2(self):
         OnnxIf, OnnxTranspose, OnnxShape, OnnxSize, OnnxIdentity = loadop(
             "If", "Transpose", "Shape", "Size", "Identity")
@@ -1100,7 +1155,7 @@ class TestXOps(ExtTestCase):
             run_shape=False, verbose=0)
 
         text = onnx_simple_text_plot(model_def, recursive=True, verbose=False)
-        print(text)
+        self.assertIn("If", text)
 
         a = numpy.array([0], dtype=int64)
         got = OnnxInference(model_def).run({'X': x, 'A': a}, verbose=0, fLOG=print)
@@ -1120,5 +1175,5 @@ if __name__ == "__main__":
     # logger = logging.getLogger('xop')
     # logger.setLevel(logging.DEBUG)
     # logging.basicConfig(level=logging.DEBUG)
-    TestXOps().test_zif_onnx_common_intermediate_level2()
+    TestXOps().test_zif_onnx_common_intermediate_level1()
     unittest.main(verbosity=2)

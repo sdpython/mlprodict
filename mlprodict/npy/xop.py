@@ -1764,6 +1764,8 @@ class OnnxOperator(OnnxOperatorBase):
                          self.__class__.__name__, i, len(nodes), node)
 
         for node in nodes:
+            if isinstance(node, OnnxExisting):
+                continue
             node._to_onnx_attributes(
                 inputs=graph_inputs, target_opset=target_opset,
                 optim=optim, verbose=verbose, run_shape=run_shape, fLOG=fLOG,
@@ -2516,8 +2518,11 @@ class _GraphBuilder:
                     name = self.node_output_names[key]
                 except KeyError as e:  # pragma: no cover
                     raise RuntimeError(
-                        "Unable to find key %r for input %r in node %r." % (
-                            key, i, node)) from e
+                        "Unable to find key %r for input "
+                        "(type(i) is %r, type(node) is %r) "
+                        "%r in node %r among %r." % (
+                            key, type(i), type(node), i, node,
+                            list(self.node_output_names))) from e
                 names.append(name)
             elif isinstance(i, OnnxOperatorItem):
                 if isinstance(i.onx_op, OnnxOperatorTuple):
@@ -2685,6 +2690,11 @@ class _GraphBuilder:
                             "Names already taken %r in %r." % (
                                 inp.name, inputs))
                     set_names.add(inp.name)
+                    if isinstance(inp.node, OnnxExisting):
+                        raise NotImplementedError(
+                            "Unexpected name %r type %r." % (
+                                inp.name, type(inp.node)))
+                        # continue
                     key = id(inp.node), inp.index
                     if key in self.node_output_names:
                         new_name = self.node_output_names[key]
