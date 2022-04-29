@@ -1693,7 +1693,7 @@ class OnnxOperator(OnnxOperatorBase):
             as part of this domain
         :param fLOG: logging function
         :param processed: keeps track the of the processed nodes
-        :return ONNX stucture
+        :return: ONNX stucture
         """
         # opsets
         logger.debug(
@@ -1799,6 +1799,16 @@ class OnnxOperator(OnnxOperatorBase):
                 self.kwargs[name], inputs=inputs, target_opset=target_opset,
                 optim=optim, verbose=verbose, run_shape=run_shape, fLOG=fLOG,
                 processed=processed)
+            if len(model.graph.node) == 0:
+                noopt = self._to_onnx_attribute(
+                    self.kwargs[name], inputs=inputs, target_opset=target_opset,
+                    optim=False, verbose=verbose, run_shape=run_shape, fLOG=fLOG,
+                    processed=processed)
+                raise RuntimeError(
+                    "Conversion to graph of parameter %r from\nnode=%r "
+                    "and\ninputs=%r\nis empty:\n%s" % (
+                        name, self.kwargs[name], self.kwargs[name].inputs,
+                        model))
             self.kwargs[name] = model.graph
 
     def _to_onnx_attribute(self, oxop, inputs=None, target_opset=None,
@@ -2963,6 +2973,16 @@ class OnnxExisting(OnnxIdentity):
                                  self.inputs[0])]
             logger.debug("OnnxExisting.__init__:set-input:%r", new_names)
             self.inputs[0].output_names = new_names
+
+    def __repr__(self):
+        """
+        usual
+        """
+        return "{}({}) -> {}".format(
+            self.__class__.__name__,
+            self.inputs[0].output_names,
+            [str(o) for o in self.output_names]
+            if self.output_names is not None else "?")
 
     def find_named_inputs(self):
         """

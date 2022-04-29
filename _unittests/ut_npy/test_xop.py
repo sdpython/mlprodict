@@ -1085,7 +1085,8 @@ class TestXOps(ExtTestCase):
         onx = OnnxIf(
             OnnxIdentity('X') == numpy.array([1], dtype=numpy.int64),
             output_names=['A']
-        ).then_do(OnnxExisting(idy)).else_do(OnnxExisting(idz))
+        ).then_do(OnnxIdentity(OnnxExisting(idy))).else_do(
+            OnnxIdentity(OnnxExisting(idz)))
 
         x = numpy.array([1], dtype=numpy.int64)
         y = numpy.array([1, 2], dtype=numpy.float32)
@@ -1098,7 +1099,7 @@ class TestXOps(ExtTestCase):
         text = onnx_simple_text_plot(model_def, recursive=True, verbose=False)
         self.assertIn("If", text)
 
-        a = numpy.array([0], dtype=int64)
+        a = numpy.array([0], dtype=numpy.int64)
         got = OnnxInference(model_def).run({'X': x, 'Y': y, 'Z': z})
         self.assertEqualArray(y, got['A'])
 
