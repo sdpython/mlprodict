@@ -43,6 +43,8 @@ def onnx_remove_node_identity(onnx_model, recursive=True, debug_info=None, **opt
             recursive=recursive, debug_info=debug_info, **options)
 
     graph = onnx_model
+    logger.debug("onnx_remove_node_identity:begin with %d nodes.",
+                 len(graph.node))
     is_function = isinstance(graph, FunctionProto)
 
     if is_function:
@@ -138,7 +140,12 @@ def onnx_remove_node_identity(onnx_model, recursive=True, debug_info=None, **opt
 
     # Finally create the new graph.
     nodes = list(filter(lambda n: n is not None, nodes))
+    if len(nodes) == 0:
+        # something went wrong
+        nodes = graph.node
     if is_function:
+        logger.debug("onnx_remove_node_identity:end function with %d nodes.",
+                     len(nodes))
         return make_function(
             onnx_model.domain, onnx_model.name,
             onnx_model.input, onnx_model.output, nodes,
@@ -151,4 +158,6 @@ def onnx_remove_node_identity(onnx_model, recursive=True, debug_info=None, **opt
                        onnx_model.initializer)
 
     graph.value_info.extend(onnx_model.value_info)  # pylint: disable=E1101
+    logger.debug("onnx_remove_node_identity: end graph with %d nodes.",
+                 len(nodes))
     return graph

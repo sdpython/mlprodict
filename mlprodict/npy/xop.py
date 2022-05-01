@@ -1835,7 +1835,12 @@ class OnnxOperator(OnnxOperatorBase):
                 fLOG('[OnnxOperator._to_onnx_attribute] inputs=%r' % (vars, ))
         onx = oxop.to_onnx(inputs=vars, target_opset=target_opset,
                            run_shape=run_shape, verbose=verbose, fLOG=fLOG,
-                           processed=processed)
+                           processed=processed, optim=True)
+        if len(onx.graph.node) == 0:
+            raise RuntimeError(  # pragma: no cover
+                "Empty graph (class=%r, optim=%r) from\nnode=%r "
+                "and\ninputs=%r\nis empty:\n%s" % (
+                    type(oxop), optim, oxop, vars, onx))
         shaped_onx = infer_shapes(onx)
         return shaped_onx
 

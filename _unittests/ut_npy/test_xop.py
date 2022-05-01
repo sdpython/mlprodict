@@ -1095,6 +1095,8 @@ class TestXOps(ExtTestCase):
             {'X': numpy.int64, 'Y': numpy.float32, 'Z': numpy.float32},
             {'A': numpy.float32},
             run_shape=False, verbose=1)
+        if len(model_def.graph.node) < 3:
+            raise AssertionError("Wrong graph.\n%s" % str(model_def))
 
         text = onnx_simple_text_plot(model_def, recursive=True, verbose=False)
         self.assertIn("If", text)
@@ -1172,9 +1174,7 @@ class TestXOps(ExtTestCase):
 
 
 if __name__ == "__main__":
-    # import logging
-    # logger = logging.getLogger('xop')
-    # logger.setLevel(logging.DEBUG)
-    # logging.basicConfig(level=logging.DEBUG)
+    import logging
+    logging.basicConfig(level=logging.DEBUG)
     TestXOps().test_zif_onnx_common_intermediate_level1()
     unittest.main(verbosity=2)

@@ -2,10 +2,14 @@
 @file
 @brief Optimisation of :epkg:`ONNX` graphs.
 """
+import logging
 from onnx import FunctionProto, GraphProto
 from onnx.helper import make_graph, make_function
 from ._onnx_optimisation_common import (  # pylint: disable=E0611
     _apply_optimisation_on_graph, _apply_remove_node_fct_node)
+
+
+logger = logging.getLogger('onnx:optim')
 
 
 def _process_node(node, data, edges, paths, prefix="", sep="::", path=None):
@@ -68,6 +72,8 @@ def onnx_remove_node_unused(onnx_model, recursive=True, debug_info=None, **optio
             **options)
 
     graph = onnx_model
+    logger.debug("onnx_remove_node_unused:begin with %d nodes.",
+                 len(graph.node))
     is_function = isinstance(graph, FunctionProto)
     data = {}
     valid = {}
@@ -109,6 +115,8 @@ def onnx_remove_node_unused(onnx_model, recursive=True, debug_info=None, **optio
     # Finally create the new graph.
     nodes = list(filter(lambda n: n is not None, new_nodes))
     if is_function:
+        logger.debug("onnx_remove_node_unused:end function with %d nodes.",
+                     len(nodes))
         return make_function(
             onnx_model.domain, onnx_model.name,
             onnx_model.input, onnx_model.output, nodes,
@@ -119,4 +127,6 @@ def onnx_remove_node_unused(onnx_model, recursive=True, debug_info=None, **optio
                        onnx_model.input, onnx_model.output,
                        new_inits)
     graph.value_info.extend(onnx_model.value_info)  # pylint: disable=E1101
+    logger.debug("onnx_remove_node_unused:end graph with %d nodes.",
+                 len(nodes))
     return graph
