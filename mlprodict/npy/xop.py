@@ -20,6 +20,7 @@ from onnx.helper import (
     make_tensor_type_proto, make_operatorsetid)
 from onnx.numpy_helper import from_array, to_array
 from onnx.shape_inference import infer_shapes
+from ..onnx_tools.model_checker import check_onnx
 from ._cache import cache_folder
 from .xop_variable import (
     Variable, is_numpy_dtype, numpy_type_prototype, max_supported_opset,
@@ -1668,7 +1669,7 @@ class OnnxOperator(OnnxOperatorBase):
                 other_outputs=None, target_opset=None,
                 optim=True, verbose=0, run_shape=True,
                 function_name=None, function_domain=None,
-                fLOG=print, processed=None):
+                fLOG=print, processed=None, check_model=True):
         """
         Converts this operator into an ONNX graph.
 
@@ -1693,6 +1694,7 @@ class OnnxOperator(OnnxOperatorBase):
             as part of this domain
         :param fLOG: logging function
         :param processed: keeps track the of the processed nodes
+        :param check_model: checks the output model
         :return: ONNX stucture
         """
         # opsets
@@ -1776,7 +1778,8 @@ class OnnxOperator(OnnxOperatorBase):
             inputs=graph_inputs, outputs=graph_outputs,
             target_opset=target_opset, verbose=verbose,
             optim=optim, run_shape=run_shape and run_shape2,
-            function_name=function_name, function_domain=function_domain)
+            function_name=function_name, function_domain=function_domain,
+            check_model=check_model)
 
     def _to_onnx_attributes(self, inputs=None, target_opset=None,
                             optim=True, verbose=0, run_shape=True,
@@ -1835,7 +1838,7 @@ class OnnxOperator(OnnxOperatorBase):
                 fLOG('[OnnxOperator._to_onnx_attribute] inputs=%r' % (vars, ))
         onx = oxop.to_onnx(inputs=vars, target_opset=target_opset,
                            run_shape=run_shape, verbose=verbose, fLOG=fLOG,
-                           processed=processed, optim=True)
+                           processed=processed, optim=False, check_model=False)
         if len(onx.graph.node) == 0:
             raise RuntimeError(  # pragma: no cover
                 "Empty graph (class=%r, optim=%r) from\nnode=%r "
@@ -2804,7 +2807,8 @@ class _GraphBuilder:
     def to_onnx(self, inputs=None, outputs=None,
                 target_opset=None, run_shape=False,
                 optim=True, function_name=None,
-                function_domain=None, verbose=0):
+                function_domain=None, verbose=0,
+                check_model=True):
         """
         Converts this operator into an ONNX graph.
 
@@ -2821,6 +2825,7 @@ class _GraphBuilder:
         :param function_domain: in case of a function, declares the function
             as part of this domain, `'mlprodict'` if None
         :param verbose: prints information
+        :param check_model: checks the output model
         :return: onnx graph
         """
         logger.debug("_GraphBuilder.to_onnx(%r, %r, target_opset=%r)",
@@ -2868,9 +2873,13 @@ class _GraphBuilder:
                 [_.name for _ in self.output],
                 nodes,
                 [make_opsetid(k, v) for k, v in self.opsets.items()])
+            if check_model:
+                check_onnx(fct)
             if optim:
                 from ..onnx_tools.optim import onnx_optimisations
                 fct = onnx_optimisations(fct)
+                if check_model:
+                    check_onnx(fct)
             return fct
         else:
             graph = make_graph(
@@ -2902,9 +2911,13 @@ class _GraphBuilder:
 
             # optimisation, remove redundant constant, unnecessary
             # identity nodes.
+            if check_model:
+                check_onnx(onnx_model)
             if optim:
                 from ..onnx_tools.optim import onnx_optimisations
                 onnx_model = onnx_optimisations(onnx_model)
+                if check_model:
+                    check_onnx(onnx_model)
 
             logger.debug("_GraphBuilder.to_onnx:optim:n_inputs=%r n_inits=%r "
                          "n_nodes=%r n_outputs=%r",
