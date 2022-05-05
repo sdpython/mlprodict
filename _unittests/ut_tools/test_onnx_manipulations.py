@@ -11,6 +11,7 @@ from skl2onnx.algebra.onnx_ops import (  # pylint: disable=E0611
     OnnxReduceSumSquare, OnnxSqueezeApi11)
 from skl2onnx.common.data_types import FloatTensorType
 from mlprodict.onnx_tools.optim.onnx_helper import onnx_statistics
+from mlprodict.onnx_tools.onnx_tools import enumerate_onnx_names
 from mlprodict.onnxrt import OnnxInference
 from mlprodict.onnx_tools.optim import onnx_remove_node_unused
 from mlprodict.onnx_tools.onnx_manipulations import (
@@ -410,6 +411,27 @@ class TestOptimOnnxManipulations(ExtTestCase):
         cst = numpy.array([[5.6, 7.8]])
         self.assertEqualArray(oinf1.run({'X': cst})['Z'],
                               oinf2.run({'X': cst})['Z'])
+
+    def test_onnx_enumerate_onnx_names(self):
+        dtype = numpy.float32
+        x = numpy.array([1, 2, 4, 5, 5, 4]).astype(
+            numpy.float32).reshape((3, 2))
+        cop = OnnxAdd('X', numpy.array([1], dtype=dtype),
+                      op_version=TARGET_OPSET)
+        cop2 = OnnxAdd('X', numpy.array([1], dtype=dtype),
+                       op_version=TARGET_OPSET)
+        cop3 = OnnxAdd('X', numpy.array([2], dtype=dtype),
+                       op_version=TARGET_OPSET,
+                       output_names=['inter'])
+        cop4 = OnnxSub(
+            OnnxMul(cop, cop3, op_version=TARGET_OPSET),
+            cop2, output_names=['final'],
+            op_version=TARGET_OPSET)
+        model_def = cop4.to_onnx({'X': x})
+        names = list(enumerate_onnx_names(model_def))
+        self.assertEqual(len(names), 21)
+        self.assertIn('X', names)
+        self.assertIn('inter', names)
 
 
 if __name__ == "__main__":

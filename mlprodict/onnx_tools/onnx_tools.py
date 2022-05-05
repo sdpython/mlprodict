@@ -189,3 +189,42 @@ def ensure_topological_order(inputs, initializers, nodes):
     topo.sort()
     map_nodes = {str(id(node)): node for node in nodes}
     return [map_nodes[_[1]] for _ in topo]
+
+
+def enumerate_onnx_names(onx):
+    """
+    Enumerates all existing names in one ONNX graph
+    (:epkg:`ModelProto`, :epkg:`FunctionProto`, :epkg:`GraphProto`).
+
+    :param onx: one onnx object
+    :return: iterator on names
+    """
+    if hasattr(onx, 'graph'):
+        for i in onx.graph.initializer:
+            yield i.name
+        for i in onx.graph.input:
+            yield i.name
+        for i in onx.graph.output:
+            yield i.name
+        nodes = onx.graph.node
+    elif hasattr(onx, 'initializer'):
+        for i in onx.initializer:
+            yield i.name
+        for i in onx.input:
+            yield i.name
+        for i in onx.output:
+            yield i.name
+        nodes = onx.node
+    else:
+        if hasattr(onx, 'input'):
+            for i in onx.input:
+                yield i
+        if hasattr(onx, 'output'):
+            for i in onx.output:
+                yield i
+        nodes = onx.node
+    for node in nodes:
+        for i in node.input:
+            yield i
+        for o in node.output:
+            yield o

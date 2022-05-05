@@ -38,7 +38,13 @@ Functions to help understand models or modify them.
 
 .. autosignature:: mlprodict.onnx_tools.onnx_manipulations.enumerate_model_node_outputs
 
+.. autosignature:: mlprodict.onnx_tools.onnx_tools.enumerate_onnx_names
+
 .. autosignature:: mlprodict.tools.code_helper.make_callable
+
+.. autosignature:: mlprodict.onnx_tools.onnx_manipulations.onnx_inline_function
+
+.. autosignature:: mlprodict.onnx_tools.onnx_manipulations.onnx_rename_names
 
 .. autosignature:: mlprodict.onnx_tools.model_checker.onnx_shaker
 
@@ -50,6 +56,7 @@ Functions to help understand models or modify them.
 
 .. autosignature:: mlprodict.testing.script_testing.verify_script
 
+
 Onnx Optimization
 +++++++++++++++++
 
@@ -58,8 +65,6 @@ while keeping the same results. The optimized graph
 is left unchanged.
 
 .. autosignature:: mlprodict.onnx_tools.onnx_tools.ensure_topological_order
-
-.. autosignature:: mlprodict.onnx_tools.onnx_manipulations.onnx_rename_names
 
 .. autosignature:: mlprodict.onnx_tools.optim.onnx_optimisation.onnx_remove_node
 

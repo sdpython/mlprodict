@@ -4,9 +4,13 @@
 from on an :epkg:`ONNX` model.
 """
 import hashlib
-from onnx import helper, shape_inference
+from onnx import shape_inference, ModelProto, FunctionProto, GraphProto
+from onnx.helper import (
+    make_tensor_value_info, ValueInfoProto, set_model_props,
+    make_graph, make_function, make_model, make_node)
 from .onnx2py_helper import guess_proto_dtype, from_array
 from .optim import onnx_remove_node_unused
+from .onnx_tools import enumerate_onnx_names
 
 
 def enumerate_model_node_outputs(model, add_node=False, order=False):
@@ -192,13 +196,13 @@ def select_model_inputs_outputs(model, outputs=None, inputs=None,
         if overwrite is not None and name in overwrite:
             dtype, shape = overwrite[name]
             proto_dtype = guess_proto_dtype(dtype)
-            value_info = helper.make_tensor_value_info(
+            value_info = make_tensor_value_info(
                 name, proto_dtype, shape)
         elif name in known_shapes:
             info = known_shapes[name].tensor_type
             proto_dtype = info.elem_type
             if proto_dtype == 0:
-                value_info = helper.ValueInfoProto()
+                value_info = ValueInfoProto()
                 value_info.name = name
             else:
                 shape = [getattr(d, 'dim_value', None) for d in info.shape.dim]
@@ -206,10 +210,10 @@ def select_model_inputs_outputs(model, outputs=None, inputs=None,
                     shape = None
                 else:
                     shape = [None if s == 0 else s for s in shape]
-                value_info = helper.make_tensor_value_info(
+                value_info = make_tensor_value_info(
                     name, proto_dtype, shape)
         else:
-            value_info = helper.ValueInfoProto()
+            value_info = ValueInfoProto()
             value_info.name = name
         var_in.append(value_info)
 
@@ -218,13 +222,13 @@ def select_model_inputs_outputs(model, outputs=None, inputs=None,
         if overwrite is not None and name in overwrite:
             dtype, shape = overwrite[name]
             proto_dtype = guess_proto_dtype(dtype)
-            value_info = helper.make_tensor_value_info(
+            value_info = make_tensor_value_info(
                 name, proto_dtype, shape)
         elif name in known_shapes:
             info = known_shapes[name].tensor_type
             proto_dtype = info.elem_type
             if proto_dtype == 0:
-                value_info = helper.ValueInfoProto()
+                value_info = ValueInfoProto()
                 value_info.name = name
             else:
                 shape = [getattr(d, 'dim_value', None) for d in info.shape.dim]
@@ -232,10 +236,10 @@ def select_model_inputs_outputs(model, outputs=None, inputs=None,
                     shape = None
                 else:
                     shape = [None if s == 0 else s for s in shape]
-                value_info = helper.make_tensor_value_info(
+                value_info = make_tensor_value_info(
                     name, proto_dtype, shape)
         else:
-            value_info = helper.ValueInfoProto()
+            value_info = ValueInfoProto()
             value_info.name = name
         var_out.append(value_info)
 
@@ -245,9 +249,9 @@ def select_model_inputs_outputs(model, outputs=None, inputs=None,
         fLOG("[select_model_inputs_outputs] inputs: %r" % var_in)
         fLOG("[select_model_inputs_outputs] inputs: %r" % var_out)
 
-    graph = helper.make_graph(keep_nodes, model.graph.name, var_in,
-                              var_out, model.graph.initializer)
-    onnx_model = helper.make_model(graph)
+    graph = make_graph(keep_nodes, model.graph.name, var_in,
+                       var_out, model.graph.initializer)
+    onnx_model = make_model(graph)
     onnx_model.ir_version = model.ir_version
     onnx_model.producer_name = model.producer_name
     onnx_model.producer_version = model.producer_version
@@ -256,7 +260,7 @@ def select_model_inputs_outputs(model, outputs=None, inputs=None,
     onnx_model.doc_string = model.doc_string
     if len(model.metadata_props) > 0:  # pragma: no cover
         values = {p.key: p.value for p in model.metadata_props}
-        helper.set_model_props(onnx_model, values)
+        set_model_props(onnx_model, values)
 
     del onnx_model.opset_import[:]  # pylint: disable=E1101
     for oimp in model.opset_import:
@@ -280,10 +284,10 @@ def overwrite_opset(model, new_opset):
     :param new_opset: new opset
     :return: ONNX model
     """
-    graph = helper.make_graph(
+    graph = make_graph(
         model.graph.node, model.graph.name, model.graph.input,
         model.graph.output, model.graph.initializer)
-    onnx_model = helper.make_model(graph)
+    onnx_model = make_model(graph)
     onnx_model.ir_version = model.ir_version
     onnx_model.producer_name = model.producer_name
     onnx_model.producer_version = model.producer_version
@@ -292,7 +296,7 @@ def overwrite_opset(model, new_opset):
     onnx_model.doc_string = model.doc_string
     if len(model.metadata_props) > 0:  # pragma: no cover
         values = {p.key: p.value for p in model.metadata_props}
-        helper.set_model_props(onnx_model, values)
+        set_model_props(onnx_model, values)
 
     del onnx_model.opset_import[:]  # pylint: disable=E1101
     for oimp in model.opset_import:
@@ -308,7 +312,12 @@ def overwrite_opset(model, new_opset):
 
 def hash_onnx_object(obj, max_size):
     """
-    Hash the content of an object.
+    Hashes the content of an object.
+    It uses module :mod:`hashlib`.
+
+    :param obj: onnx graph (it must have a method `SerializeToString`)
+    :param max_size: size of the hash
+    :return: hash
     """
     m = hashlib.sha256()
     if hasattr(obj, 'op_type'):
@@ -492,7 +501,7 @@ def insert_results_into_onnx(model, results, as_parameter=True, suffix='_DBG',
                              domain='DEBUG', domain_opset=1):
     """
     Inserts results into an ONNX graph to produce an extended
-    ONNX graph. It can saved and looked into with a tool such as
+    ONNX graph. It can be saved and looked into with a tool such as
     :epkg:`netron`.
 
     :param model: ONNX graph
@@ -548,7 +557,7 @@ def insert_results_into_onnx(model, results, as_parameter=True, suffix='_DBG',
         new_name = k + suffix
 
         if id(node) not in nodes_copy:
-            new_node = helper.make_node(
+            new_node = make_node(
                 node.op_type, list(node.input), list(node.output),
                 domain=node.domain if node.domain else None,
                 name=node.name + suffix)
@@ -561,13 +570,13 @@ def insert_results_into_onnx(model, results, as_parameter=True, suffix='_DBG',
         if as_parameter:
             pname = k if param_name is None else param_name(k)
             atts = {pname: from_array(v, name=pname)}
-            inserted_node = helper.make_node(
+            inserted_node = make_node(
                 node_type, [new_name], [k], domain=domain,
                 **atts)
         else:
             pname = k if param_name is None else param_name(k)
             pname += suffix + 'i'
-            inserted_node = helper.make_node(
+            inserted_node = make_node(
                 node_type, [new_name, pname], [k], domain=domain)
             inits.append(from_array(v, name=pname))
 
@@ -579,9 +588,8 @@ def insert_results_into_onnx(model, results, as_parameter=True, suffix='_DBG',
     new_nodes.extend((order[id(n)], n) for n in nodes_copy.values())
     new_nodes = [n[1] for n in sorted(new_nodes)]
 
-    graph = helper.make_graph(new_nodes, model.graph.name, inputs,
-                              outputs, inits)
-    onnx_model = helper.make_model(graph)
+    graph = make_graph(new_nodes, model.graph.name, inputs, outputs, inits)
+    onnx_model = make_model(graph)
     onnx_model.ir_version = model.ir_version
     onnx_model.producer_name = model.producer_name
     onnx_model.producer_version = model.producer_version
@@ -590,7 +598,7 @@ def insert_results_into_onnx(model, results, as_parameter=True, suffix='_DBG',
     onnx_model.doc_string = model.doc_string
     if len(model.metadata_props) > 0:  # pragma: no cover
         values = {p.key: p.value for p in model.metadata_props}
-        helper.set_model_props(onnx_model, values)
+        set_model_props(onnx_model, values)
 
     del onnx_model.opset_import[:]  # pylint: disable=E1101
     for oimp in model.opset_import:
@@ -601,3 +609,85 @@ def insert_results_into_onnx(model, results, as_parameter=True, suffix='_DBG',
     op_set.domain = domain
     op_set.version = domain_opset
     return onnx_model
+
+
+def _onnx_inline_function(node, protos, existing_names):
+    modified_nodes = []
+    for att in node.attribute:
+        if hasattr(att, 'g') and att.g is not None:
+            att.g, m = onnx_inline_function(att.g, protos)
+            if m:
+                modified_nodes.extend(m)
+    key = node.domain, node.type
+    if key in protos:
+        proto = protos[key]
+        if not isinstance(proto, FunctionProto):
+            raise TypeError(
+                "Prototype for key=%r must be a Function Proto, not %r." % (
+                    key, type(proto)))
+        modified_nodes.append(node)
+        
+    return [node], modified_nodes
+
+
+def onnx_inline_function(obj, protos=None, existing_names=None):
+    """
+    Inlines functions in an ONNX graph.
+
+    :param obj: onnx graph, :epkg:`FunctionProto`, :epkg:`GraphProto`,
+        :epkg:`ModelProto`
+    :param protos: if None, the function assumes *obj* is of type 
+        :epkg:`ModelProto` and the goal is to inline every function.
+        If *protos* a list of strings, the function only inlines the
+        functions in that list. If *protos* is a dictionary
+        `{ (domain, type): FunctionProto }`, the function replaces every
+        node `(domain, type)` by the code given in this dictionary
+    :param existing_names: no new name will be taken in that set
+    :return: modified object, list of modified nodes
+
+    .. versionadded:: 0.9
+    """
+    if isinstance(obj, ModelProto):
+        if protos is None:
+            fct = [f.name for f in obj.function]
+            ex_names = set(enumerate_onnx_names(obj))
+            if existing_names is not None:
+                ex_names |= existing_names
+            return onnx_inline_function(obj, fct, existing_names=ex_names)
+        if isinstance(protos, list):
+            ex_names = set(enumerate_onnx_names(obj))
+            if existing_names is not None:
+                ex_names |= existing_names
+            protos = {(f.domain, f.name): f for f in obj.function}
+            return onnx_inline_function(obj, protos, existing_names=ex_names)
+    if not isinstance(protos, dict):
+        raise TypeError(
+            "obj is of type %r and protos must be a dictionary not %r." % (
+                type(obj), type(protos)))
+    
+    if isinstance(obj, ModelProto):
+        new_graph, m = onnx_inline_function(obj.graph, protos)
+        return make_model(), m
+    
+    # FunctionProto, GraphProto
+    if existing_names is None:
+        existing_names = set(enumerate_onnx_names(obj))
+
+    new_nodes = []
+    modified_nodes = []
+    n_iter = 0
+    added = 1
+    while added > 0:
+        added = 0
+        for node in obj.node:
+            nnodes, m = _onnx_inline_function(node, protos, existing_names)
+            added += len(m)
+            new_nodes.extend(nnodes)
+            modified_nodes.extend(m)
+    
+    if isinstance(obj, FunctionProto):
+        return make_function()
+    if isinstance(obj, GraphProto):
+        return make_graph()
+    raise TypeError(  # pragma: no cover
+        "Unexpected type for obj %r." % type(obj))
