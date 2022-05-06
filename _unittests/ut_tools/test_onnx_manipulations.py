@@ -2,27 +2,29 @@
 @brief      test log(time=2s)
 """
 import unittest
+import os
 from collections import OrderedDict
 import numpy
-from onnx import helper, TensorProto
+from onnx import helper, TensorProto, load, FunctionProto
 from pyquickhelper.pycode import ExtTestCase
-from skl2onnx.algebra.onnx_ops import (  # pylint: disable=E0611
-    OnnxAdd, OnnxMul, OnnxSub, OnnxIdentity, OnnxScan,
-    OnnxReduceSumSquare, OnnxSqueezeApi11)
-from skl2onnx.common.data_types import FloatTensorType
+from mlprodict.npy.xop import loadop, OnnxOperatorFunction
+from mlprodict.npy.xop_variable import Variable
+from mlprodict.npy.xop_opset import OnnxSqueezeApi11
 from mlprodict.onnx_tools.optim.onnx_helper import onnx_statistics
 from mlprodict.onnx_tools.onnx_tools import enumerate_onnx_names
 from mlprodict.onnxrt import OnnxInference
 from mlprodict.onnx_tools.optim import onnx_remove_node_unused
 from mlprodict.onnx_tools.onnx_manipulations import (
     select_model_inputs_outputs, enumerate_model_node_outputs,
-    onnx_rename_names, insert_results_into_onnx)
+    onnx_rename_names, insert_results_into_onnx, onnx_model_to_function,
+    onnx_inline_function)
 from mlprodict import __max_supported_opset__ as TARGET_OPSET
 
 
 class TestOptimOnnxManipulations(ExtTestCase):
 
     def test_onnx_remove_unused_outputs(self):
+        OnnxAdd, OnnxSub, OnnxMul = loadop('Add', 'Sub', 'Mul')
         dtype = numpy.float32
         x = numpy.array([1, 2, 4, 5, 5, 4]).astype(
             numpy.float32).reshape((3, 2))
@@ -64,6 +66,7 @@ class TestOptimOnnxManipulations(ExtTestCase):
         self.assertEqualArray(y1['inter'], y2['inter'])
 
     def test_onnx_remove_unused_outputs_new(self):
+        OnnxAdd, OnnxSub, OnnxMul = loadop('Add', 'Sub', 'Mul')
         dtype = numpy.float32
         x = numpy.array([1, 2, 4, 5, 5, 4]).astype(
             numpy.float32).reshape((3, 2))
@@ -106,6 +109,7 @@ class TestOptimOnnxManipulations(ExtTestCase):
         self.assertEqualArray(y1['inter'], y2['inter'])
 
     def test_onnx_remove_unused_inputs(self):
+        OnnxAdd, OnnxSub, OnnxMul = loadop('Add', 'Sub', 'Mul')
         dtype = numpy.float32
         x = numpy.array([1, 2, 4, 5, 5, 4]).astype(
             numpy.float32).reshape((3, 2))
@@ -145,6 +149,7 @@ class TestOptimOnnxManipulations(ExtTestCase):
         self.assertEqualArray(y1['final'], y2['final'])
 
     def test_onnx_remove_unused_inputs_overwrite(self):
+        OnnxAdd, OnnxSub, OnnxMul = loadop('Add', 'Sub', 'Mul')
         dtype = numpy.float32
         x = numpy.array([1, 2, 4, 5, 5, 4]).astype(
             numpy.float32).reshape((3, 2))
@@ -187,6 +192,7 @@ class TestOptimOnnxManipulations(ExtTestCase):
         self.assertEqualArray(y1['final'], y2['final'])
 
     def test_enumerate_model_node_outputs(self):
+        OnnxAdd, OnnxSub, OnnxMul = loadop('Add', 'Sub', 'Mul')
         dtype = numpy.float32
         x = numpy.array([1, 2, 4, 5, 5, 4]).astype(
             numpy.float32).reshape((3, 2))
@@ -205,10 +211,11 @@ class TestOptimOnnxManipulations(ExtTestCase):
         nodes1 = list(enumerate_model_node_outputs(model_def))
         nodes2 = list(enumerate_model_node_outputs(model_def, order=True))
         self.assertEqual(list(sorted(nodes1)), list(sorted(nodes2)))
-        expected = ['Ad_Addcst2', 'Ad_C0', 'inter', 'Ad_C02', 'Mu_C0', 'final']
+        expected = ['inter', 'out_add_0', 'out_mul_0', 'final']
         self.assertEqual(nodes2, expected)
 
     def test_onnx_rename_names_exc(self):
+        OnnxAdd, OnnxSub, OnnxMul = loadop('Add', 'Sub', 'Mul')
         dtype = numpy.float32
         x = numpy.array([1, 2, 4, 5, 5, 4]).astype(
             numpy.float32).reshape((3, 2))
@@ -229,6 +236,7 @@ class TestOptimOnnxManipulations(ExtTestCase):
             ValueError)
 
     def test_onnx_rename_names_simple(self):
+        OnnxAdd, OnnxSub, OnnxMul = loadop('Add', 'Sub', 'Mul')
         rows = []
 
         def flog(*s):
@@ -252,13 +260,14 @@ class TestOptimOnnxManipulations(ExtTestCase):
         oinf1 = OnnxInference(model_def)
         new_model = onnx_rename_names(model_def, verbose=1, fLOG=flog)
         total = "\n".join(rows)
-        self.assertIn("[onnx_rename_names] init: 'Ad_Addcst1' -> 'i1'", total)
+        self.assertIn("[onnx_rename_names] init: 'init_1' -> 'i1'", total)
         oinf2 = OnnxInference(new_model)
         y1 = oinf1.run({'X': x})
         y2 = oinf2.run({'X': x})
         self.assertEqualArray(y1['final'], y2['final'])
 
     def test_onnx_rename_names_type(self):
+        OnnxAdd, OnnxSub, OnnxMul = loadop('Add', 'Sub', 'Mul')
         rows = []
 
         def flog(*s):
@@ -283,34 +292,35 @@ class TestOptimOnnxManipulations(ExtTestCase):
         new_model = onnx_rename_names(
             model_def, verbose=1, fLOG=flog, strategy='type')
         total = "\n".join(rows)
-        self.assertIn("'Ad_Addcst' -> 'i_05'", total)
+        self.assertIn("'init' -> 'i_DB'", total)
         oinf2 = OnnxInference(new_model)
         y1 = oinf1.run({'X': x})
         y2 = oinf2.run({'X': x})
         self.assertEqualArray(y1['final'], y2['final'])
 
     def test_onnx_rename_node_scan(self):
+        (OnnxAdd, OnnxSub, OnnxMul, OnnxReduceSumSquare,
+         OnnxIdentity, OnnxScan) = loadop(
+            'Add', 'Sub', 'Mul', 'ReduceSumSquare', 'Identity', 'Scan')
 
-        def squareform_pdist(X, **kwargs):
-            opv = TARGET_OPSET
-            diff = OnnxSub('next_in', 'next', output_names=[
-                           'diff'], op_version=opv)
-            id_next = OnnxIdentity('next_in', output_names=[
-                                   'next_out'], op_version=opv)
-            norm = OnnxReduceSumSquare(
-                diff, output_names=['norm'], axes=[1], op_version=opv)
-            flat = OnnxSqueezeApi11(
-                norm, output_names=['scan_out'], axes=[1], op_version=opv)
+        def onnx_squareform_pdist(X, dtype=None, op_version=None, **kwargs):
+            diff = OnnxSub('next_in', 'next',
+                           op_version=op_version)
+            id_next = OnnxIdentity('next_in', output_names=['next_out'],
+                                   op_version=op_version)
+            flat = OnnxReduceSumSquare(diff, axes=[1], op_version=op_version,
+                                       output_names=['scan_out'], keepdims=0)
             scan_body = id_next.to_onnx(
-                OrderedDict([('next_in', FloatTensorType()),
-                             ('next', FloatTensorType())]),
-                outputs=[('next_out', FloatTensorType([None, None])),
-                         ('scan_out', FloatTensorType([None]))],
-                other_outputs=[flat])
-
-            node = OnnxScan(X, X, output_names=['scan0_{idself}', 'scan1_{idself}'],
-                            num_scan_inputs=1, body=scan_body.graph, op_version=opv,
-                            **kwargs)
+                [Variable('next_in', numpy.float32, (None, None)),  # tensor_type([None, None])),
+                 Variable('next', numpy.float32, (None, ))],  # tensor_type([None]))]),
+                outputs=[Variable('next_out', numpy.float32, (None, None)),  # ([None, None])),
+                         Variable('scan_out', numpy.float32, (None, ))],  # tensor_type([None]))],
+                other_outputs=[flat],
+                target_opset=op_version)
+            node = OnnxScan(X, X, output_names=['S1', 'S2'],
+                            num_scan_inputs=1,
+                            body=(scan_body.graph, [id_next, flat]),
+                            op_version=op_version, **kwargs)
             return node[1]
 
         rows = []
@@ -319,16 +329,16 @@ class TestOptimOnnxManipulations(ExtTestCase):
             rows.append(" ".join(map(str, s)))
 
         opv = TARGET_OPSET
-        onnx_fct = OnnxIdentity(squareform_pdist(
+        onnx_fct = OnnxIdentity(onnx_squareform_pdist(
             'x'), output_names='Y', op_version=opv)
-        model_def = onnx_fct.to_onnx(inputs=[('x', FloatTensorType())])
+        model_def = onnx_fct.to_onnx(inputs={'x': numpy.float32})
 
         oinf1 = OnnxInference(model_def)
         new_model = onnx_rename_names(
             model_def, verbose=1, fLOG=flog, strategy='type')
         total = "\n".join(rows)
         self.assertNotIn('name: "Re_ReduceSumSquare"', str(new_model))
-        self.assertIn("'node_Re_ReduceSumSquare_", total)
+        self.assertIn("'node__reducesumsquare_", total)
         oinf2 = OnnxInference(new_model)
         x = numpy.array([1, 2, 4, 5, 5, 4]).astype(
             numpy.float32).reshape((3, 2))
@@ -413,6 +423,7 @@ class TestOptimOnnxManipulations(ExtTestCase):
                               oinf2.run({'X': cst})['Z'])
 
     def test_onnx_enumerate_onnx_names(self):
+        OnnxAdd, OnnxSub, OnnxMul = loadop('Add', 'Sub', 'Mul')
         dtype = numpy.float32
         x = numpy.array([1, 2, 4, 5, 5, 4]).astype(
             numpy.float32).reshape((3, 2))
@@ -429,10 +440,67 @@ class TestOptimOnnxManipulations(ExtTestCase):
             op_version=TARGET_OPSET)
         model_def = cop4.to_onnx({'X': x})
         names = list(enumerate_onnx_names(model_def))
-        self.assertEqual(len(names), 21)
+        self.assertEqual(len(names), 16)
         self.assertIn('X', names)
         self.assertIn('inter', names)
 
+    def test_onnx_to_function(self):
+        data = os.path.join(os.path.dirname(__file__), "data")
+        fft2d = os.path.join(data, "fft2d.onnx")
+        onx = load(fft2d)
+
+        # original graph
+        oinf = OnnxInference(onx)
+        x = numpy.random.randn(7, 7).astype(numpy.float32)
+        y = oinf.run({'x': x})['y']
+
+        fct = onnx_model_to_function(onx, name="fft2d")
+        self.assertIsInstance(fct, FunctionProto)
+
+        op = OnnxOperatorFunction(fct, 'X', output_names=['Y'])
+        onx2 = op.to_onnx(numpy.float32, numpy.float32)
+        s2 = str(onx2)
+        self.assertIn("functions {", s2)
+        self.assertIn('name: "fft2d"', s2)
+        oinf2 = OnnxInference(onx2)
+        y2 = oinf2.run({'X': x})['Y']
+        self.assertEqualArray(y, y2)
+
+    def test_onnx_inline_function(self):
+        data = os.path.join(os.path.dirname(__file__), "data")
+        fft2d = os.path.join(data, "fft2d.onnx")
+        onx = load(fft2d)        
+        fct = onnx_model_to_function(onx, name="fft2d")
+        op = OnnxOperatorFunction(fct, 'X', output_names=['Y'])
+        onx2 = op.to_onnx(numpy.float32, numpy.float32)
+        inlined, m = onnx_inline_function(onx2)
+        self.assertEqual(len(m), 1)
+        self.assertEqual(m[0].op_type, "fft2d")
+        s3 = str(inlined)
+        self.assertNotIn("functions {", s3)
+
+        x = numpy.random.randn(7, 7).astype(numpy.float32)
+        oinf2 = OnnxInference(onx2)
+        y2 = oinf2.run({'X': x})['Y']
+        oinf3 = OnnxInference(inlined)
+        y3 = oinf3.run({'X': x})['Y']
+        self.assertEqualArray(y2, y3)
+
+    def test_onnx_inline_function_function(self):
+        data = os.path.join(os.path.dirname(__file__), "data")
+        fft2d = os.path.join(data, "fft2d.onnx")
+        onx = load(fft2d)        
+        fct = onnx_model_to_function(onx, name="fft2d")
+        op = OnnxOperatorFunction(fct, 'X', output_names=['Y'])
+        onx2 = op.to_onnx(numpy.float32, numpy.float32)
+
+        fct = onnx_model_to_function(onx2, name="fft2d")
+        inlined, m = onnx_inline_function(fct, list(onx2.functions))
+        self.assertEqual(len(m), 1)
+        self.assertEqual(m[0].op_type, "fft2d")
+        self.assertEqual(len(inlined.node), 35)
+
 
 if __name__ == "__main__":
+    # TestOptimOnnxManipulations().test_onnx_inline_function()
     unittest.main()

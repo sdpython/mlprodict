@@ -504,6 +504,7 @@ class Tf2OnnxConvert:
         graph = make_graph(nodes, self._onnx_model.graph.name,
                            inputs, outputs, inits)
         onnx_model = make_model(graph)
+        onnx_model.functions = self._onnx_model.functions
         onnx_model.ir_version = self._onnx_model.ir_version
         onnx_model.producer_name = self._onnx_model.producer_name + "-mlprodict"
         onnx_model.producer_version = self._onnx_model.producer_version

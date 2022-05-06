@@ -46,6 +46,8 @@ Functions to help understand models or modify them.
 
 .. autosignature:: mlprodict.onnx_tools.onnx_manipulations.onnx_rename_names
 
+.. autosignature:: mlprodict.onnx_tools.onnx_manipulations.onnx_model_to_function
+
 .. autosignature:: mlprodict.onnx_tools.model_checker.onnx_shaker
 
 .. autosignature:: mlprodict.onnx_tools.optim.onnx_helper.onnx_statistics

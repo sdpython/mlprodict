@@ -4,13 +4,16 @@
 from on an :epkg:`ONNX` model.
 """
 import hashlib
-from onnx import shape_inference, ModelProto, FunctionProto, GraphProto
+from onnx import (
+    shape_inference, ModelProto, FunctionProto, GraphProto,
+    AttributeProto)
 from onnx.helper import (
     make_tensor_value_info, ValueInfoProto, set_model_props,
-    make_graph, make_function, make_model, make_node)
+    make_graph, make_function, make_model, make_node, make_operatorsetid)
 from .onnx2py_helper import guess_proto_dtype, from_array
 from .optim import onnx_remove_node_unused
 from .onnx_tools import enumerate_onnx_names
+from ..onnx_tools.onnx2py_helper import _var_as_dict, from_array
 
 
 def enumerate_model_node_outputs(model, add_node=False, order=False):
@@ -251,7 +254,7 @@ def select_model_inputs_outputs(model, outputs=None, inputs=None,
 
     graph = make_graph(keep_nodes, model.graph.name, var_in,
                        var_out, model.graph.initializer)
-    onnx_model = make_model(graph)
+    onnx_model = make_model(graph, functions=model.functions)
     onnx_model.ir_version = model.ir_version
     onnx_model.producer_name = model.producer_name
     onnx_model.producer_version = model.producer_version
@@ -287,7 +290,7 @@ def overwrite_opset(model, new_opset):
     graph = make_graph(
         model.graph.node, model.graph.name, model.graph.input,
         model.graph.output, model.graph.initializer)
-    onnx_model = make_model(graph)
+    onnx_model = make_model(graph, functions=model.functions)
     onnx_model.ir_version = model.ir_version
     onnx_model.producer_name = model.producer_name
     onnx_model.producer_version = model.producer_version
@@ -589,7 +592,7 @@ def insert_results_into_onnx(model, results, as_parameter=True, suffix='_DBG',
     new_nodes = [n[1] for n in sorted(new_nodes)]
 
     graph = make_graph(new_nodes, model.graph.name, inputs, outputs, inits)
-    onnx_model = make_model(graph)
+    onnx_model = make_model(graph, functions=model.functions)
     onnx_model.ir_version = model.ir_version
     onnx_model.producer_name = model.producer_name
     onnx_model.producer_version = model.producer_version
@@ -611,14 +614,81 @@ def insert_results_into_onnx(model, results, as_parameter=True, suffix='_DBG',
     return onnx_model
 
 
-def _onnx_inline_function(node, protos, existing_names):
+def onnx_model_to_function(onx, name=None, domain="custom",
+                          opset_imports=None, doc_string=None):
+    """
+    Converts an ONNX model into a function. The returned function
+    has no attribute.
+
+    :param onx: onnx model
+    :param name: function name
+    :param domain: function domain
+    :param opset_imports: opset to import as a dictionary
+        `{domain: version}`
+    :param doc_string: doc string
+    :return: function
+    """
+    if isinstance(onx, ModelProto):
+        if opset_imports is None:
+            domains = {}
+            for op in onx.opset_import:
+                domains[op.domain] = op.version
+            opset_imports = domains
+        if doc_string is None:
+            doc_string = onx.doc_string
+        return onnx_model_to_function(
+            onx.graph, name=name, domain=domain,
+            opset_imports=opset_imports, doc_string=doc_string)
+
+    if not isinstance(onx, GraphProto):
+        raise TypeError(  # pragma: no cover
+            "Unexpected type %r for onx." % type(onx))
+
+    if name is None:
+        name = onx.name
+
+    inputs = [i.name for i in onx.input]
+    outputs = [o.name for o in onx.output]
+    
+    if len(onx.initializer) > 0:
+        # Needs to convert every initializer into Constant.
+        csts = []
+        for init in onx.initializer:
+            v = _var_as_dict(init)
+            value = from_array(v['value'])
+            n = make_node('Constant', [], [init.name], value=value)
+            csts.append(n)
+        nodes = csts + list(onx.node)
+    else:
+        nodes = onx.node
+    if isinstance(opset_imports, dict):
+        ops = [make_operatorsetid(k, v) for k, v in opset_imports.items()]
+        opset_imports = ops
+    return make_function(
+        domain, name, inputs, outputs, nodes,
+        opset_imports=opset_imports, doc_string=doc_string or '')
+
+
+def _get_new_name(prefix, name, existing_names):
+    opt = "%s_%s" % (prefix, name)
+    i = 0
+    while opt in existing_names:
+        i += 1
+        opt = "%s_%s_%d" % (prefix, name, i)
+    existing_names.add(opt)
+    return opt
+
+
+def _onnx_inline_function(node, protos, existing_names, verbose, fLOG):
     modified_nodes = []
     for att in node.attribute:
-        if hasattr(att, 'g') and att.g is not None:
-            att.g, m = onnx_inline_function(att.g, protos)
+        if (att.type == AttributeProto.GRAPH and
+                hasattr(att, 'g') and att.g is not None):
+            att.g, m = onnx_inline_function(
+                att.g, protos, verbose=verbose, fLOG=fLOG)
             if m:
                 modified_nodes.extend(m)
-    key = node.domain, node.type
+    key = node.domain, node.op_type
     if key in protos:
         proto = protos[key]
         if not isinstance(proto, FunctionProto):
@@ -626,11 +696,55 @@ def _onnx_inline_function(node, protos, existing_names):
                 "Prototype for key=%r must be a Function Proto, not %r." % (
                     key, type(proto)))
         modified_nodes.append(node)
-        
-    return [node], modified_nodes
+        mapping = {}
+        new_nodes = []
+        prefix = "inl_"
+        for fr, to in zip(node.input, proto.input):
+            n = make_node('Identity', [fr],
+                          [_get_new_name(prefix, to, existing_names)])
+            if verbose > 1:
+                fLOG("[onnx_inline_function] add node %r(%r): %r -> %r" % (
+                    n.op_type, n.name, n.input, n.output))
+            mapping[to] = n.output[0]
+            new_nodes.append(n)
+        for nn in proto.node:
+            new_input = [mapping[i] for i in nn.input]
+            new_output = [_get_new_name(prefix, o, existing_names)
+                          for o in nn.output]
+            mapping.update({o: oo for o, oo in zip(nn.output, new_output)})
+            new_node = make_node(
+                nn.op_type, new_input, new_output,
+                domain=nn.domain, name=_get_new_name(
+                    prefix, nn.name, existing_names))
+            if verbose > 1:
+                fLOG("[onnx_inline_function] add node %r(%r): %r -> %r" % (
+                    new_node.op_type, new_node.name,
+                    new_node.input, new_node.output))
+            for att in nn.attribute:
+                if (att.type == AttributeProto.GRAPH and
+                        hasattr(att, 'g') and att.g is not None):
+                    attr = AttributeProto()
+                    attr.name = att.name
+                    attr.g.CopyFrom(att.g)  # pylint: disable=E1101
+                    attr.type = AttributeProto.GRAPH  # pylint: disable=E1101
+                    new_node.attribute.append(attr)
+                else:
+                    new_node.attribute.append(att)
+            new_nodes.append(new_node)
+        for fr, to in zip(proto.output, node.output):
+            n = make_node('Identity', [mapping[fr]], [to])
+            if verbose > 1:
+                fLOG("[onnx_inline_function] add node %r(%r): %r -> %r" % (
+                    n.op_type, n.name, n.input, n.output))
+            new_nodes.append(n)
+    else:
+        new_nodes = [node]
+
+    return new_nodes, modified_nodes    
 
 
-def onnx_inline_function(obj, protos=None, existing_names=None):
+def onnx_inline_function(obj, protos=None, existing_names=None,
+                         verbose=0, fLOG=print):
     """
     Inlines functions in an ONNX graph.
 
@@ -643,51 +757,100 @@ def onnx_inline_function(obj, protos=None, existing_names=None):
         `{ (domain, type): FunctionProto }`, the function replaces every
         node `(domain, type)` by the code given in this dictionary
     :param existing_names: no new name will be taken in that set
+    :param verbose: verbosity
+    :param fLOG: logging function
     :return: modified object, list of modified nodes
 
     .. versionadded:: 0.9
     """
     if isinstance(obj, ModelProto):
+        if verbose > 0:
+            fLOG("[onnx_inline_function] type=%r graph=%d" % (
+                type(obj), id(obj)))
         if protos is None:
-            fct = [f.name for f in obj.function]
+            fct = [f.name for f in obj.functions]
             ex_names = set(enumerate_onnx_names(obj))
             if existing_names is not None:
                 ex_names |= existing_names
-            return onnx_inline_function(obj, fct, existing_names=ex_names)
+            return onnx_inline_function(obj, fct, existing_names=ex_names,
+                                        verbose=verbose, fLOG=fLOG)
         if isinstance(protos, list):
             ex_names = set(enumerate_onnx_names(obj))
             if existing_names is not None:
                 ex_names |= existing_names
-            protos = {(f.domain, f.name): f for f in obj.function}
-            return onnx_inline_function(obj, protos, existing_names=ex_names)
+            protos = {(f.domain, f.name): f for f in obj.functions}
+            return onnx_inline_function(obj, protos, existing_names=ex_names,
+                                        verbose=verbose, fLOG=fLOG)
+    if isinstance(protos, list):
+        protos = {(f.domain, f.name): f for f in protos}
     if not isinstance(protos, dict):
         raise TypeError(
             "obj is of type %r and protos must be a dictionary not %r." % (
                 type(obj), type(protos)))
     
     if isinstance(obj, ModelProto):
-        new_graph, m = onnx_inline_function(obj.graph, protos)
-        return make_model(), m
+        new_graph, m = onnx_inline_function(obj.graph, protos, verbose=verbose, fLOG=fLOG)
+        new_functions = []
+        for f in obj.functions:
+            key = f.domain, f.name
+            if key not in protos:
+                new_functions.append(f)
+        return (
+            make_model(
+                new_graph,
+                functions=new_functions,
+                opset_imports=[
+                    make_operatorsetid(op.domain, op.version)
+                    for op in obj.opset_import],
+                producer_name=obj.producer_name,
+                producer_version=obj.producer_version,
+                ir_version=obj.ir_version,
+                doc_string=obj.doc_string),
+            m)
     
     # FunctionProto, GraphProto
     if existing_names is None:
         existing_names = set(enumerate_onnx_names(obj))
 
+    if verbose > 0:
+        fLOG("[onnx_inline_function] type=%r graph=%d begin" % (
+            type(obj), id(obj)))
     new_nodes = []
     modified_nodes = []
     n_iter = 0
     added = 1
-    while added > 0:
+    while added > 0 and n_iter < len(obj.node):
         added = 0
         for node in obj.node:
-            nnodes, m = _onnx_inline_function(node, protos, existing_names)
+            nnodes, m = _onnx_inline_function(
+                node, protos, existing_names, verbose, fLOG)
             added += len(m)
             new_nodes.extend(nnodes)
             modified_nodes.extend(m)
+        n_iter += 1
+        if verbose > 0:
+            fLOG("[onnx_inline_function] i=%r nodes=%r added=%r" % (
+                n_iter, len(obj.node), added))
     
+    if verbose > 0:
+        fLOG("[onnx_inline_function] type=%r graph=%d end" % (
+            type(obj), id(obj)))
     if isinstance(obj, FunctionProto):
-        return make_function()
+        return (
+            make_function(
+                domain=obj.domain, fname=obj.name,
+                inputs=obj.input, outputs=obj.output, nodes=new_nodes,
+                opset_imports=[
+                    make_operatorsetid(op.domain, op.version)
+                    for op in obj.opset_import], 
+                doc_string=obj.doc_string,
+                attributes=obj.attribute),
+            modified_nodes)
     if isinstance(obj, GraphProto):
-        return make_graph()
+        return (
+            make_graph(new_nodes, obj.name, list(obj.input), list(obj.output),
+                       list(obj.initializer), doc_string=obj.doc_string,
+                       sparse_initializer=list(obj.sparse_initializer)),
+            modified_nodes)
     raise TypeError(  # pragma: no cover
         "Unexpected type for obj %r." % type(obj))

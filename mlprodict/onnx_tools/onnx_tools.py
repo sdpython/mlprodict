@@ -83,6 +83,7 @@ def insert_node(model, op_type, node, input_index=0, new_name=None, **attrs):
         keep_nodes, model.graph.name, model.graph.input,
         model.graph.output, model.graph.initializer)
     onnx_model = helper.make_model(graph)
+    onnx_model.functions = model.functions
     onnx_model.ir_version = model.ir_version
     onnx_model.producer_name = model.producer_name
     onnx_model.producer_version = model.producer_version
