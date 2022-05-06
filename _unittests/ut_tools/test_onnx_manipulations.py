@@ -3,13 +3,11 @@
 """
 import unittest
 import os
-from collections import OrderedDict
 import numpy
 from onnx import helper, TensorProto, load, FunctionProto
 from pyquickhelper.pycode import ExtTestCase
 from mlprodict.npy.xop import loadop, OnnxOperatorFunction
 from mlprodict.npy.xop_variable import Variable
-from mlprodict.npy.xop_opset import OnnxSqueezeApi11
 from mlprodict.onnx_tools.optim.onnx_helper import onnx_statistics
 from mlprodict.onnx_tools.onnx_tools import enumerate_onnx_names
 from mlprodict.onnxrt import OnnxInference
@@ -299,9 +297,9 @@ class TestOptimOnnxManipulations(ExtTestCase):
         self.assertEqualArray(y1['final'], y2['final'])
 
     def test_onnx_rename_node_scan(self):
-        (OnnxAdd, OnnxSub, OnnxMul, OnnxReduceSumSquare,
+        (OnnxSub, OnnxReduceSumSquare,
          OnnxIdentity, OnnxScan) = loadop(
-            'Add', 'Sub', 'Mul', 'ReduceSumSquare', 'Identity', 'Scan')
+            'Sub', 'ReduceSumSquare', 'Identity', 'Scan')
 
         def onnx_squareform_pdist(X, dtype=None, op_version=None, **kwargs):
             diff = OnnxSub('next_in', 'next',
@@ -469,7 +467,7 @@ class TestOptimOnnxManipulations(ExtTestCase):
     def test_onnx_inline_function(self):
         data = os.path.join(os.path.dirname(__file__), "data")
         fft2d = os.path.join(data, "fft2d.onnx")
-        onx = load(fft2d)        
+        onx = load(fft2d)
         fct = onnx_model_to_function(onx, name="fft2d")
         op = OnnxOperatorFunction(fct, 'X', output_names=['Y'])
         onx2 = op.to_onnx(numpy.float32, numpy.float32)
@@ -489,7 +487,7 @@ class TestOptimOnnxManipulations(ExtTestCase):
     def test_onnx_inline_function_function(self):
         data = os.path.join(os.path.dirname(__file__), "data")
         fft2d = os.path.join(data, "fft2d.onnx")
-        onx = load(fft2d)        
+        onx = load(fft2d)
         fct = onnx_model_to_function(onx, name="fft2d")
         op = OnnxOperatorFunction(fct, 'X', output_names=['Y'])
         onx2 = op.to_onnx(numpy.float32, numpy.float32)

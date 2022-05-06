@@ -58,7 +58,6 @@ Functions to help understand models or modify them.
 
 .. autosignature:: mlprodict.testing.script_testing.verify_script
 
-
 Onnx Optimization
 +++++++++++++++++
 

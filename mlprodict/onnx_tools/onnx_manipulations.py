@@ -1,3 +1,4 @@
+# pylint: disable=E1101
 """
 @file
 @brief Implements a class able to compute the predictions
@@ -615,7 +616,7 @@ def insert_results_into_onnx(model, results, as_parameter=True, suffix='_DBG',
 
 
 def onnx_model_to_function(onx, name=None, domain="custom",
-                          opset_imports=None, doc_string=None):
+                           opset_imports=None, doc_string=None):
     """
     Converts an ONNX model into a function. The returned function
     has no attribute.
@@ -649,7 +650,7 @@ def onnx_model_to_function(onx, name=None, domain="custom",
 
     inputs = [i.name for i in onx.input]
     outputs = [o.name for o in onx.output]
-    
+
     if len(onx.initializer) > 0:
         # Needs to convert every initializer into Constant.
         csts = []
@@ -740,7 +741,7 @@ def _onnx_inline_function(node, protos, existing_names, verbose, fLOG):
     else:
         new_nodes = [node]
 
-    return new_nodes, modified_nodes    
+    return new_nodes, modified_nodes
 
 
 def onnx_inline_function(obj, protos=None, existing_names=None,
@@ -750,7 +751,7 @@ def onnx_inline_function(obj, protos=None, existing_names=None,
 
     :param obj: onnx graph, :epkg:`FunctionProto`, :epkg:`GraphProto`,
         :epkg:`ModelProto`
-    :param protos: if None, the function assumes *obj* is of type 
+    :param protos: if None, the function assumes *obj* is of type
         :epkg:`ModelProto` and the goal is to inline every function.
         If *protos* a list of strings, the function only inlines the
         functions in that list. If *protos* is a dictionary
@@ -787,9 +788,10 @@ def onnx_inline_function(obj, protos=None, existing_names=None,
         raise TypeError(
             "obj is of type %r and protos must be a dictionary not %r." % (
                 type(obj), type(protos)))
-    
+
     if isinstance(obj, ModelProto):
-        new_graph, m = onnx_inline_function(obj.graph, protos, verbose=verbose, fLOG=fLOG)
+        new_graph, m = onnx_inline_function(
+            obj.graph, protos, verbose=verbose, fLOG=fLOG)
         new_functions = []
         for f in obj.functions:
             key = f.domain, f.name
@@ -807,7 +809,7 @@ def onnx_inline_function(obj, protos=None, existing_names=None,
                 ir_version=obj.ir_version,
                 doc_string=obj.doc_string),
             m)
-    
+
     # FunctionProto, GraphProto
     if existing_names is None:
         existing_names = set(enumerate_onnx_names(obj))
@@ -831,7 +833,7 @@ def onnx_inline_function(obj, protos=None, existing_names=None,
         if verbose > 0:
             fLOG("[onnx_inline_function] i=%r nodes=%r added=%r" % (
                 n_iter, len(obj.node), added))
-    
+
     if verbose > 0:
         fLOG("[onnx_inline_function] type=%r graph=%d end" % (
             type(obj), id(obj)))
@@ -842,7 +844,7 @@ def onnx_inline_function(obj, protos=None, existing_names=None,
                 inputs=obj.input, outputs=obj.output, nodes=new_nodes,
                 opset_imports=[
                     make_operatorsetid(op.domain, op.version)
-                    for op in obj.opset_import], 
+                    for op in obj.opset_import],
                 doc_string=obj.doc_string,
                 attributes=obj.attribute),
             modified_nodes)
