@@ -106,4 +106,4 @@ def load_op(onnx_node, desc=None, options=None, runtime=None):
 
     if options is None:
         options = {}  # pragma: no cover
-    return cl(onnx_node, desc=desc, runtme=runtime, **options)
+    return cl(onnx_node, desc=desc, runtime=runtime, **options)

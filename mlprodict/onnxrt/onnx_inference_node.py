@@ -260,6 +260,13 @@ class OnnxInferenceNode:
                     # it must be a constant from the below graph
                     add_inputs.append(i)
                     inputs_set.add(i)
+        # If there is no node, we add the outputs as well.
+        if len(body.node) == 0:
+            for o in body.output:
+                i = o.name
+                if i not in inputs_set:
+                    add_inputs.append(i)
+                    inputs_set.add(i)
         return add_inputs
 
     def preprocess_parameters(self, runtime, rt_class, ir_version=None,
@@ -283,16 +290,24 @@ class OnnxInferenceNode:
             value = v['value']
             if isinstance(value, onnx_proto.GraphProto):
                 static_inputs = OnnxInferenceNode._find_static_inputs(value)
-                try:
-                    sess = rt_class(v['value'], runtime=runtime,
+                if len(value.node) > 0:
+                    try:
+                        sess = rt_class(value, runtime=runtime,
+                                        ir_version=ir_version,
+                                        target_opset=target_opset,
+                                        inside_loop=inside_loop,
+                                        static_inputs=static_inputs)
+                    except RuntimeError as e:  # pragma: no cover
+                        raise RuntimeError(
+                            "Unable to instantiate a node of type %r and name %r."
+                            "" % (self.onnx_node.op_type, self.onnx_node.name)) from e
+                else:
+                    # outputs already exists, usually branch then of else for If node
+                    sess = rt_class(value, runtime=runtime,
                                     ir_version=ir_version,
                                     target_opset=target_opset,
                                     inside_loop=inside_loop,
                                     static_inputs=static_inputs)
-                except RuntimeError as e:  # pragma: no cover
-                    raise RuntimeError(
-                        "Unable to instantiate a node of type %r and name %r."
-                        "" % (self.onnx_node.op_type, self.onnx_node.name)) from e
                 v['value_rt'] = sess
 
     def run(self, values):

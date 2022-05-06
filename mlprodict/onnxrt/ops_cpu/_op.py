@@ -170,6 +170,11 @@ class OpRun:
                 "Issues with types {} (operator {}).".format(
                     ", ".join(str(type(_)) for _ in args),
                     self.__class__.__name__)) from e
+        except AttributeError as e:
+            raise AttributeError(  # pragma: no cover
+                "Issues with types {} (operator {}).".format(
+                    ", ".join(str(type(_)) for _ in args),
+                    self.__class__.__name__)) from e
         return res
 
     def switch_initializers_dtype(self, dtype_in=numpy.float32,

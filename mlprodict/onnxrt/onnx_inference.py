@@ -171,9 +171,6 @@ class OnnxInference:
         Prepares the instance to deliver predictions.
         """
         self.graph_ = self.to_sequence(existing_functions)
-        if len(self.graph_['sequence']) == 0:
-            raise RuntimeError(  # pragma: no cover
-                "No runnable nodes was found in the ONNX graph.")
         self.outputs_ = self.graph_['outputs']
         self.inputs_ = self.graph_['inputs']
         is_function_proto = isinstance(self.obj, onnx_proto.FunctionProto)
@@ -617,7 +614,7 @@ class OnnxInference:
                         k, names[k, 0][0]))
             names[k, 0] = ('I', v)
         for k, v in outputs.items():
-            if (k, 0) in names and self.runtime != 'empty':
+            if (k, 0) in names and (self.runtime != 'empty' and len(nodes) > 0):
                 if not self.inside_loop or names[k, 0][0] != 'I':
                     raise RuntimeError(  # pragma: no cover
                         "Output '{}' already exists (tag='{}').".format(
@@ -684,19 +681,6 @@ class OnnxInference:
             node.set_order(len(sequence))
             sequence.append(node)
 
-        if len(sequence) == 0:
-            from mlprodict.plotting.text_plot import onnx_simple_text_plot
-            raise RuntimeError(  # pragma: no cover
-                "No runnable nodes was found in the ONNX graph"
-                "\n--rev--\n{}"
-                "\n--order--\n{}"
-                "\n--nodes--\n{}"
-                "\n--ONNX--\n{}\n---\n".format(
-                    "\n".join([str(_) for _ in names.items()]),
-                    "\n".join([str(_) for _ in order.items()]),
-                    "\n".join([str(_) for _ in nodes.items()]),
-                    onnx_simple_text_plot(self.obj, recursive=True)))
-
         # defines where an intermediare output is not needed
         last_used = {}
         for node in sequence:
@@ -727,7 +711,8 @@ class OnnxInference:
 
     def run(self, inputs, clean_right_away=False,
             intermediate=False, verbose=0, node_time=False,
-            overwrite_types=None, yield_ops=None, fLOG=None):
+            overwrite_types=None, yield_ops=None, fLOG=None,
+            context=None):
         """
         Computes the predictions for this :epkg:`onnx` graph.
 
@@ -744,6 +729,7 @@ class OnnxInference:
         :param yield_ops: dictionary to overwrite the output of
             operator *YieldOp*
         :param fLOG: logging function if *verbose > 0*
+        :param context: local variables, needed when this object is a subgraph
         :return: outputs as dictionary
             and a second dictionary of the time spent
             in each node if *node_time* is True
@@ -819,7 +805,7 @@ class OnnxInference:
         return self._run(inputs, clean_right_away=False,
                          intermediate=intermediate,
                          verbose=verbose, node_time=node_time,
-                         yield_ops=yield_ops, fLOG=fLOG)
+                         yield_ops=yield_ops, fLOG=fLOG, context=context)
 
     def run2onnx(self, inputs, verbose=0, fLOG=None,
                  as_parameter=True, suffix='_DBG',
@@ -896,7 +882,7 @@ class OnnxInference:
     def _run_sequence_runtime(self, inputs, clean_right_away=False,
                               intermediate=False, verbose=0, node_time=False,
                               overwrite_types=None, yield_ops=None,
-                              fLOG=None):
+                              fLOG=None, context=None):
         if overwrite_types is not None:
             raise NotImplementedError(  # pragma: no cover
                 "overwrite_types != None not implemented.")
@@ -909,11 +895,30 @@ class OnnxInference:
         if verbose >= 1 and fLOG is not None:
             printed = set()
 
+        if context is not None:
+            for k in context:
+                self.global_index(k)
+
         if hasattr(self, "_values_init"):
             values = self._values_init.copy()  # pylint: disable=E0203
+            if context is not None:
+                for k, v in context.items():
+                    values[self._global_index[k]] = v
         else:
             values = [None] * len(self._global_index)
             if verbose >= 1 and fLOG is not None:
+                if context is not None:
+                    for k, v in context.items():
+                        values[self._global_index[k]] = v
+                        if verbose < 3:
+                            fLOG("+kI='{}': {} (dtype={} min={} max={})".format(
+                                k, v['value'].shape, v['value'].dtype,
+                                numpy_min(v['value']), numpy_max(v['value'])))
+                        else:
+                            fLOG("+kI='{}': {} (dtype={} min={} max={}\n{}".format(
+                                k, v['value'].shape, v['value'].dtype,
+                                numpy_min(v['value']), numpy_max(v['value']),
+                                v['value']))
                 for k, v in self.inits_.items():
                     values[self._global_index[k]] = v['value']
                     if verbose < 3:
@@ -927,6 +932,9 @@ class OnnxInference:
                             v['value']))
                     printed.add(k)
             else:
+                if context is not None:
+                    for k, v in context.items():
+                        values[self._global_index[k]] = v
                 for k, v in self.inits_.items():
                     values[self._global_index[k]] = v['value']
             # stores the array to skip initialing a second time
@@ -1167,10 +1175,10 @@ class OnnxInference:
                         for k, v in inputs.items():
                             if isinstance(output, numpy.ndarray):
                                 fLOG("-i='{}': {} (dtype={}) {}".format(
-                                    k, v.shape, v.dtype, v.ravel().tolist()))
+                                     k, v.shape, v.dtype, v.ravel().tolist()))
                             else:
                                 fLOG("-i='{}': {} (dtype={}) - ?".format(
-                                    k, v.shape, v.dtype))
+                                     k, v.shape, v.dtype))
                     if isinstance(output, numpy.ndarray):
                         fLOG("+k='{}': {} (dtype={})".format(  # pragma: no cover
                             node, output.shape, output.dtype))

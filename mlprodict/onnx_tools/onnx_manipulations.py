@@ -670,6 +670,41 @@ def onnx_model_to_function(onx, name=None, domain="custom",
         opset_imports=opset_imports, doc_string=doc_string or '')
 
 
+def onnx_function_to_model(onx, functions=None, type_info=None):
+    """
+    Converts an ONNX FunctionProto into a ModelProto.
+    The function does not handle attributes yet.
+
+    :param onx: onnx function
+    :param functions: additional functions to append to the model
+    :param type_info: dictionary or callable which returns the type of
+        inputs or outputs if it cannot be guessed
+    :return: function
+    """
+    if not isinstance(onx, FunctionProto):
+        raise TypeError(  # pragma: no cover
+            "onx must be a FunctionProto not %r." % type(onx))
+    if len(onx.attribute) > 0:
+        raise NotImplementedError(
+            "The function has attributes, it is not implemented yet.")
+
+    if isinstance(functions, list):
+        added_functions = functions
+    elif isinstance(functions, dict):
+        added_functions = functions.values()
+    elif functions is None:
+        added_functions = []
+    else:
+        raise TypeError(
+            "Unexpected type for functions %r." % type(functions))
+    
+    inputs = _convert_
+    outputs = []
+    for i in inputs:
+
+
+
+
 def _get_new_name(prefix, name, existing_names):
     opt = "%s_%s" % (prefix, name)
     i = 0

@@ -15,8 +15,10 @@ from mlprodict.onnx_tools.optim import onnx_remove_node_unused
 from mlprodict.onnx_tools.onnx_manipulations import (
     select_model_inputs_outputs, enumerate_model_node_outputs,
     onnx_rename_names, insert_results_into_onnx, onnx_model_to_function,
-    onnx_inline_function)
+    onnx_inline_function, onnx_function_to_model)
 from mlprodict import __max_supported_opset__ as TARGET_OPSET
+from mlprodict.plotting.text_plot import onnx_simple_text_plot
+from mlprodict.onnxrt.excs import MissingOperatorError
 
 
 class TestOptimOnnxManipulations(ExtTestCase):
@@ -498,7 +500,86 @@ class TestOptimOnnxManipulations(ExtTestCase):
         self.assertEqual(m[0].op_type, "fft2d")
         self.assertEqual(len(inlined.node), 35)
 
+    def test_onnx_inline_function_fft(self):
+
+        def _check_run(onx):
+            oinf = OnnxInference(onx)
+            names = oinf.input_names
+
+            if names[0] == 'window_length':
+                # window function
+                inputs = {'window_length': numpy.array([5], dtype=numpy.int64)}
+                if 'alpha' in names:
+                    inputs['alpha'] = numpy.array([0.56], dtype=numpy.float32)
+                    inputs['beta'] = numpy.array([0.54], dtype=numpy.float32)
+                got = oinf.run(inputs)
+                res = got['return_val']
+                self.assertEqual(res.shape, (5, ))
+                self.assertEqual(res.dtype, numpy.float32)
+                return got
+
+            if names == ['x', 'axis1', 'axis2']:
+                # switch axis
+                inputs = {'x': numpy.random.randn(3, 4, 5).astype(numpy.float32),
+                          'axis1': numpy.array([0], dtype=numpy.int64),
+                          'axis2': numpy.array([2], dtype=numpy.int64)}
+                got = oinf.run(inputs)
+                res = got['return_val']
+                self.assertEqual(res.shape, (5, 4, 3))
+                self.assertEqualArray(numpy.transpose(inputs['x'], (2, 1, 0)), res)
+                return got
+
+            if names == ['x', 'fft_length', 'weights', 'onesided', 'inverse', 'normalize']:
+                # dft_last_axis
+                inputs = {'x': numpy.random.randn(3, 4, 5, 1).astype(numpy.float32),
+                          'fft_length': numpy.array([5], dtype=numpy.int64),
+                          'weights': numpy.array([1, 1, 1, 1, 1], dtype=numpy.float32),
+                          'onesided': numpy.array([0], dtype=numpy.float32),
+                          'inverse': numpy.array([0], dtype=numpy.float32),
+                          'normalize': numpy.array([0], dtype=numpy.float32)}
+                ft = numpy.fft.fft(inputs['x'][:, :, :, 0], 5)
+                got = oinf.run(inputs)
+                output_name = onx.graph.output[0].name
+                res = got[output_name]
+                self.assertEqual(res.shape, (3, 4, 5, 2))
+                self.assertEqualArray(res[:, :, :, 0], numpy.real(ft), decimal=4)
+                self.assertEqualArray(res[:, :, :, 1], numpy.imag(ft), decimal=4)
+                return got
+
+            print(names)
+            stop
+
+        def _type_info(name):
+            
+
+        fcts = ["blackman_window", "hamming_window", "hann_window",
+                "switch_axes", "dft_last_axis", "dft_inv", "dft", "idft",
+                "stft", "istft"]
+        data = os.path.join(os.path.dirname(__file__), "data", "fft")
+        protos = {}
+        for fct in fcts:
+            onx = load(os.path.join(data, fct + ".onnx"))
+            try:
+                OnnxInference(onx)
+                use_fct = False
+            except MissingOperatorError:
+                # The model misses a function.
+                use_fct = True
+            if use_fct:
+                fpr = onnx_model_to_function(onx)
+                onx = onnx_function_to_model(fpr, protos, type_info=_type_info)
+
+            try:
+                _check_run(onx)
+            except (RuntimeError, AttributeError) as e:
+                raise AssertionError(
+                    "Unable to run fct %r\n---\n%s" % (
+                        fct, onnx_simple_text_plot(
+                            onx, recursive=True))) from e
+            proto = onnx_model_to_function(onx)
+            protos[proto.domain, proto.name] = proto
+
 
 if __name__ == "__main__":
-    # TestOptimOnnxManipulations().test_onnx_inline_function()
+    TestOptimOnnxManipulations().test_onnx_inline_function_fft()
     unittest.main()

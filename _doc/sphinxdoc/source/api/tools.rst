@@ -42,11 +42,13 @@ Functions to help understand models or modify them.
 
 .. autosignature:: mlprodict.tools.code_helper.make_callable
 
+.. autosignature:: mlprodict.onnx_tools.onnx_manipulations.onnx_function_to_model
+
 .. autosignature:: mlprodict.onnx_tools.onnx_manipulations.onnx_inline_function
 
-.. autosignature:: mlprodict.onnx_tools.onnx_manipulations.onnx_rename_names
-
 .. autosignature:: mlprodict.onnx_tools.onnx_manipulations.onnx_model_to_function
+
+.. autosignature:: mlprodict.onnx_tools.onnx_manipulations.onnx_rename_names
 
 .. autosignature:: mlprodict.onnx_tools.model_checker.onnx_shaker
 

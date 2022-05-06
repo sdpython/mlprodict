@@ -35,8 +35,23 @@ class If(OpRun):
         self._run_meth_else = (self.else_branch.run_in_scan
                                if hasattr(self.else_branch, 'run_in_scan')
                                else self.else_branch.run)
+        self.additional_inputs = list(
+            set(self.then_branch.static_inputs) |
+            set(self.else_branch.static_inputs))
 
-    def _run(self, cond, named_inputs=None):  # pylint: disable=W0221
+    def need_context(self):
+        """
+        Tells the runtime if this node needs the context
+        (all the results produced so far) as it may silently access
+        one of them (operator Loop).
+        The default answer is `False`.
+        """
+        return True
+
+    def _run(self, cond, named_inputs=None, context=None):  # pylint: disable=W0221
+        if cond is None:
+            raise RuntimeError(  # pragma: no cover
+                "cond cannot be None")
         if named_inputs is None:
             named_inputs = {}
         if len(self.then_branch.input_names) > 0:
@@ -62,16 +77,39 @@ class If(OpRun):
 
         if len(cond.shape) > 0:
             if all(cond):
-                outputs = self._run_meth_then(named_inputs)
-                return tuple([outputs[name] for name in self.then_branch.output_names])
+                outputs = self._run_meth_then(named_inputs, context=context)
+                final = tuple([outputs[name] for name in self.then_branch.output_names])
+                branch = 'then'
+            else:
+                outputs = self._run_meth_else(named_inputs, context=context)
+                final = tuple([outputs[name] for name in self.else_branch.output_names])
+                branch = 'else'
         elif cond:
-            outputs = self._run_meth_then(named_inputs)
-            return tuple([outputs[name] for name in self.then_branch.output_names])
-        outputs = self._run_meth_else(named_inputs)
-        return tuple([outputs[name] for name in self.else_branch.output_names])
+            outputs = self._run_meth_then(named_inputs, context=context)
+            final = tuple([outputs[name] for name in self.then_branch.output_names])
+            branch = 'then'
+        else:
+            outputs = self._run_meth_else(named_inputs, context=context)
+            final = tuple([outputs[name] for name in self.else_branch.output_names])
+            branch = 'else'
+
+        if len(final) == 0:
+            raise RuntimeError(  # pragma: no cover
+                "Operator If (%r) does not have any output." % (self.onnx_node.name, ))
+        for i, f in enumerate(final):
+            if f is None:
+                ni = named_inputs if named_inputs else []  # pragma: no cover
+                br = self.then_branch if branch == 'then' else self.else_branch
+                names = br.output_names
+                inits = [i.name for i in br.obj.graph.initializer]
+                raise RuntimeError(  # pragma: no cover
+                    "Output %d (branch=%r, name=%r) is None, available inputs=%r, "
+                    "initializers=%r." % (
+                        i, branch, names[i], list(sorted(ni)), inits))
+        return final
 
     def _pick_shape(self, res, name):
-        if name in res:
+        if name in res and res[name] is not None:
             return res[name]
         out = {o.name: o for o in self.then_branch.obj.graph.output}
         if name not in out:
