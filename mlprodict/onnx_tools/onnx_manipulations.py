@@ -685,7 +685,7 @@ def _onnx_function_to_model_convert_io(ens, type_info):
         value_info = make_tensor_value_info(name, proto_dtype, None)
         typed_io.append(value_info)
     return typed_io
-    
+
 
 def onnx_function_to_model(onx, functions=None, type_info=None,
                            as_function=False):
@@ -717,7 +717,7 @@ def onnx_function_to_model(onx, functions=None, type_info=None,
     else:
         raise TypeError(
             "Unexpected type for functions %r." % type(functions))
-    
+
     inputs = _onnx_function_to_model_convert_io(onx.input, type_info)
     outputs = _onnx_function_to_model_convert_io(onx.output, type_info)
     if as_function:
@@ -730,9 +730,9 @@ def onnx_function_to_model(onx, functions=None, type_info=None,
     else:
         nodes = list(onx.node)
         opsets = [make_operatorsetid(op.domain, op.version)
-                  for op in onx.opset_import]    
+                  for op in onx.opset_import]
     graph = make_graph(nodes, onx.name, inputs, outputs,
-                       [], doc_string=onx.doc_string)    
+                       [], doc_string=onx.doc_string)
     model = make_model(graph, functions=added_functions,
                        opset_imports=opsets,
                        doc_string=onx.doc_string)

@@ -344,10 +344,12 @@ class OnnxInferenceNode:
             feeds = {name: val
                      for name, val in zip(self.function_.obj.input, values)}
             if verbose > 0 and fLOG is not None:
-                fLOG('-- >%s[%s]' % (self.function_.obj.name, self.function_.obj.domain))
+                fLOG('-- >%s[%s]' %
+                     (self.function_.obj.name, self.function_.obj.domain))
             outputs = self.function_.run(feeds, verbose=verbose, fLOG=fLOG)
             if verbose > 0 and fLOG is not None:
-                fLOG('-- <%s[%s]' % (self.function_.obj.name, self.function_.obj.domain))
+                fLOG('-- <%s[%s]' %
+                     (self.function_.obj.name, self.function_.obj.domain))
             res = [outputs[k] for k in self.function_.obj.output]
 
             if self.outputs_indices is None:

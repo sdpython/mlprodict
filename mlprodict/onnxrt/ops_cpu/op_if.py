@@ -84,7 +84,8 @@ class If(OpRun):
                                               verbose=verbose, fLOG=fLOG)
                 if verbose > 0 and fLOG is not None:
                     fLOG('  -- then<')
-                final = tuple([outputs[name] for name in self.then_branch.output_names])
+                final = tuple([outputs[name]
+                              for name in self.then_branch.output_names])
                 branch = 'then'
             else:
                 if verbose > 0 and fLOG is not None:
@@ -93,7 +94,8 @@ class If(OpRun):
                                               verbose=verbose, fLOG=fLOG)
                 if verbose > 0 and fLOG is not None:
                     fLOG('  -- else<')
-                final = tuple([outputs[name] for name in self.else_branch.output_names])
+                final = tuple([outputs[name]
+                              for name in self.else_branch.output_names])
                 branch = 'else'
         elif cond:
             if verbose > 0 and fLOG is not None:
@@ -102,7 +104,8 @@ class If(OpRun):
                                           verbose=verbose, fLOG=fLOG)
             if verbose > 0 and fLOG is not None:
                 fLOG('  -- then<')
-            final = tuple([outputs[name] for name in self.then_branch.output_names])
+            final = tuple([outputs[name]
+                          for name in self.then_branch.output_names])
             branch = 'then'
         else:
             if verbose > 0 and fLOG is not None:
@@ -111,7 +114,8 @@ class If(OpRun):
                                           verbose=verbose, fLOG=fLOG)
             if verbose > 0 and fLOG is not None:
                 fLOG('  -- else<')
-            final = tuple([outputs[name] for name in self.else_branch.output_names])
+            final = tuple([outputs[name]
+                          for name in self.else_branch.output_names])
             branch = 'else'
 
         if len(final) == 0:
