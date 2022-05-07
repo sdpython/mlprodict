@@ -39,7 +39,7 @@ class QLinearConv(OpRun):
                     numpy.array(self.strides, dtype=numpy.int64))
 
     def _run(self, X, x_scale, x_zero_point, w, w_scale, w_zero_point,  # pylint: disable=W0221
-             y_scale, y_zero_point, B=None):
+             y_scale, y_zero_point, B=None, verbose=0, fLOG=None):
         if X is None:
             raise ValueError(  # pragma: no cover
                 "X cannot be None for operator %r, ONNX=%r" % (

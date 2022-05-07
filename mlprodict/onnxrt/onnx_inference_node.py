@@ -15,6 +15,11 @@ from .ops import load_op
 class OnnxInferenceNode:
     """
     A node to execute.
+
+    :param onnx_node: onnx_node
+    :param desc: internal description
+    :param global_index: it is a function which returns a unique index
+        for the output this operator generates
     """
     class OnnxInferenceWrapper:
         """
@@ -106,12 +111,6 @@ class OnnxInferenceNode:
             pass
 
     def __init__(self, onnx_node, desc, global_index):
-        """
-        @param      onnx_node       onnx_node
-        @param      desc            internal description
-        @param      global_index    it is a function which returns a unique index
-                                    for the output this operator generates
-        """
         if desc is None:
             raise ValueError("desc should not be None.")  # pragma: no cover
         self.desc = desc
@@ -166,7 +165,8 @@ class OnnxInferenceNode:
     def setup_runtime(self, runtime=None, variables=None, rt_class=None,
                       target_opset=None, dtype=None, domain=None,
                       ir_version=None, runtime_options=None,
-                      build_inference_node_function=None):
+                      build_inference_node_function=None,
+                      existing_functions=None):
         """
         Loads runtime.
 
@@ -182,9 +182,12 @@ class OnnxInferenceNode:
         :param runtime_options: runtime options
         :param build_inference_node_function: function creating an inference
             runtime from an ONNX graph
+        :param existing_functions: existing function as a dictionary
+            `{ (domain, name): fct }`
 
         .. versionchanged:: 0.9
-            Parameter *build_inference_node_function* was added.
+            Parameters *build_inference_node_function* and *existing_functions*
+            were added.
         """
         if self.desc is None:
             raise AttributeError(
@@ -193,51 +196,67 @@ class OnnxInferenceNode:
             # path used when this operator is a function.
             self.function_ = OnnxInferenceNode.OnnxInferenceWrapper(runtime)
             self.ops_ = None
-        else:
-            self.function_ = None
-            self.preprocess_parameters(
-                runtime, rt_class, ir_version=ir_version,
-                target_opset=target_opset)
-            options = {'provider': runtime} if runtime else {}
-            if domain is not None:
-                options['domain'] = domain
-            if target_opset is not None:
-                options['target_opset'] = target_opset
-            if ir_version is not None:
-                options['ir_version'] = ir_version
-            if runtime_options is not None:
-                options.update({
-                    k: v for k, v in runtime_options.items()
-                    if k not in {'log_severity_level'}})
+            return
+
+        self.function_ = None
+        self.preprocess_parameters(
+            runtime, rt_class, ir_version=ir_version,
+            target_opset=target_opset, existing_functions=existing_functions)
+        options = {'provider': runtime} if runtime else {}
+        if domain is not None:
+            options['domain'] = domain
+        if target_opset is not None:
+            options['target_opset'] = target_opset
+        if ir_version is not None:
+            options['ir_version'] = ir_version
+        if runtime_options is not None:
+            options.update({
+                k: v for k, v in runtime_options.items()
+                if k not in {'log_severity_level'}})
+
+        # existing functions?
+        key = (self.onnx_node.domain, self.onnx_node.name)
+        if existing_functions is not None and key in existing_functions:
+            self.ops_ = existing_functions[key]
+            return
+
+        # regular node
+        try:
+            if runtime is not None and runtime.startswith('onnxruntime2'):
+                self.ops_ = load_op(self.onnx_node, desc=self.desc,
+                                    options=options if options else None,
+                                    variables=variables, dtype=dtype,
+                                    runtime=runtime)
+            elif runtime in ('python_compiled', 'python_compiled_debug'):
+                options['provider'] = 'python'
+                self.ops_ = load_op(self.onnx_node, desc=self.desc,
+                                    options=options if options else None,
+                                    variables=variables, dtype=dtype,
+                                    runtime=runtime)
+            else:
+                self.ops_ = load_op(self.onnx_node, desc=self.desc,
+                                    options=options if options else None,
+                                    variables=variables, dtype=dtype,
+                                    runtime=runtime)
+        except MissingOperatorError as e:
             try:
-                if runtime is not None and runtime.startswith('onnxruntime2'):
-                    self.ops_ = load_op(self.onnx_node, desc=self.desc,
-                                        options=options if options else None,
-                                        variables=variables, dtype=dtype,
-                                        runtime=runtime)
-                elif runtime in ('python_compiled', 'python_compiled_debug'):
-                    options['provider'] = 'python'
-                    self.ops_ = load_op(self.onnx_node, desc=self.desc,
-                                        options=options if options else None,
-                                        variables=variables, dtype=dtype,
-                                        runtime=runtime)
-                else:
-                    self.ops_ = load_op(self.onnx_node, desc=self.desc,
-                                        options=options if options else None,
-                                        variables=variables, dtype=dtype,
-                                        runtime=runtime)
-            except MissingOperatorError as e:
-                try:
-                    onnx_schema = get_onnx_schema(
-                        self.onnx_node.op_type, self.onnx_node.domain,
-                        opset=target_opset)
-                except SchemaError:
-                    raise e  # pylint: disable=W0707
-                if onnx_schema is None or not onnx_schema.has_function:
-                    raise e
-                self.function_ = OnnxInferenceNode.OnnxInferenceWrapper(
-                    build_inference_node_function(onnx_schema.function_body))
-                self.ops_ = None
+                onnx_schema = get_onnx_schema(
+                    self.onnx_node.op_type, self.onnx_node.domain,
+                    opset=target_opset)
+            except SchemaError as e:
+                fct_names = (
+                    list(existing_functions.key()) if existing_functions
+                    else [])
+                raise MissingOperatorError(
+                    "Unable to find runtime for node (%r, %r), "
+                    "available functions=%r." % (
+                        self.onnx_node.domain, self.onnx_node.op_type,
+                        fct_names)) from e
+            if onnx_schema is None or not onnx_schema.has_function:
+                raise e
+            self.function_ = OnnxInferenceNode.OnnxInferenceWrapper(
+                build_inference_node_function(onnx_schema.function_body))
+            self.ops_ = None
 
     @staticmethod
     def _find_static_inputs(body):
@@ -270,16 +289,17 @@ class OnnxInferenceNode:
         return add_inputs
 
     def preprocess_parameters(self, runtime, rt_class, ir_version=None,
-                              target_opset=None):
+                              target_opset=None, existing_functions=None):
         """
         Preprocesses the parameters, loads *GraphProto*
         (equivalent to :epkg:`ONNX` graph with less metadata).
 
-        @param  runtime         runtime options
-        @param  rt_class        runtime class used to compute
-                                prediction of subgraphs
-        @param  ir_version      if not None, overwrites the default value
-        @param  target_opset    use a specific target opset
+        :param runtime: runtime options
+        :param rt_class: runtime class used to compute
+            prediction of subgraphs
+        :param ir_version: if not None, overwrites the default value
+        :param target_opset: use a specific target opset
+        :param existing_functions: existing functions
         """
         if 'atts' not in self.desc:
             return  # pragma: no cover
@@ -296,7 +316,8 @@ class OnnxInferenceNode:
                                         ir_version=ir_version,
                                         target_opset=target_opset,
                                         inside_loop=inside_loop,
-                                        static_inputs=static_inputs)
+                                        static_inputs=static_inputs,
+                                        existing_functions=existing_functions)
                     except RuntimeError as e:  # pragma: no cover
                         raise RuntimeError(
                             "Unable to instantiate a node of type %r and name %r."
@@ -307,21 +328,26 @@ class OnnxInferenceNode:
                                     ir_version=ir_version,
                                     target_opset=target_opset,
                                     inside_loop=inside_loop,
-                                    static_inputs=static_inputs)
+                                    static_inputs=static_inputs,
+                                    existing_functions=existing_functions)
                 v['value_rt'] = sess
 
-    def run(self, values):
+    def run(self, values, verbose=0, fLOG=None):
         """
         Runs the node.
-        the function updates values with outputs.
+        The function updates values with outputs.
 
-        @param      values      list of existing values
+        :param values: list of existing values
         """
         if self.ops_ is None:
             # Then a function.
             feeds = {name: val
                      for name, val in zip(self.function_.obj.input, values)}
-            outputs = self.function_.run(feeds)
+            if verbose > 0 and fLOG is not None:
+                fLOG('-- >%s[%s]' % (self.function_.obj.name, self.function_.obj.domain))
+            outputs = self.function_.run(feeds, verbose=verbose, fLOG=fLOG)
+            if verbose > 0 and fLOG is not None:
+                fLOG('-- <%s[%s]' % (self.function_.obj.name, self.function_.obj.domain))
             res = [outputs[k] for k in self.function_.obj.output]
 
             if self.outputs_indices is None:
@@ -342,9 +368,10 @@ class OnnxInferenceNode:
             if self.ops_.need_context():
                 context = {n: values[self._global_index(n)]
                            for n in self.ops_.additional_inputs}
-                res = self.ops_.run(*args, context=context)
+                res = self.ops_.run(*args, context=context,
+                                    verbose=verbose, fLOG=fLOG)
             else:
-                res = self.ops_.run(*args)
+                res = self.ops_.run(*args, verbose=verbose, fLOG=fLOG)
         except TypeError as e:
             raise RuntimeError(  # pragma: no cover
                 "Unable to run operator %r, inputs=%r."

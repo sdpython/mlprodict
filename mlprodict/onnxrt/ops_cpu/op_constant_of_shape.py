@@ -26,7 +26,7 @@ class ConstantOfShape(OpRun):
             raise TypeError(  # pragma: no cover
                 "cst must be a real not {}".format(type(self.cst)))
 
-    def _run(self, data):  # pylint: disable=W0221
+    def _run(self, data, verbose=0, fLOG=None):  # pylint: disable=W0221
         try:
             res = numpy.full(tuple(data), self.cst)
         except TypeError as e:  # pragma: no cover

@@ -32,7 +32,7 @@ class GlobalAveragePool(OpRun):
         OpRun.__init__(self, onnx_node, desc=desc,
                        **options)
 
-    def _run(self, x):  # pylint: disable=W0221
+    def _run(self, x, verbose=0, fLOG=None):  # pylint: disable=W0221
         res = _global_average_pool(x)
         return (res, )
 
@@ -56,7 +56,7 @@ class GlobalMaxPool(OpRun):
         OpRun.__init__(self, onnx_node, desc=desc,
                        **options)
 
-    def _run(self, x):  # pylint: disable=W0221
+    def _run(self, x, verbose=0, fLOG=None):  # pylint: disable=W0221
         res = _global_max_pool(x)
         return (res, )
 

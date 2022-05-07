@@ -17,7 +17,7 @@ class Flatten(OpRunUnary):
                             expected_attributes=Flatten.atts,
                             **options)
 
-    def _run(self, x):  # pylint: disable=W0221
+    def _run(self, x, verbose=0, fLOG=None):  # pylint: disable=W0221
         i = self.axis
         shape = x.shape
         new_shape = ((1, -1) if i == 0 else

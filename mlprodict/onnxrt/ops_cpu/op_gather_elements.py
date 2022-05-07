@@ -65,7 +65,7 @@ class GatherElements(OpRun):
                        expected_attributes=GatherElements.atts,
                        **options)
 
-    def _run(self, data, indices):  # pylint: disable=W0221
+    def _run(self, data, indices, verbose=0, fLOG=None):  # pylint: disable=W0221
         if indices.size == 0:
             return (numpy.empty((0, ), dtype=data.dtype), )
         y = gather_numpy(data, self.axis, indices)

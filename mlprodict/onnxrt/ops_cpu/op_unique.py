@@ -24,7 +24,7 @@ class Unique(OpRun):
                        expected_attributes=Unique.atts,
                        **options)
 
-    def _run(self, x):  # pylint: disable=W0221
+    def _run(self, x, verbose=0, fLOG=None):  # pylint: disable=W0221
         if numpy.isnan(self.axis):
             y, indices, inverse_indices, counts = numpy.unique(
                 x, True, True, True)

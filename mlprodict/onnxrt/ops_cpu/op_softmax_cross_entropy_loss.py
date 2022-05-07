@@ -97,7 +97,7 @@ class SoftmaxCrossEntropyLoss(OpRun):
                        expected_attributes=SoftmaxCrossEntropyLoss.atts,
                        **options)
 
-    def _run(self, x, target, weight=None):  # pylint: disable=W0221
+    def _run(self, x, target, weight=None, verbose=0, fLOG=None):  # pylint: disable=W0221
         n_outputs = len(self.onnx_node.output)
         return softmaxcrossentropy(
             x, target, weight=weight, reduction=self.reduction,  # pylint: disable=E1101

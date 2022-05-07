@@ -29,7 +29,7 @@ class Concat(OpRun):
             return a.reshape(new_shape)
         return a
 
-    def _run(self, *args):  # pylint: disable=W0221
+    def _run(self, *args, verbose=0, fLOG=None):  # pylint: disable=W0221
         targs = tuple(self._preprocess(a) for a in args)
         return (numpy.concatenate(targs, self.axis), )
 

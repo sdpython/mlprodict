@@ -76,7 +76,7 @@ class Scan(OpRun):
                 state_names_out, scan_names_in, scan_names_out,
                 scan_values, states)
 
-    def _run(self, *args):  # pylint: disable=W0221
+    def _run(self, *args, verbose=0, fLOG=None):  # pylint: disable=W0221
         (num_loop_state_vars, num_scan_outputs, output_directions,  # pylint: disable=W0612
          max_dir_out, output_axes, max_axe_out, state_names_in,  # pylint: disable=W0612
          state_names_out, scan_names_in, scan_names_out,  # pylint: disable=W0612

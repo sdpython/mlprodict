@@ -670,7 +670,25 @@ def onnx_model_to_function(onx, name=None, domain="custom",
         opset_imports=opset_imports, doc_string=doc_string or '')
 
 
-def onnx_function_to_model(onx, functions=None, type_info=None):
+def _onnx_function_to_model_convert_io(ens, type_info):
+    typed_io = []
+    for name in ens:
+        if isinstance(name, dict):
+            res = type_info[name]
+        elif callable(type_info):
+            res = type_info(name)
+        else:
+            raise TypeError(
+                "type_info is not a callable or a dictionary, "
+                "unable to guess type for name=%r." % (name, ))
+        proto_dtype = guess_proto_dtype(res)
+        value_info = make_tensor_value_info(name, proto_dtype, None)
+        typed_io.append(value_info)
+    return typed_io
+    
+
+def onnx_function_to_model(onx, functions=None, type_info=None,
+                           as_function=False):
     """
     Converts an ONNX FunctionProto into a ModelProto.
     The function does not handle attributes yet.
@@ -679,6 +697,8 @@ def onnx_function_to_model(onx, functions=None, type_info=None):
     :param functions: additional functions to append to the model
     :param type_info: dictionary or callable which returns the type of
         inputs or outputs if it cannot be guessed
+    :param as_function: if True, the function stays as a function and a single node
+        is created to call that function
     :return: function
     """
     if not isinstance(onx, FunctionProto):
@@ -689,20 +709,34 @@ def onnx_function_to_model(onx, functions=None, type_info=None):
             "The function has attributes, it is not implemented yet.")
 
     if isinstance(functions, list):
-        added_functions = functions
+        added_functions = functions.copy()
     elif isinstance(functions, dict):
-        added_functions = functions.values()
+        added_functions = list(functions.values())
     elif functions is None:
         added_functions = []
     else:
         raise TypeError(
             "Unexpected type for functions %r." % type(functions))
     
-    inputs = _convert_
-    outputs = []
-    for i in inputs:
-
-
+    inputs = _onnx_function_to_model_convert_io(onx.input, type_info)
+    outputs = _onnx_function_to_model_convert_io(onx.output, type_info)
+    if as_function:
+        nodes = [make_node(onx.name,
+                           [i.name for i in inputs],
+                           [o.name for o in outputs],
+                           domain=domain)]
+        added_functions.append(onx)
+        opsets = [make_operatorsetid(onx.domain, onx.version)]
+    else:
+        nodes = list(onx.node)
+        opsets = [make_operatorsetid(op.domain, op.version)
+                  for op in onx.opset_import]    
+    graph = make_graph(nodes, onx.name, inputs, outputs,
+                       [], doc_string=onx.doc_string)    
+    model = make_model(graph, functions=added_functions,
+                       opset_imports=opsets,
+                       doc_string=onx.doc_string)
+    return model
 
 
 def _get_new_name(prefix, name, existing_names):

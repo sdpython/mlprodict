@@ -17,7 +17,7 @@ class IsInf(OpRunUnary):
                             expected_attributes=IsInf.atts,
                             **options)
 
-    def _run(self, data):  # pylint: disable=W0221
+    def _run(self, data, verbose=0, fLOG=None):  # pylint: disable=W0221
         if self.detect_negative:
             if self.detect_positive:
                 return (numpy.isinf(data), )

@@ -18,7 +18,7 @@ class ReduceSum_1(OpRunReduceNumpy):
                                   expected_attributes=ReduceSum_1.atts,
                                   **options)
 
-    def _run(self, data):  # pylint: disable=W0221
+    def _run(self, data, verbose=0, fLOG=None):  # pylint: disable=W0221
         return (numpy.sum(data, axis=self.axes,
                           keepdims=self.keepdims,
                           dtype=data.dtype), )
@@ -39,11 +39,11 @@ class ReduceSum_13(OpRunReduceNumpy):
                                   expected_attributes=ReduceSum_13.atts,
                                   **options)
 
-    def run(self, data, axes=None):  # pylint: disable=E0202,W0221,W0237
+    def run(self, data, axes=None, verbose=0, fLOG=None):  # pylint: disable=E0202,W0221,W0237
         """
         Calls method ``_run``.
         """
-        res = self._run(data, axes=axes)
+        res = self._run(data, axes=axes, verbose=verbose, fLOG=fLOG)
         if not self.keepdims and not isinstance(res[0], numpy.ndarray):
             res = (numpy.array([res[0]], dtype=res[0].dtype), )
         if res[0].dtype != data.dtype:
@@ -56,7 +56,7 @@ class ReduceSum_13(OpRunReduceNumpy):
     def _run_no_checks_(self, x, axes=None):  # pylint: disable=W0221
         return OpRun.run(self, x, axes)
 
-    def _run(self, data, axes=None):  # pylint: disable=W0221
+    def _run(self, data, axes=None, verbose=0, fLOG=None):  # pylint: disable=W0221
         if ((axes is None or len(axes.shape) == 0 or axes.shape[0] == 0) and
                 self.noop_with_empty_axes):
             return (data, )

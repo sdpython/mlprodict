@@ -71,7 +71,7 @@ class Split_2(CommonSplit):
         CommonSplit.__init__(self, onnx_node, desc=desc,
                              expected_attributes=Split_2.atts, **options)
 
-    def _run(self, mat):  # pylint: disable=W0221
+    def _run(self, mat, verbose=0, fLOG=None):  # pylint: disable=W0221
         return self.common_run(mat, self.split)
 
     def _infer_shapes(self, data):  # pylint: disable=W0221
@@ -101,7 +101,7 @@ class Split_13(CommonSplit):
         CommonSplit.__init__(self, onnx_node, desc=desc,
                              expected_attributes=Split_13.atts, **options)
 
-    def _run(self, mat, split=None):  # pylint: disable=W0221
+    def _run(self, mat, split=None, verbose=0, fLOG=None):  # pylint: disable=W0221
         return self.common_run(mat, split)
 
     def _infer_shapes(self, data, split=None):  # pylint: disable=W0221

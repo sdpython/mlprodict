@@ -15,7 +15,7 @@ class Shape_1(OpRun):
     def __init__(self, onnx_node, desc=None, **options):
         OpRun.__init__(self, onnx_node, desc=desc, **options)
 
-    def _run(self, data):  # pylint: disable=W0221
+    def _run(self, data, verbose=0, fLOG=None):  # pylint: disable=W0221
         return (numpy.array(data.shape, dtype=numpy.int64), )
 
     def _infer_shapes(self, x):  # pylint: disable=W0221
@@ -50,7 +50,7 @@ class Shape_15(Shape_1):
             return (self.start, n + self.end)
         return (self.start, self.end)
 
-    def _run(self, data):  # pylint: disable=W0221
+    def _run(self, data, verbose=0, fLOG=None):  # pylint: disable=W0221
         ab = self._interval(len(data.shape))
         if ab is None:
             return (numpy.array(data.shape, dtype=numpy.int64), )

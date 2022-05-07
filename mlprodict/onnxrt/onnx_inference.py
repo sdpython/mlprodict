@@ -171,6 +171,7 @@ class OnnxInference:
         Prepares the instance to deliver predictions.
         """
         self.graph_ = self.to_sequence(existing_functions)
+        self.functions_ = self.graph_['functions']
         self.outputs_ = self.graph_['outputs']
         self.inputs_ = self.graph_['inputs']
         is_function_proto = isinstance(self.obj, onnx_proto.FunctionProto)
@@ -223,7 +224,7 @@ class OnnxInference:
                     domain = node.onnx_node.domain
                     target_opset = self.target_opset_.get(domain, None)
                     keyf = domain, node.onnx_node.op_type
-                    if keyf in self.graph_['functions']:
+                    if keyf in self.functions_:
                         node.setup_runtime(self.graph_['functions'][keyf])
                     elif self.runtime in ('onnxruntime2', 'empty'):
                         node.setup_runtime(
@@ -231,6 +232,7 @@ class OnnxInference:
                             target_opset=target_opset, dtype=dtype,
                             domain=domain, ir_version=self.ir_version_,
                             runtime_options=self.runtime_options,
+                            existing_functions=self.functions_,
                             build_inference_node_function=lambda fct:
                                 OnnxInference(
                                     fct, runtime=self.runtime,
@@ -245,6 +247,7 @@ class OnnxInference:
                             target_opset=target_opset, domain=domain,
                             ir_version=self.ir_version_,
                             runtime_options=self.runtime_options,
+                            existing_functions=self.functions_,
                             build_inference_node_function=lambda fct:
                                 OnnxInference(
                                     fct, runtime=self.runtime,
@@ -709,6 +712,10 @@ class OnnxInference:
                       pprint.pformat(list(statics))))
         return results
 
+    ###############
+    ## inference ##
+    ###############
+
     def run(self, inputs, clean_right_away=False,
             intermediate=False, verbose=0, node_time=False,
             overwrite_types=None, yield_ops=None, fLOG=None,
@@ -805,7 +812,8 @@ class OnnxInference:
         return self._run(inputs, clean_right_away=False,
                          intermediate=intermediate,
                          verbose=verbose, node_time=node_time,
-                         yield_ops=yield_ops, fLOG=fLOG, context=context)
+                         yield_ops=yield_ops, fLOG=fLOG,
+                         context=context)
 
     def run2onnx(self, inputs, verbose=0, fLOG=None,
                  as_parameter=True, suffix='_DBG',
@@ -909,27 +917,27 @@ class OnnxInference:
             if verbose >= 1 and fLOG is not None:
                 if context is not None:
                     for k, v in context.items():
+                        if v is None:
+                            continue
                         values[self._global_index[k]] = v
                         if verbose < 3:
                             fLOG("+kI='{}': {} (dtype={} min={} max={})".format(
-                                k, v['value'].shape, v['value'].dtype,
-                                numpy_min(v['value']), numpy_max(v['value'])))
+                                 k, v.shape, v.dtype, numpy_min(v), numpy_max(v)))
                         else:
                             fLOG("+kI='{}': {} (dtype={} min={} max={}\n{}".format(
-                                k, v['value'].shape, v['value'].dtype,
-                                numpy_min(v['value']), numpy_max(v['value']),
-                                v['value']))
+                                 k, v['value'].shape, v['value'].dtype,
+                                 numpy_min(v), numpy_max(v), v))
                 for k, v in self.inits_.items():
                     values[self._global_index[k]] = v['value']
                     if verbose < 3:
                         fLOG("+ki='{}': {} (dtype={} min={} max={})".format(
-                            k, v['value'].shape, v['value'].dtype,
-                            numpy_min(v['value']), numpy_max(v['value'])))
+                             k, v['value'].shape, v['value'].dtype,
+                             numpy_min(v['value']), numpy_max(v['value'])))
                     else:
                         fLOG("+ki='{}': {} (dtype={} min={} max={}\n{}".format(
-                            k, v['value'].shape, v['value'].dtype,
-                            numpy_min(v['value']), numpy_max(v['value']),
-                            v['value']))
+                             k, v['value'].shape, v['value'].dtype,
+                             numpy_min(v['value']), numpy_max(v['value']),
+                             v['value']))
                     printed.add(k)
             else:
                 if context is not None:
@@ -1032,7 +1040,7 @@ class OnnxInference:
                                       op_type=node.onnx_node.op_type,
                                       time=t2 - t))
                 else:
-                    node.run(values)
+                    node.run(values, verbose=verbose, fLOG=fLOG)
                 added = 0
                 for k in range(len(values)):  # pylint: disable=C0200
                     if values[k] is None:

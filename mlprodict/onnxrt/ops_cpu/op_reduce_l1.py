@@ -17,7 +17,7 @@ class ReduceL1(OpRunReduceNumpy):
                                   expected_attributes=ReduceL1.atts,
                                   **options)
 
-    def _run(self, data):  # pylint: disable=W0221
+    def _run(self, data, verbose=0, fLOG=None):  # pylint: disable=W0221
         return (numpy.sum(
             numpy.abs(data), axis=self.axes,
             keepdims=self.keepdims).astype(dtype=data.dtype), )

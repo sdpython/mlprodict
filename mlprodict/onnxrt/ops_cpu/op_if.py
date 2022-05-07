@@ -48,7 +48,8 @@ class If(OpRun):
         """
         return True
 
-    def _run(self, cond, named_inputs=None, context=None):  # pylint: disable=W0221
+    def _run(self, cond, named_inputs=None, context=None,  # pylint: disable=W0221
+             verbose=0, fLOG=None):
         if cond is None:
             raise RuntimeError(  # pragma: no cover
                 "cond cannot be None")
@@ -77,19 +78,39 @@ class If(OpRun):
 
         if len(cond.shape) > 0:
             if all(cond):
-                outputs = self._run_meth_then(named_inputs, context=context)
+                if verbose > 0 and fLOG is not None:
+                    fLOG('  -- then>')
+                outputs = self._run_meth_then(named_inputs, context=context,
+                                              verbose=verbose, fLOG=fLOG)
+                if verbose > 0 and fLOG is not None:
+                    fLOG('  -- then<')
                 final = tuple([outputs[name] for name in self.then_branch.output_names])
                 branch = 'then'
             else:
-                outputs = self._run_meth_else(named_inputs, context=context)
+                if verbose > 0 and fLOG is not None:
+                    fLOG('  -- else>')
+                outputs = self._run_meth_else(named_inputs, context=context,
+                                              verbose=verbose, fLOG=fLOG)
+                if verbose > 0 and fLOG is not None:
+                    fLOG('  -- else<')
                 final = tuple([outputs[name] for name in self.else_branch.output_names])
                 branch = 'else'
         elif cond:
-            outputs = self._run_meth_then(named_inputs, context=context)
+            if verbose > 0 and fLOG is not None:
+                fLOG('  -- then>')
+            outputs = self._run_meth_then(named_inputs, context=context,
+                                          verbose=verbose, fLOG=fLOG)
+            if verbose > 0 and fLOG is not None:
+                fLOG('  -- then<')
             final = tuple([outputs[name] for name in self.then_branch.output_names])
             branch = 'then'
         else:
-            outputs = self._run_meth_else(named_inputs, context=context)
+            if verbose > 0 and fLOG is not None:
+                fLOG('  -- else>')
+            outputs = self._run_meth_else(named_inputs, context=context,
+                                          verbose=verbose, fLOG=fLOG)
+            if verbose > 0 and fLOG is not None:
+                fLOG('  -- else<')
             final = tuple([outputs[name] for name in self.else_branch.output_names])
             branch = 'else'
 

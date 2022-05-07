@@ -39,6 +39,7 @@ def load_op(onnx_node, desc=None, options=None, runtime=None):
     :param desc: internal representation
     :param options: runtime options
     :param runtime: runtime
+    :param existing_functions: existing functions
     :return: runtime class
     """
     from ... import __max_supported_opset__
