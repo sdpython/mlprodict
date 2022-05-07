@@ -526,7 +526,8 @@ class TestOptimOnnxManipulations(ExtTestCase):
                 got = oinf.run(inputs)
                 res = got['return_val']
                 self.assertEqual(res.shape, (5, 4, 3))
-                self.assertEqualArray(numpy.transpose(inputs['x'], (2, 1, 0)), res)
+                self.assertEqualArray(numpy.transpose(
+                    inputs['x'], (2, 1, 0)), res)
                 return got
 
             if names == ['x', 'fft_length', 'weights', 'onesided',
@@ -543,8 +544,10 @@ class TestOptimOnnxManipulations(ExtTestCase):
                 output_name = onx.graph.output[0].name
                 res = got[output_name]
                 self.assertEqual(res.shape, (3, 4, 5, 2))
-                self.assertEqualArray(res[:, :, :, 0], numpy.real(ft), decimal=4)
-                self.assertEqualArray(res[:, :, :, 1], numpy.imag(ft), decimal=4)
+                self.assertEqualArray(
+                    res[:, :, :, 0], numpy.real(ft), decimal=4)
+                self.assertEqualArray(
+                    res[:, :, :, 1], numpy.imag(ft), decimal=4)
                 return got
 
             if names == ['x', 'fft_length', 'axis', 'weights', 'onesided',
@@ -562,8 +565,10 @@ class TestOptimOnnxManipulations(ExtTestCase):
                 output_name = onx.graph.output[0].name
                 res = got[output_name]
                 self.assertEqual(res.shape, (3, 4, 5, 2))
-                self.assertEqualArray(res[:, :, :, 0], numpy.real(ft), decimal=4)
-                self.assertEqualArray(res[:, :, :, 1], numpy.imag(ft), decimal=4)
+                self.assertEqualArray(
+                    res[:, :, :, 0], numpy.real(ft), decimal=4)
+                self.assertEqualArray(
+                    res[:, :, :, 1], numpy.imag(ft), decimal=4)
                 return got
 
             if names == ['x', 'fft_length', 'axis', 'onesided']:
@@ -577,8 +582,10 @@ class TestOptimOnnxManipulations(ExtTestCase):
                 output_name = onx.graph.output[0].name
                 res = got[output_name]
                 self.assertEqual(res.shape, (3, 4, 5, 2))
-                self.assertEqualArray(res[:, :, :, 0], numpy.real(ft), decimal=4)
-                self.assertEqualArray(res[:, :, :, 1], numpy.imag(ft), decimal=4)
+                self.assertEqualArray(
+                    res[:, :, :, 0], numpy.real(ft), decimal=4)
+                self.assertEqualArray(
+                    res[:, :, :, 1], numpy.imag(ft), decimal=4)
                 return got
 
             print(names)
