@@ -4,6 +4,7 @@
 @file
 @brief Runtime operator.
 """
+import numpy
 from onnx.defs import onnx_opset_version
 from ..shape_object import ShapeObject
 from ._op import OpRun
@@ -16,6 +17,10 @@ class SliceCommon(OpRun):
                        **options)
 
     def _run(self, data, starts, ends, axes=None, steps=None, verbose=0, fLOG=None):  # pylint: disable=W0221
+        if len(starts.shape) == 0:
+            starts = numpy.array([starts])
+        if len(ends.shape) == 0:
+            ends = numpy.array([ends])
         if axes is None:
             if steps is None:
                 slices = [slice(s, e) for s, e in zip(starts, ends)]

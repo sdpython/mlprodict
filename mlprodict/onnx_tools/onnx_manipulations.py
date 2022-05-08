@@ -279,6 +279,47 @@ def select_model_inputs_outputs(model, outputs=None, inputs=None,
     return onnx_model
 
 
+def change_input_type(onx, changes):
+    """
+    Changes the input type of an input.
+
+    :param onx: ONNX model
+    :param changes: dictionary '{ name: new proto element type }`
+    :return: new onx
+    """
+    new_inputs = []
+    for inp in onx.graph.input:
+        if inp.name not in changes:
+            new_inputs.append(inp)
+            continue
+        value_info = make_tensor_value_info(
+            inp.name, changes[inp.name], None)
+        new_inputs.append(value_info)
+
+    # final
+    graph = make_graph(list(onx.graph.node),
+                       onx.graph.name, new_inputs,
+                       list(onx.graph.output),
+                       onx.graph.initializer)
+    onnx_model = make_model(graph, functions=onx.functions)
+    onnx_model.ir_version = onx.ir_version
+    onnx_model.producer_name = onx.producer_name
+    onnx_model.producer_version = onx.producer_version
+    onnx_model.domain = onx.domain
+    onnx_model.model_version = onx.model_version
+    onnx_model.doc_string = onx.doc_string
+    if len(onx.metadata_props) > 0:  # pragma: no cover
+        values = {p.key: p.value for p in onx.metadata_props}
+        set_model_props(onnx_model, values)
+
+    del onnx_model.opset_import[:]  # pylint: disable=E1101
+    for oimp in onx.opset_import:
+        op_set = onnx_model.opset_import.add()  # pylint: disable=E1101
+        op_set.domain = oimp.domain
+        op_set.version = oimp.version
+    return onnx_model
+
+
 def overwrite_opset(model, new_opset):
     """
     Overwrites the main opset in an ONNX file.
@@ -724,7 +765,7 @@ def onnx_function_to_model(onx, functions=None, type_info=None,
         nodes = [make_node(onx.name,
                            [i.name for i in inputs],
                            [o.name for o in outputs],
-                           domain=domain)]
+                           domain=onx.domain)]
         added_functions.append(onx)
         opsets = [make_operatorsetid(onx.domain, onx.version)]
     else:

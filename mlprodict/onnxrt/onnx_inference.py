@@ -712,9 +712,9 @@ class OnnxInference:
                       pprint.pformat(list(statics))))
         return results
 
-    ###############
-    ## inference ##
-    ###############
+    #############
+    # inference #
+    #############
 
     def run(self, inputs, clean_right_away=False,
             intermediate=False, verbose=0, node_time=False,
@@ -801,15 +801,16 @@ class OnnxInference:
                 raise RuntimeError(  # pragma: no cover
                     "inplace must be False if intermediate is True, a container "
                     "might be used by several nodes.")
-            return self._run(inputs, clean_right_away=False,
+            return self._run(inputs, clean_right_away=False,  # pylint: disable=E1123
                              intermediate=intermediate,
                              verbose=verbose, node_time=node_time,
                              overwrite_types=overwrite_types,
-                             yield_ops=yield_ops, fLOG=fLOG)
+                             yield_ops=yield_ops, fLOG=fLOG,
+                             context=context)
         if overwrite_types is not None:
             raise RuntimeError(  # pragma: no cover
                 "overwrite_types is not used if intermediate is False.")
-        return self._run(inputs, clean_right_away=False,
+        return self._run(inputs, clean_right_away=False,  # pylint: disable=E1123
                          intermediate=intermediate,
                          verbose=verbose, node_time=node_time,
                          yield_ops=yield_ops, fLOG=fLOG,

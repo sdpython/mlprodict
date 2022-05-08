@@ -243,7 +243,7 @@ class OnnxInferenceNode:
                 onnx_schema = get_onnx_schema(
                     self.onnx_node.op_type, self.onnx_node.domain,
                     opset=target_opset)
-            except SchemaError as e:
+            except SchemaError:
                 fct_names = (
                     list(existing_functions.key()) if existing_functions
                     else [])
@@ -332,6 +332,16 @@ class OnnxInferenceNode:
                                     existing_functions=existing_functions)
                 v['value_rt'] = sess
 
+    def _build_context(self, values, input_list):
+        context = {}
+        for n in input_list:
+            v = values[self._global_index(n)]
+            if v is None:
+                raise ValueError(  # pragma: no cover
+                    "Input %r is None." % n)
+            context[n] = v
+        return context
+
     def run(self, values, verbose=0, fLOG=None):
         """
         Runs the node.
@@ -339,53 +349,57 @@ class OnnxInferenceNode:
 
         :param values: list of existing values
         """
-        if self.ops_ is None:
-            # Then a function.
-            feeds = {name: val
-                     for name, val in zip(self.function_.obj.input, values)}
-            if verbose > 0 and fLOG is not None:
-                fLOG('-- >%s[%s]' %
-                     (self.function_.obj.name, self.function_.obj.domain))
-            outputs = self.function_.run(feeds, verbose=verbose, fLOG=fLOG)
-            if verbose > 0 and fLOG is not None:
-                fLOG('-- <%s[%s]' %
-                     (self.function_.obj.name, self.function_.obj.domain))
-            res = [outputs[k] for k in self.function_.obj.output]
-
-            if self.outputs_indices is None:
-                for name, value in zip(self.outputs, res):
-                    values[name] = value
-            else:
-                for i, r in enumerate(res):
-                    values[self.outputs_indices[i]] = r
-            return
-
         # This code takes time if the graph contains many nodes.
         # Maybe a C++ container would help in that case (to skip GIL).
         if self.inputs_indices is None:
             args = list(values[k] for k in self.inputs)
         else:
             args = list(values[k] for k in self.inputs_indices)
-        try:
-            if self.ops_.need_context():
-                context = {n: values[self._global_index(n)]
-                           for n in self.ops_.additional_inputs}
-                res = self.ops_.run(*args, context=context,
-                                    verbose=verbose, fLOG=fLOG)
-            else:
-                res = self.ops_.run(*args, verbose=verbose, fLOG=fLOG)
-        except TypeError as e:
-            raise RuntimeError(  # pragma: no cover
-                "Unable to run operator %r, inputs=%r."
-                "" % (type(self.ops_), self.inputs)) from e
-        except OverflowError as e:
-            raise RuntimeError(  # pragma: no cover
-                "Unable to run operator %r, inputs=%r."
-                "" % (type(self.ops_), self.inputs)) from e
 
-        if not isinstance(res, tuple):
-            raise RuntimeError(  # pragma: no cover
-                "Results of operator %r should be a tuple." % type(self.ops_))
+        if self.ops_ is None:
+            # Then a function.
+            feeds = {}
+            for name, val in zip(self.function_.obj.input, args):
+                if val is None:
+                    raise ValueError(  # pragma: no cover
+                        "Input name %r is None." % name)
+                feeds[name] = val
+
+            if verbose == 0 or fLOG is None:
+                outputs = self.function_.run(feeds)
+            else:
+                fLOG('-- >%s[%s](%s)' %
+                     (self.function_.obj.name, self.function_.obj.domain,
+                      ", ".join(self.function_.obj.input)))
+                outputs = self.function_.run(feeds, verbose=verbose, fLOG=fLOG)
+                fLOG('-- <%s[%s][%s]' %
+                     (self.function_.obj.name, self.function_.obj.domain,
+                      ", ".join(self.function_.obj.output)))
+
+            res = [outputs[k] for k in self.function_.obj.output]
+        else:
+            # Or an operator.
+            try:
+                if self.ops_.need_context():
+                    context = self._build_context(
+                        values, self.ops_.additional_inputs)
+                    res = self.ops_.run(*args, context=context,
+                                        verbose=verbose, fLOG=fLOG)
+                else:
+                    res = self.ops_.run(*args, verbose=verbose, fLOG=fLOG)
+            except (ValueError, TypeError) as e:
+                raise RuntimeError(  # pragma: no cover
+                    "Unable to run operator %r, inputs=%r."
+                    "" % (type(self.ops_), self.inputs)) from e
+            except OverflowError as e:
+                raise RuntimeError(  # pragma: no cover
+                    "Unable to run operator %r, inputs=%r."
+                    "" % (type(self.ops_), self.inputs)) from e
+
+            if not isinstance(res, tuple):
+                raise RuntimeError(  # pragma: no cover
+                    "Results of operator %r should be a tuple." % type(self.ops_))
+
         if len(self.outputs) != len(res):
             raise RuntimeError(  # pragma: no cover
                 "Mismatch number of outputs got {} for names {}.\n{}".format(

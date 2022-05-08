@@ -20,7 +20,11 @@ class ConstantOfShape(OpRun):
         self.cst = (self.value[0]
                     if isinstance(self.value, numpy.ndarray)
                     else self.value)
-        if not isinstance(self.cst, (float, int, numpy.float32, numpy.float64,
+        if isinstance(self.cst, int):
+            self.cst = numpy.int64(self.cst)
+        elif isinstance(self.cst, float):
+            self.cst = numpy.float64(self.cst)
+        if not isinstance(self.cst, (numpy.float32, numpy.float64,
                                      numpy.int64, numpy.int32, numpy.bool_,
                                      numpy.float16)):
             raise TypeError(  # pragma: no cover
