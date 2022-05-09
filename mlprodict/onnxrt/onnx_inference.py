@@ -927,8 +927,7 @@ class OnnxInference:
                                  k, v.shape, v.dtype, numpy_min(v), numpy_max(v)))
                         else:
                             fLOG("+kI='{}': {} (dtype={} min={} max={}\n{}".format(
-                                 k, v['value'].shape, v['value'].dtype,
-                                 numpy_min(v), numpy_max(v), v))
+                                 k, v.shape, v.dtype, numpy_min(v), numpy_max(v), v))
                 for k, v in self.inits_.items():
                     values[self._global_index[k]] = v['value']
                     if verbose < 3:
@@ -1020,7 +1019,8 @@ class OnnxInference:
 
             keys = set(k for k in range(len(values)) if values[k] is not None)
             if verbose >= 1:
-                fLOG("-- OnnxInference: run {} nodes".format(len(self.sequence_)))
+                fLOG("-- OnnxInference: run {} nodes with {} inputs".format(
+                    len(self.sequence_), len(inputs)))
             for i, node in enumerate(self.sequence_):
                 if verbose >= 1:
                     fLOG(node)

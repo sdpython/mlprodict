@@ -939,12 +939,14 @@ def _onnx_inline_function_node(node, protos, existing_names, mapping,
         for att in node.attribute:
             if (att.type == AttributeProto.GRAPH and
                     hasattr(att, 'g') and att.g is not None):
-                g, _ = _onnx_inline_function_graph(
+                g, m = _onnx_inline_function_graph(
                     att.g, protos, verbose=verbose, fLOG=fLOG,
                     existing_names=existing_names, mapping=mapping)
-                modified_nodes.append(node)
+                if len(m) > 0:
+                    modified_nodes.extend(m)
+                    modified_nodes.append(node)
+                    has_graph = True
                 att = make_attribute(att.name, g)
-                has_graph = True
             new_attributes.append(att)
         if has_graph:
             new_node = make_node(

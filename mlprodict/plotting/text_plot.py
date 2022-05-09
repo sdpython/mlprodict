@@ -561,6 +561,15 @@ def onnx_simple_text_plot(model, verbose=False, att_display=None,
             'zs',
         ]
 
+    _sub_graphs_names = {}
+
+    def _get_subgraph_name(idg):
+        if idg in _sub_graphs_names:
+            return _sub_graphs_names[idg]
+        g = "G%d" % (len(_sub_graphs_names) + 1)
+        _sub_graphs_names[idg] = g
+        return g
+
     def str_node(indent, node):
         atts = []
         if hasattr(node, 'attribute'):
@@ -573,6 +582,8 @@ def onnx_simple_text_plot(model, verbose=False, att_display=None,
                     elif att.type == AttributeProto.INTS:  # pylint: disable=E1101
                         atts.append("%s=%s" % (att.name, str(
                             list(att.ints)).replace(" ", "")))
+                elif att.name in {'then_branch', 'else_branch', 'body'}:
+                    atts.append("%s=%s" % (att.name, _get_subgraph_name(id(att.g))))
         inputs = list(node.input)
         if len(atts) > 0:
             inputs.extend(atts)
@@ -775,8 +786,8 @@ def onnx_simple_text_plot(model, verbose=False, att_display=None,
 
     # subgraphs
     for node, name, g in subgraphs:
-        rows.append('----- subgraph ---- %s - %s - att.%s=' % (
-            node.op_type, node.name, name))
+        rows.append('----- subgraph ---- %s - %s - att.%s=%s' % (
+            node.op_type, node.name, name, _get_subgraph_name(id(g))))
         res = onnx_simple_text_plot(
             g, verbose=verbose, att_display=att_display,
             add_links=add_links, recursive=recursive)
