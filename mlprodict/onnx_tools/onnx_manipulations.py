@@ -832,8 +832,8 @@ def _onnx_inline_function_graph(graph, protos, existing_names, mapping,
         for i in node.input:
             if i in mapping:
                 inp.append(mapping[i])
-            elif i in mapping.values():
-                inp.append(i)
+            # elif i in mapping.values():
+            #     inp.append(i)
             else:
                 raise RuntimeError(  # pragma: no cover
                     "Cannot find input %r in %s." % (i, pprint.pformat(mapping)))
@@ -841,6 +841,7 @@ def _onnx_inline_function_graph(graph, protos, existing_names, mapping,
         for o in node.output:
             if o in output_names:
                 out.append(o)
+                mapping[o] = o
             else:
                 n = _get_new_name(prefix, o, existing_names)
                 out.append(n)
