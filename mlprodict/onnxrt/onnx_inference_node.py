@@ -380,9 +380,9 @@ class OnnxInferenceNode:
             if verbose == 0 or fLOG is None:
                 outputs = self.function_.run(feeds)
             else:
-                fLOG('-- >%s[%s](%s)' %
+                fLOG('-- >%s[%s](%s)  -- len(feeds)=%d' %
                      (self.function_.obj.name, self.function_.obj.domain,
-                      ", ".join(self.function_.obj.input)))
+                      ", ".join(self.function_.obj.input), len(feeds)))
                 outputs = self.function_.run(feeds, verbose=verbose, fLOG=fLOG)
                 fLOG('-- <%s[%s][%s]' %
                      (self.function_.obj.name, self.function_.obj.domain,

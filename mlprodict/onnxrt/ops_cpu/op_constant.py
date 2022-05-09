@@ -99,7 +99,10 @@ class Constant_12(OpRun):
         if hasattr(self, 'sparse_value') and self.sparse_value is not None:
             self.cst = self.sparse_value
         elif hasattr(self, 'value_float') and self.value_float is not None:
-            self.cst = self.value_float.astype(numpy.float32)
+            if isinstance(self.value_float, (float, int)):
+                self.cst = numpy.float32(self.value_float)
+            else:
+                self.cst = self.value_float.astype(numpy.float32)
         elif hasattr(self, 'value_floats') and self.value_floats is not None:
             self.cst = self.value_floats.astype(numpy.float32)
         elif hasattr(self, 'value_int') and self.value_int is not None:
