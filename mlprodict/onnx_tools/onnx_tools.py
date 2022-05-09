@@ -2,7 +2,7 @@
 @file
 @brief Functions to manipulate ONNX file.
 """
-from onnx import helper
+from onnx import helper, AttributeProto
 
 
 def find_node_name(model, name):
@@ -196,6 +196,7 @@ def enumerate_onnx_names(onx):
     """
     Enumerates all existing names in one ONNX graph
     (:epkg:`ModelProto`, :epkg:`FunctionProto`, :epkg:`GraphProto`).
+    The function is recursive.
 
     :param onx: one onnx object
     :return: iterator on names
@@ -229,3 +230,32 @@ def enumerate_onnx_names(onx):
             yield i
         for o in node.output:
             yield o
+        for att in node.attribute:
+            if (att.type == AttributeProto.GRAPH and
+                    hasattr(att, 'g') and att.g is not None):
+                for n in enumerate_onnx_names(att.g):
+                    yield n
+
+
+def enumerate_onnx_nodes(onx):
+    """
+    Enumerates all nodes in one ONNX graph
+    (:epkg:`ModelProto`, :epkg:`FunctionProto`, :epkg:`GraphProto`).
+    The function is recursive.
+
+    :param onx: one onnx object
+    :return: iterator on names
+    """
+    if isinstance(onx, list):
+        nodes = onx
+    elif hasattr(onx, 'graph'):
+        nodes = onx.graph.node
+    else:
+        nodes = onx.node
+    for node in nodes:
+        yield node
+        for att in node.attribute:
+            if (att.type == AttributeProto.GRAPH and
+                    hasattr(att, 'g') and att.g is not None):
+                for n in enumerate_onnx_nodes(att.g):
+                    yield n

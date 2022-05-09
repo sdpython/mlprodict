@@ -284,7 +284,8 @@ class OnnxInference:
 
     def _run_sequence_runtime_compiled(
             self, inputs, clean_right_away=False, intermediate=False,
-            verbose=0, node_time=False, yield_ops=None, fLOG=None):
+            verbose=0, node_time=False, yield_ops=None, fLOG=None,
+            context=None):
         """
         Executes a compiled version of @see me _run_sequence_runtime,
         compiled with method @see me _build_compile_run.
@@ -293,7 +294,7 @@ class OnnxInference:
         """
         try:
             return self._run_compiled(  # pylint: disable=E1101
-                inputs, yield_ops=yield_ops)
+                inputs, yield_ops=yield_ops, context=context)
         except NameError as e:
             raise RuntimeError(  # pragma: no cover
                 "Unable to compute prediction due to %r. Code:\n%s"
@@ -1134,8 +1135,9 @@ class OnnxInference:
 
     def _run_whole_runtime(self, inputs, clean_right_away=False,
                            intermediate=False, verbose=0, node_time=False,
-                           overwrite_types=None, yield_ops=None, fLOG=None):
-        # node_time is unused
+                           overwrite_types=None, yield_ops=None, fLOG=None,
+                           context=None):
+        # node_time is unused, context is unused
         if clean_right_away:
             raise RuntimeError(  # pragma: no cover
                 "clean_right_away=true does not work with this runtime.")
@@ -1620,10 +1622,10 @@ class OnnxInference:
 
         # inits
         inputs = self.input_names
-        code = ['def compiled_run(dict_inputs, yield_ops=None):']
+        code = ['def compiled_run(dict_inputs, yield_ops=None, context=None):']
         code.append("    if yield_ops is not None:")
-        code.append(
-            "        raise NotImplementedError('yields_ops should be None.')")
+        code.append("        raise NotImplementedError"
+                    "('yields_ops should be None.')")
         if debug:
             code.append("    printed = {}")
 

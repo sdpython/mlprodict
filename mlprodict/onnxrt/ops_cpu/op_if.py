@@ -79,7 +79,7 @@ class If(OpRun):
         if len(cond.shape) > 0:
             if all(cond):
                 if verbose > 0 and fLOG is not None:
-                    fLOG('  -- then>')
+                    fLOG('  -- then> %r' % list(context))
                 outputs = self._run_meth_then(named_inputs, context=context,
                                               verbose=verbose, fLOG=fLOG)
                 if verbose > 0 and fLOG is not None:
@@ -89,7 +89,7 @@ class If(OpRun):
                 branch = 'then'
             else:
                 if verbose > 0 and fLOG is not None:
-                    fLOG('  -- else>')
+                    fLOG('  -- else> %r' % list(context))
                 outputs = self._run_meth_else(named_inputs, context=context,
                                               verbose=verbose, fLOG=fLOG)
                 if verbose > 0 and fLOG is not None:
@@ -99,7 +99,7 @@ class If(OpRun):
                 branch = 'else'
         elif cond:
             if verbose > 0 and fLOG is not None:
-                fLOG('  -- then>')
+                fLOG('  -- then> %r' % list(context))
             outputs = self._run_meth_then(named_inputs, context=context,
                                           verbose=verbose, fLOG=fLOG)
             if verbose > 0 and fLOG is not None:
@@ -109,7 +109,7 @@ class If(OpRun):
             branch = 'then'
         else:
             if verbose > 0 and fLOG is not None:
-                fLOG('  -- else>')
+                fLOG('  -- else> %r' % list(context))
             outputs = self._run_meth_else(named_inputs, context=context,
                                           verbose=verbose, fLOG=fLOG)
             if verbose > 0 and fLOG is not None:

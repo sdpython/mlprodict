@@ -335,7 +335,11 @@ class OnnxInferenceNode:
     def _build_context(self, values, input_list):
         context = {}
         for n in input_list:
-            v = values[self._global_index(n)]
+            try:
+                v = values[self._global_index(n)]
+            except IndexError as e:
+                raise IndexError(  # pragma: no cover
+                    "Unable to find an index for result %r in onnx object." % n)
             if v is None:
                 raise ValueError(  # pragma: no cover
                     "Input %r is None." % n)

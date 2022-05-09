@@ -3,13 +3,16 @@
 """
 import unittest
 import os
+import pprint
+from collections import Counter
 import numpy
 from onnx import helper, TensorProto, load, FunctionProto
 from pyquickhelper.pycode import ExtTestCase, get_temp_folder
 from mlprodict.npy.xop import loadop, OnnxOperatorFunction
 from mlprodict.npy.xop_variable import Variable
 from mlprodict.onnx_tools.optim.onnx_helper import onnx_statistics
-from mlprodict.onnx_tools.onnx_tools import enumerate_onnx_names
+from mlprodict.onnx_tools.onnx_tools import (
+    enumerate_onnx_names, enumerate_onnx_nodes)
 from mlprodict.onnxrt import OnnxInference
 from mlprodict.onnx_tools.optim import onnx_remove_node_unused
 from mlprodict.onnx_tools.onnx_manipulations import (
@@ -707,8 +710,6 @@ class TestOptimOnnxManipulations(ExtTestCase):
                 fpr = onnx_model_to_function(onx)
                 onx = onnx_function_to_model(fpr, protos, type_info=_type_info)
 
-            with open(os.path.join(temp, fct + '.onnx'), 'wb') as f:
-                f.write(onx.SerializeToString())
             try:
                 _check_run(fct, onx)
             except (RuntimeError, AttributeError, NameError) as e:
@@ -721,19 +722,58 @@ class TestOptimOnnxManipulations(ExtTestCase):
             protos[proto.domain, proto.name] = proto
             models[fct] = onx
 
+        rows = []
+
+        def myprint(*args):
+            rows.append(' '.join(map(str, args)))
+
+        for fct, onx in models.items():
+            del rows[:]
+            with open(os.path.join(temp, fct + '.onnx'), 'wb') as f:
+                f.write(onx.SerializeToString())
             with open(os.path.join(temp, fct + '.txt'), 'w') as f:
                 f.write(helper.printable_graph(onx.graph))
+            verbose = 1
+            try:
+                inlined, _ = onnx_inline_function(
+                    onx, protos, verbose=verbose, fLOG=myprint)
+            except RuntimeError as e:
+                raise AssertionError(
+                    "Unable to inline function %r\n%s" % (fct, "\n".join(rows))) from e
+            distri = Counter((n.domain, n.op_type)
+                             for n in enumerate_onnx_nodes(inlined))
+            if ('this', 'dft_last_axis') in distri:
+                raise AssertionError(
+                    "Inlining went wrong for fct=%r\n----\n%s\n----\n%s" % (
+                        fct, pprint.pformat(distri), "\n".join(rows)))
+            if len(inlined.functions) > 0:
+                raise AssertionError(
+                    "Inlining* went wrong for fct=%r\n----\n%s\n----\n%s" % (
+                        fct, pprint.pformat(distri), "\n".join(rows)))
+            with self.subTest(fct=fct, inline=True):
+                try:
+                    _check_run(fct, inlined)
+                except (RuntimeError, AttributeError, NameError, IndexError) as e:
+                    raise AssertionError(
+                        "Unable to run inlined fct %r\n---\n%s\n----\n%s" % (
+                            fct, onnx_simple_text_plot(
+                                inlined, recursive=True),
+                            "\n".join(map(str, rows)))) from e
+            with open(os.path.join(temp, fct + '.inlined.onnx'), 'wb') as f:
+                f.write(inlined.SerializeToString())
+            with open(os.path.join(temp, fct + '.inlined.txt'), 'w') as f:
+                f.write(helper.printable_graph(inlined.graph))
 
         from onnxruntime import InferenceSession
         from onnxruntime.capi.onnxruntime_pybind11_state import (
             Fail, InvalidArgument, InvalidGraph)
-        for k, v in models.items():
+        for fct, onx in models.items():
             try:
-                InferenceSession(v.SerializeToString())
+                InferenceSession(onx.SerializeToString())
             except (Fail, InvalidArgument, InvalidGraph) as e:
-                print(k, e)
+                print(fct, e)
                 with open(os.path.join(temp, fct + '.error.onnx'), 'wb') as f:
-                    f.write(v.SerializeToString())
+                    f.write(onx.SerializeToString())
 
 
 if __name__ == "__main__":
