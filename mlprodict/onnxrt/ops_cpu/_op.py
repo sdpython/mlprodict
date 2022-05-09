@@ -490,8 +490,8 @@ class OpRunArg(OpRunUnary):
     def _infer_types(self, x):  # pylint: disable=W0221
         return (numpy.int64, )
 
-    def _run_no_checks_(self, x):  # pylint: disable=W0221
-        return OpRunUnary.run(self, x)
+    def _run_no_checks_(self, x, verbose=0, fLOG=None):  # pylint: disable=W0221
+        return OpRunUnary.run(self, x, verbose=verbose, fLOG=fLOG)
 
 
 class OpRunUnaryNum(OpRunUnary):
@@ -521,8 +521,8 @@ class OpRunUnaryNum(OpRunUnary):
                     x.dtype, res[0].dtype, self.__class__.__name__))
         return res
 
-    def _run_no_checks_(self, x):  # pylint: disable=W0221
-        return OpRunUnary.run(self, x)
+    def _run_no_checks_(self, x, verbose=0, fLOG=None):  # pylint: disable=W0221
+        return OpRunUnary.run(self, x, verbose=verbose, fLOG=fLOG)
 
 
 class OpRunClassifierProb(OpRunUnary):
@@ -557,8 +557,8 @@ class OpRunClassifierProb(OpRunUnary):
                    len(getattr(self, 'classlabels_int64s', [])),
                    len(self.classlabels_strings))  # pylint: disable=E1101
 
-    def _run_no_checks_(self, x):  # pylint: disable=W0221
-        return OpRunUnary.run(self, x)
+    def _run_no_checks_(self, x, verbose=0, fLOG=None):  # pylint: disable=W0221
+        return OpRunUnary.run(self, x, verbose=verbose, fLOG=fLOG)
 
     def _infer_shapes(self, x):  # pylint: disable=W0221
         """
@@ -610,12 +610,12 @@ class OpRunBinary(OpRun):
                     self.__class__.__name__)) from e
         return res
 
-    def _run_no_checks_(self, x, y):  # pylint: disable=W0221
+    def _run_no_checks_(self, x, y, verbose=0, fLOG=None):  # pylint: disable=W0221
         """
         Calls method ``_run``.
         """
         try:
-            res = self._run(x, y)
+            res = self._run(x, y, verbose=verbose, fLOG=fLOG)
         except TypeError as e:  # pragma: no cover
             raise TypeError(
                 "Issues with types {} (binary operator {}).".format(
@@ -697,11 +697,12 @@ class OpRunBinaryNum(OpRunBinary):
                     self.__class__.__name__, type(x), type(y)))
         return res
 
-    def _run_no_checks_(self, x, y):  # pylint: disable=W0221
+    def _run_no_checks_(self, x, y, verbose=0, fLOG=None):  # pylint: disable=W0221
         """
         Calls method ``_run``.
         """
-        return OpRunBinary._run_no_checks_(self, x, y)
+        return OpRunBinary._run_no_checks_(
+            self, x, y, verbose=verbose, fLOG=fLOG)
 
 
 class OpRunBinaryNumpy(OpRunBinaryNum):

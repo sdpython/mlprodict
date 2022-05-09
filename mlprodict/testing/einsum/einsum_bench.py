@@ -38,7 +38,8 @@ def _measure_time(stmt, *x, repeat=5, number=5, div_by_number=True,
         try:
             stmt(*x)
         except RuntimeError as e:  # pragma: no cover
-            raise RuntimeError("{}-{}".format(type(x), x.dtype)) from e
+            raise RuntimeError("{}-{}".format(
+                type(x), getattr(x, 'dtype', '?'))) from e
 
     def fct():
         stmt(*x)

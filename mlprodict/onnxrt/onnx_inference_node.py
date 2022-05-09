@@ -262,7 +262,7 @@ class OnnxInferenceNode:
     def _find_static_inputs(body):
         """
         Determines the loop inputs. It is any defined inputs
-        by the subgraphs + any results used as a constant
+        by the subgraphs + any result used as a constant
         in the subgraphs.
         """
         inputs_set = set(i.name for i in body.input)
@@ -275,10 +275,18 @@ class OnnxInferenceNode:
         for node in body.node:
             for i in node.input:
                 if i not in inputs_set:
-                    #  no graph input or output node matches
+                    # no graph input or output node matches
                     # it must be a constant from the below graph
                     add_inputs.append(i)
                     inputs_set.add(i)
+            for att in node.attribute:
+                if (att.type == onnx_proto.AttributeProto.GRAPH and
+                        hasattr(att, 'g') and att.g is not None):
+                    inside = OnnxInferenceNode._find_static_inputs(att.g)
+                    for i in inside:
+                        if i not in inputs_set:
+                            add_inputs.append(i)
+                            inputs_set.add(i)
         # If there is no node, we add the outputs as well.
         if len(body.node) == 0:
             for o in body.output:
