@@ -189,7 +189,7 @@ class TestPlotTextPlotting(ExtTestCase):
         input:
         """).strip(" \n")
         self.assertIn(expected, text)
-        self.assertIn("If(Gr_C0) -> y", text)
+        self.assertIn("If(Gr_C0, else_branch=G1, then_branch=G2)", text)
         oinf = OnnxInference(model_def)
         text2 = oinf.to_text(kind="seq")
         self.assertEqual(text, text2)
