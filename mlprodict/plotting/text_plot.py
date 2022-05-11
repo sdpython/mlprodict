@@ -386,7 +386,8 @@ def _get_shape(obj):
 
 
 def onnx_simple_text_plot(model, verbose=False, att_display=None,
-                          add_links=False, recursive=False, functions=True):
+                          add_links=False, recursive=False, functions=True,
+                          raise_exc=True):
     """
     Displays an ONNX graph into text.
 
@@ -397,6 +398,8 @@ def onnx_simple_text_plot(model, verbose=False, att_display=None,
     :param add_links: displays links of the right side
     :param recursive: display subgraphs as well
     :param functions: display functions as well
+    :param raise_exc: raises an exception if the model is not valid,
+        otherwise tries to continue
     :return: str
 
     An ONNX graph is printed the following way:
@@ -583,7 +586,8 @@ def onnx_simple_text_plot(model, verbose=False, att_display=None,
                         atts.append("%s=%s" % (att.name, str(
                             list(att.ints)).replace(" ", "")))
                 elif att.name in {'then_branch', 'else_branch', 'body'}:
-                    atts.append("%s=%s" % (att.name, _get_subgraph_name(id(att.g))))
+                    atts.append("%s=%s" %
+                                (att.name, _get_subgraph_name(id(att.g))))
         inputs = list(node.input)
         if len(atts) > 0:
             inputs.extend(atts)
@@ -664,7 +668,12 @@ def onnx_simple_text_plot(model, verbose=False, att_display=None,
             indents[init.name] = 0
             init_names.add(init.name)
 
-    nodes = reorder_nodes_for_display(model.node, verbose=verbose)
+    try:
+        nodes = reorder_nodes_for_display(model.node, verbose=verbose)
+    except RuntimeError as e:
+        if raise_exc:
+            raise e
+        nodes = model.node
 
     previous_indent = None
     previous_out = None

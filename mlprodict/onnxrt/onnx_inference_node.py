@@ -280,7 +280,7 @@ class OnnxInferenceNode:
                     add_inputs.append(i)
                     inputs_set.add(i)
             for att in node.attribute:
-                if (att.type == onnx_proto.AttributeProto.GRAPH and
+                if (att.type == onnx_proto.AttributeProto.GRAPH and  # pylint: disable=E1101
                         hasattr(att, 'g') and att.g is not None):
                     inside = OnnxInferenceNode._find_static_inputs(att.g)
                     for i in inside:
@@ -342,12 +342,16 @@ class OnnxInferenceNode:
 
     def _build_context(self, values, input_list):
         context = {}
-        for n in input_list:
+        # input_list does not need to be sorted but when
+        # an input is not found, the returned error is always
+        # related to the same input.
+        for n in sorted(input_list):
             try:
                 v = values[self._global_index(n)]
             except IndexError as e:
                 raise IndexError(  # pragma: no cover
-                    "Unable to find an index for result %r in onnx object." % n)
+                    "Unable to find an index for result %r in onnx "
+                    "object." % n) from e
             if v is None:
                 raise ValueError(  # pragma: no cover
                     "Input %r is None." % n)

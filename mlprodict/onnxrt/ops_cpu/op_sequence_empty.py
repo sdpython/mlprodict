@@ -19,13 +19,13 @@ class SequenceEmpty(OpRun):
                        atts=SequenceEmpty.atts, **options)
 
     def _run(self, verbose=0, fLOG=None):  # pylint: disable=W0221
-        return (list(), )
+        return ([], )
 
     def _infer_shapes(self):  # pylint: disable=W0221
         return (ShapeObject(None, dtype="sequence", subtype=None), )
 
     def _infer_types(self):  # pylint: disable=W0221
-        return (list, )
+        return ([], )
 
     def _infer_sizes(self, *args):  # pylint: disable=W0221
         res = self.run(*args)

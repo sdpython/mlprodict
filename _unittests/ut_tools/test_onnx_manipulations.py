@@ -702,6 +702,8 @@ class TestOptimOnnxManipulations(ExtTestCase):
         fcts = ["blackman_window", "hamming_window", "hann_window",
                 "switch_axes", "dft_last_axis", "dft_inv", "dft", "idft",
                 "stft", "istft"]
+
+        # first loop, conversion to function
         data = os.path.join(os.path.dirname(__file__), "data", "fft")
         models = {}
         protos = {}
@@ -743,6 +745,7 @@ class TestOptimOnnxManipulations(ExtTestCase):
         if log:
             print()
 
+        # first loop, inlining functions
         for fct, onx in models.items():
             if log:
                 t = time.perf_counter()
@@ -778,10 +781,12 @@ class TestOptimOnnxManipulations(ExtTestCase):
                     _check_run(fct, inlined)
                 except (RuntimeError, AttributeError, NameError, IndexError) as e:
                     raise AssertionError(
-                        "Unable to run inlined fct %r\n--##--\n--##--\n%s"
-                        "\n--##--\n--##--\n%s\n--##--\n--##--\n%s" % (
+                        "Unable to run inlined function %r"
+                        "\n--##--\n--##--inlined\n%s"
+                        "\n--##--\n--##--not inlined\n%s"
+                        "\n--##--\n--##--log\n%s" % (
                             fct, onnx_simple_text_plot(
-                                inlined, recursive=True),
+                                inlined, recursive=True, raise_exc=False),
                             onnx_simple_text_plot(
                                 onx, recursive=True),
                             "\n".join(map(str, rows)))) from e
@@ -795,8 +800,9 @@ class TestOptimOnnxManipulations(ExtTestCase):
         if log:
             print()
 
+        # third loop, checking inlined functions with onnxruntime
         from onnxruntime import InferenceSession
-        from onnxruntime.capi.onnxruntime_pybind11_state import (
+        from onnxruntime.capi.onnxruntime_pybind11_state import (  # pylint: disable=E0611
             Fail, InvalidArgument, InvalidGraph)
         for fct, onx in models.items():
             if log:
@@ -845,7 +851,7 @@ class TestOptimOnnxManipulations(ExtTestCase):
             inlined, m = onnx_inline_function(
                 model_def, {}, verbose=1 if log else 0, fLOG=print)
             self.assertEqual(len(m), 0)
-            oinf = OnnxInference(model_def)
+            oinf = OnnxInference(inlined)
             oinf.check_model()
             goti = oinf.run(feeds)
             self.assertEqualArray(got['Z'], goti['Z'])
@@ -896,7 +902,8 @@ class TestOptimOnnxManipulations(ExtTestCase):
             oinf.check_model()
             goti = oinf.run(feeds)
             self.assertEqualArray(got['Z'], goti['Z'])
-            self.assertEqualArray(got['Z'], numpy.array([1], dtype=numpy.float32))
+            self.assertEqualArray(
+                got['Z'], numpy.array([1], dtype=numpy.float32))
 
     def test_onnx_inline_subgraph_function2(self, log=False):
         X = helper.make_tensor_value_info(
@@ -957,7 +964,8 @@ class TestOptimOnnxManipulations(ExtTestCase):
             oinf.check_model()
             goti = oinf.run(feeds)
             self.assertEqualArray(got['Z'], goti['Z'])
-            self.assertEqualArray(got['Z'], numpy.array([1], dtype=numpy.float32))
+            self.assertEqualArray(
+                got['Z'], numpy.array([1], dtype=numpy.float32))
 
 
 if __name__ == "__main__":
