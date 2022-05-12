@@ -230,7 +230,7 @@ def enumerate_onnx_names(onx):
         for o in node.output:
             yield o
         for att in node.attribute:
-            if (att.type == AttributeProto.GRAPH and  # pylint: disable=E0611
+            if (att.type == AttributeProto.GRAPH and  # pylint: disable=E0611,E1101
                     hasattr(att, 'g') and att.g is not None):
                 for n in enumerate_onnx_names(att.g):
                     yield n
@@ -254,7 +254,7 @@ def enumerate_onnx_nodes(onx):
     for node in nodes:
         yield node
         for att in node.attribute:
-            if (att.type == AttributeProto.GRAPH and  # pylint: disable=E0611
+            if (att.type == AttributeProto.GRAPH and  # pylint: disable=E0611,E1101
                     hasattr(att, 'g') and att.g is not None):
                 for n in enumerate_onnx_nodes(att.g):
                     yield n

@@ -826,6 +826,41 @@ def onnx_subgraphs_level(obj):
     return best + 1
 
 
+class _inline_mapping(dict):
+    """
+    Overwrites class dictionary to debug more easily.
+
+    :param verbose: verbosity
+    :param fLOG: logging function
+    :param level: sub graph level
+    """
+
+    def __init__(self, verbose, fLOG, level):
+        dict.__init__(self)
+        self._verbose = verbose
+        self._fLOG = fLOG
+        self._level = level
+
+    def __setitem__(self, key, value):
+        "Adds a value."
+        if self._verbose > 3:
+            self._fLOG("[_inline_mapping-dict-addkv] %s + %r: %r" %
+                       ("  " * self._level, key, value))
+        dict.__setitem__(self, key, value)
+
+    def update(self, d):
+        "Updates many values."
+        for k, v in d.items():
+            self[k] = v
+
+    def copy(self):
+        "Returns a copy."
+        m = _inline_mapping(self._verbose, self._fLOG, self._level)
+        for k, v in self.items():
+            m[k] = v
+        return m
+
+
 def _onnx_inline_function_graph(graph, protos, existing_names, mapping,
                                 verbose, fLOG, rename, level):
     if len(graph.node) == 0:
@@ -834,7 +869,7 @@ def _onnx_inline_function_graph(graph, protos, existing_names, mapping,
         if verbose > 1:
             fLOG("[onnx_inline_function-graph] %s visit0 graph=%d rename=%r "
                  "len(mapping)=%d begin" % (
-                    "  " * level, id(graph), rename, len(mapping)))
+                     "  " * level, id(graph), rename, len(mapping)))
         if rename:
             modified_nodes = []
             mapping = mapping.copy()
@@ -863,8 +898,8 @@ def _onnx_inline_function_graph(graph, protos, existing_names, mapping,
         if verbose > 1:
             fLOG("[onnx_inline_function-graph] %s visit graph=%d end "
                  "changed=%r len(modified_nodes)=%d" % (
-                    "  " * level, id(graph0), id(graph0) != id(graph),
-                    len(modified_nodes)))
+                     "  " * level, id(graph0), id(graph0) != id(graph),
+                     len(modified_nodes)))
 
         return graph, modified_nodes
 
@@ -879,7 +914,7 @@ def _onnx_inline_function_graph(graph, protos, existing_names, mapping,
     if verbose > 1:
         fLOG("[onnx_inline_function-graph] %s visit graph=%d rename=%r "
              "len(mapping)=%d begin" % (
-                "  " * level, id(graph), rename, len(mapping)))
+                 "  " * level, id(graph), rename, len(mapping)))
 
     output_names = [o.name for o in outputs]
     for i in init:
@@ -915,7 +950,13 @@ def _onnx_inline_function_graph(graph, protos, existing_names, mapping,
                     "" % (o, node.op_type, node.name, level))
             out.append(new_o)
             mapping[o] = new_o
+            mapping[new_o] = new_o
+            if new_o != o:
+                mod += 1
 
+        if verbose > 3:
+            fLOG("[onnx_inline_function-renam] %s rep node %r(%r): %r -> %r" % (
+                "  " * level, node.op_type, node.name, node.input, node.output))
         new_node = make_node(node.op_type, inp, out, domain=node.domain,
                              name=_get_new_name('_inln', node.name, existing_names))
         for att in node.attribute:
@@ -932,6 +973,11 @@ def _onnx_inline_function_graph(graph, protos, existing_names, mapping,
                     att = make_attribute(att.name, att.g)
             new_node.attribute.append(att)
         if mod > 0:
+            if verbose > 2:
+                fLOG("[onnx_inline_function-renam] %s add node %r(%r): %r -> %r" % (
+                    "  " * level,
+                    new_node.op_type, new_node.name,
+                    new_node.input, new_node.output))
             nodes.append(new_node)
             modified_nodes.append(node)
         else:
@@ -941,7 +987,7 @@ def _onnx_inline_function_graph(graph, protos, existing_names, mapping,
         if verbose > 1:
             fLOG("[onnx_inline_function-graph] %s -1 graph=%d "
                  "len(modified_nodes)=%d" % (
-                    "  " * level, id(graph), len(modified_nodes)))
+                     "  " * level, id(graph), len(modified_nodes)))
 
         graph = make_graph(
             nodes, graph.name, inputs, outputs,
@@ -969,7 +1015,7 @@ def _onnx_inline_function_graph(graph, protos, existing_names, mapping,
             if verbose > 1:
                 fLOG("[onnx_inline_function-graph] %s -2 graph=%d "
                      "len(modified_nodes)=%d" % (
-                        "  " * level, id(graph), len(modified_nodes)))
+                         "  " * level, id(graph), len(modified_nodes)))
 
             nodes = new_nodes
             graph = make_graph(
@@ -980,8 +1026,8 @@ def _onnx_inline_function_graph(graph, protos, existing_names, mapping,
     if verbose > 1:
         fLOG("[onnx_inline_function-graph] %s visit graph=%d end "
              "changed=%r len(modified_nodes)=%d" % (
-                "  " * level, id(graph0), id(graph0) != id(graph),
-                len(modified_nodes)))
+                 "  " * level, id(graph0), id(graph0) != id(graph),
+                 len(modified_nodes)))
 
     return graph, modified_nodes
 
@@ -1001,16 +1047,17 @@ def _onnx_inline_function_node(node, protos, existing_names, verbose,
                     key, type(proto)))
         modified_nodes.append(node)
         new_nodes = []
-        mapping = {}
+        mapping = _inline_mapping(verbose, fLOG, level)
         prefix = "_inl"
 
         for fr, to in zip(node.input, proto.input):
             n = make_node('Identity', [fr],
                           [_get_new_name(prefix, to, existing_names)])
             if verbose > 2:
-                fLOG("[onnx_inline_function] %s add node %r(%r): %r -> %r" % (
+                fLOG("[onnx_inline_function-ninpu] %s add node %r(%r): %r -> %r" % (
                     "  " * level, n.op_type, n.name, n.input, n.output))
             mapping[to] = n.output[0]
+            mapping[n.output[0]] = n.output[0]
             new_nodes.append(n)
 
         for nn in proto.node:
@@ -1019,12 +1066,16 @@ def _onnx_inline_function_node(node, protos, existing_names, verbose,
                           for o in nn.output]
             mapping.update(
                 {o: oo for o, oo in zip(nn.output, new_output)})
+            mapping.update({oo: oo for oo in new_output})
             new_node = make_node(
                 nn.op_type, new_input, new_output,
                 domain=nn.domain, name=_get_new_name(
                     prefix, nn.name, existing_names))
+            if verbose > 3:
+                fLOG("[onnx_inline_function-nnode] %s rep node %r(%r): %r -> %r" % (
+                    "  " * level, nn.op_type, nn.name, nn.input, nn.output))
             if verbose > 2:
-                fLOG("[onnx_inline_function] %s add node %r(%r): %r -> %r" % (
+                fLOG("[onnx_inline_function-nnode] %s add node %r(%r): %r -> %r" % (
                     "  " * level,
                     new_node.op_type, new_node.name,
                     new_node.input, new_node.output))
@@ -1049,7 +1100,7 @@ def _onnx_inline_function_node(node, protos, existing_names, verbose,
         for fr, to in zip(proto.output, node.output):
             n = make_node('Identity', [mapping[fr]], [to])
             if verbose > 2:
-                fLOG("[onnx_inline_function] %s add node %r(%r): %r -> %r" % (
+                fLOG("[onnx_inline_function-noutt] %s add node %r(%r): %r -> %r" % (
                     "  " * level, n.op_type, n.name, n.input, n.output))
             new_nodes.append(n)
     else:
@@ -1159,7 +1210,7 @@ def onnx_inline_function(obj, protos=None, existing_names=None, verbose=0, fLOG=
     while modified > 0 and n_iter < max_iter:
 
         # local context
-        mapping = {}
+        mapping = _inline_mapping(verbose, fLOG, level=0)
         if isinstance(obj, GraphProto):
             mapping.update({i.name: i.name for i in obj.initializer})
             mapping.update({i.name: i.name for i in obj.sparse_initializer})
@@ -1228,7 +1279,7 @@ def onnx_inline_function(obj, protos=None, existing_names=None, verbose=0, fLOG=
     if verbose > 0:
         fLOG("[onnx_inline_function] type=%r graph=%d end with %d "
              "modified nodes" % (
-                type(obj), id(obj), len(modified_nodes)))
+                 type(obj), id(obj), len(modified_nodes)))
         distri2 = Counter((n.domain, n.op_type)
                           for n in enumerate_onnx_nodes(new_nodes))
         if distri != distri2:

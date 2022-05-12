@@ -1,5 +1,5 @@
 """
-@brief      test log(time=20s)
+@brief      test log(time=3s)
 """
 import unittest
 import os
@@ -755,7 +755,7 @@ class TestOptimOnnxManipulations(ExtTestCase):
                 f.write(onx.SerializeToString())
             with open(os.path.join(temp, fct + '.txt'), 'w') as f:
                 f.write(helper.printable_graph(onx.graph))
-            verbose = 2
+            verbose = 4
             if log:
                 ti = time.perf_counter()
             try:
@@ -763,7 +763,9 @@ class TestOptimOnnxManipulations(ExtTestCase):
                     onx, protos, verbose=verbose, fLOG=myprint)
             except RuntimeError as e:
                 raise AssertionError(
-                    "Unable to inline function %r\n%s" % (fct, "\n".join(rows))) from e
+                    "Unable to inline function %r\n%s\n#####\n%s" % (
+                        fct, "\n".join(rows),
+                        onnx_simple_text_plot(onx, recursive=True))) from e
             if log:
                 print("TIME  INLIN", fct, time.perf_counter() - ti)
             distri = Counter((n.domain, n.op_type)
@@ -954,7 +956,7 @@ class TestOptimOnnxManipulations(ExtTestCase):
                 print(rt)
             oinf = OnnxInference(model_def, runtime=rt)
             oinf.check_model()
-            got = oinf.run(feeds, verbose=3, fLOG=print)
+            got = oinf.run(feeds)
 
             inlined, m = onnx_inline_function(
                 model_def, verbose=1 if log else 0, fLOG=print)
@@ -1061,5 +1063,5 @@ class TestOptimOnnxManipulations(ExtTestCase):
 
 
 if __name__ == "__main__":
-    TestOptimOnnxManipulations().test_onnx_inline_function_fft(True)
+    # TestOptimOnnxManipulations().test_onnx_inline_function_fft(True)
     unittest.main()

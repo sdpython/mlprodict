@@ -1,4 +1,4 @@
-# pylint: disable=R0912
+# pylint: disable=R0912,R0914
 """
 @file
 @brief Text representations of graphs.
