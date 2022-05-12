@@ -2,7 +2,7 @@
 @file
 @brief Functions to manipulate ONNX file.
 """
-from onnx import helper
+from onnx import helper, AttributeProto
 
 
 def find_node_name(model, name):
@@ -82,7 +82,7 @@ def insert_node(model, op_type, node, input_index=0, new_name=None, **attrs):
     graph = helper.make_graph(
         keep_nodes, model.graph.name, model.graph.input,
         model.graph.output, model.graph.initializer)
-    onnx_model = helper.make_model(graph)
+    onnx_model = helper.make_model(graph, functions=model.functions)
     onnx_model.ir_version = model.ir_version
     onnx_model.producer_name = model.producer_name
     onnx_model.producer_version = model.producer_version
@@ -189,3 +189,72 @@ def ensure_topological_order(inputs, initializers, nodes):
     topo.sort()
     map_nodes = {str(id(node)): node for node in nodes}
     return [map_nodes[_[1]] for _ in topo]
+
+
+def enumerate_onnx_names(onx):
+    """
+    Enumerates all existing names in one ONNX graph
+    (:epkg:`ModelProto`, :epkg:`FunctionProto`, :epkg:`GraphProto`).
+    The function is recursive.
+
+    :param onx: one onnx object
+    :return: iterator on names
+    """
+    if hasattr(onx, 'graph'):
+        for i in onx.graph.initializer:
+            yield i.name
+        for i in onx.graph.input:
+            yield i.name
+        for i in onx.graph.output:
+            yield i.name
+        nodes = onx.graph.node
+    elif hasattr(onx, 'initializer'):
+        for i in onx.initializer:
+            yield i.name
+        for i in onx.input:
+            yield i.name
+        for i in onx.output:
+            yield i.name
+        nodes = onx.node
+    else:
+        if hasattr(onx, 'input'):
+            for i in onx.input:
+                yield i
+        if hasattr(onx, 'output'):
+            for i in onx.output:
+                yield i
+        nodes = onx.node
+    for node in nodes:
+        for i in node.input:
+            yield i
+        for o in node.output:
+            yield o
+        for att in node.attribute:
+            if (att.type == AttributeProto.GRAPH and  # pylint: disable=E0611,E1101
+                    hasattr(att, 'g') and att.g is not None):
+                for n in enumerate_onnx_names(att.g):
+                    yield n
+
+
+def enumerate_onnx_nodes(onx):
+    """
+    Enumerates all nodes in one ONNX graph
+    (:epkg:`ModelProto`, :epkg:`FunctionProto`, :epkg:`GraphProto`).
+    The function is recursive.
+
+    :param onx: one onnx object
+    :return: iterator on names
+    """
+    if isinstance(onx, list):
+        nodes = onx
+    elif hasattr(onx, 'graph'):
+        nodes = onx.graph.node
+    else:
+        nodes = onx.node
+    for node in nodes:
+        yield node
+        for att in node.attribute:
+            if (att.type == AttributeProto.GRAPH and  # pylint: disable=E0611,E1101
+                    hasattr(att, 'g') and att.g is not None):
+                for n in enumerate_onnx_nodes(att.g):
+                    yield n

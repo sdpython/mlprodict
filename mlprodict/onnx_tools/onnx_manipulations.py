@@ -1,12 +1,23 @@
+# pylint: disable=E1101, C0302
 """
 @file
 @brief Implements a class able to compute the predictions
 from on an :epkg:`ONNX` model.
 """
 import hashlib
-from onnx import helper, shape_inference
+from collections import Counter
+import pprint
+from onnx import (
+    shape_inference, ModelProto, FunctionProto, GraphProto,
+    AttributeProto)
+from onnx.helper import (
+    make_tensor_value_info, ValueInfoProto, set_model_props,
+    make_graph, make_function, make_model, make_node,
+    make_operatorsetid, make_attribute, make_value_info)
 from .onnx2py_helper import guess_proto_dtype, from_array
 from .optim import onnx_remove_node_unused
+from .onnx_tools import enumerate_onnx_names, enumerate_onnx_nodes
+from ..onnx_tools.onnx2py_helper import _var_as_dict, from_array
 
 
 def enumerate_model_node_outputs(model, add_node=False, order=False):
@@ -192,13 +203,13 @@ def select_model_inputs_outputs(model, outputs=None, inputs=None,
         if overwrite is not None and name in overwrite:
             dtype, shape = overwrite[name]
             proto_dtype = guess_proto_dtype(dtype)
-            value_info = helper.make_tensor_value_info(
+            value_info = make_tensor_value_info(
                 name, proto_dtype, shape)
         elif name in known_shapes:
             info = known_shapes[name].tensor_type
             proto_dtype = info.elem_type
             if proto_dtype == 0:
-                value_info = helper.ValueInfoProto()
+                value_info = ValueInfoProto()
                 value_info.name = name
             else:
                 shape = [getattr(d, 'dim_value', None) for d in info.shape.dim]
@@ -206,10 +217,10 @@ def select_model_inputs_outputs(model, outputs=None, inputs=None,
                     shape = None
                 else:
                     shape = [None if s == 0 else s for s in shape]
-                value_info = helper.make_tensor_value_info(
+                value_info = make_tensor_value_info(
                     name, proto_dtype, shape)
         else:
-            value_info = helper.ValueInfoProto()
+            value_info = ValueInfoProto()
             value_info.name = name
         var_in.append(value_info)
 
@@ -218,13 +229,13 @@ def select_model_inputs_outputs(model, outputs=None, inputs=None,
         if overwrite is not None and name in overwrite:
             dtype, shape = overwrite[name]
             proto_dtype = guess_proto_dtype(dtype)
-            value_info = helper.make_tensor_value_info(
+            value_info = make_tensor_value_info(
                 name, proto_dtype, shape)
         elif name in known_shapes:
             info = known_shapes[name].tensor_type
             proto_dtype = info.elem_type
             if proto_dtype == 0:
-                value_info = helper.ValueInfoProto()
+                value_info = ValueInfoProto()
                 value_info.name = name
             else:
                 shape = [getattr(d, 'dim_value', None) for d in info.shape.dim]
@@ -232,10 +243,10 @@ def select_model_inputs_outputs(model, outputs=None, inputs=None,
                     shape = None
                 else:
                     shape = [None if s == 0 else s for s in shape]
-                value_info = helper.make_tensor_value_info(
+                value_info = make_tensor_value_info(
                     name, proto_dtype, shape)
         else:
-            value_info = helper.ValueInfoProto()
+            value_info = ValueInfoProto()
             value_info.name = name
         var_out.append(value_info)
 
@@ -245,9 +256,10 @@ def select_model_inputs_outputs(model, outputs=None, inputs=None,
         fLOG("[select_model_inputs_outputs] inputs: %r" % var_in)
         fLOG("[select_model_inputs_outputs] inputs: %r" % var_out)
 
-    graph = helper.make_graph(keep_nodes, model.graph.name, var_in,
-                              var_out, model.graph.initializer)
-    onnx_model = helper.make_model(graph)
+    graph = make_graph(keep_nodes, model.graph.name, var_in,
+                       var_out, model.graph.initializer,
+                       sparse_initializer=model.graph.sparse_initializer)
+    onnx_model = make_model(graph, functions=model.functions)
     onnx_model.ir_version = model.ir_version
     onnx_model.producer_name = model.producer_name
     onnx_model.producer_version = model.producer_version
@@ -256,7 +268,7 @@ def select_model_inputs_outputs(model, outputs=None, inputs=None,
     onnx_model.doc_string = model.doc_string
     if len(model.metadata_props) > 0:  # pragma: no cover
         values = {p.key: p.value for p in model.metadata_props}
-        helper.set_model_props(onnx_model, values)
+        set_model_props(onnx_model, values)
 
     del onnx_model.opset_import[:]  # pylint: disable=E1101
     for oimp in model.opset_import:
@@ -271,6 +283,48 @@ def select_model_inputs_outputs(model, outputs=None, inputs=None,
     return onnx_model
 
 
+def change_input_type(onx, changes):
+    """
+    Changes the input type of an input.
+
+    :param onx: ONNX model
+    :param changes: dictionary '{ name: new proto element type }`
+    :return: new onx
+    """
+    new_inputs = []
+    for inp in onx.graph.input:
+        if inp.name not in changes:
+            new_inputs.append(inp)
+            continue
+        value_info = make_tensor_value_info(
+            inp.name, changes[inp.name], None)
+        new_inputs.append(value_info)
+
+    # final
+    graph = make_graph(list(onx.graph.node),
+                       onx.graph.name, new_inputs,
+                       list(onx.graph.output),
+                       onx.graph.initializer,
+                       sparse_initializer=onx.graph.sparse_initializer)
+    onnx_model = make_model(graph, functions=onx.functions)
+    onnx_model.ir_version = onx.ir_version
+    onnx_model.producer_name = onx.producer_name
+    onnx_model.producer_version = onx.producer_version
+    onnx_model.domain = onx.domain
+    onnx_model.model_version = onx.model_version
+    onnx_model.doc_string = onx.doc_string
+    if len(onx.metadata_props) > 0:  # pragma: no cover
+        values = {p.key: p.value for p in onx.metadata_props}
+        set_model_props(onnx_model, values)
+
+    del onnx_model.opset_import[:]  # pylint: disable=E1101
+    for oimp in onx.opset_import:
+        op_set = onnx_model.opset_import.add()  # pylint: disable=E1101
+        op_set.domain = oimp.domain
+        op_set.version = oimp.version
+    return onnx_model
+
+
 def overwrite_opset(model, new_opset):
     """
     Overwrites the main opset in an ONNX file.
@@ -280,10 +334,11 @@ def overwrite_opset(model, new_opset):
     :param new_opset: new opset
     :return: ONNX model
     """
-    graph = helper.make_graph(
+    graph = make_graph(
         model.graph.node, model.graph.name, model.graph.input,
-        model.graph.output, model.graph.initializer)
-    onnx_model = helper.make_model(graph)
+        model.graph.output, model.graph.initializer,
+        sparse_initializer=model.graph.sparse_initializer)
+    onnx_model = make_model(graph, functions=model.functions)
     onnx_model.ir_version = model.ir_version
     onnx_model.producer_name = model.producer_name
     onnx_model.producer_version = model.producer_version
@@ -292,7 +347,7 @@ def overwrite_opset(model, new_opset):
     onnx_model.doc_string = model.doc_string
     if len(model.metadata_props) > 0:  # pragma: no cover
         values = {p.key: p.value for p in model.metadata_props}
-        helper.set_model_props(onnx_model, values)
+        set_model_props(onnx_model, values)
 
     del onnx_model.opset_import[:]  # pylint: disable=E1101
     for oimp in model.opset_import:
@@ -308,7 +363,12 @@ def overwrite_opset(model, new_opset):
 
 def hash_onnx_object(obj, max_size):
     """
-    Hash the content of an object.
+    Hashes the content of an object.
+    It uses module :mod:`hashlib`.
+
+    :param obj: onnx graph (it must have a method `SerializeToString`)
+    :param max_size: size of the hash
+    :return: hash
     """
     m = hashlib.sha256()
     if hasattr(obj, 'op_type'):
@@ -467,6 +527,8 @@ def onnx_rename_names(model, strategy='simple', recursive=True,
 
     for init in graph.initializer:
         init.name = get_name_init(init)
+    for init in graph.sparse_initializer:
+        init.name = get_name_init(init)
 
     for node in graph.node:
         node.name = get_name_node(node)
@@ -492,7 +554,7 @@ def insert_results_into_onnx(model, results, as_parameter=True, suffix='_DBG',
                              domain='DEBUG', domain_opset=1):
     """
     Inserts results into an ONNX graph to produce an extended
-    ONNX graph. It can saved and looked into with a tool such as
+    ONNX graph. It can be saved and looked into with a tool such as
     :epkg:`netron`.
 
     :param model: ONNX graph
@@ -519,11 +581,13 @@ def insert_results_into_onnx(model, results, as_parameter=True, suffix='_DBG',
     inputs = list(model.graph.input)
     outputs = list(model.graph.output)
     inits = list(model.graph.initializer)
+    inits_sparse = list(model.graph.sparse_initializer)
     nodes = {id(n): n for n in model.graph.node}
     order = {id(n): i for i, n in enumerate(model.graph.node)}
     nodes_copy = {}
 
-    names_init = set(init.name for init in inits)
+    names_init = (set(init.name for init in inits) |
+                  set(init.name for init in inits_sparse))
     names_input = set(init.name for init in inputs)
     names_output = {}
     for node in nodes.values():
@@ -548,7 +612,7 @@ def insert_results_into_onnx(model, results, as_parameter=True, suffix='_DBG',
         new_name = k + suffix
 
         if id(node) not in nodes_copy:
-            new_node = helper.make_node(
+            new_node = make_node(
                 node.op_type, list(node.input), list(node.output),
                 domain=node.domain if node.domain else None,
                 name=node.name + suffix)
@@ -561,13 +625,13 @@ def insert_results_into_onnx(model, results, as_parameter=True, suffix='_DBG',
         if as_parameter:
             pname = k if param_name is None else param_name(k)
             atts = {pname: from_array(v, name=pname)}
-            inserted_node = helper.make_node(
+            inserted_node = make_node(
                 node_type, [new_name], [k], domain=domain,
                 **atts)
         else:
             pname = k if param_name is None else param_name(k)
             pname += suffix + 'i'
-            inserted_node = helper.make_node(
+            inserted_node = make_node(
                 node_type, [new_name, pname], [k], domain=domain)
             inits.append(from_array(v, name=pname))
 
@@ -579,9 +643,9 @@ def insert_results_into_onnx(model, results, as_parameter=True, suffix='_DBG',
     new_nodes.extend((order[id(n)], n) for n in nodes_copy.values())
     new_nodes = [n[1] for n in sorted(new_nodes)]
 
-    graph = helper.make_graph(new_nodes, model.graph.name, inputs,
-                              outputs, inits)
-    onnx_model = helper.make_model(graph)
+    graph = make_graph(new_nodes, model.graph.name, inputs, outputs,
+                       inits, sparse_initializer=inits_sparse)
+    onnx_model = make_model(graph, functions=model.functions)
     onnx_model.ir_version = model.ir_version
     onnx_model.producer_name = model.producer_name
     onnx_model.producer_version = model.producer_version
@@ -590,7 +654,7 @@ def insert_results_into_onnx(model, results, as_parameter=True, suffix='_DBG',
     onnx_model.doc_string = model.doc_string
     if len(model.metadata_props) > 0:  # pragma: no cover
         values = {p.key: p.value for p in model.metadata_props}
-        helper.set_model_props(onnx_model, values)
+        set_model_props(onnx_model, values)
 
     del onnx_model.opset_import[:]  # pylint: disable=E1101
     for oimp in model.opset_import:
@@ -601,3 +665,647 @@ def insert_results_into_onnx(model, results, as_parameter=True, suffix='_DBG',
     op_set.domain = domain
     op_set.version = domain_opset
     return onnx_model
+
+
+def onnx_model_to_function(onx, name=None, domain="custom",
+                           opset_imports=None, doc_string=None):
+    """
+    Converts an ONNX model into a function. The returned function
+    has no attribute.
+
+    :param onx: onnx model
+    :param name: function name
+    :param domain: function domain
+    :param opset_imports: opset to import as a dictionary
+        `{domain: version}`
+    :param doc_string: doc string
+    :return: function
+    """
+    if isinstance(onx, ModelProto):
+        if opset_imports is None:
+            domains = {}
+            for op in onx.opset_import:
+                domains[op.domain] = op.version
+            opset_imports = domains
+        if doc_string is None:
+            doc_string = onx.doc_string
+        return onnx_model_to_function(
+            onx.graph, name=name, domain=domain,
+            opset_imports=opset_imports, doc_string=doc_string)
+
+    if not isinstance(onx, GraphProto):
+        raise TypeError(  # pragma: no cover
+            "Unexpected type %r for onx." % type(onx))
+
+    if name is None:
+        name = onx.name
+
+    inputs = [i.name for i in onx.input]
+    outputs = [o.name for o in onx.output]
+
+    if len(onx.initializer) > 0 or len(onx.sparse_initializer) > 0:
+        # Needs to convert every initializer into Constant.
+        csts = []
+        for init in onx.initializer:
+            v = _var_as_dict(init)
+            value = from_array(v['value'])
+            n = make_node('Constant', [], [init.name], value=value)
+            csts.append(n)
+        for init in onx.sparse_initializer:
+            v = _var_as_dict(init)
+            value = from_array(v['sparse_value'])
+            n = make_node('Constant', [], [init.name], sparse_value=value)
+            csts.append(n)
+        nodes = csts + list(onx.node)
+    else:
+        nodes = onx.node
+    if isinstance(opset_imports, dict):
+        ops = [make_operatorsetid(k, v) for k, v in opset_imports.items()]
+        opset_imports = ops
+    return make_function(
+        domain, name, inputs, outputs, nodes,
+        opset_imports=opset_imports, doc_string=doc_string or '')
+
+
+def _onnx_function_to_model_convert_io(ens, type_info):
+    typed_io = []
+    for name in ens:
+        if isinstance(name, dict):
+            res = type_info[name]
+        elif callable(type_info):
+            res = type_info(name)
+        else:
+            raise TypeError(
+                "type_info is not a callable or a dictionary, "
+                "unable to guess type for name=%r." % (name, ))
+        proto_dtype = guess_proto_dtype(res)
+        value_info = make_tensor_value_info(name, proto_dtype, None)
+        typed_io.append(value_info)
+    return typed_io
+
+
+def onnx_function_to_model(onx, functions=None, type_info=None,
+                           as_function=False):
+    """
+    Converts an ONNX FunctionProto into a ModelProto.
+    The function does not handle attributes yet.
+
+    :param onx: onnx function
+    :param functions: additional functions to append to the model
+    :param type_info: dictionary or callable which returns the type of
+        inputs or outputs if it cannot be guessed
+    :param as_function: if True, the function stays as a function and a single node
+        is created to call that function
+    :return: function
+    """
+    if not isinstance(onx, FunctionProto):
+        raise TypeError(  # pragma: no cover
+            "onx must be a FunctionProto not %r." % type(onx))
+    if len(onx.attribute) > 0:
+        raise NotImplementedError(
+            "The function has attributes, it is not implemented yet.")
+
+    if isinstance(functions, list):
+        added_functions = functions.copy()
+    elif isinstance(functions, dict):
+        added_functions = list(functions.values())
+    elif functions is None:
+        added_functions = []
+    else:
+        raise TypeError(
+            "Unexpected type for functions %r." % type(functions))
+
+    inputs = _onnx_function_to_model_convert_io(onx.input, type_info)
+    outputs = _onnx_function_to_model_convert_io(onx.output, type_info)
+    if as_function:
+        nodes = [make_node(onx.name,
+                           [i.name for i in inputs],
+                           [o.name for o in outputs],
+                           domain=onx.domain)]
+        added_functions.append(onx)
+        opsets = [make_operatorsetid(onx.domain, onx.version)]
+    else:
+        nodes = list(onx.node)
+        opsets = [make_operatorsetid(op.domain, op.version)
+                  for op in onx.opset_import]
+    graph = make_graph(nodes, onx.name, inputs, outputs,
+                       [], doc_string=onx.doc_string)
+    model = make_model(graph, functions=added_functions,
+                       opset_imports=opsets,
+                       doc_string=onx.doc_string)
+    return model
+
+
+def _get_new_name(prefix, name, existing_names):
+    opt = "%s_%s_0" % (prefix, name)
+    i = 0
+    while opt in existing_names:
+        i += 1
+        opt = "%s_%s_%d" % (prefix, name, i)
+    existing_names.add(opt)
+    return opt
+
+
+def onnx_subgraphs_level(obj):
+    """
+    Returns the depth of the graph.
+
+    :param obj: onnx object
+    :return: integer
+    """
+    if isinstance(obj, ModelProto):
+        return onnx_subgraphs_level(obj.graph)
+    best = 0
+    for node in obj.node:
+        for att in node.attribute:
+            if (att.type == AttributeProto.GRAPH and
+                    hasattr(att, 'g') and att.g is not None):
+                m = onnx_subgraphs_level(att.g)
+                if m > best:
+                    best = m
+    return best + 1
+
+
+class _inline_mapping(dict):
+    """
+    Overwrites class dictionary to debug more easily.
+
+    :param verbose: verbosity
+    :param fLOG: logging function
+    :param level: sub graph level
+    """
+
+    def __init__(self, verbose, fLOG, level):
+        dict.__init__(self)
+        self._verbose = verbose
+        self._fLOG = fLOG
+        self._level = level
+
+    def __setitem__(self, key, value):
+        "Adds a value."
+        if self._verbose > 3:
+            self._fLOG("[_inline_mapping-dict-addkv] %s + %r: %r" %
+                       ("  " * self._level, key, value))
+        dict.__setitem__(self, key, value)
+
+    def update(self, d):
+        "Updates many values."
+        for k, v in d.items():
+            self[k] = v
+
+    def copy(self):
+        "Returns a copy."
+        m = _inline_mapping(self._verbose, self._fLOG, self._level)
+        for k, v in self.items():
+            m[k] = v
+        return m
+
+
+def _onnx_inline_function_graph(graph, protos, existing_names, mapping,
+                                verbose, fLOG, rename, level):
+    if len(graph.node) == 0:
+        # Outputs have still to be renamed.
+        graph0 = graph
+        if verbose > 1:
+            fLOG("[onnx_inline_function-graph] %s visit0 graph=%d rename=%r "
+                 "len(mapping)=%d begin" % (
+                     "  " * level, id(graph), rename, len(mapping)))
+        if rename:
+            modified_nodes = []
+            mapping = mapping.copy()
+            for i in graph.input:
+                mapping[i.name] = i.name
+            for i in graph.initializer:
+                mapping[i.name] = i.name
+            for i in graph.sparse_initializer:
+                mapping[i.name] = i.name
+            outputs = []
+            for o in graph.output:
+                no = make_value_info(mapping[o.name], o.type)
+                if no.name != o.name:
+                    modified_nodes.append(o)
+                    outputs.append(no)
+                else:
+                    outputs.append(o)
+            if len(modified_nodes) > 0:
+                graph = make_graph(
+                    [], graph.name, graph.input, outputs,
+                    graph.initializer, doc_string=graph.doc_string,
+                    sparse_initializer=list(graph.sparse_initializer))
+        else:
+            modified_nodes = []
+
+        if verbose > 1:
+            fLOG("[onnx_inline_function-graph] %s visit graph=%d end "
+                 "changed=%r len(modified_nodes)=%d" % (
+                     "  " * level, id(graph0), id(graph0) != id(graph),
+                     len(modified_nodes)))
+
+        return graph, modified_nodes
+
+    graph0 = graph
+    mapping = mapping.copy()
+    init = list(graph.initializer)
+    init_sparse = list(graph.sparse_initializer)
+    inputs = list(graph.input)
+    modified_nodes = []
+    outputs = list(graph.output)
+
+    if verbose > 1:
+        fLOG("[onnx_inline_function-graph] %s visit graph=%d rename=%r "
+             "len(mapping)=%d begin" % (
+                 "  " * level, id(graph), rename, len(mapping)))
+
+    output_names = [o.name for o in outputs]
+    for i in init:
+        mapping[i.name] = i.name
+    for i in init_sparse:
+        mapping[i.name] = i.name
+    for i in inputs:
+        mapping[i.name] = i.name
+
+    # first step, replace names
+    nodes = []
+    for node in graph.node:
+        mod = 0
+        inp = []
+        for i in node.input:
+            if i in mapping:
+                inp.append(mapping[i])
+                if mapping[i] != i:
+                    mod += 1
+            else:
+                raise RuntimeError(  # pragma: no cover
+                    "Cannot find input %r in %s for node (level=%d)\n%r." % (
+                        i, pprint.pformat(mapping), level, node))
+        out = []
+        for o in node.output:
+            new_o = o
+            if rename:
+                if o not in output_names:
+                    new_o = _get_new_name('_inl', o, existing_names)
+            elif o in mapping:
+                raise RuntimeError(
+                    "Output %r in node (%r, %r) (level=%d) is already known."
+                    "" % (o, node.op_type, node.name, level))
+            out.append(new_o)
+            mapping[o] = new_o
+            mapping[new_o] = new_o
+            if new_o != o:
+                mod += 1
+
+        if verbose > 3:
+            fLOG("[onnx_inline_function-renam] %s rep node %r(%r): %r -> %r" % (
+                "  " * level, node.op_type, node.name, node.input, node.output))
+        new_node = make_node(node.op_type, inp, out, domain=node.domain,
+                             name=_get_new_name('_inln', node.name, existing_names))
+        for att in node.attribute:
+            if (att.type == AttributeProto.GRAPH and
+                    hasattr(att, 'g') and att.g is not None):
+                g, m = _onnx_inline_function_graph(
+                    att.g, protos, existing_names=existing_names,
+                    verbose=verbose, fLOG=fLOG, mapping=mapping,
+                    rename=rename, level=level + 1)
+                if len(m) > 0:
+                    att = make_attribute(att.name, g)
+                    mod += len(m)
+                else:
+                    att = make_attribute(att.name, att.g)
+            new_node.attribute.append(att)
+        if mod > 0:
+            if verbose > 2:
+                fLOG("[onnx_inline_function-renam] %s add node %r(%r): %r -> %r" % (
+                    "  " * level,
+                    new_node.op_type, new_node.name,
+                    new_node.input, new_node.output))
+            nodes.append(new_node)
+            modified_nodes.append(node)
+        else:
+            nodes.append(node)
+
+    if len(modified_nodes) > 0:
+        if verbose > 1:
+            fLOG("[onnx_inline_function-graph] %s -1 graph=%d "
+                 "len(modified_nodes)=%d" % (
+                     "  " * level, id(graph), len(modified_nodes)))
+
+        graph = make_graph(
+            nodes, graph.name, inputs, outputs,
+            init, doc_string=graph.doc_string,
+            sparse_initializer=list(graph.sparse_initializer))
+    elif not rename:
+        # no modification, let's check the node hiding a functions
+        new_nodes = []
+        for node in nodes:
+            nnodes, m = _onnx_inline_function_node(
+                node, protos, existing_names, verbose, fLOG,
+                level=level)
+            if len(m) > 0:
+                if verbose > 0:
+                    fLOG("[onnx_inline_function-subgr] %s replaced node %r (%r) "
+                         "with %d nodes (id=%r) -- %r -> %r" % (
+                             "  " * level,
+                             node.name, node.op_type, len(nnodes), id(node),
+                             node.input, node.output))
+                new_nodes.extend(nnodes)
+                modified_nodes.extend(m)
+            else:
+                new_nodes.append(node)
+        if len(modified_nodes) > 0:
+            if verbose > 1:
+                fLOG("[onnx_inline_function-graph] %s -2 graph=%d "
+                     "len(modified_nodes)=%d" % (
+                         "  " * level, id(graph), len(modified_nodes)))
+
+            nodes = new_nodes
+            graph = make_graph(
+                nodes, graph.name, inputs, outputs,
+                init, doc_string=graph.doc_string,
+                sparse_initializer=list(graph.sparse_initializer))
+
+    if verbose > 1:
+        fLOG("[onnx_inline_function-graph] %s visit graph=%d end "
+             "changed=%r len(modified_nodes)=%d" % (
+                 "  " * level, id(graph0), id(graph0) != id(graph),
+                 len(modified_nodes)))
+
+    return graph, modified_nodes
+
+
+def _onnx_inline_function_node(node, protos, existing_names, verbose,
+                               fLOG, level):
+    # The function does not rename input or output
+    # of the node, it just replaces the node but a function
+    # if the function exists.
+    modified_nodes = []
+    key = node.domain, node.op_type
+    if key in protos:
+        proto = protos[key]
+        if not isinstance(proto, FunctionProto):
+            raise TypeError(
+                "Prototype for key=%r must be a Function Proto, not %r." % (
+                    key, type(proto)))
+        modified_nodes.append(node)
+        new_nodes = []
+        mapping = _inline_mapping(verbose, fLOG, level)
+        prefix = "_inl"
+
+        for fr, to in zip(node.input, proto.input):
+            n = make_node('Identity', [fr],
+                          [_get_new_name(prefix, to, existing_names)])
+            if verbose > 2:
+                fLOG("[onnx_inline_function-ninpu] %s add node %r(%r): %r -> %r" % (
+                    "  " * level, n.op_type, n.name, n.input, n.output))
+            mapping[to] = n.output[0]
+            mapping[n.output[0]] = n.output[0]
+            new_nodes.append(n)
+
+        for nn in proto.node:
+            new_input = [mapping[i] for i in nn.input]
+            new_output = [_get_new_name(prefix, o, existing_names)
+                          for o in nn.output]
+            mapping.update(
+                {o: oo for o, oo in zip(nn.output, new_output)})
+            mapping.update({oo: oo for oo in new_output})
+            new_node = make_node(
+                nn.op_type, new_input, new_output,
+                domain=nn.domain, name=_get_new_name(
+                    prefix, nn.name, existing_names))
+            if verbose > 3:
+                fLOG("[onnx_inline_function-nnode] %s rep node %r(%r): %r -> %r" % (
+                    "  " * level, nn.op_type, nn.name, nn.input, nn.output))
+            if verbose > 2:
+                fLOG("[onnx_inline_function-nnode] %s add node %r(%r): %r -> %r" % (
+                    "  " * level,
+                    new_node.op_type, new_node.name,
+                    new_node.input, new_node.output))
+            for att in nn.attribute:
+                if (att.type == AttributeProto.GRAPH and
+                        hasattr(att, 'g') and att.g is not None):
+                    if verbose > 1:
+                        fLOG("[onnx_inline_function-funct] %s fct=%r graph=%d node=%d" % (
+                            "  " * level, key, id(att.g), id(new_node)))
+
+                    g, m = _onnx_inline_function_graph(
+                        att.g, protos, existing_names=existing_names,
+                        verbose=verbose, fLOG=fLOG, mapping=mapping,
+                        rename=True, level=level + 1)
+                    if len(m) > 0:
+                        att = make_attribute(att.name, g)
+                    else:
+                        att = make_attribute(att.name, att.g)
+                new_node.attribute.append(att)
+            new_nodes.append(new_node)
+
+        for fr, to in zip(proto.output, node.output):
+            n = make_node('Identity', [mapping[fr]], [to])
+            if verbose > 2:
+                fLOG("[onnx_inline_function-noutt] %s add node %r(%r): %r -> %r" % (
+                    "  " * level, n.op_type, n.name, n.input, n.output))
+            new_nodes.append(n)
+    else:
+        new_nodes = [node]
+        modified_nodes = []
+    return new_nodes, modified_nodes
+
+
+def onnx_inline_function(obj, protos=None, existing_names=None, verbose=0, fLOG=None):
+    """
+    Inlines functions in an ONNX graph.
+
+    :param obj: onnx graph, :epkg:`FunctionProto`, :epkg:`GraphProto`,
+        :epkg:`ModelProto`
+    :param protos: if None, the function assumes *obj* is of type
+        :epkg:`ModelProto` and the goal is to inline every function.
+        If *protos* a list of strings, the function only inlines the
+        functions in that list. If *protos* is a dictionary
+        `{ (domain, type): FunctionProto }`, the function replaces every
+        node `(domain, type)` by the code given in this dictionary
+    :param existing_names: no new name will be taken in that set
+    :param verbose: verbosity
+    :param fLOG: logging function
+    :return: modified object, list of modified nodes
+
+    .. versionadded:: 0.9
+    """
+    if verbose > 0 and fLOG is None:
+        fLOG = print
+    if isinstance(obj, ModelProto):
+        if verbose > 0:
+            fLOG("[onnx_inline_function] type=%r graph=%d" % (
+                type(obj), id(obj)))
+        if protos is None:
+            fct = [f.name for f in obj.functions]
+            ex_names = set(enumerate_onnx_names(obj))
+            if existing_names is not None:
+                ex_names |= existing_names
+            return onnx_inline_function(obj, fct, existing_names=ex_names,
+                                        verbose=verbose, fLOG=fLOG)
+        if isinstance(protos, list):
+            ex_names = set(enumerate_onnx_names(obj))
+            if existing_names is not None:
+                ex_names |= existing_names
+            protos = {(f.domain, f.name): f for f in obj.functions}
+            return onnx_inline_function(obj, protos, existing_names=ex_names,
+                                        verbose=verbose, fLOG=fLOG)
+    if isinstance(protos, list):
+        protos = {(f.domain, f.name): f for f in protos}
+    if not isinstance(protos, dict):
+        raise TypeError(
+            "obj is of type %r and protos must be a dictionary not %r." % (
+                type(obj), type(protos)))
+
+    if isinstance(obj, ModelProto):
+        new_graph, m = onnx_inline_function(
+            obj.graph, protos, verbose=verbose, fLOG=fLOG)
+        if len(new_graph.initializer) != len(obj.graph.initializer):
+            raise RuntimeError(  # pragma: no cover
+                "Mismatched number of initializers %d != %d." % (
+                    len(new_graph.initializer), len(obj.graph.initializer)))
+        if len(new_graph.sparse_initializer) != len(obj.graph.sparse_initializer):
+            raise RuntimeError(  # pragma: no cover
+                "Mismatched number of initializers %d != %d." % (
+                    len(new_graph.sparse_initializer),
+                    len(obj.graph.sparse_initializer)))
+        new_functions = []
+        distri = Counter(
+            (n.domain, n.op_type)
+            for n in enumerate_onnx_nodes(new_graph))
+        for f in obj.functions:
+            key = f.domain, f.name
+            if key not in protos:
+                new_functions.append(f)
+            elif key in distri:
+                raise RuntimeError(  # pragma: no cover
+                    "Function %r still appears in the graph, "
+                    "distibution=%s." % (key, pprint.pformat(distri)))
+        return (
+            make_model(
+                new_graph,
+                functions=new_functions,
+                opset_imports=[
+                    make_operatorsetid(op.domain, op.version)
+                    for op in obj.opset_import],
+                producer_name=obj.producer_name,
+                producer_version=obj.producer_version,
+                ir_version=obj.ir_version,
+                doc_string=obj.doc_string),
+            m)
+
+    # FunctionProto, GraphProto
+    if existing_names is None:
+        existing_names = set(enumerate_onnx_names(obj))
+
+    if verbose > 0:
+        fLOG("[onnx_inline_function] type=%r graph=%d begin" % (
+            type(obj), id(obj)))
+        distri = Counter((n.domain, n.op_type)
+                         for n in enumerate_onnx_nodes(obj))
+
+    new_nodes = list(obj.node)
+    modified_nodes = []
+    n_iter = 0
+    max_iter = onnx_subgraphs_level(obj) + 1
+    modified = 1
+    while modified > 0 and n_iter < max_iter:
+
+        # local context
+        mapping = _inline_mapping(verbose, fLOG, level=0)
+        if isinstance(obj, GraphProto):
+            mapping.update({i.name: i.name for i in obj.initializer})
+            mapping.update({i.name: i.name for i in obj.sparse_initializer})
+            mapping.update({i.name: i.name for i in obj.input})
+        elif isinstance(obj, FunctionProto):
+            mapping.update({i: i for i in obj.input})
+        else:
+            raise TypeError(  # pragma: no cover
+                "Unexpected type for obj: %r." % type(obj))
+
+        # loop on nodes
+        old_nodes = new_nodes
+        modified = 0
+        new_nodes = []
+        for node in old_nodes:
+            nnodes, m = _onnx_inline_function_node(
+                node, protos, existing_names, verbose, fLOG, level=0)
+            mapping.update({o: o for o in node.output})
+            if len(m) > 0:
+                if verbose > 0:
+                    fLOG("[onnx_inline_function] replaced node %r (%r) "
+                         "with %d nodes (id=%r) -- %r -> %r" % (
+                             node.name, node.op_type, len(nnodes), id(node),
+                             node.input, node.output))
+                modified += len(m)
+                new_nodes.extend(nnodes)
+                modified_nodes.extend(m)
+            else:
+                has_graph = False
+                new_attributes = []
+                for att in node.attribute:
+                    if (att.type == AttributeProto.GRAPH and
+                            hasattr(att, 'g') and att.g is not None):
+                        g, m = _onnx_inline_function_graph(
+                            att.g, protos, verbose=verbose, fLOG=fLOG,
+                            existing_names=existing_names, mapping=mapping,
+                            rename=False, level=1)
+                        if len(m) > 0:
+                            modified_nodes.extend(m)
+                            modified_nodes.append(node)
+                            modified += 1 + len(m)
+                            has_graph = True
+                            att = make_attribute(att.name, g)
+                    new_attributes.append(att)
+                if has_graph:
+                    new_node = make_node(
+                        node.op_type, node.input, node.output,
+                        domain=node.domain, name=node.name)
+                    new_node.attribute.extend(new_attributes)
+                    new_nodes.append(new_node)
+                else:
+                    # we still need to check that this subgraph does
+                    # not include a function
+                    new_nodes.append(node)
+
+            mapping.update({o: o for o in node.output})
+
+        n_iter += 1
+        if verbose > 0:
+            total_node = len(list(enumerate_onnx_nodes(new_nodes)))
+            fLOG("[onnx_inline_function] n_iter=%r/%r nodes=%r modified=%r "
+                 "n_nodes=%d total=%d" % (
+                     n_iter, max_iter, len(obj.node), modified,
+                     len(new_nodes), total_node))
+
+    if verbose > 0:
+        fLOG("[onnx_inline_function] type=%r graph=%d end with %d "
+             "modified nodes" % (
+                 type(obj), id(obj), len(modified_nodes)))
+        distri2 = Counter((n.domain, n.op_type)
+                          for n in enumerate_onnx_nodes(new_nodes))
+        if distri != distri2:
+            fLOG("[onnx_inline_function] BEFORE")
+            for k, v in sorted(distri.items()):
+                fLOG("[onnx_inline_function] %d -- %s" % (v, k))
+            fLOG("[onnx_inline_function] AFTER")
+            for k, v in sorted(distri2.items()):
+                fLOG("[onnx_inline_function] %d -- %s" % (v, k))
+
+    if isinstance(obj, FunctionProto):
+        return (
+            make_function(
+                domain=obj.domain, fname=obj.name,
+                inputs=obj.input, outputs=obj.output, nodes=new_nodes,
+                opset_imports=[
+                    make_operatorsetid(op.domain, op.version)
+                    for op in obj.opset_import],
+                doc_string=obj.doc_string,
+                attributes=obj.attribute),
+            modified_nodes)
+    if isinstance(obj, GraphProto):
+        return (
+            make_graph(new_nodes, obj.name, list(obj.input), list(obj.output),
+                       list(obj.initializer), doc_string=obj.doc_string,
+                       sparse_initializer=list(obj.sparse_initializer)),
+            modified_nodes)
+    raise TypeError(  # pragma: no cover
+        "Unexpected type for obj %r." % type(obj))

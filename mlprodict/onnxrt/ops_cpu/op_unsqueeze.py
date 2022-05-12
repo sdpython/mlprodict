@@ -25,7 +25,7 @@ class Unsqueeze_1(OpRunUnaryNum):
         elif isinstance(self.axes, list):
             self.axes = tuple(self.axes)
 
-    def _run(self, data):  # pylint: disable=W0221
+    def _run(self, data, verbose=0, fLOG=None):  # pylint: disable=W0221
         if isinstance(self.axes, (tuple, list)):
             sq = data
             for a in self.axes:
@@ -60,7 +60,7 @@ class Unsqueeze_13(OpRun):
                        **options)
         self.axes = None
 
-    def _run(self, data, axes=None):  # pylint: disable=W0221
+    def _run(self, data, axes=None, verbose=0, fLOG=None):  # pylint: disable=W0221
         if axes is not None:
             if hasattr(axes, '__iter__') and len(axes.shape) > 0:
                 sq = numpy.expand_dims(data, axis=tuple(axes))

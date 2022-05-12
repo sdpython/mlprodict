@@ -67,7 +67,8 @@ class CommonLSTM(OpRun):
         return Y, Y_h
 
     def _run(self, X, W, R, B=None, sequence_lens=None,  # pylint: disable=W0221
-             initial_h=None, initial_c=None, P=None):
+             initial_h=None, initial_c=None, P=None,
+             verbose=0, fLOG=None):
         number_of_gates = 4
         number_of_peepholes = 3
 

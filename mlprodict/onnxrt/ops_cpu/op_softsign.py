@@ -14,7 +14,7 @@ class Softsign(OpRunUnaryNum):
         OpRunUnaryNum.__init__(self, onnx_node, desc=desc,
                                **options)
 
-    def _run(self, X):  # pylint: disable=W0221
+    def _run(self, X, verbose=0, fLOG=None):  # pylint: disable=W0221
         tmp = numpy.abs(X)
         tmp += 1
         numpy.divide(X, tmp, out=tmp)

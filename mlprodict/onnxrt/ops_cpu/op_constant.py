@@ -33,7 +33,7 @@ class Constant_9(OpRun):
         self.cst = self.value
         _check_dtype(self.cst)
 
-    def _run(self):  # pylint: disable=W0221
+    def _run(self, verbose=0, fLOG=None):  # pylint: disable=W0221
         return (self.cst, )
 
     def _infer_shapes(self):  # pylint: disable=W0221
@@ -64,7 +64,7 @@ class Constant_11(OpRun):
             self.cst = self.value
         _check_dtype(self.cst)
 
-    def _run(self):  # pylint: disable=W0221
+    def _run(self, verbose=0, fLOG=None):  # pylint: disable=W0221
         return (self.cst, )
 
     def _infer_shapes(self):  # pylint: disable=W0221
@@ -117,7 +117,7 @@ class Constant_12(OpRun):
                 "No constant is defined for operator 'Constant'.")
         _check_dtype(self.cst)
 
-    def _run(self):  # pylint: disable=W0221
+    def _run(self, verbose=0, fLOG=None):  # pylint: disable=W0221
         return (self.cst, )
 
     def _infer_shapes(self):  # pylint: disable=W0221

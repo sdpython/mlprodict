@@ -17,7 +17,7 @@ class Mod(OpRun):
                        expected_attributes=Mod.atts,
                        **options)
 
-    def _run(self, a, b):  # pylint: disable=W0221
+    def _run(self, a, b, verbose=0, fLOG=None):  # pylint: disable=W0221
         if a.dtype in (numpy.float16, numpy.float32, numpy.float64):
             return (numpy.nan_to_num(numpy.fmod(a, b)), )
         return (numpy.nan_to_num(numpy.mod(a, b)), )

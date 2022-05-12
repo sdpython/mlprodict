@@ -14,7 +14,7 @@ class Where(OpRun):
         OpRun.__init__(self, onnx_node, desc=desc,
                        **options)
 
-    def _run(self, condition, x, y):  # pylint: disable=W0221
+    def _run(self, condition, x, y, verbose=0, fLOG=None):  # pylint: disable=W0221
         if x.dtype != y.dtype and x.dtype not in (numpy.object_, ):
             raise RuntimeError(  # pragma: no cover
                 "x and y should share the same dtype {} != {}".format(

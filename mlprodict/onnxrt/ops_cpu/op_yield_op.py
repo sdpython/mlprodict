@@ -24,7 +24,7 @@ class YieldOp(OpRunUnaryNum):
         raise RuntimeError(  # pragma: no cover
             "Unable to find a schema for operator '{}'.".format(op_name))
 
-    def _run(self, a):  # pylint: disable=W0221
+    def _run(self, a, verbose=0, fLOG=None):  # pylint: disable=W0221
         if self.inplaces.get(0, False):
             return (a, )
         return (a.copy(), )

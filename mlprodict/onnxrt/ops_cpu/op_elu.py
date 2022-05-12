@@ -17,7 +17,7 @@ class Elu(OpRunUnaryNum):
                                expected_attributes=Elu.atts,
                                **options)
 
-    def _run(self, x):  # pylint: disable=W0221
+    def _run(self, x, verbose=0, fLOG=None):  # pylint: disable=W0221
         return (numpy.where(x > 0, x, self.alpha * (numpy.exp(x) - 1)), )
 
     def to_python(self, inputs):

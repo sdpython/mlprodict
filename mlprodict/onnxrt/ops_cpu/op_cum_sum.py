@@ -18,7 +18,7 @@ class CumSum(OpRun):
                        expected_attributes=CumSum.atts,
                        **options)
 
-    def _run(self, x, *axis):  # pylint: disable=W0221
+    def _run(self, x, *axis, verbose=0, fLOG=None):  # pylint: disable=W0221
         axis = None if len(axis) == 0 else axis[0]
         if axis is None:
             if self.reverse or self.exclusive:

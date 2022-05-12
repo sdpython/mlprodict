@@ -17,7 +17,7 @@ class ReduceMean(OpRunReduceNumpy):
                                   expected_attributes=ReduceMean.atts,
                                   **options)
 
-    def _run(self, data):  # pylint: disable=W0221
+    def _run(self, data, verbose=0, fLOG=None):  # pylint: disable=W0221
         return (numpy.mean(data, axis=self.axes,
                            keepdims=self.keepdims,
                            dtype=data.dtype), )

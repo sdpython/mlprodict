@@ -32,7 +32,7 @@ class Momentum(OpRun):
                        expected_attributes=Momentum.atts,
                        **options)
 
-    def _run(self, *data):  # pylint: disable=W0221
+    def _run(self, *data, verbose=0, fLOG=None):  # pylint: disable=W0221
         if len(data) == 5:
             return self._run1(*data)
         n = (len(data) - 2) // 3

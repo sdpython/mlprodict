@@ -27,7 +27,7 @@ class GridSample(OpRun):
         self.rt32_.init(self.align_corners, self.mode, self.padding_mode)
         self.rt64_.init(self.align_corners, self.mode, self.padding_mode)
 
-    def _run(self, X, grid):  # pylint: disable=W0221
+    def _run(self, X, grid, verbose=0, fLOG=None):  # pylint: disable=W0221
         if X.dtype == numpy.float32:
             if self.rt32_ is None:
                 self.rt32_ = GridSampleFloat()

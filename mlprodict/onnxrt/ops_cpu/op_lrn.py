@@ -23,7 +23,7 @@ class LRN(OpRun):
                        expected_attributes=LRN.atts,
                        **options)
 
-    def _run(self, x):  # pylint: disable=W0221
+    def _run(self, x, verbose=0, fLOG=None):  # pylint: disable=W0221
         if len(x.shape) != 4:
             raise RuntimeError(  # pragma: no cover
                 "LRN only applies on 4D tensors but shape is %r." % (x.shape, ))
