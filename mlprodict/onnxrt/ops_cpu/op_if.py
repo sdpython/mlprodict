@@ -58,7 +58,8 @@ class If(OpRun):
         if len(self.then_branch.input_names) > 0:
             if len(named_inputs) == 0:
                 raise RuntimeError(  # pragma: no cover
-                    "named_inputs is empty but the graph needs {}.".format(
+                    "named_inputs is empty but the graph needs {}, "
+                    "sub-graphs for node If must not have any inputs.".format(
                         self.then_branch.input_names))
             for k in self.then_branch.input_names:
                 if k not in named_inputs:

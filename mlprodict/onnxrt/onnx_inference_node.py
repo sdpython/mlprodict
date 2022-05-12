@@ -397,8 +397,8 @@ class OnnxInferenceNode:
             # Or an operator.
             try:
                 if self.ops_.need_context():
-                    context = self._build_context(
-                        values, self.ops_.additional_inputs)
+                    context = self._build_context(values,
+                                                  self.ops_.additional_inputs)
                     res = self.ops_.run(*args, context=context,
                                         verbose=verbose, fLOG=fLOG)
                 else:

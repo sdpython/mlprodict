@@ -755,7 +755,7 @@ class TestOptimOnnxManipulations(ExtTestCase):
                 f.write(onx.SerializeToString())
             with open(os.path.join(temp, fct + '.txt'), 'w') as f:
                 f.write(helper.printable_graph(onx.graph))
-            verbose = 1
+            verbose = 2
             if log:
                 ti = time.perf_counter()
             try:
@@ -887,7 +887,7 @@ class TestOptimOnnxManipulations(ExtTestCase):
             functions=[func_def])
         feeds = {'X': numpy.array([-5], dtype=numpy.float32)}
 
-        for rt in ['python', 'python']:  # , 'onnxruntime1']:
+        for rt in ['python']:  # , 'onnxruntime1']:
             if log:
                 print(rt)
             oinf = OnnxInference(model_def, runtime=rt)
@@ -895,10 +895,10 @@ class TestOptimOnnxManipulations(ExtTestCase):
             got = oinf.run(feeds)
 
             inlined, m = onnx_inline_function(
-                model_def, verbose=1 if log else 0, fLOG=print)
+                model_def, verbose=3 if log else 0, fLOG=print)
             self.assertNotIn('functions {', str(inlined))
             self.assertEqual(len(m), 1)
-            oinf = OnnxInference(model_def)
+            oinf = OnnxInference(inlined)
             oinf.check_model()
             goti = oinf.run(feeds)
             self.assertEqualArray(got['Z'], goti['Z'])
@@ -960,12 +960,104 @@ class TestOptimOnnxManipulations(ExtTestCase):
                 model_def, verbose=1 if log else 0, fLOG=print)
             self.assertNotIn('functions {', str(inlined))
             self.assertEqual(len(m), 1)
-            oinf = OnnxInference(model_def)
+            oinf = OnnxInference(inlined)
             oinf.check_model()
             goti = oinf.run(feeds)
             self.assertEqualArray(got['Z'], goti['Z'])
             self.assertEqualArray(
                 got['Z'], numpy.array([1], dtype=numpy.float32))
+
+    def test_onnx_inline_subgraph_function3_fct(self, log=False):
+        # subfct
+        X = helper.make_tensor_value_info(
+            'X', TensorProto.FLOAT, ['N'])  # pylint: disable=E1101
+        Z = helper.make_tensor_value_info(
+            'Z', TensorProto.FLOAT, ['N'])  # pylint: disable=E1101
+        one = helper.make_tensor_value_info(
+            'one', TensorProto.FLOAT, ['N'])  # pylint: disable=E1101
+
+        graph1 = helper.make_graph([], 'then', [], [X])
+        graph2 = helper.make_graph([], 'else', [], [one])
+        g1 = helper.make_graph(
+            [helper.make_node('Greater', ['X', 'one'], ['cond']),
+             helper.make_node('If', ['cond'], ['Z'],
+                              then_branch=graph1, else_branch=graph2)],
+            'test', [], [Z])
+
+        graph1 = helper.make_graph([], 'then', [], [X])
+        graph2 = helper.make_graph([], 'else', [], [one])
+        g2 = helper.make_graph(
+            [helper.make_node('Greater', ['X', 'one'], ['cond']),
+             helper.make_node('If', ['cond'], ['Z'],
+                              then_branch=graph1, else_branch=graph2)],
+            'test', [], [Z])
+
+        func_def1 = helper.make_function(
+            'this', 'subfct', ['X'], ['Z'], [
+                helper.make_node('Constant', [], ['one'], value_floats=[1.]),
+                helper.make_node('Greater', ['X', 'one'], ['cond']),
+                helper.make_node('If', ['cond'], ['Z'],
+                                 then_branch=g1, else_branch=g2)],
+            opset_imports=[helper.make_operatorsetid('', 15)])
+
+        # mainfct
+        X = helper.make_tensor_value_info(
+            'X', TensorProto.FLOAT, ['N'])  # pylint: disable=E1101
+        Z = helper.make_tensor_value_info(
+            'Z', TensorProto.FLOAT, ['N'])  # pylint: disable=E1101
+        one = helper.make_tensor_value_info(
+            'one', TensorProto.FLOAT, ['N'])  # pylint: disable=E1101
+
+        gg1 = helper.make_graph(
+            [helper.make_node('subfct', ['X'], ['Z'], domain='this')],
+            'then', [], [Z])
+        gg2 = helper.make_graph(
+            [helper.make_node('subfct', ['X'], ['T'], domain='this'),
+             helper.make_node('Neg', ['T'], ['Z'])],
+            'else', [], [Z])
+
+        func_def2 = helper.make_function(
+            'this', 'mainfct', ['X'], ['Z'], [
+                helper.make_node('Constant', [], ['one'], value_floats=[1.]),
+                helper.make_node('Greater', ['X', 'one'], ['cond']),
+                helper.make_node('If', ['cond'], ['Z'],
+                                 then_branch=gg1, else_branch=gg2)],
+            opset_imports=[helper.make_operatorsetid('', 15)])
+
+        graph_def = helper.make_graph(
+            [helper.make_node('mainfct', ['X'], ['Z'], domain='this')],
+            'test', [X], [Z])
+
+        model_def = helper.make_model(
+            graph_def, producer_name='mlprodict',
+            ir_version=7, producer_version='0.1',
+            opset_imports=[helper.make_operatorsetid('', 15),
+                           helper.make_operatorsetid('this', 1)],
+            functions=[func_def1, func_def2])
+
+        feeds = {'X': numpy.array([-5], dtype=numpy.float32)}
+
+        for rt in ['python']:  # , 'onnxruntime1']:
+            if log:
+                print(rt)
+            oinf = OnnxInference(model_def, runtime=rt)
+            oinf.check_model()
+            got = oinf.run(feeds)
+
+            inlined, m = onnx_inline_function(
+                model_def, verbose=1 if log else 0, fLOG=print)
+            self.assertNotIn('functions {', str(inlined))
+            self.assertEqual(len(m), 5)
+
+            oinf2 = OnnxInference(model_def)
+            oinf2.check_model()
+            got2 = oinf2.run(feeds)
+            self.assertEqualArray(got['Z'], got2['Z'])
+
+            oinf3 = OnnxInference(inlined)
+            oinf3.check_model()
+            got3 = oinf3.run(feeds)
+            self.assertEqualArray(got['Z'], got3['Z'])
 
 
 if __name__ == "__main__":
