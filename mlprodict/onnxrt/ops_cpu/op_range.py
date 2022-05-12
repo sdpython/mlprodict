@@ -18,7 +18,7 @@ class Range(OpRun):
                        expected_attributes=Range.atts,
                        **options)
 
-    def _run(self, starts, ends, steps):  # pylint: disable=W0221
+    def _run(self, starts, ends, steps, verbose=0, fLOG=None):  # pylint: disable=W0221
         return (numpy.arange(starts, ends, steps).astype(starts.dtype), )
 
     def _infer_shapes(self, starts, ends, steps):  # pylint: disable=W0221

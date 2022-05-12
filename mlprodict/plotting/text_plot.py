@@ -1,4 +1,4 @@
-# pylint: disable=R0912
+# pylint: disable=R0912,R0914
 """
 @file
 @brief Text representations of graphs.
@@ -386,7 +386,9 @@ def _get_shape(obj):
 
 
 def onnx_simple_text_plot(model, verbose=False, att_display=None,
-                          add_links=False, recursive=False, functions=True):
+                          add_links=False, recursive=False, functions=True,
+                          raise_exc=True, sub_graphs_names=None,
+                          level=1):
     """
     Displays an ONNX graph into text.
 
@@ -397,6 +399,10 @@ def onnx_simple_text_plot(model, verbose=False, att_display=None,
     :param add_links: displays links of the right side
     :param recursive: display subgraphs as well
     :param functions: display functions as well
+    :param raise_exc: raises an exception if the model is not valid,
+        otherwise tries to continue
+    :param sub_graphs_names: list of sub-graphs names
+    :param level: sub-graph level
     :return: str
 
     An ONNX graph is printed the following way:
@@ -561,6 +567,16 @@ def onnx_simple_text_plot(model, verbose=False, att_display=None,
             'zs',
         ]
 
+    if sub_graphs_names is None:
+        sub_graphs_names = {}
+
+    def _get_subgraph_name(idg):
+        if idg in sub_graphs_names:
+            return sub_graphs_names[idg]
+        g = "G%d" % (len(sub_graphs_names) + 1)
+        sub_graphs_names[idg] = g
+        return g
+
     def str_node(indent, node):
         atts = []
         if hasattr(node, 'attribute'):
@@ -573,6 +589,9 @@ def onnx_simple_text_plot(model, verbose=False, att_display=None,
                     elif att.type == AttributeProto.INTS:  # pylint: disable=E1101
                         atts.append("%s=%s" % (att.name, str(
                             list(att.ints)).replace(" ", "")))
+                elif att.name in {'then_branch', 'else_branch', 'body'}:
+                    atts.append("%s=%s" %
+                                (att.name, _get_subgraph_name(id(att.g))))
         inputs = list(node.input)
         if len(atts) > 0:
             inputs.extend(atts)
@@ -653,7 +672,12 @@ def onnx_simple_text_plot(model, verbose=False, att_display=None,
             indents[init.name] = 0
             init_names.add(init.name)
 
-    nodes = reorder_nodes_for_display(model.node, verbose=verbose)
+    try:
+        nodes = reorder_nodes_for_display(model.node, verbose=verbose)
+    except RuntimeError as e:
+        if raise_exc:
+            raise e
+        nodes = model.node
 
     previous_indent = None
     previous_out = None
@@ -775,11 +799,13 @@ def onnx_simple_text_plot(model, verbose=False, att_display=None,
 
     # subgraphs
     for node, name, g in subgraphs:
-        rows.append('----- subgraph ---- %s - %s - att.%s=' % (
-            node.op_type, node.name, name))
+        rows.append('----- subgraph ---- %s - %s - att.%s=%s -- level=%d' % (
+            node.op_type, node.name, name, _get_subgraph_name(id(g)),
+            level))
         res = onnx_simple_text_plot(
             g, verbose=verbose, att_display=att_display,
-            add_links=add_links, recursive=recursive)
+            add_links=add_links, recursive=recursive,
+            sub_graphs_names=sub_graphs_names, level=level + 1)
         rows.append(res)
 
     # functions
@@ -790,7 +816,8 @@ def onnx_simple_text_plot(model, verbose=False, att_display=None,
             res = onnx_simple_text_plot(
                 fct, verbose=verbose, att_display=att_display,
                 add_links=add_links, recursive=recursive,
-                functions=False)
+                functions=False, sub_graphs_names=sub_graphs_names,
+                level=1)
             rows.append(res)
 
     return "\n".join(rows)

@@ -13,7 +13,7 @@ class Mean(OpRun):
         OpRun.__init__(self, onnx_node, desc=desc,
                        **options)
 
-    def _run(self, *args):  # pylint: disable=W0221
+    def _run(self, *args, verbose=0, fLOG=None):  # pylint: disable=W0221
         if self.inplaces.get(0, False) and args[0].flags['WRITEABLE']:
             return self._run_inplace(*args)
         res = args[0].copy()

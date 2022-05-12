@@ -20,7 +20,7 @@ class EyeLike(OpRun):
                        **options)
         self.dtype_ = proto2dtype(self.dtype)
 
-    def _run(self, data, *args):  # pylint: disable=W0221
+    def _run(self, data, *args, verbose=0, fLOG=None):  # pylint: disable=W0221
         shape = data.shape
         if len(shape) == 1:
             sh = (shape[0], shape[0])

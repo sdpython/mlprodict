@@ -59,7 +59,7 @@ class Pad(OpRun):
                        **options)
         self.mode_ = self.mode.decode('ascii')
 
-    def _run(self, data, pads, constant_value=None):  # pylint: disable=W0221
+    def _run(self, data, pads, constant_value=None, verbose=0, fLOG=None):  # pylint: disable=W0221
         if constant_value is None:
             constant_value = 0
         return (_pad_impl(data, pads, mode=self.mode_,

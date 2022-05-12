@@ -43,7 +43,7 @@ class BatchNormalization_9(OpRun):
                        expected_attributes=BatchNormalization.atts,
                        **options)
 
-    def _run(self, x, scale, bias, mean, var):  # pylint: disable=W0221
+    def _run(self, x, scale, bias, mean, var, verbose=0, fLOG=None):  # pylint: disable=W0221
         res = _batchnorm_test_mode(
             x, scale, bias, mean, var, epsilon=self.epsilon)
         return (res, )
@@ -68,7 +68,7 @@ class BatchNormalization_14(OpRun):
                        expected_attributes=BatchNormalization.atts,
                        **options)
 
-    def _run(self, x, scale, bias, mean, var):  # pylint: disable=W0221
+    def _run(self, x, scale, bias, mean, var, verbose=0, fLOG=None):  # pylint: disable=W0221
         if self.training_mode == 0:
             res = _batchnorm_test_mode(
                 x, scale, bias, mean, var, epsilon=self.epsilon)

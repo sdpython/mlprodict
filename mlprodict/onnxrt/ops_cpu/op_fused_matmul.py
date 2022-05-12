@@ -47,7 +47,7 @@ class FusedMatMul(OpRun):
     def _fmatmul11(a, b, alpha):
         return numpy.matmul(a.T, b.T) * alpha
 
-    def _run(self, a, b):  # pylint: disable=W0221
+    def _run(self, a, b, verbose=0, fLOG=None):  # pylint: disable=W0221
         return (self._meth(a, b), )
 
     def _infer_shapes(self, a, b):  # pylint: disable=W0221

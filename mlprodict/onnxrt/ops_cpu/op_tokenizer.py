@@ -46,7 +46,7 @@ class Tokenizer(OpRunUnary):
         raise RuntimeError(  # pragma: no cover
             "Unable to find a schema for operator '{}'.".format(op_name))
 
-    def _run(self, text):  # pylint: disable=W0221
+    def _run(self, text, verbose=0, fLOG=None):  # pylint: disable=W0221
         if self.char_tokenization_:
             return self._run_char_tokenization(text, self.stops_)
         if self.str_separators_ is not None and len(self.str_separators_) > 0:

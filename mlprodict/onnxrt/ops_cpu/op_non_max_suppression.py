@@ -22,7 +22,8 @@ class NonMaxSuppression(OpRun):
         self.inst.init(self.center_point_box)
 
     def _run(self, boxes, scores, max_output_boxes_per_class=None,  # pylint: disable=W0221
-             iou_threshold=None, score_threshold=None):
+             iou_threshold=None, score_threshold=None,
+             verbose=0, fLOG=None):
         if max_output_boxes_per_class is None:
             max_output_boxes_per_class = numpy.array([], dtype=numpy.int64)
         if iou_threshold is None:

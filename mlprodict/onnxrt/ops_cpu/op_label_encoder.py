@@ -83,7 +83,7 @@ class LabelEncoder(OpRun):
                 "Empty classes for LabelEncoder, (onnx_node='{}')\n{}.".format(
                     self.onnx_node.name, onnx_node))
 
-    def _run(self, x):  # pylint: disable=W0221
+    def _run(self, x, verbose=0, fLOG=None):  # pylint: disable=W0221
         if len(x.shape) > 1:
             x = numpy.squeeze(x)
         res = numpy.empty((x.shape[0], ), dtype=self.dtype_)

@@ -30,7 +30,7 @@ class ScatterND(OpRun):
                        expected_attributes=ScatterND.atts,
                        **options)
 
-    def _run(self, data, indices, updates):  # pylint: disable=W0221
+    def _run(self, data, indices, updates, verbose=0, fLOG=None):  # pylint: disable=W0221
         y = _scatter_nd_impl(data, indices, updates, reduction=self.reduction)
         return (y, )
 

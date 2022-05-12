@@ -16,7 +16,7 @@ class LogSoftmax(Softmax):
         Softmax.__init__(self, onnx_node, desc=desc,
                          **options)
 
-    def _run(self, X):  # pylint: disable=W0221
+    def _run(self, X, verbose=0, fLOG=None):  # pylint: disable=W0221
         if self.inplaces.get(0, False) and X.flags['WRITEABLE']:
             return self._run_inplace(X)
         Y = Softmax._run(self, X)[0]

@@ -13,7 +13,7 @@ class Or(OpRunBinary):
     def __init__(self, onnx_node, desc=None, **options):
         OpRunBinary.__init__(self, onnx_node, desc=desc, **options)
 
-    def _run(self, a, b):  # pylint: disable=W0221
+    def _run(self, a, b, verbose=0, fLOG=None):  # pylint: disable=W0221
         return (numpy.logical_or(a, b), )
 
     def to_python(self, inputs):

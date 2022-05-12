@@ -14,9 +14,9 @@ class Max(OpRunBinaryNumpy):
         OpRunBinaryNumpy.__init__(self, numpy.maximum, onnx_node,
                                   desc=desc, **options)
 
-    def run(self, *data):  # pylint: disable=W0221
+    def run(self, *data, verbose=0, fLOG=None):  # pylint: disable=W0221
         if len(data) == 2:
-            return OpRunBinaryNumpy.run(self, *data)
+            return OpRunBinaryNumpy.run(self, *data, verbose=verbose, fLOG=fLOG)
         if len(data) == 1:
             if self.inplaces.get(0, False):
                 return (data[0], )

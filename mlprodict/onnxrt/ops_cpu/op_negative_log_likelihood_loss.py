@@ -90,7 +90,7 @@ class NegativeLogLikelihoodLoss(OpRun):
                        expected_attributes=NegativeLogLikelihoodLoss.atts,
                        **options)
 
-    def _run(self, x, target, weight=None):  # pylint: disable=W0221
+    def _run(self, x, target, weight=None, verbose=0, fLOG=None):  # pylint: disable=W0221
         return _compute_negative_log_likelihood_loss(
             x, target, weight=weight, reduction=self.reduction,  # pylint: disable=E1101
             ignore_index=self.ignore_index)  # pylint: disable=E1101

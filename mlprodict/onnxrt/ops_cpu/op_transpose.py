@@ -18,7 +18,7 @@ class Transpose(OpRunUnaryNum):
                                **options)
         self.perm_ = None if len(self.perm) == 0 else self.perm
 
-    def _run(self, data):  # pylint: disable=W0221
+    def _run(self, data, verbose=0, fLOG=None):  # pylint: disable=W0221
         if self.perm_ is None:
             return (numpy.transpose(data), )
         if len(self.perm_) != len(data.shape):

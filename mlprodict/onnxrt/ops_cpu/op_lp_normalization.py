@@ -17,7 +17,7 @@ class LpNormalization(OpRunUnaryNum):
                                expected_attributes=LpNormalization.atts,
                                **options)
 
-    def _run(self, x):  # pylint: disable=W0221
+    def _run(self, x, verbose=0, fLOG=None):  # pylint: disable=W0221
         norm = numpy.power(numpy.power(x, self.p).sum(
             axis=self.axis), 1. / self.p)
         norm = numpy.expand_dims(norm, self.axis)

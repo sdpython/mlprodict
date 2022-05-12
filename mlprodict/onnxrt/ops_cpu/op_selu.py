@@ -18,7 +18,7 @@ class Selu(OpRunUnaryNum):
                                expected_attributes=Selu.atts,
                                **options)
 
-    def _run(self, x):  # pylint: disable=W0221
+    def _run(self, x, verbose=0, fLOG=None):  # pylint: disable=W0221
         return (numpy.where(
             x > 0, x,
             numpy.exp(x) * self.alpha - self.alpha) * self.gamma, )

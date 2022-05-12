@@ -171,9 +171,7 @@ class OnnxInference:
         Prepares the instance to deliver predictions.
         """
         self.graph_ = self.to_sequence(existing_functions)
-        if len(self.graph_['sequence']) == 0:
-            raise RuntimeError(  # pragma: no cover
-                "No runnable nodes was found in the ONNX graph.")
+        self.functions_ = self.graph_['functions']
         self.outputs_ = self.graph_['outputs']
         self.inputs_ = self.graph_['inputs']
         is_function_proto = isinstance(self.obj, onnx_proto.FunctionProto)
@@ -226,7 +224,7 @@ class OnnxInference:
                     domain = node.onnx_node.domain
                     target_opset = self.target_opset_.get(domain, None)
                     keyf = domain, node.onnx_node.op_type
-                    if keyf in self.graph_['functions']:
+                    if keyf in self.functions_:
                         node.setup_runtime(self.graph_['functions'][keyf])
                     elif self.runtime in ('onnxruntime2', 'empty'):
                         node.setup_runtime(
@@ -234,6 +232,7 @@ class OnnxInference:
                             target_opset=target_opset, dtype=dtype,
                             domain=domain, ir_version=self.ir_version_,
                             runtime_options=self.runtime_options,
+                            existing_functions=self.functions_,
                             build_inference_node_function=lambda fct:
                                 OnnxInference(
                                     fct, runtime=self.runtime,
@@ -248,6 +247,7 @@ class OnnxInference:
                             target_opset=target_opset, domain=domain,
                             ir_version=self.ir_version_,
                             runtime_options=self.runtime_options,
+                            existing_functions=self.functions_,
                             build_inference_node_function=lambda fct:
                                 OnnxInference(
                                     fct, runtime=self.runtime,
@@ -284,7 +284,8 @@ class OnnxInference:
 
     def _run_sequence_runtime_compiled(
             self, inputs, clean_right_away=False, intermediate=False,
-            verbose=0, node_time=False, yield_ops=None, fLOG=None):
+            verbose=0, node_time=False, yield_ops=None, fLOG=None,
+            context=None):
         """
         Executes a compiled version of @see me _run_sequence_runtime,
         compiled with method @see me _build_compile_run.
@@ -293,7 +294,7 @@ class OnnxInference:
         """
         try:
             return self._run_compiled(  # pylint: disable=E1101
-                inputs, yield_ops=yield_ops)
+                inputs, yield_ops=yield_ops, context=context)
         except NameError as e:
             raise RuntimeError(  # pragma: no cover
                 "Unable to compute prediction due to %r. Code:\n%s"
@@ -617,7 +618,7 @@ class OnnxInference:
                         k, names[k, 0][0]))
             names[k, 0] = ('I', v)
         for k, v in outputs.items():
-            if (k, 0) in names and self.runtime != 'empty':
+            if (k, 0) in names and (self.runtime != 'empty' and len(nodes) > 0):
                 if not self.inside_loop or names[k, 0][0] != 'I':
                     raise RuntimeError(  # pragma: no cover
                         "Output '{}' already exists (tag='{}').".format(
@@ -684,19 +685,6 @@ class OnnxInference:
             node.set_order(len(sequence))
             sequence.append(node)
 
-        if len(sequence) == 0:
-            from mlprodict.plotting.text_plot import onnx_simple_text_plot
-            raise RuntimeError(  # pragma: no cover
-                "No runnable nodes was found in the ONNX graph"
-                "\n--rev--\n{}"
-                "\n--order--\n{}"
-                "\n--nodes--\n{}"
-                "\n--ONNX--\n{}\n---\n".format(
-                    "\n".join([str(_) for _ in names.items()]),
-                    "\n".join([str(_) for _ in order.items()]),
-                    "\n".join([str(_) for _ in nodes.items()]),
-                    onnx_simple_text_plot(self.obj, recursive=True)))
-
         # defines where an intermediare output is not needed
         last_used = {}
         for node in sequence:
@@ -725,9 +713,14 @@ class OnnxInference:
                       pprint.pformat(list(statics))))
         return results
 
+    #############
+    # inference #
+    #############
+
     def run(self, inputs, clean_right_away=False,
             intermediate=False, verbose=0, node_time=False,
-            overwrite_types=None, yield_ops=None, fLOG=None):
+            overwrite_types=None, yield_ops=None, fLOG=None,
+            context=None):
         """
         Computes the predictions for this :epkg:`onnx` graph.
 
@@ -744,6 +737,7 @@ class OnnxInference:
         :param yield_ops: dictionary to overwrite the output of
             operator *YieldOp*
         :param fLOG: logging function if *verbose > 0*
+        :param context: local variables, needed when this object is a subgraph
         :return: outputs as dictionary
             and a second dictionary of the time spent
             in each node if *node_time* is True
@@ -808,18 +802,20 @@ class OnnxInference:
                 raise RuntimeError(  # pragma: no cover
                     "inplace must be False if intermediate is True, a container "
                     "might be used by several nodes.")
-            return self._run(inputs, clean_right_away=False,
+            return self._run(inputs, clean_right_away=False,  # pylint: disable=E1123
                              intermediate=intermediate,
                              verbose=verbose, node_time=node_time,
                              overwrite_types=overwrite_types,
-                             yield_ops=yield_ops, fLOG=fLOG)
+                             yield_ops=yield_ops, fLOG=fLOG,
+                             context=context)
         if overwrite_types is not None:
             raise RuntimeError(  # pragma: no cover
                 "overwrite_types is not used if intermediate is False.")
-        return self._run(inputs, clean_right_away=False,
+        return self._run(inputs, clean_right_away=False,  # pylint: disable=E1123
                          intermediate=intermediate,
                          verbose=verbose, node_time=node_time,
-                         yield_ops=yield_ops, fLOG=fLOG)
+                         yield_ops=yield_ops, fLOG=fLOG,
+                         context=context)
 
     def run2onnx(self, inputs, verbose=0, fLOG=None,
                  as_parameter=True, suffix='_DBG',
@@ -896,7 +892,7 @@ class OnnxInference:
     def _run_sequence_runtime(self, inputs, clean_right_away=False,
                               intermediate=False, verbose=0, node_time=False,
                               overwrite_types=None, yield_ops=None,
-                              fLOG=None):
+                              fLOG=None, context=None):
         if overwrite_types is not None:
             raise NotImplementedError(  # pragma: no cover
                 "overwrite_types != None not implemented.")
@@ -909,24 +905,45 @@ class OnnxInference:
         if verbose >= 1 and fLOG is not None:
             printed = set()
 
+        if context is not None:
+            for k in context:
+                self.global_index(k)
+
         if hasattr(self, "_values_init"):
             values = self._values_init.copy()  # pylint: disable=E0203
+            if context is not None:
+                for k, v in context.items():
+                    values[self._global_index[k]] = v
         else:
             values = [None] * len(self._global_index)
             if verbose >= 1 and fLOG is not None:
+                if context is not None:
+                    for k, v in context.items():
+                        if v is None:
+                            continue
+                        values[self._global_index[k]] = v
+                        if verbose < 3:
+                            fLOG("+kI='{}': {} (dtype={} min={} max={})".format(
+                                 k, v.shape, v.dtype, numpy_min(v), numpy_max(v)))
+                        else:
+                            fLOG("+kI='{}': {} (dtype={} min={} max={}\n{}".format(
+                                 k, v.shape, v.dtype, numpy_min(v), numpy_max(v), v))
                 for k, v in self.inits_.items():
                     values[self._global_index[k]] = v['value']
                     if verbose < 3:
                         fLOG("+ki='{}': {} (dtype={} min={} max={})".format(
-                            k, v['value'].shape, v['value'].dtype,
-                            numpy_min(v['value']), numpy_max(v['value'])))
+                             k, v['value'].shape, v['value'].dtype,
+                             numpy_min(v['value']), numpy_max(v['value'])))
                     else:
                         fLOG("+ki='{}': {} (dtype={} min={} max={}\n{}".format(
-                            k, v['value'].shape, v['value'].dtype,
-                            numpy_min(v['value']), numpy_max(v['value']),
-                            v['value']))
+                             k, v['value'].shape, v['value'].dtype,
+                             numpy_min(v['value']), numpy_max(v['value']),
+                             v['value']))
                     printed.add(k)
             else:
+                if context is not None:
+                    for k, v in context.items():
+                        values[self._global_index[k]] = v
                 for k, v in self.inits_.items():
                     values[self._global_index[k]] = v['value']
             # stores the array to skip initialing a second time
@@ -1002,7 +1019,8 @@ class OnnxInference:
 
             keys = set(k for k in range(len(values)) if values[k] is not None)
             if verbose >= 1:
-                fLOG("-- OnnxInference: run {} nodes".format(len(self.sequence_)))
+                fLOG("-- OnnxInference: run {} nodes with {} inputs".format(
+                    len(self.sequence_), len(inputs)))
             for i, node in enumerate(self.sequence_):
                 if verbose >= 1:
                     fLOG(node)
@@ -1024,7 +1042,7 @@ class OnnxInference:
                                       op_type=node.onnx_node.op_type,
                                       time=t2 - t))
                 else:
-                    node.run(values)
+                    node.run(values, verbose=verbose, fLOG=fLOG)
                 added = 0
                 for k in range(len(values)):  # pylint: disable=C0200
                     if values[k] is None:
@@ -1117,8 +1135,9 @@ class OnnxInference:
 
     def _run_whole_runtime(self, inputs, clean_right_away=False,
                            intermediate=False, verbose=0, node_time=False,
-                           overwrite_types=None, yield_ops=None, fLOG=None):
-        # node_time is unused
+                           overwrite_types=None, yield_ops=None, fLOG=None,
+                           context=None):
+        # node_time is unused, context is unused
         if clean_right_away:
             raise RuntimeError(  # pragma: no cover
                 "clean_right_away=true does not work with this runtime.")
@@ -1167,10 +1186,10 @@ class OnnxInference:
                         for k, v in inputs.items():
                             if isinstance(output, numpy.ndarray):
                                 fLOG("-i='{}': {} (dtype={}) {}".format(
-                                    k, v.shape, v.dtype, v.ravel().tolist()))
+                                     k, v.shape, v.dtype, v.ravel().tolist()))
                             else:
                                 fLOG("-i='{}': {} (dtype={}) - ?".format(
-                                    k, v.shape, v.dtype))
+                                     k, v.shape, v.dtype))
                     if isinstance(output, numpy.ndarray):
                         fLOG("+k='{}': {} (dtype={})".format(  # pragma: no cover
                             node, output.shape, output.dtype))
@@ -1603,10 +1622,10 @@ class OnnxInference:
 
         # inits
         inputs = self.input_names
-        code = ['def compiled_run(dict_inputs, yield_ops=None):']
+        code = ['def compiled_run(dict_inputs, yield_ops=None, context=None):']
         code.append("    if yield_ops is not None:")
-        code.append(
-            "        raise NotImplementedError('yields_ops should be None.')")
+        code.append("        raise NotImplementedError"
+                    "('yields_ops should be None.')")
         if debug:
             code.append("    printed = {}")
 

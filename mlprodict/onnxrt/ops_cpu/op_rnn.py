@@ -73,7 +73,7 @@ class CommonRNN(OpRun):
             output = numpy.expand_dims(concatenated, 1)
         return output, h_list[-1]
 
-    def _run(self, X, W, R, B=None, sequence_lens=None, initial_h=None):  # pylint: disable=W0221
+    def _run(self, X, W, R, B=None, sequence_lens=None, initial_h=None, verbose=0, fLOG=None):  # pylint: disable=W0221
         self.num_directions = W.shape[0]
 
         if self.num_directions == 1:

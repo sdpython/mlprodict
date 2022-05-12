@@ -17,7 +17,7 @@ class ReduceL2(OpRunReduceNumpy):
                                   expected_attributes=ReduceL2.atts,
                                   **options)
 
-    def _run(self, data):  # pylint: disable=W0221
+    def _run(self, data, verbose=0, fLOG=None):  # pylint: disable=W0221
         return (
             numpy.sqrt(
                 numpy.sum(
