@@ -3,9 +3,8 @@
 @brief Common functions to reduce the number of
 nodes of an :epkg:`ONNX` graphs.
 """
-from onnx.helper import make_graph, ValueInfoProto, make_model
-from onnx import AttributeProto, NodeProto
-from onnx.helper import make_attribute
+from onnx.helper import make_graph, ValueInfoProto, make_model, make_attribute
+from onnx import AttributeProto, NodeProto, AttributeProto
 
 
 def _apply_optimisation_on_graph(fct, onnx_model, recursive=True, debug_info=None,
@@ -62,7 +61,7 @@ def _apply_remove_node_fct_node(fct, node, recursive, debug_info):
     modified = 0
     new_atts = []
     for att in node.attribute:
-        if att.name == 'body':
+        if att.name in ('body', 'then_branch', 'else_branch'):
             new_body = fct(
                 att.g, recursive=recursive,
                 debug_info=debug_info + [att.name])
@@ -138,7 +137,8 @@ def _rename_node_input(onnx_node, old_name, new_name=None):
     if hasattr(onnx_node, 'attribute'):
         new_atts = []
         for att in onnx_node.attribute:
-            if att.name == 'body':
+            if (att.type == AttributeProto.GRAPH and
+                    hasattr(att, 'g') and att.g is not None):
                 new_body = _rename_graph_input(att.g, old_name, new_name)
                 attr = AttributeProto()
                 attr.name = att.name
@@ -231,7 +231,8 @@ def _rename_node_output(onnx_node, old_name, new_name):
     if hasattr(onnx_node, 'attribute'):
         new_atts = []
         for att in onnx_node.attribute:
-            if att.name == 'body':
+            if (att.type == AttributeProto.GRAPH and
+                    hasattr(att, 'g') and att.g is not None):
                 new_body = _rename_graph_output(att.g, old_name, new_name)
                 new_atts.append(_make_att_graph(att.name, new_body))
             else:

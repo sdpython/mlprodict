@@ -4,6 +4,7 @@
 @file
 @brief Runtime operator.
 """
+import numpy
 from ...onnx_tools.onnx2py_helper import guess_dtype
 from ..shape_object import ShapeObject
 from ._op import OpRun
@@ -151,6 +152,9 @@ class If(OpRun):
                 "Unable to find name=%r in %r or %r." % (
                     name, list(sorted(res)), list(sorted(out))))
         dt = out[name].type.tensor_type.elem_type
+        if dt == 0:
+            # This part should disappear.
+            return ShapeObject(None, numpy.float32)
         return ShapeObject(None, guess_dtype(dt))
 
     def _infer_shapes(self, cond, named_inputs=None):  # pylint: disable=W0221

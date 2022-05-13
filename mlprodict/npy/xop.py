@@ -1081,6 +1081,9 @@ class OnnxOperator(OnnxOperatorBase):
         :param branch: onnx graph or @see cl OnnxOperator
         :return: self
         """
+        if isinstance(branch, onnx.GraphProto) and len(branch.input) > 0:
+            raise RuntimeError(  # pragma: no cover
+                "then_branch subgraph cannot have any input.")
         return self._add_subgraph('then_branch', branch)
 
     def else_do(self, branch):
@@ -1090,6 +1093,9 @@ class OnnxOperator(OnnxOperatorBase):
         :param branch: onnx graph or @see cl OnnxOperator
         :return: self
         """
+        if isinstance(branch, onnx.GraphProto) and len(branch.input) > 0:
+            raise RuntimeError(  # pragma: no cover
+                "else_branch subgraph cannot have any input.")
         return self._add_subgraph('else_branch', branch)
 
     def _add_subgraph(self, attribute, branch):
@@ -1100,9 +1106,11 @@ class OnnxOperator(OnnxOperatorBase):
         :param branch: onnx graph or @see cl OnnxOperator
         :return: self
         """
+        if isinstance(branch, str):
+            # branch is an input.
+            branch = OnnxIdentity(OnnxExisting(OnnxIdentity(branch)))
         if isinstance(branch, onnx.ModelProto):
-            self.kwargs[attribute] = branch.graph
-            return self
+            return self._add_subgraph(attribute, branch.graph)
         if isinstance(branch, onnx.GraphProto):
             self.kwargs[attribute] = branch
             return self
@@ -1398,8 +1406,7 @@ class OnnxOperator(OnnxOperatorBase):
                             node, inp.copy_merge(inputs[inp.name])))
                 else:
                     raise ValueError(  # pragma: no cover
-                        "Unable to find input %r in %r." % (
-                            inp, inputs))
+                        "Unable to find input %r in %r." % (inp, inputs))
             elif inputs_dtype is not None:
                 new_inputs.append(
                     InputDetectedVariable(node, inp.copy_add(inputs_dtype)))
@@ -1408,8 +1415,7 @@ class OnnxOperator(OnnxOperatorBase):
                     new_inputs.append(
                         InputDetectedVariable(node, inp.copy_merge(inputs)))
                 else:
-                    new_inputs.append(
-                        InputDetectedVariable(node, inp))
+                    new_inputs.append(InputDetectedVariable(node, inp))
             else:
                 raise RuntimeError(  # pragma: no cover
                     "Unable to handle inputs=%r." % inputs)
@@ -1812,6 +1818,10 @@ class OnnxOperator(OnnxOperatorBase):
                     "and\ninputs=%r\nis empty:\n%s" % (
                         name, self.kwargs[name], self.kwargs[name].inputs,
                         model))
+            if name in {'else_branch', 'then_branck'}:
+                if len(model.graph.input) > 0:
+                    # else_branch, then_branch must not have any input.
+                    del model.graph.input[:]
             self.kwargs[name] = model.graph
 
     def _to_onnx_attribute(self, oxop, inputs=None, target_opset=None,

@@ -3,7 +3,7 @@
 @brief Optimisation of :epkg:`ONNX` graphs.
 """
 import logging
-from onnx import FunctionProto
+from onnx import FunctionProto, AttributeProto
 from onnx.helper import make_graph, make_function
 from ._onnx_optimisation_common import (  # pylint: disable=E0611
     _rename_node_input,
@@ -67,6 +67,32 @@ def onnx_remove_node_identity(onnx_model, recursive=True, debug_info=None, **opt
                 idnodes.append((i, exnode, input, output))
         return idnodes
 
+    # add to output the list of local variables in subgraphs
+    def append_local_variable(graph, known=None, subgraph=True):
+        if known is None:
+            known = set()
+        else:
+            known = known.copy()
+        local_var = set()
+        known = set(i.name for i in graph.input)
+        known |= set(i.name for i in graph.initializer)
+        for node in graph.node:
+            for i in node.input:
+                if i not in known and subgraph:
+                    local_var.add(i)
+            for o in node.output:
+                known.add(o)
+            for att in node.attribute:
+                if (att.type == AttributeProto.GRAPH and
+                        hasattr(att, 'g') and att.g is not None):
+                    lv = append_local_variable(att.g, known)
+                    local_var |= lv
+        return local_var
+
+    local_vars = append_local_variable(graph, subgraph=False)
+    logger.debug('onnx_remove_node_identity:local_vars:%r', local_vars)
+    ext_outputs = outputs | local_vars
+
     nodes = list(graph.node)
     rem = 1
     while rem > 0:
@@ -79,10 +105,10 @@ def onnx_remove_node_identity(onnx_model, recursive=True, debug_info=None, **opt
             if nodes[i] is None:
                 # Already removed.
                 continue  # pragma: no cover
-            if inp in inputs_inits and out in outputs:
+            if inp in inputs_inits and out in ext_outputs:
                 # Cannot be removed.
                 continue
-            if not restart and out not in outputs:
+            if not restart and out not in ext_outputs:
                 # We cannot change an output name.
                 for j in range(len(nodes)):  # pylint: disable=C0200
                     if nodes[j] is None:
@@ -97,10 +123,12 @@ def onnx_remove_node_identity(onnx_model, recursive=True, debug_info=None, **opt
                         rem += 1
                         if nodes[j].op_type == 'Identity':
                             restart = True  # pragma: no cover
+                logger.debug('onnx_remove_node_identity:1:remove:%s:%r->%r:',
+                             nodes[i].op_type, nodes[i].input, nodes[i].output)
                 nodes[i] = None
                 rem += 1
                 continue
-            if not restart and inp not in inputs_inits and inp not in outputs:
+            if not restart and inp not in inputs_inits and inp not in ext_outputs:
                 # We cannot change an input name or an output name.
                 for j in range(len(nodes)):  # pylint: disable=C0200
                     if nodes[j] is None:
@@ -125,6 +153,8 @@ def onnx_remove_node_identity(onnx_model, recursive=True, debug_info=None, **opt
                         rem += 1
                         if nodes[j].op_type == 'Identity':
                             restart = True
+                logger.debug('onnx_remove_node_identity:2:remove:%s:%r->%r:',
+                             nodes[i].op_type, nodes[i].input, nodes[i].output)
                 nodes[i] = None
                 rem += 1
 
