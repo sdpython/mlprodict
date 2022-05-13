@@ -123,12 +123,6 @@ def select_model_inputs_outputs(model, outputs=None, inputs=None,
                 overwrite={'SentenceTokenizer/SentencepieceTokenizeOp:0': (numpy.int32, None),
                            'SentenceTokenizer/SentencepieceTokenizeOp:1': (numpy.int64, None)})
             onnx.save(onx2, path2)
-
-    .. versionchanged:: 0.6
-        Supports the case where inputs are changed.
-
-    .. versionchanged:: 0.7
-        Parameter *remove_unused* was added. Unused are removed by default.
     """
     if inputs is not None and not isinstance(inputs, list):
         inputs = [inputs]
@@ -153,19 +147,19 @@ def select_model_inputs_outputs(model, outputs=None, inputs=None,
     nodes = model.graph.node[::-1]
     mark_op = {}
     for node in nodes:
-        mark_op[node.name] = 0
+        mark_op[id(node)] = 0
 
     # We mark all the nodes we need to keep.
     nb = 1
     while nb > 0:
         nb = 0
         for node in nodes:
-            if mark_op[node.name] == 1:
+            if mark_op[id(node)] == 1:
                 continue
             mod = False
             for out in node.output:
                 if mark_var[out] == 1:
-                    mark_op[node.name] = 1
+                    mark_op[id(node)] = 1
                     mod = True
                     break
             if not mod:
@@ -181,7 +175,14 @@ def select_model_inputs_outputs(model, outputs=None, inputs=None,
                 nb += 1
 
     # All nodes verifies mark_op[node.name] == 1
-    keep_nodes = [node for node in nodes if mark_op[node.name] == 1]
+    keep_nodes = [node for node in nodes[::-1] if mark_op[id(node)] == 1]
+
+    if verbose > 1 and fLOG is not None:  # pragma: no cover
+        for node in nodes:
+            s = "+" if mark_op[id(node)] == 1 else "-"
+            fLOG("[select_model_inputs_outputs] %s %s (%s) -> %s [%s]" % (
+                s, node.op_type, ", ".join(node.input),
+                ', '.join(node.output), node.name))
 
     known_shapes = {}
     if infer_shapes:
@@ -253,8 +254,8 @@ def select_model_inputs_outputs(model, outputs=None, inputs=None,
     if verbose > 0 and fLOG is not None:  # pragma: no cover
         fLOG("[select_model_inputs_outputs] nodes %r --> %r" % (
             len(model.graph.node), len(keep_nodes)))
-        fLOG("[select_model_inputs_outputs] inputs: %r" % var_in)
-        fLOG("[select_model_inputs_outputs] inputs: %r" % var_out)
+        fLOG("[select_model_inputs_outputs] inputs: %r" % [_.name for _ in var_in])
+        fLOG("[select_model_inputs_outputs] inputs: %r" % [_.name for _ in var_out])
 
     graph = make_graph(keep_nodes, model.graph.name, var_in,
                        var_out, model.graph.initializer,

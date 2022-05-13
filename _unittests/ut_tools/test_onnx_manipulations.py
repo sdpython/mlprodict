@@ -23,6 +23,8 @@ from mlprodict.onnx_tools.onnx_manipulations import (
 from mlprodict import __max_supported_opset__ as TARGET_OPSET
 from mlprodict.plotting.text_plot import onnx_simple_text_plot
 from mlprodict.onnxrt.excs import MissingOperatorError
+from mlprodict.onnx_tools.model_checker import check_onnx
+
 
 
 class TestOptimOnnxManipulations(ExtTestCase):
@@ -127,8 +129,26 @@ class TestOptimOnnxManipulations(ExtTestCase):
             cop3, output_names=['final'],
             op_version=TARGET_OPSET)
         model_def = cop4.to_onnx({'X': x})
+        check_onnx(model_def)
+
+        rows = []
+
+        def myprint(*args):
+            rows.append(" ".join(map(str, args)))
+
+        model_def0 = model_def
         model_def = select_model_inputs_outputs(
-            model_def, inputs=["inter"], infer_shapes=True, remove_unused=False)
+            model_def, inputs=["inter"], infer_shapes=True, remove_unused=False,
+            verbose=2, fLOG=myprint)
+        try:
+            check_onnx(model_def)
+        except Exception as e:
+            raise AssertionError(
+                "Model verification failed due to %s\n---LOG--\n%s"
+                "\n--ONNX0--\n%s\n--ONNX1--\n%s" % (
+                    str(e).split("\n")[0], "\n".join(rows),
+                    onnx_simple_text_plot(model_def0),
+                    onnx_simple_text_plot(model_def)))
         stats = onnx_statistics(model_def, optim=True)
         c1 = model_def.SerializeToString()
         new_model = onnx_remove_node_unused(model_def)
@@ -172,6 +192,7 @@ class TestOptimOnnxManipulations(ExtTestCase):
             overwrite=dict(inter=(numpy.float32, [None, None]),
                            final=(numpy.float32, [None, None])),
             remove_unused=False)
+        check_onnx(model_def)
         stats = onnx_statistics(model_def, optim=True)
         c1 = model_def.SerializeToString()
         new_model = onnx_remove_node_unused(model_def)
@@ -1063,5 +1084,5 @@ class TestOptimOnnxManipulations(ExtTestCase):
 
 
 if __name__ == "__main__":
-    # TestOptimOnnxManipulations().test_onnx_inline_function_fft(True)
+    # TestOptimOnnxManipulations().test_onnx_remove_unused_inputs()
     unittest.main()
