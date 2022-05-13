@@ -1846,6 +1846,8 @@ class OnnxOperator(OnnxOperatorBase):
                         inp.var.name, inp.var.dtype or inp.var.added_dtype))
             if verbose > 0:
                 fLOG('[OnnxOperator._to_onnx_attribute] inputs=%r' % (vars, ))
+            logger.debug("_to_onnx_attribute:%s:inputs(%r)",
+                         self.__class__.__name__, vars)
         onx = oxop.to_onnx(inputs=vars, target_opset=target_opset,
                            run_shape=run_shape, verbose=verbose, fLOG=fLOG,
                            processed=processed, optim=False, check_model=False)
@@ -2687,6 +2689,8 @@ class _GraphBuilder:
         return node
 
     def _process_io(self, inputs, input_names_):
+        logger.debug("_GraphBuilder._process_io:inputs=%r:input_names_=%r",
+                     inputs, input_names_)
         if input_names_ is None:
             input_names = None
         else:
@@ -2697,10 +2701,12 @@ class _GraphBuilder:
                 input_names.append(inp)
 
         if inputs is None:
+            logger.debug("_GraphBuilder._process_io:return:%r",
+                         self.input_names)
             return [
                 make_tensor_value_info(
                     'X', TensorProto.FLOAT, None)  # pylint: disable=E1101
-                for name in self.input_names]
+                for name in self.input_names], None
 
         if not isinstance(inputs, (list, OnnxOperator._InputContainer)):
             if is_numpy_dtype(inputs):
@@ -2812,6 +2818,8 @@ class _GraphBuilder:
 
         hidden = [c for c in input_names if isinstance(
             c.var, (ExistingVariable, OnnxExisting))]
+        logger.debug("_GraphBuilder._process_io:return:%r,%r",
+                     [n.name for n in res], hidden)
         return res, hidden
 
     def to_onnx(self, inputs=None, outputs=None,

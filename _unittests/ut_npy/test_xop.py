@@ -1185,7 +1185,7 @@ class TestXOps(ExtTestCase):
 
 
 if __name__ == "__main__":
-    # import logging
-    # logging.basicConfig(level=logging.DEBUG)
+    import logging
+    logging.basicConfig(level=logging.DEBUG)
     TestXOps().test_zif_onnx_common_intermediate_level2()
     unittest.main(verbosity=2)

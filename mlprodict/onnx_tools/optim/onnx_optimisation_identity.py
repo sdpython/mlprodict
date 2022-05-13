@@ -74,8 +74,11 @@ def onnx_remove_node_identity(onnx_model, recursive=True, debug_info=None, **opt
         else:
             known = known.copy()
         local_var = set()
-        known = set(i.name for i in graph.input)
-        known |= set(i.name for i in graph.initializer)
+        if isinstance(graph, FunctionProto):
+            known = set(graph.input)
+        else:
+            known = set(i.name for i in graph.input)
+            known |= set(i.name for i in graph.initializer)
         for node in graph.node:
             for i in node.input:
                 if i not in known and subgraph:
