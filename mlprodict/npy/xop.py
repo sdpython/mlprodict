@@ -1070,8 +1070,10 @@ class OnnxOperator(OnnxOperatorBase):
 
     def add_external_input(self, op):
         """
-        Tells a subgraph this node comes from the main graph.
+        Tells a subgraph this node comes from a graph calling this one.
         """
+        logger.debug("OnnxOperator:%s.add_external_input:%r",
+                     self.__class__.__name__, op)
         self.external_inputs.append(op)
 
     def then_do(self, branch):
@@ -1109,6 +1111,8 @@ class OnnxOperator(OnnxOperatorBase):
         if isinstance(branch, str):
             # branch is an input.
             branch = OnnxIdentity(OnnxExisting(OnnxIdentity(branch)))
+        logger.debug("%s:_add_subgraph:type(branch)=%r",
+                     self.__class__.__name__, type(branch))
         if isinstance(branch, onnx.ModelProto):
             return self._add_subgraph(attribute, branch.graph)
         if isinstance(branch, onnx.GraphProto):
@@ -1130,6 +1134,14 @@ class OnnxOperator(OnnxOperatorBase):
         for inp in self.inputs:
             if isinstance(inp, OnnxOperatorBase):
                 inp._set_control_op(op)
+        if self.kwargs is None:
+            return
+        for k, v in self.kwargs.items():
+            if isinstance(v, OnnxOperatorBase):
+                logger.debug("%s:_set_control_op:propagate-into-attribute:%s",
+                             self.__class__.__name__, k)
+                v._set_control_op(op)
+                stop
 
     @property
     def output_names(self):
@@ -1574,9 +1586,15 @@ class OnnxOperator(OnnxOperatorBase):
         set_inputs = set()
         memo = []
         while len(stack) > 0:
+            logger.debug("%s._node_to_graph:loop:len(memo)=%d",
+                         self.__class__.__name__, len(memo))
             memo.extend(stack)
             new_stack = []
             for obj in stack:
+                logger.debug("%s._node_to_graph:-node=%r:external_inputs=%r",
+                             self.__class__.__name__,
+                             obj.__class__.__name__,
+                             getattr(obj, 'external_inputs', "-"))
                 if isinstance(obj, OnnxExisting):
                     pass
                 elif isinstance(obj, OnnxOperatorItem):
@@ -2712,6 +2730,7 @@ class _GraphBuilder:
             if is_numpy_dtype(inputs):
                 inputs = [inputs]
 
+        logger.debug("_GraphBuilder._process_io:input_names=%r", input_names)
         if input_names is None:
             # outputs
             set_names = set()
@@ -2996,7 +3015,7 @@ class OnnxExisting(OnnxIdentity):
 
     def __init__(self, *args, **kwargs):  # pylint: disable=W0231
         OnnxIdentity.__init__(self, *args, **kwargs)  # pylint: disable=W0233
-        self.control_op_ = None
+        self.control_ops_ = None
         if len(self.inputs) != 1:
             raise RuntimeError(
                 "Unexpected number of inputs %d." % len(self.inputs))
@@ -3035,5 +3054,7 @@ class OnnxExisting(OnnxIdentity):
         if op is None:
             raise RuntimeError(  # pragma: no cover
                 "op cannot be None in _set_control_op.")
-        self.control_op_ = op
+        if self.control_ops_ is None:
+            self.control_ops_ = []
+        self.control_ops_.append(op)
         op.add_external_input(self.inputs[0])
