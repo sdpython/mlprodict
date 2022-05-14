@@ -1110,7 +1110,8 @@ class OnnxOperator(OnnxOperatorBase):
         """
         if isinstance(branch, str):
             # branch is an input.
-            branch = OnnxIdentity(OnnxExisting(OnnxIdentity(branch)))
+            branch = OnnxIdentity(OnnxExisting(branch),
+                                  op_version=self.op_version)
         logger.debug("%s:_add_subgraph:type(branch)=%r",
                      self.__class__.__name__, type(branch))
         if isinstance(branch, onnx.ModelProto):
@@ -1141,7 +1142,6 @@ class OnnxOperator(OnnxOperatorBase):
                 logger.debug("%s:_set_control_op:propagate-into-attribute:%s",
                              self.__class__.__name__, k)
                 v._set_control_op(op)
-                stop
 
     @property
     def output_names(self):
@@ -1388,7 +1388,7 @@ class OnnxOperator(OnnxOperatorBase):
             if not new_inputs.has_input(oinp) and id(inp.inputs[0]) not in processed:
                 raise RuntimeError(  # pragma: no cover
                     "This node id=%d (%r) was not added yet in the subgraph "
-                    "but it must be. from node %r." % (
+                    "but it must be from node %r." % (
                         id(inp.inputs[0]), inp.inputs[0], node))
         elif isinstance(inp, OnnxOperator):
             new_stack.append(inp)
@@ -3019,15 +3019,22 @@ class OnnxExisting(OnnxIdentity):
         if len(self.inputs) != 1:
             raise RuntimeError(
                 "Unexpected number of inputs %d." % len(self.inputs))
-        if not isinstance(self.inputs[0], OnnxOperatorBase):
-            raise TypeError(
-                "Only input should a node not %r." % type(self.inputs[0]))
-        if self.inputs[0].output_names is None:
+        if isinstance(self.inputs[0], Variable):
+            # It is one input
             new_names = [
-                ExistingVariable(OnnxExisting.get_unique_name(self.inputs[0]),
-                                 self.inputs[0])]
-            logger.debug("OnnxExisting.__init__:set-input:%r", new_names)
+                ExistingVariable(self.inputs[0].name, self.inputs[0])]
+            logger.debug("OnnxExisting.__init__:set-input:1:%r", new_names)
             self.inputs[0].output_names = new_names
+        else:
+            if not isinstance(self.inputs[0], OnnxOperatorBase):
+                raise TypeError(
+                    "Only input should a node not %r." % type(self.inputs[0]))
+            if self.inputs[0].output_names is None:
+                new_names = [
+                    ExistingVariable(OnnxExisting.get_unique_name(self.inputs[0]),
+                                     self.inputs[0])]
+                logger.debug("OnnxExisting.__init__:set-input:2:%r", new_names)
+                self.inputs[0].output_names = new_names
 
     def __repr__(self):
         """
@@ -3043,7 +3050,14 @@ class OnnxExisting(OnnxIdentity):
         """
         Retrieves all named inputs in this graph.
         """
-        return [n.name for n in self.inputs[0].output_names]
+        res = []
+        for i, inp in enumerate(self.inputs[0].output_names):
+            if not isinstance(inp, (Variable, ExistingVariable)):
+                raise TypeError(
+                    "Unexpected type %r for input %r in node type %r."
+                    "" % (type(inp), i, type(self)))
+            res.append(inp.name)
+        return res
 
     def f(self, *inputs, verbose=0, fLOG=None,  # pylint: disable=W0221
           clear_cache=False, runtime=None):
