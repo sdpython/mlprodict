@@ -1,5 +1,5 @@
 """
-@brief      test log(time=3s)
+@brief      test log(time=8s)
 """
 import unittest
 import os
@@ -646,9 +646,9 @@ class TestOptimOnnxManipulations(ExtTestCase):
                 if ft is not None:
                     self.assertEqual(res.shape[:-1], ft.shape)
                     # self.assertEqualArray(
-                    #     res[:, :, :, 0], numpy.real(ft), decimal=4)
+                    #      res[:, :, :, 0], numpy.real(ft), decimal=4)
                     # self.assertEqualArray(
-                    #     res[:, :, :, 1], numpy.imag(ft), decimal=4)
+                    #      res[:, :, :, 1], numpy.imag(ft), decimal=4)
                 return got
 
             if names == ['x', 'fft_length', 'hop_length', 'window', 'onesided']:
@@ -766,7 +766,8 @@ class TestOptimOnnxManipulations(ExtTestCase):
         if log:
             print()
 
-        # first loop, inlining functions
+        # second loop, inlining functions
+        inlined_models = {}
         for fct, onx in models.items():
             if log:
                 t = time.perf_counter()
@@ -815,6 +816,7 @@ class TestOptimOnnxManipulations(ExtTestCase):
                             "\n".join(map(str, rows)))) from e
             with open(os.path.join(temp, fct + '.inlined.onnx'), 'wb') as f:
                 f.write(inlined.SerializeToString())
+            inlined_models[fct] = inlined
             with open(os.path.join(temp, fct + '.inlined.txt'), 'w') as f:
                 f.write(helper.printable_graph(inlined.graph))
             if log:
@@ -827,18 +829,20 @@ class TestOptimOnnxManipulations(ExtTestCase):
         from onnxruntime import InferenceSession
         from onnxruntime.capi.onnxruntime_pybind11_state import (  # pylint: disable=E0611
             Fail, InvalidArgument, InvalidGraph)
-        for fct, onx in models.items():
+        for fct, onx in inlined_models.items():
             if log:
                 t = time.perf_counter()
                 print("STEP3 begin", fct)
             try:
                 InferenceSession(onx.SerializeToString())
             except (Fail, InvalidArgument, InvalidGraph) as e:
-                print(fct, e)
+                if log:
+                    print("ERROR3", fct, e)
+                # print(onnx_simple_text_plot(onx, recursive=True, raise_exc=False))
                 with open(os.path.join(temp, fct + '.error.onnx'), 'wb') as f:
                     f.write(onx.SerializeToString())
             if log:
-                print("STEP2 end  ", fct, time.perf_counter() - t)
+                print("STEP3 end  ", fct, time.perf_counter() - t)
 
     def test_onnx_inline_subgraph(self, log=False):
         X = helper.make_tensor_value_info(
@@ -1084,5 +1088,5 @@ class TestOptimOnnxManipulations(ExtTestCase):
 
 
 if __name__ == "__main__":
-    # TestOptimOnnxManipulations().test_onnx_remove_unused_inputs()
+    # TestOptimOnnxManipulations().test_onnx_inline_function_fft(True)
     unittest.main()

@@ -198,7 +198,8 @@ def _append_succ_pred(subgraphs, successors, predecessors, node_map, node, prefi
         predecessors[name] = [node_name]
     if node.op_type in {'If', 'Scan', 'Loop'}:
         for att in node.attribute:
-            if att.name not in {'body', 'else_branch', 'then_branch'}:
+            if (att.type != AttributeProto.GRAPH or
+                    not hasattr(att, 'g') or att.g is None):
                 continue
             subgraphs.append((node, att.name, att.g))
             _append_succ_pred_s(subgraphs, successors, predecessors, node_map,
@@ -245,6 +246,28 @@ def graph_predecessors_and_successors(graph):
     return subgraphs, predecessors, successors, node_map
 
 
+def get_hidden_inputs(nodes):
+    """
+    Returns the list of hidden inputs used by subgraphs.
+
+    :param nodes: list of nodes
+    :return: list of names
+    """
+    inputs = set()
+    outputs = set()
+    for node in nodes:
+        inputs |= set(node.input)
+        outputs |= set(node.output)
+        for att in node.attribute:
+            if (att.type != AttributeProto.GRAPH or
+                    not hasattr(att, 'g') or att.g is None):
+                continue
+            hidden = get_hidden_inputs(att.g.node)
+            inits = set(att.g.initializer)
+            inputs |= hidden - (inits & hidden)
+    return inputs - (outputs & inputs)
+
+
 def reorder_nodes_for_display(nodes, verbose=False):
     """
     Reorders the node with breadth first seach (BFS).
@@ -259,11 +282,11 @@ def reorder_nodes_for_display(nodes, verbose=False):
         def __init__(self, nodes):
             self.node = nodes
 
-    _, predecessors, successors, dnodes = graph_predecessors_and_successors(
-        temp(nodes))
+    _, predecessors, successors, dnodes = graph_predecessors_and_successors(temp(nodes))
+    local_variables = get_hidden_inputs(nodes)
 
     all_outputs = set()
-    all_inputs = set()
+    all_inputs = set(local_variables)
     for node in nodes:
         all_outputs |= set(node.output)
         all_inputs |= set(node.input)
@@ -675,7 +698,8 @@ def onnx_simple_text_plot(model, verbose=False, att_display=None,
                     elif att.type == AttributeProto.INTS:  # pylint: disable=E1101
                         atts.append("%s=%s" % (att.name, str(
                             list(att.ints)).replace(" ", "")))
-                elif att.name in {'then_branch', 'else_branch', 'body'}:
+                elif (att.type == AttributeProto.GRAPH and
+                        hasattr(att, 'g') and att.g is not None):
                     atts.append("%s=%s" %
                                 (att.name, _get_subgraph_name(id(att.g))))
         inputs = list(node.input)
@@ -750,6 +774,8 @@ def onnx_simple_text_plot(model, verbose=False, att_display=None,
     except RuntimeError as e:
         if raise_exc:
             raise e
+        else:
+            rows.append("ERROR: %s" % e)
         nodes = model.node
 
     previous_indent = None
@@ -873,15 +899,17 @@ def onnx_simple_text_plot(model, verbose=False, att_display=None,
             _mark_link(rows, lengths, r1, r2, d)
 
     # subgraphs
-    for node, name, g in subgraphs:
-        rows.append('----- subgraph ---- %s - %s - att.%s=%s -- level=%d' % (
-            node.op_type, node.name, name, _get_subgraph_name(id(g)),
-            level))
-        res = onnx_simple_text_plot(
-            g, verbose=verbose, att_display=att_display,
-            add_links=add_links, recursive=recursive,
-            sub_graphs_names=sub_graphs_names, level=level + 1)
-        rows.append(res)
+    if recursive:
+        for node, name, g in subgraphs:
+            rows.append('----- subgraph ---- %s - %s - att.%s=%s -- level=%d' % (
+                node.op_type, node.name, name, _get_subgraph_name(id(g)),
+                level))
+            res = onnx_simple_text_plot(
+                g, verbose=verbose, att_display=att_display,
+                add_links=add_links, recursive=recursive,
+                sub_graphs_names=sub_graphs_names, level=level + 1,
+                raise_exc=raise_exc)
+            rows.append(res)
 
     # functions
     if functions and main_model is not None:
