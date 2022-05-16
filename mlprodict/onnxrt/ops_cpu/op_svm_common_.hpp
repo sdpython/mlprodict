@@ -28,8 +28,7 @@ namespace py = pybind11;
 
 
 template<typename NTYPE>
-class RuntimeSVMCommon
-{
+class RuntimeSVMCommon {
     public:
 
         KERNEL kernel_type_;
@@ -151,8 +150,6 @@ NTYPE RuntimeSVMCommon<NTYPE>::kernel_dot_gil_free(
     }
     return (NTYPE)sum;
 }
-
-
 
 
 template<typename NTYPE>

@@ -3,7 +3,9 @@
 """
 import unittest
 from logging import getLogger
+from uuid import uuid4
 import numpy
+from pandas import DataFrame
 from pyquickhelper.loghelper import fLOG
 from pyquickhelper.pycode import ExtTestCase
 from sklearn.exceptions import ConvergenceWarning
@@ -13,8 +15,9 @@ except ImportError:
     from sklearn.utils.testing import ignore_warnings
 from sklearn.datasets import load_iris
 from sklearn.model_selection import train_test_split
-from sklearn.svm import SVR
+from sklearn.svm import SVR, SVC
 from skl2onnx import __version__ as skl2onnx_version
+from skl2onnx.common.data_types import DoubleTensorType
 from mlprodict.onnx_conv import to_onnx
 from mlprodict.onnxrt import OnnxInference
 from mlprodict.onnxrt.validate import enumerate_validated_operator_opsets
@@ -117,6 +120,79 @@ class TestRtValidateSVM(ExtTestCase):
         self.assertGreater(len(rows), 1)
         self.assertGreater(len(buffer), 1 if debug else 0)
 
+    def test_svc_runtime(self):
+        # See https://github.com/microsoft/onnxruntime/issues/11490.
+
+        def samples_df() -> DataFrame:
+            headers = ["feat_1", "feat_2", "feat_3", "member"]
+            value = [
+                [1000., 0., 0., "class_1"],
+                [1001., 0., 0., "class_1"],
+                [1002., 0., 0., "class_1"],
+                [1003., 0., 0., "class_1"],
+                [1004., 0., 0., "class_1"],
+                #
+                [1., 1000., 5., "class_2"],
+                [2., 1002., 60., "class_2"],
+                [3., 1004., 7000., "class_2"],
+                [4., 1006., 8., "class_2"],
+                [5., 1008., 9., "class_2"],
+                #
+                [6., 0., 1000., "class_3"],
+                [7., 0., 1000., "class_3"],
+                [8000., 0., 1000., "class_3"],
+                [9., 0., 1000., "class_3"],
+                [10., 0., 1000., "class_3"],
+            ]
+            df = DataFrame(data=value, columns=headers)
+            df["uuid"] = [uuid4() for _ in range(len(df.index))]
+            return df
+
+        def instances_df():
+            headers = ["feat_1", "feat_2", "feat_3"]
+            value = [
+                [1000., 0., 0.],
+                [1., 1000., 0.],
+                [0., 0., 1000.],
+            ]
+            df = DataFrame(data=value, columns=headers)
+            df["uuid"] = [uuid4() for _ in range(len(df.index))]
+            return df
+
+        def classification_targets():
+            return ["class_1", "class_2", "class_3"]
+
+        def compare_skl_vs_onnx(samples, instances, targets):
+            features = ["feat_1", "feat_2", "feat_3"]
+            labels = "member"
+            svc = SVC(
+                C=9.725493894658872,
+                gamma=1 / 3, kernel="linear", probability=True)
+            svc.fit(X=samples[features], y=numpy.ravel(samples[labels]))
+            classifications = svc.predict(instances[features])
+            probas = svc.predict_proba(instances[features])
+
+            initial_types = [(key, DoubleTensorType()) for key in features]
+            onnx_model = to_onnx(
+                svc, initial_types=initial_types, verbose=False,
+                options={'zipmap': False}, rewrite_ops=True)
+
+            inputs = {
+                key: numpy.expand_dims(instances[key].to_numpy(dtype=numpy.float64), axis=1)
+                for key in features}    
+
+            oinf = OnnxInference(onnx_model)
+            res = oinf.run(inputs)
+            self.assertEqualArray(probas, res['probabilities'])
+            self.assertEqualArray(classifications, res['output_label'])
+
+        samples = samples_df()
+        instances = instances_df()
+        targets = classification_targets()
+        for i in range(0,10):
+            compare_skl_vs_onnx(samples, instances, targets)
+
 
 if __name__ == "__main__":
+    # TestRtValidateSVM().test_svc_runtime()
     unittest.main()
