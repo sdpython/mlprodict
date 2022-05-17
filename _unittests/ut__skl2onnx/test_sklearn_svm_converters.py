@@ -4,7 +4,6 @@
 Tests scikit-linear converter.
 """
 import unittest
-from distutils.version import StrictVersion
 import numpy
 from numpy.testing import assert_almost_equal
 from sklearn.datasets import load_iris
@@ -15,7 +14,7 @@ from skl2onnx.common.data_types import (
     BooleanTensorType, FloatTensorType, Int64TensorType)
 from skl2onnx.operator_converters.ada_boost import _scikit_learn_before_022
 from mlprodict.testing.test_utils import (
-    dump_data_and_model, fit_classification_model, fit_regression_model)
+    dump_data_and_model, fit_regression_model)
 from mlprodict.tools.ort_wrapper import InferenceSession
 from mlprodict import __max_supported_opset__ as TARGET_OPSET
 

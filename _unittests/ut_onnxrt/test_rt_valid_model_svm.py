@@ -16,8 +16,9 @@ except ImportError:
 from sklearn.datasets import load_iris
 from sklearn.model_selection import train_test_split
 from sklearn.svm import SVR, SVC
+from sklearn.pipeline import make_pipeline
+from sklearn.compose import ColumnTransformer
 from skl2onnx import __version__ as skl2onnx_version
-from skl2onnx.common.data_types import DoubleTensorType
 from mlprodict.onnx_conv import to_onnx
 from mlprodict.onnxrt import OnnxInference
 from mlprodict.onnxrt.validate import enumerate_validated_operator_opsets
@@ -165,34 +166,51 @@ class TestRtValidateSVM(ExtTestCase):
         def compare_skl_vs_onnx(samples, instances, targets):
             features = ["feat_1", "feat_2", "feat_3"]
             labels = "member"
-            svc = SVC(
-                C=9.725493894658872,
-                gamma=1 / 3, kernel="linear", probability=True)
+            svc = make_pipeline(
+                ColumnTransformer([('all', 'passthrough', (0, 1, 2))]),
+                SVC(
+                    C=9.725493894658872,
+                    gamma=1 / 3, kernel="linear", probability=True))
             svc.fit(X=samples[features], y=numpy.ravel(samples[labels]))
             classifications = svc.predict(instances[features])
             probas = svc.predict_proba(instances[features])
 
-            initial_types = [(key, DoubleTensorType()) for key in features]
             onnx_model = to_onnx(
-                svc, initial_types=initial_types, verbose=False,
+                svc, samples[features],
                 options={'zipmap': False}, rewrite_ops=True)
+            oinf = OnnxInference(onnx_model)
+            self.assertIn('double_data:', str(onnx_model))
 
             inputs = {
-                key: numpy.expand_dims(instances[key].to_numpy(dtype=numpy.float64), axis=1)
-                for key in features}    
+                key: numpy.expand_dims(
+                    instances[key].to_numpy(dtype=numpy.float64), axis=1)
+                for key in features}
 
-            oinf = OnnxInference(onnx_model)
+            for i in range(1, instances.shape[0]):
+                x = instances[features][i:i + 1]
+                pr = svc.predict_proba(x)
+                xx = {
+                    key: numpy.expand_dims(
+                        x[key].to_numpy(dtype=numpy.float64), axis=1)
+                    for key in features}
+                go = oinf.run(xx)['probabilities']
+                try:
+                    self.assertEqualArray(pr, go, decimal=3)
+                except AssertionError as e:
+                    raise AssertionError("Failing a row %d\n%s." % (
+                        i, str(onnx_model))) from e
+
             res = oinf.run(inputs)
             self.assertEqualArray(probas, res['probabilities'])
-            self.assertEqualArray(classifications, res['output_label'])
+            self.assertEqual(classifications.tolist(), [
+                             a.decode('ascii') for a in res['label']])
 
         samples = samples_df()
         instances = instances_df()
         targets = classification_targets()
-        for i in range(0,10):
+        for _ in range(0, 10):
             compare_skl_vs_onnx(samples, instances, targets)
 
 
 if __name__ == "__main__":
-    # TestRtValidateSVM().test_svc_runtime()
     unittest.main()
