@@ -123,12 +123,6 @@ def select_model_inputs_outputs(model, outputs=None, inputs=None,
                 overwrite={'SentenceTokenizer/SentencepieceTokenizeOp:0': (numpy.int32, None),
                            'SentenceTokenizer/SentencepieceTokenizeOp:1': (numpy.int64, None)})
             onnx.save(onx2, path2)
-
-    .. versionchanged:: 0.6
-        Supports the case where inputs are changed.
-
-    .. versionchanged:: 0.7
-        Parameter *remove_unused* was added. Unused are removed by default.
     """
     if inputs is not None and not isinstance(inputs, list):
         inputs = [inputs]
@@ -153,19 +147,19 @@ def select_model_inputs_outputs(model, outputs=None, inputs=None,
     nodes = model.graph.node[::-1]
     mark_op = {}
     for node in nodes:
-        mark_op[node.name] = 0
+        mark_op[id(node)] = 0
 
     # We mark all the nodes we need to keep.
     nb = 1
     while nb > 0:
         nb = 0
         for node in nodes:
-            if mark_op[node.name] == 1:
+            if mark_op[id(node)] == 1:
                 continue
             mod = False
             for out in node.output:
                 if mark_var[out] == 1:
-                    mark_op[node.name] = 1
+                    mark_op[id(node)] = 1
                     mod = True
                     break
             if not mod:
@@ -181,7 +175,14 @@ def select_model_inputs_outputs(model, outputs=None, inputs=None,
                 nb += 1
 
     # All nodes verifies mark_op[node.name] == 1
-    keep_nodes = [node for node in nodes if mark_op[node.name] == 1]
+    keep_nodes = [node for node in nodes[::-1] if mark_op[id(node)] == 1]
+
+    if verbose > 1 and fLOG is not None:  # pragma: no cover
+        for node in nodes:
+            s = "+" if mark_op[id(node)] == 1 else "-"
+            fLOG("[select_model_inputs_outputs] %s %s (%s) -> %s [%s]" % (
+                s, node.op_type, ", ".join(node.input),
+                ', '.join(node.output), node.name))
 
     known_shapes = {}
     if infer_shapes:
@@ -253,8 +254,8 @@ def select_model_inputs_outputs(model, outputs=None, inputs=None,
     if verbose > 0 and fLOG is not None:  # pragma: no cover
         fLOG("[select_model_inputs_outputs] nodes %r --> %r" % (
             len(model.graph.node), len(keep_nodes)))
-        fLOG("[select_model_inputs_outputs] inputs: %r" % var_in)
-        fLOG("[select_model_inputs_outputs] inputs: %r" % var_out)
+        fLOG("[select_model_inputs_outputs] inputs: %r" % [_.name for _ in var_in])
+        fLOG("[select_model_inputs_outputs] inputs: %r" % [_.name for _ in var_out])
 
     graph = make_graph(keep_nodes, model.graph.name, var_in,
                        var_out, model.graph.initializer,
@@ -285,7 +286,7 @@ def select_model_inputs_outputs(model, outputs=None, inputs=None,
 
 def change_input_type(onx, changes):
     """
-    Changes the input type of an input.
+    Changes the type of an input.
 
     :param onx: ONNX model
     :param changes: dictionary '{ name: new proto element type }`
@@ -323,6 +324,82 @@ def change_input_type(onx, changes):
         op_set.domain = oimp.domain
         op_set.version = oimp.version
     return onnx_model
+
+
+def change_subgraph_io_type(onx, changes, recursive=True):
+    """
+    Changes the type of an input or an output of a subgraph.
+
+    :param onx: ModelProto, GraphProto
+    :param changes: dictionary '{ name: new proto element type }`
+    :param recursive: True
+    :return: new onx
+    """
+    if isinstance(onx, ModelProto):
+        graph = change_subgraph_io_type(onx.graph, changes)
+        onnx_model = make_model(graph, functions=onx.functions)
+        onnx_model.ir_version = onx.ir_version
+        onnx_model.producer_name = onx.producer_name
+        onnx_model.producer_version = onx.producer_version
+        onnx_model.domain = onx.domain
+        onnx_model.model_version = onx.model_version
+        onnx_model.doc_string = onx.doc_string
+        if len(onx.metadata_props) > 0:  # pragma: no cover
+            values = {p.key: p.value for p in onx.metadata_props}
+            set_model_props(onnx_model, values)
+
+        del onnx_model.opset_import[:]  # pylint: disable=E1101
+        for oimp in onx.opset_import:
+            op_set = onnx_model.opset_import.add()  # pylint: disable=E1101
+            op_set.domain = oimp.domain
+            op_set.version = oimp.version
+        return onnx_model
+
+    graph = onx
+    new_inputs = []
+    for inp in graph.input:
+        if inp.name not in changes:
+            new_inputs.append(inp)
+            continue
+        value_info = make_tensor_value_info(
+            inp.name, changes[inp.name], None)
+        new_inputs.append(value_info)
+
+    new_outputs = []
+    for inp in graph.output:
+        if inp.name not in changes:
+            new_outputs.append(inp)
+            continue
+        value_info = make_tensor_value_info(
+            inp.name, changes[inp.name], None)
+        new_outputs.append(value_info)
+
+    # recursive
+    if recursive:
+        new_nodes = []
+        for node in graph.node:
+            modified = False
+            atts = []
+            for att in node.attribute:
+                if (att.type == AttributeProto.GRAPH and
+                        hasattr(att, 'g') and att.g is not None):
+                    modified = True
+                    g = change_subgraph_io_type(att.g, changes,
+                                                recursive=recursive)
+                    att = make_attribute(att.name, g)
+                atts.append(att)
+            if modified:
+                node = make_node(node.op_type, node.input, node.output)
+                node.attribute.extend(atts)
+            new_nodes.append(node)
+    else:
+        new_nodes = list(graph.node)
+
+    # final
+    graph = make_graph(new_nodes, graph.name, new_inputs, new_outputs,
+                       graph.initializer,
+                       sparse_initializer=graph.sparse_initializer)
+    return graph
 
 
 def overwrite_opset(model, new_opset):

@@ -1,5 +1,5 @@
 """
-@brief      test log(time=3s)
+@brief      test log(time=8s)
 """
 import unittest
 import os
@@ -19,10 +19,13 @@ from mlprodict.onnx_tools.optim import onnx_remove_node_unused
 from mlprodict.onnx_tools.onnx_manipulations import (
     select_model_inputs_outputs, enumerate_model_node_outputs,
     onnx_rename_names, insert_results_into_onnx, onnx_model_to_function,
-    onnx_inline_function, onnx_function_to_model, change_input_type)
+    onnx_inline_function, onnx_function_to_model, change_input_type,
+    change_subgraph_io_type)
 from mlprodict import __max_supported_opset__ as TARGET_OPSET
 from mlprodict.plotting.text_plot import onnx_simple_text_plot
 from mlprodict.onnxrt.excs import MissingOperatorError
+from mlprodict.onnx_tools.model_checker import check_onnx
+
 
 
 class TestOptimOnnxManipulations(ExtTestCase):
@@ -127,8 +130,26 @@ class TestOptimOnnxManipulations(ExtTestCase):
             cop3, output_names=['final'],
             op_version=TARGET_OPSET)
         model_def = cop4.to_onnx({'X': x})
+        check_onnx(model_def)
+
+        rows = []
+
+        def myprint(*args):
+            rows.append(" ".join(map(str, args)))
+
+        model_def0 = model_def
         model_def = select_model_inputs_outputs(
-            model_def, inputs=["inter"], infer_shapes=True, remove_unused=False)
+            model_def, inputs=["inter"], infer_shapes=True, remove_unused=False,
+            verbose=2, fLOG=myprint)
+        try:
+            check_onnx(model_def)
+        except Exception as e:
+            raise AssertionError(
+                "Model verification failed due to %s\n---LOG--\n%s"
+                "\n--ONNX0--\n%s\n--ONNX1--\n%s" % (
+                    str(e).split("\n")[0], "\n".join(rows),
+                    onnx_simple_text_plot(model_def0),
+                    onnx_simple_text_plot(model_def)))
         stats = onnx_statistics(model_def, optim=True)
         c1 = model_def.SerializeToString()
         new_model = onnx_remove_node_unused(model_def)
@@ -172,6 +193,7 @@ class TestOptimOnnxManipulations(ExtTestCase):
             overwrite=dict(inter=(numpy.float32, [None, None]),
                            final=(numpy.float32, [None, None])),
             remove_unused=False)
+        check_onnx(model_def)
         stats = onnx_statistics(model_def, optim=True)
         c1 = model_def.SerializeToString()
         new_model = onnx_remove_node_unused(model_def)
@@ -506,7 +528,7 @@ class TestOptimOnnxManipulations(ExtTestCase):
 
     def test_onnx_inline_function_fft(self, log=False):
 
-        def _check_run_(name, onx):
+        def _check_run_(name, onx, inverse=False):
             oinf = OnnxInference(onx)
             names = oinf.input_names
 
@@ -575,19 +597,17 @@ class TestOptimOnnxManipulations(ExtTestCase):
                     res[:, :, :, 1], numpy.imag(ft), decimal=4)
                 return got
 
-            if names == ['x', 'fft_length', 'axis', 'onesided']:
+            if names == ['x', 'fft_length', 'axis', 'inverse', 'onesided']:
                 # dft or idft
                 inputs = {'x': numpy.random.randn(3, 4, 5, 1).astype(numpy.float32),
                           'fft_length': numpy.array([5], dtype=numpy.int64),
                           'axis': numpy.array([2], dtype=numpy.int64),
-                          'onesided': numpy.array([0], dtype=numpy.float32)}
-                if name == "dft":
+                          'inverse': numpy.array([inverse], dtype=numpy.int64),
+                          'onesided': numpy.array([0], dtype=numpy.int64)}
+                if inverse == 0:  # dft
                     ft = numpy.fft.fft(inputs['x'][:, :, :, 0])
-                elif name == "idft":
+                else:  # idft
                     ft = numpy.fft.ifft(inputs['x'][:, :, :, 0])
-                else:
-                    raise AssertionError(
-                        "Not implemented for function %r." % name)
                 got = oinf.run(inputs, verbose=0, fLOG=print)
                 output_name = onx.graph.output[0].name
                 res = got[output_name]
@@ -606,7 +626,7 @@ class TestOptimOnnxManipulations(ExtTestCase):
                           'fft_length': numpy.array([6], dtype=numpy.int64),
                           'hop_length': numpy.array([6], dtype=numpy.int64),
                           'n_frames': numpy.array([3], dtype=numpy.int64),
-                          'onesided': numpy.array([0], dtype=numpy.float32)}
+                          'onesided': numpy.array([0], dtype=numpy.int64)}
                 inputs['x'] = numpy.random.randn(3, 8, 1).astype(numpy.float32)
                 try:
                     import torch
@@ -625,9 +645,9 @@ class TestOptimOnnxManipulations(ExtTestCase):
                 if ft is not None:
                     self.assertEqual(res.shape[:-1], ft.shape)
                     # self.assertEqualArray(
-                    #     res[:, :, :, 0], numpy.real(ft), decimal=4)
+                    #      res[:, :, :, 0], numpy.real(ft), decimal=4)
                     # self.assertEqualArray(
-                    #     res[:, :, :, 1], numpy.imag(ft), decimal=4)
+                    #      res[:, :, :, 1], numpy.imag(ft), decimal=4)
                 return got
 
             if names == ['x', 'fft_length', 'hop_length', 'window', 'onesided']:
@@ -636,7 +656,7 @@ class TestOptimOnnxManipulations(ExtTestCase):
                                                 dtype=numpy.float32),
                           'fft_length': numpy.array([6], dtype=numpy.int64),
                           'hop_length': numpy.array([6], dtype=numpy.int64),
-                          'onesided': numpy.array([0], dtype=numpy.float32)}
+                          'onesided': numpy.array([0], dtype=numpy.int64)}
                 c = (
                     numpy.random.randn(3, 6, 3).astype(numpy.float32) +
                     numpy.random.randn(3, 6, 3).astype(numpy.float32) * 1j)
@@ -670,27 +690,36 @@ class TestOptimOnnxManipulations(ExtTestCase):
 
             raise NameError("Unable to process %r." % names)
 
-        def _check_run(name, onx):
+        def _check_run(name, onx, inverse=False):
             t = time.perf_counter()
-            res = _check_run_(name, onx)
+            res = _check_run_(name, onx, inverse=inverse)
             d = time.perf_counter()
-            print("TIME  EXEC ", fct, d - t)
+            print("TIME  EXEC ", fct, d - t, "inverse=%d" % inverse)
             return res
 
         def _repare(onx):
             inputs = [_.name for _ in onx.graph.input]
-            if 'window_length' in inputs or 'axis1' in inputs:
-                # make it an INT
-                onx = change_input_type(
-                    onx, {'window_length': TensorProto.INT64,
-                          'axis1': TensorProto.INT64,
-                          'axis2': TensorProto.INT64})
+            onx = change_input_type(
+                onx, {'window_length': TensorProto.INT64,
+                      'axis1': TensorProto.INT64,
+                      'axis2': TensorProto.INT64,
+                      'inverse': TensorProto.INT64,
+                      'onesided': TensorProto.INT64,
+                      'normalize': TensorProto.INT64})
+            onx = change_subgraph_io_type(
+                onx, {'dims1': TensorProto.INT64,
+                      'dims1_0': TensorProto.INT64,
+                      'dims2': TensorProto.INT64,
+                      'dims2_3': TensorProto.INT64,
+                      'dims3': TensorProto.INT64,
+                      'dims3_7': TensorProto.INT64})
             return onx
 
         def _type_info(name):
             if name in {'x', 'weights', 'window'}:
                 return numpy.float32
-            if name in {'fft_length', 'axis', 'hop_length', 'n_frames'}:
+            if name in {'fft_length', 'axis', 'hop_length', 'n_frames',
+                        'axis1', 'axis2'}:
                 return numpy.int64
             if name in {'onesided', 'inverse', 'normalize'}:
                 return numpy.float32
@@ -700,7 +729,7 @@ class TestOptimOnnxManipulations(ExtTestCase):
 
         temp = get_temp_folder(__file__, 'temp_onnx_inline_function_fft')
         fcts = ["blackman_window", "hamming_window", "hann_window",
-                "switch_axes", "dft_last_axis", "dft_inv", "dft", "idft",
+                "switch_axes", "dft_last_axis", "dft_inv", "dft",
                 "stft", "istft"]
 
         # first loop, conversion to function
@@ -708,34 +737,36 @@ class TestOptimOnnxManipulations(ExtTestCase):
         models = {}
         protos = {}
         for fct in fcts:
-            if log:
-                t = time.perf_counter()
-                print("STEP1 begin", fct)
-            onx = load(os.path.join(data, fct + ".onnx"))
-            onx = _repare(onx)
-            try:
-                OnnxInference(onx)
-                use_fct = False
-            except (MissingOperatorError, RuntimeError):
-                # The model misses a function.
-                use_fct = True
-            if use_fct:
-                fpr = onnx_model_to_function(onx)
-                onx = onnx_function_to_model(fpr, protos, type_info=_type_info)
+            inv_set = [False] if fct != 'dft' else [0, 1]
+            for inv in inv_set:
+                if log:
+                    t = time.perf_counter()
+                    print("STEP1 begin", fct)
+                onx = load(os.path.join(data, fct + ".onnx"))
+                onx = _repare(onx)
+                try:
+                    OnnxInference(onx)
+                    use_fct = False
+                except (MissingOperatorError, RuntimeError):
+                    # The model misses a function.
+                    use_fct = True
+                if use_fct:
+                    fpr = onnx_model_to_function(onx)
+                    onx = onnx_function_to_model(fpr, protos, type_info=_type_info)
 
-            try:
-                _check_run(fct, onx)
-            except (RuntimeError, AttributeError, NameError) as e:
-                raise AssertionError(
-                    "Unable to run fct %r\n---\n%s" % (
-                        fct, onnx_simple_text_plot(
-                            onx, recursive=True))) from e
-            proto = onnx_model_to_function(onx)
-            proto.domain = 'this'
-            protos[proto.domain, proto.name] = proto
-            models[fct] = onx
-            if log:
-                print("STEP1 end  ", fct, time.perf_counter() - t)
+                try:
+                    _check_run(fct, onx, inverse=inv)
+                except (RuntimeError, AttributeError, NameError) as e:
+                    raise AssertionError(
+                        "Unable to run fct %r\n---\n%s" % (
+                            fct, onnx_simple_text_plot(
+                                onx, recursive=True))) from e
+                proto = onnx_model_to_function(onx)
+                proto.domain = 'this'
+                protos[proto.domain, proto.name] = proto
+                models[fct] = onx
+                if log:
+                    print("STEP1 end  ", fct, time.perf_counter() - t)
 
         rows = []
 
@@ -745,7 +776,8 @@ class TestOptimOnnxManipulations(ExtTestCase):
         if log:
             print()
 
-        # first loop, inlining functions
+        # second loop, inlining functions
+        inlined_models = {}
         for fct, onx in models.items():
             if log:
                 t = time.perf_counter()
@@ -755,6 +787,8 @@ class TestOptimOnnxManipulations(ExtTestCase):
                 f.write(onx.SerializeToString())
             with open(os.path.join(temp, fct + '.txt'), 'w') as f:
                 f.write(helper.printable_graph(onx.graph))
+            with open(os.path.join(temp, fct + ".fct.onnx"), "wb") as f:
+                f.write(onnx_model_to_function(onx).SerializeToString())
             verbose = 4
             if log:
                 ti = time.perf_counter()
@@ -794,6 +828,7 @@ class TestOptimOnnxManipulations(ExtTestCase):
                             "\n".join(map(str, rows)))) from e
             with open(os.path.join(temp, fct + '.inlined.onnx'), 'wb') as f:
                 f.write(inlined.SerializeToString())
+            inlined_models[fct] = inlined
             with open(os.path.join(temp, fct + '.inlined.txt'), 'w') as f:
                 f.write(helper.printable_graph(inlined.graph))
             if log:
@@ -806,18 +841,20 @@ class TestOptimOnnxManipulations(ExtTestCase):
         from onnxruntime import InferenceSession
         from onnxruntime.capi.onnxruntime_pybind11_state import (  # pylint: disable=E0611
             Fail, InvalidArgument, InvalidGraph)
-        for fct, onx in models.items():
+        for fct, onx in inlined_models.items():
             if log:
                 t = time.perf_counter()
                 print("STEP3 begin", fct)
             try:
                 InferenceSession(onx.SerializeToString())
             except (Fail, InvalidArgument, InvalidGraph) as e:
-                print(fct, e)
+                if log:
+                    print("ERROR3", fct, e)
+                # print(onnx_simple_text_plot(onx, recursive=True, raise_exc=False))
                 with open(os.path.join(temp, fct + '.error.onnx'), 'wb') as f:
                     f.write(onx.SerializeToString())
             if log:
-                print("STEP2 end  ", fct, time.perf_counter() - t)
+                print("STEP3 end  ", fct, time.perf_counter() - t)
 
     def test_onnx_inline_subgraph(self, log=False):
         X = helper.make_tensor_value_info(
@@ -1063,5 +1100,6 @@ class TestOptimOnnxManipulations(ExtTestCase):
 
 
 if __name__ == "__main__":
-    # TestOptimOnnxManipulations().test_onnx_inline_function_fft(True)
+    TestOptimOnnxManipulations().test_onnx_inline_function_fft(True)
+    stop
     unittest.main()
