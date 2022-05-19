@@ -624,8 +624,8 @@ class TestOptimOnnxManipulations(ExtTestCase):
                 inputs = {'window': numpy.array([0.1, 0.2, 0.3, 0.4, 0.5, 0.6],
                                                 dtype=numpy.float32),
                           'fft_length': numpy.array([6], dtype=numpy.int64),
-                          'hop_length': numpy.array([6], dtype=numpy.int64),
-                          'n_frames': numpy.array([3], dtype=numpy.int64),
+                          'hop_length': numpy.array([2], dtype=numpy.int64),
+                          'n_frames': numpy.array([2], dtype=numpy.int64),
                           'onesided': numpy.array([0], dtype=numpy.int64)}
                 inputs['x'] = numpy.random.randn(3, 8, 1).astype(numpy.float32)
                 try:
@@ -634,20 +634,28 @@ class TestOptimOnnxManipulations(ExtTestCase):
                     win = torch.from_numpy(inputs['window'])
                     tft = torch.stft(p, n_fft=6, center=False,
                                      win_length=6, window=win,
-                                     onesided=False, return_complex=True)
+                                     onesided=False, return_complex=True,
+                                     hop_length=2)
                     ft = tft.numpy()
                 except ImportError:
                     ft = None
                 got = oinf.run(inputs, verbose=0, fLOG=print)
                 output_name = onx.graph.output[0].name
                 res = got[output_name]
-                self.assertEqual(res.shape, (3, 6, 3, 2))
+                self.assertEqual(res.shape, (3, 6, 2, 2))
                 if ft is not None:
-                    self.assertEqual(res.shape[:-1], ft.shape)
-                    # self.assertEqualArray(
-                    #      res[:, :, :, 0], numpy.real(ft), decimal=4)
-                    # self.assertEqualArray(
-                    #      res[:, :, :, 1], numpy.imag(ft), decimal=4)
+                    if inputs['hop_length'][0] == 1:
+                        self.assertEqual(res.shape[:-1], ft.shape)
+                        self.assertEqualArray(
+                            res[:, :, :, 0], numpy.real(ft), decimal=4)
+                        self.assertEqualArray(
+                            res[:, :, :, 1], numpy.imag(ft), decimal=4)
+                    else:
+                        self.assertEqual(res.shape[:-1], ft.shape)
+                        self.assertEqualArray(
+                            res[:, :, :, 0], numpy.real(ft), decimal=4)
+                        self.assertEqualArray(
+                            res[:, :, :, 1], numpy.imag(ft), decimal=4)
                 return got
 
             if names == ['x', 'fft_length', 'hop_length', 'window', 'onesided']:
@@ -655,7 +663,7 @@ class TestOptimOnnxManipulations(ExtTestCase):
                 inputs = {'window': numpy.array([0.1, 0.2, 0.3, 0.4, 0.5, 0.6],
                                                 dtype=numpy.float32),
                           'fft_length': numpy.array([6], dtype=numpy.int64),
-                          'hop_length': numpy.array([6], dtype=numpy.int64),
+                          'hop_length': numpy.array([1], dtype=numpy.int64),
                           'onesided': numpy.array([0], dtype=numpy.int64)}
                 c = (
                     numpy.random.randn(3, 6, 3).astype(numpy.float32) +
@@ -670,7 +678,8 @@ class TestOptimOnnxManipulations(ExtTestCase):
                     win = torch.from_numpy(inputs['window'])
                     tft = torch.istft(p, n_fft=6, center=False,
                                       win_length=6, window=win,
-                                      onesided=False, return_complex=True)
+                                      onesided=False, return_complex=True,
+                                      hop_length=1)
                     ft = tft.numpy()
                 except ImportError:
                     ft = None
@@ -678,14 +687,15 @@ class TestOptimOnnxManipulations(ExtTestCase):
                 output_name = onx.graph.output[0].name
                 res = got[output_name]
                 self.assertEqual(res.shape[0], 3)
-                # self.assertEqual(res.shape, (3, 8, 2))
+                self.assertEqual(res.shape, (3, 8, 2))
                 if ft is not None:
-                    pass
-                    # self.assertEqual(res.shape[:-1], ft.shape)
+                    res = res[:, :-1, :]
+                    self.assertEqual(res.shape[:-1], ft.shape)
+                    # The test does not work when the input does not come from stft.
                     # self.assertEqualArray(
-                    #     res[:, :, :, 0], numpy.real(ft), decimal=4)
+                    #     res[:, :, 0], numpy.real(ft), decimal=4)
                     # self.assertEqualArray(
-                    #     res[:, :, :, 1], numpy.imag(ft), decimal=4)
+                    #     res[:, :, 1], numpy.imag(ft), decimal=4)
                 return got
 
             raise NameError("Unable to process %r." % names)

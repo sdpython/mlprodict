@@ -71,6 +71,10 @@ class TestOnnxrtPythonRuntimeMlTree(ExtTestCase):
         self.assertEqualArray(exp, got, decimal=5)
 
     @ignore_warnings((FutureWarning, DeprecationWarning))
+    @unittest.skipIf(
+        compare_module_version(skl2onnx.__version__, "1.11.1") <= 0 and
+        compare_module_version(sklearn.__version__, "1.1.0") >= 0,
+        "log_loss still not implemented")
     def test_onnxrt_python_GradientBoostingClassifier2(self):
         iris = load_iris()
         X, y = iris.data, iris.target
