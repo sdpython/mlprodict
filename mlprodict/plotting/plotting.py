@@ -1,4 +1,4 @@
-# pylint: disable=W0611
+# pylint: disable=W0611,R0401
 """
 @file
 @brief Shorcuts to plotting functions.

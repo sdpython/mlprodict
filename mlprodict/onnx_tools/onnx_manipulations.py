@@ -829,15 +829,19 @@ def onnx_model_to_function(onx, name=None, domain="custom",
 def _onnx_function_to_model_convert_io(ens, type_info):
     typed_io = []
     for name in ens:
-        if isinstance(name, dict):
+        if isinstance(type_info, dict):
             res = type_info[name]
         elif callable(type_info):
             res = type_info(name)
         else:
             raise TypeError(
                 "type_info is not a callable or a dictionary, "
-                "unable to guess type for name=%r." % (name, ))
-        proto_dtype = guess_proto_dtype(res)
+                "unable to guess type for name=%r with "
+                "type(type_info)=%r." % (name, type(type_info)))
+        if isinstance(res, int):
+            proto_dtype = res
+        else:
+            proto_dtype = guess_proto_dtype(res)
         value_info = make_tensor_value_info(name, proto_dtype, None)
         typed_io.append(value_info)
     return typed_io
@@ -882,7 +886,7 @@ def onnx_function_to_model(onx, functions=None, type_info=None,
                            [o.name for o in outputs],
                            domain=onx.domain)]
         added_functions.append(onx)
-        opsets = [make_operatorsetid(onx.domain, onx.version)]
+        opsets = [make_operatorsetid(onx.domain, 1)]
     else:
         nodes = list(onx.node)
         opsets = [make_operatorsetid(op.domain, op.version)

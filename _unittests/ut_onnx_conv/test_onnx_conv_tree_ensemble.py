@@ -39,7 +39,6 @@ class TestOnnxConvTreeEnsemble(ExtTestCase):
         if models is None:
             models = [
                 DecisionTreeRegressor(max_depth=2),
-                HistGradientBoostingRegressor(max_iter=2, max_depth=2),
                 RandomForestRegressor(n_estimators=2, max_depth=2),
             ]
 
@@ -48,6 +47,8 @@ class TestOnnxConvTreeEnsemble(ExtTestCase):
                 # "log_loss still not implemented")
                 models.append(GradientBoostingRegressor(
                     n_estimators=2, max_depth=2))
+                models.append(HistGradientBoostingRegressor(
+                    max_iter=2, max_depth=2))
 
         if dtypes is None:
             dtypes = [numpy.float64, numpy.float32]
@@ -167,7 +168,6 @@ class TestOnnxConvTreeEnsemble(ExtTestCase):
             models = [
                 DecisionTreeClassifier(max_depth=2),
                 RandomForestClassifier(n_estimators=2, max_depth=2),
-                HistGradientBoostingClassifier(max_iter=2, max_depth=2),
             ]
 
             if (compare_module_version(skl2onnx.__version__, "1.11.1") <= 0 and
@@ -175,6 +175,8 @@ class TestOnnxConvTreeEnsemble(ExtTestCase):
                 # "log_loss still not implemented")
                 models.append(GradientBoostingClassifier(
                     n_estimators=2, max_depth=2))
+                models.append(HistGradientBoostingClassifier(
+                    max_iter=2, max_depth=2))
 
         if dtypes is None:
             dtypes = [numpy.float64, numpy.float32]

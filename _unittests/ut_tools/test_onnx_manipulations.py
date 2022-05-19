@@ -847,6 +847,15 @@ class TestOptimOnnxManipulations(ExtTestCase):
                 f.write(helper.printable_graph(inlined.graph))
             with open(os.path.join(temp, fct + '.inlined.cpp'), 'w') as f:
                 f.write(export2cpp(inlined))
+            type_info = {i.name: i.type.tensor_type.elem_type
+                         for i in inlined.graph.input}
+            type_info.update({i.name: i.type.tensor_type.elem_type
+                             for i in inlined.graph.output})
+            fct_whole = onnx_model_to_function(inlined)
+            simple_graph = onnx_function_to_model(
+                fct_whole, type_info=type_info, as_function=True)
+            with open(os.path.join(temp, fct + '.inlined.graph.onnx'), 'wb') as f:
+                f.write(simple_graph.SerializeToString())
             if log:
                 print("STEP2 end  ", fct, time.perf_counter() - t)
 
