@@ -295,7 +295,8 @@ class TestPlotTextPlotting(ExtTestCase):
         self.assertIn("----- function name=AddAbs domain=mlprodict", text)
 
     def test_onnx_text_plot_fft(self):
-        data = os.path.join(os.path.dirname(__file__), '..', 'ut_tools', 'data', 'fft')
+        data = os.path.join(os.path.dirname(__file__),
+                            '..', 'ut_tools', 'data', 'fft')
         model = os.path.join(data, 'dft_last_axis.onnx')
         with open(model, "rb") as f:
             onx = load(f)

@@ -3,8 +3,8 @@
 @brief Common functions to reduce the number of
 nodes of an :epkg:`ONNX` graphs.
 """
-from onnx.helper import make_graph, ValueInfoProto, make_model, make_attribute
-from onnx import AttributeProto, NodeProto, AttributeProto
+from onnx.helper import make_graph, make_model, make_attribute
+from onnx import AttributeProto, NodeProto, ValueInfoProto
 
 
 def _apply_optimisation_on_graph(fct, onnx_model, recursive=True, debug_info=None,
@@ -137,7 +137,7 @@ def _rename_node_input(onnx_node, old_name, new_name=None):
     if hasattr(onnx_node, 'attribute'):
         new_atts = []
         for att in onnx_node.attribute:
-            if (att.type == AttributeProto.GRAPH and
+            if (att.type == AttributeProto.GRAPH and  # pylint: disable=E1101
                     hasattr(att, 'g') and att.g is not None):
                 new_body = _rename_graph_input(att.g, old_name, new_name)
                 attr = AttributeProto()
@@ -231,7 +231,7 @@ def _rename_node_output(onnx_node, old_name, new_name):
     if hasattr(onnx_node, 'attribute'):
         new_atts = []
         for att in onnx_node.attribute:
-            if (att.type == AttributeProto.GRAPH and
+            if (att.type == AttributeProto.GRAPH and  # pylint: disable=E1101
                     hasattr(att, 'g') and att.g is not None):
                 new_body = _rename_graph_output(att.g, old_name, new_name)
                 new_atts.append(_make_att_graph(att.name, new_body))

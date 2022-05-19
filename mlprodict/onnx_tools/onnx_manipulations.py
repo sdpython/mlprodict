@@ -254,8 +254,10 @@ def select_model_inputs_outputs(model, outputs=None, inputs=None,
     if verbose > 0 and fLOG is not None:  # pragma: no cover
         fLOG("[select_model_inputs_outputs] nodes %r --> %r" % (
             len(model.graph.node), len(keep_nodes)))
-        fLOG("[select_model_inputs_outputs] inputs: %r" % [_.name for _ in var_in])
-        fLOG("[select_model_inputs_outputs] inputs: %r" % [_.name for _ in var_out])
+        fLOG("[select_model_inputs_outputs] inputs: %r" %
+             [_.name for _ in var_in])
+        fLOG("[select_model_inputs_outputs] inputs: %r" %
+             [_.name for _ in var_out])
 
     graph = make_graph(keep_nodes, model.graph.name, var_in,
                        var_out, model.graph.initializer,

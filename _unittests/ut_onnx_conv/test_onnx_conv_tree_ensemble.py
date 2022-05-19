@@ -1,3 +1,4 @@
+# pylint: disable=R1716
 """
 @brief      test log(time=20s)
 """
@@ -7,6 +8,7 @@ from onnx.checker import check_model
 from onnxruntime import __version__ as ort_version, InferenceSession
 from pyquickhelper.pycode import ExtTestCase, ignore_warnings
 from pyquickhelper.texthelper.version_helper import compare_module_version
+import sklearn
 from sklearn.datasets import load_iris
 from sklearn.model_selection import train_test_split
 from sklearn.tree import DecisionTreeRegressor, DecisionTreeClassifier
@@ -17,6 +19,7 @@ from sklearn.ensemble import (
     HistGradientBoostingClassifier)
 from lightgbm import LGBMRegressor, LGBMClassifier
 from xgboost import XGBRegressor, XGBClassifier
+import skl2onnx
 from mlprodict.onnxrt import OnnxInference
 from mlprodict.onnx_conv import to_onnx
 from mlprodict.plotting.text_plot import onnx_simple_text_plot
@@ -37,9 +40,14 @@ class TestOnnxConvTreeEnsemble(ExtTestCase):
             models = [
                 DecisionTreeRegressor(max_depth=2),
                 HistGradientBoostingRegressor(max_iter=2, max_depth=2),
-                GradientBoostingRegressor(n_estimators=2, max_depth=2),
                 RandomForestRegressor(n_estimators=2, max_depth=2),
             ]
+
+            if (compare_module_version(skl2onnx.__version__, "1.11.1") <= 0 and
+                    compare_module_version(sklearn.__version__, "1.1.0") >= 0):
+                # "log_loss still not implemented")
+                models.append(GradientBoostingRegressor(
+                    n_estimators=2, max_depth=2))
 
         if dtypes is None:
             dtypes = [numpy.float64, numpy.float32]
@@ -160,8 +168,13 @@ class TestOnnxConvTreeEnsemble(ExtTestCase):
                 DecisionTreeClassifier(max_depth=2),
                 RandomForestClassifier(n_estimators=2, max_depth=2),
                 HistGradientBoostingClassifier(max_iter=2, max_depth=2),
-                GradientBoostingClassifier(n_estimators=2, max_depth=2),
             ]
+
+            if (compare_module_version(skl2onnx.__version__, "1.11.1") <= 0 and
+                    compare_module_version(sklearn.__version__, "1.1.0") >= 0):
+                # "log_loss still not implemented")
+                models.append(GradientBoostingClassifier(
+                    n_estimators=2, max_depth=2))
 
         if dtypes is None:
             dtypes = [numpy.float64, numpy.float32]

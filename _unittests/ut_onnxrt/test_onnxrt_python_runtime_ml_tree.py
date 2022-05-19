@@ -1,3 +1,4 @@
+# pylint: disable=R1716
 """
 @brief      test log(time=10s)
 """

@@ -143,11 +143,11 @@ class TestOptimOnnxManipulations(ExtTestCase):
             verbose=2, fLOG=myprint)
         try:
             check_onnx(model_def)
-        except Exception as e:
+        except Exception as e:  # pylint: disable=W0707
             raise AssertionError(
                 "Model verification failed due to %s\n---LOG--\n%s"
                 "\n--ONNX0--\n%s\n--ONNX1--\n%s" % (
-                    str(e).split("\n")[0], "\n".join(rows),
+                    str(e).split("\n", maxsplit=1)[0], "\n".join(rows),
                     onnx_simple_text_plot(model_def0),
                     onnx_simple_text_plot(model_def)))
         stats = onnx_statistics(model_def, optim=True)
@@ -708,7 +708,6 @@ class TestOptimOnnxManipulations(ExtTestCase):
             return res
 
         def _repare(onx):
-            inputs = [_.name for _ in onx.graph.input]
             onx = change_input_type(
                 onx, {'window_length': TensorProto.INT64,
                       'axis1': TensorProto.INT64,

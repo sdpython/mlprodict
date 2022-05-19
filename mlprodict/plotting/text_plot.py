@@ -198,7 +198,7 @@ def _append_succ_pred(subgraphs, successors, predecessors, node_map, node, prefi
         predecessors[name] = [node_name]
     if node.op_type in {'If', 'Scan', 'Loop'}:
         for att in node.attribute:
-            if (att.type != AttributeProto.GRAPH or
+            if (att.type != AttributeProto.GRAPH or  # pylint: disable=E1101
                     not hasattr(att, 'g') or att.g is None):
                 continue
             subgraphs.append((node, att.name, att.g))
@@ -259,7 +259,7 @@ def get_hidden_inputs(nodes):
         inputs |= set(node.input)
         outputs |= set(node.output)
         for att in node.attribute:
-            if (att.type != AttributeProto.GRAPH or
+            if (att.type != AttributeProto.GRAPH or  # pylint: disable=E1101
                     not hasattr(att, 'g') or att.g is None):
                 continue
             hidden = get_hidden_inputs(att.g.node)
@@ -282,7 +282,8 @@ def reorder_nodes_for_display(nodes, verbose=False):
         def __init__(self, nodes):
             self.node = nodes
 
-    _, predecessors, successors, dnodes = graph_predecessors_and_successors(temp(nodes))
+    _, predecessors, successors, dnodes = graph_predecessors_and_successors(
+        temp(nodes))
     local_variables = get_hidden_inputs(nodes)
 
     all_outputs = set()
@@ -698,7 +699,7 @@ def onnx_simple_text_plot(model, verbose=False, att_display=None,
                     elif att.type == AttributeProto.INTS:  # pylint: disable=E1101
                         atts.append("%s=%s" % (att.name, str(
                             list(att.ints)).replace(" ", "")))
-                elif (att.type == AttributeProto.GRAPH and
+                elif (att.type == AttributeProto.GRAPH and  # pylint: disable=E1101
                         hasattr(att, 'g') and att.g is not None):
                     atts.append("%s=%s" %
                                 (att.name, _get_subgraph_name(id(att.g))))
