@@ -8,13 +8,14 @@ with a python script. It relies on :epkg:`jinja2` and :epkg:`autopep8`.
 from textwrap import indent
 import numpy
 import onnx
-from onnx import numpy_helper
+from onnx.helper import printable_graph
+from onnx import numpy_helper, ModelProto
 from onnx.mapping import TENSOR_TYPE_TO_NP_TYPE
 from .onnx2py_helper import (
     _var_as_dict, guess_proto_dtype, guess_proto_dtype_name)
 from .onnx_export_templates import (
     get_onnx_template, get_tf2onnx_template, get_numpy_template,
-    get_xop_template)
+    get_xop_template, get_cpp_template)
 from .exports.numpy_helper import make_numpy_code
 from .exports.tf2onnx_helper import make_tf2onnx_code
 
@@ -48,7 +49,7 @@ def select_attribute(ens, att, sort=False, unique=False, skip=None):
 
 def _nodes(graph, rename_name, used, output_names, use_onnx_tensor,
            templates, verbose, opset, rename, autopep_options, name,
-           subgraphs, unique_operators):
+           subgraphs, unique_operators, raise_subgraph):
     from ..npy.xop import loadop
     nodes = []
     for node in graph.node:
@@ -83,7 +84,7 @@ def _nodes(graph, rename_name, used, output_names, use_onnx_tensor,
                 subgraphs.append((body, node.name + "_body"))
                 attributes.append((at.name, fname + "()"))
                 continue
-            if node.op_type in {'Loop', 'If'}:
+            if raise_subgraph and node.op_type in {'Loop', 'If'}:
                 raise NotImplementedError(
                     "Subgraphs are not yet implemented (operator=%r)."
                     "" % node.op_type)
@@ -124,7 +125,8 @@ def _nodes(graph, rename_name, used, output_names, use_onnx_tensor,
 def export_template(model_onnx, templates, opset=None,  # pylint: disable=R0914
                     verbose=True, name=None,
                     rename=False, use_onnx_tensor=False,
-                    autopep_options=None, function_name='create_model'):
+                    autopep_options=None, function_name='create_model',
+                    raise_subgraph=True, clean_code=True):
     """
     Exports an ONNX model to the onnx syntax.
 
@@ -140,6 +142,8 @@ def export_template(model_onnx, templates, opset=None,  # pylint: disable=R0914
         ONNX tensor to avoid type mismatch, (operator *ConstantOfShape*, ...)
     :param autopep_options: :epkg:`autopep8` options
     :param function_name: main function name in the code
+    :param raise_subgraph: raise an exception if a subgraph is found
+    :param clean_code: clean the code
     :return: python code
     """
     # delayed import to avoid raising an exception if not installed.
@@ -175,7 +179,8 @@ def export_template(model_onnx, templates, opset=None,  # pylint: disable=R0914
         return name
 
     # containers
-    context = {}
+    context = {'main_model': model_onnx,
+               'printable_graph': printable_graph}
     used = {}
 
     # opset
@@ -224,7 +229,8 @@ def export_template(model_onnx, templates, opset=None,  # pylint: disable=R0914
                   'nodes': _nodes(fct, rename_name, used, fct.output,
                                   use_onnx_tensor, templates, verbose,
                                   opset, rename, autopep_options,
-                                  fct.name, [], unique_operators)}))
+                                  fct.name, [], unique_operators,
+                                  raise_subgraph=raise_subgraph)}))
             if fct.name in fct_dict:
                 fct_dict[fct.name].append(fct)
             else:
@@ -272,7 +278,7 @@ def export_template(model_onnx, templates, opset=None,  # pylint: disable=R0914
     context['nodes'] = _nodes(
         graph, rename_name, used, output_names, use_onnx_tensor,
         templates, verbose, opset, rename, autopep_options, name,
-        subgraphs, unique_operators)
+        subgraphs, unique_operators, raise_subgraph)
 
     # graph
     context['name'] = name or graph.name
@@ -344,7 +350,9 @@ def export_template(model_onnx, templates, opset=None,  # pylint: disable=R0914
     if not verbose:
         rows = final.split("\n")
         final = "\n".join(_ for _ in rows if not _.endswith("#  verbose"))
-    return autopep8.fix_code(final, options=autopep_options)
+    if clean_code:
+        return autopep8.fix_code(final, options=autopep_options)
+    return final
 
 
 def export2onnx(model_onnx, opset=None, verbose=True, name=None, rename=False,
@@ -385,6 +393,9 @@ def export2onnx(model_onnx, opset=None, verbose=True, name=None, rename=False,
     if isinstance(model_onnx, str):
         model_onnx = onnx.load(model_onnx)
 
+    if not isinstance(model_onnx, ModelProto):
+        raise TypeError(  # pragma: no cover
+            "The function expects a ModelProto not %r." % type(model_onnx))
     code = export_template(model_onnx, templates=get_onnx_template(),
                            opset=opset, verbose=verbose, name=name,
                            rename=rename, use_onnx_tensor=True,
@@ -427,6 +438,9 @@ def export2tf2onnx(model_onnx, opset=None, verbose=True, name=None,
     if isinstance(model_onnx, str):
         model_onnx = onnx.load(model_onnx)
 
+    if not isinstance(model_onnx, ModelProto):
+        raise TypeError(  # pragma: no cover
+            "The function expects a ModelProto not %r." % type(model_onnx))
     code = export_template(model_onnx, templates=get_tf2onnx_template(),
                            opset=opset, verbose=verbose, name=name,
                            rename=rename, use_onnx_tensor=True,
@@ -492,6 +506,9 @@ def export2numpy(model_onnx, opset=None, verbose=True, name=None,
     if isinstance(model_onnx, str):
         model_onnx = onnx.load(model_onnx)
 
+    if not isinstance(model_onnx, ModelProto):
+        raise TypeError(  # pragma: no cover
+            "The function expects a ModelProto not %r." % type(model_onnx))
     code = export_template(model_onnx, templates=get_numpy_template(),
                            opset=opset, verbose=verbose, name=name,
                            rename=rename, autopep_options=autopep_options)
@@ -504,7 +521,7 @@ def export2numpy(model_onnx, opset=None, verbose=True, name=None,
 def export2xop(model_onnx, opset=None, verbose=True, name=None, rename=False,
                autopep_options=None):
     """
-    Exports an ONNX model to the :epkg:`onnx` syntax.
+    Exports an ONNX model to the XOP syntax.
 
     :param model_onnx: string or ONNX graph
     :param opset: opset to export to
@@ -539,8 +556,61 @@ def export2xop(model_onnx, opset=None, verbose=True, name=None, rename=False,
     if isinstance(model_onnx, str):
         model_onnx = onnx.load(model_onnx)
 
+    if not isinstance(model_onnx, ModelProto):
+        raise TypeError(  # pragma: no cover
+            "The function expects a ModelProto not %r." % type(model_onnx))
     code = export_template(model_onnx, templates=get_xop_template(),
                            opset=opset, verbose=verbose, name=name,
                            rename=rename, use_onnx_tensor=True,
                            autopep_options=autopep_options)
+    return code
+
+
+def export2cpp(model_onnx, opset=None, verbose=True, name=None, rename=False,
+               autopep_options=None):
+    """
+    Exports an ONNX model to the :epkg:`c` syntax.
+
+    :param model_onnx: string or ONNX graph
+    :param opset: opset to export to
+        (None to select the one from the graph)
+    :param verbose: inserts prints
+    :param name: to overwrite onnx name
+    :param rename: rename the names to get shorter names
+    :param autopep_options: :epkg:`autopep8` options
+    :return: python code
+
+    The following example shows what a python code creating a graph
+    implementing the KMeans would look like.
+
+    .. runpython::
+        :showcode:
+        :process:
+
+        import numpy
+        from sklearn.cluster import KMeans
+        from mlprodict.onnx_conv import to_onnx
+        from mlprodict.onnx_tools.onnx_export import export2cpp
+
+        X = numpy.arange(20).reshape(10, 2).astype(numpy.float32)
+        tr = KMeans(n_clusters=2)
+        tr.fit(X)
+
+        onx = to_onnx(tr, X, target_opset=14)
+        code = export2cpp(onx)
+
+        print(code)
+    """
+    if isinstance(model_onnx, str):
+        model_onnx = onnx.load(model_onnx)
+
+    if not isinstance(model_onnx, ModelProto):
+        raise TypeError(  # pragma: no cover
+            "The function expects a ModelProto not %r." % type(model_onnx))
+    code = export_template(model_onnx, templates=get_cpp_template(),
+                           opset=opset, verbose=verbose, name=name,
+                           rename=rename, use_onnx_tensor=True,
+                           autopep_options=autopep_options,
+                           raise_subgraph=False,
+                           clean_code=False)
     return code

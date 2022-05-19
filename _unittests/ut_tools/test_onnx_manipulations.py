@@ -25,7 +25,7 @@ from mlprodict import __max_supported_opset__ as TARGET_OPSET
 from mlprodict.plotting.text_plot import onnx_simple_text_plot
 from mlprodict.onnxrt.excs import MissingOperatorError
 from mlprodict.onnx_tools.model_checker import check_onnx
-
+from mlprodict.onnx_tools.onnx_export import export2cpp
 
 
 class TestOptimOnnxManipulations(ExtTestCase):
@@ -143,8 +143,8 @@ class TestOptimOnnxManipulations(ExtTestCase):
             verbose=2, fLOG=myprint)
         try:
             check_onnx(model_def)
-        except Exception as e:  # pylint: disable=W0707
-            raise AssertionError(
+        except Exception as e:
+            raise AssertionError(  # pylint: disable=W0707
                 "Model verification failed due to %s\n---LOG--\n%s"
                 "\n--ONNX0--\n%s\n--ONNX1--\n%s" % (
                     str(e).split("\n", maxsplit=1)[0], "\n".join(rows),
@@ -704,7 +704,8 @@ class TestOptimOnnxManipulations(ExtTestCase):
             t = time.perf_counter()
             res = _check_run_(name, onx, inverse=inverse)
             d = time.perf_counter()
-            print("TIME  EXEC ", fct, d - t, "inverse=%d" % inverse)
+            if log:
+                print("TIME  EXEC ", fct, d - t, "inverse=%d" % inverse)
             return res
 
         def _repare(onx):
@@ -844,6 +845,8 @@ class TestOptimOnnxManipulations(ExtTestCase):
             inlined_models[fct] = inlined
             with open(os.path.join(temp, fct + '.inlined.txt'), 'w') as f:
                 f.write(helper.printable_graph(inlined.graph))
+            with open(os.path.join(temp, fct + '.inlined.cpp'), 'w') as f:
+                f.write(export2cpp(inlined))
             if log:
                 print("STEP2 end  ", fct, time.perf_counter() - t)
 

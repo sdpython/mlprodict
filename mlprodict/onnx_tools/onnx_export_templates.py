@@ -69,3 +69,10 @@ def get_xop_template():
     Template to export :epkg:`ONNX` into a code based on XOP API.
     """
     return _get_file('xop')
+
+
+def get_cpp_template():
+    """
+    Template to export :epkg:`ONNX` into a C++ code.
+    """
+    return _get_file('cpp')
