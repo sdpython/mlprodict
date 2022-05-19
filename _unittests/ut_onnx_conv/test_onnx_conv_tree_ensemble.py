@@ -42,8 +42,8 @@ class TestOnnxConvTreeEnsemble(ExtTestCase):
                 RandomForestRegressor(n_estimators=2, max_depth=2),
             ]
 
-            if (compare_module_version(skl2onnx.__version__, "1.11.1") <= 0 and
-                    compare_module_version(sklearn.__version__, "1.1.0") >= 0):
+            if (compare_module_version(skl2onnx.__version__, "1.11.1") > 0 or
+                    compare_module_version(sklearn.__version__, "1.1.0") < 0):
                 # "log_loss still not implemented")
                 models.append(GradientBoostingRegressor(
                     n_estimators=2, max_depth=2))
@@ -170,8 +170,8 @@ class TestOnnxConvTreeEnsemble(ExtTestCase):
                 RandomForestClassifier(n_estimators=2, max_depth=2),
             ]
 
-            if (compare_module_version(skl2onnx.__version__, "1.11.1") <= 0 and
-                    compare_module_version(sklearn.__version__, "1.1.0") >= 0):
+            if (compare_module_version(skl2onnx.__version__, "1.11.1") > 0 or
+                    compare_module_version(sklearn.__version__, "1.1.0") < 0):
                 # "log_loss still not implemented")
                 models.append(GradientBoostingClassifier(
                     n_estimators=2, max_depth=2))
