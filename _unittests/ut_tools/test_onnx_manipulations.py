@@ -562,9 +562,9 @@ class TestOptimOnnxManipulations(ExtTestCase):
                 inputs = {'x': numpy.random.randn(3, 4, 5, 1).astype(numpy.float32),
                           'fft_length': numpy.array([5], dtype=numpy.int64),
                           'weights': numpy.array([1, 1, 1, 1, 1], dtype=numpy.float32),
-                          'onesided': numpy.array([0], dtype=numpy.float32),
-                          'inverse': numpy.array([0], dtype=numpy.float32),
-                          'normalize': numpy.array([0], dtype=numpy.float32)}
+                          'onesided': numpy.array([0], dtype=numpy.int64),
+                          'inverse': numpy.array([0], dtype=numpy.int64),
+                          'normalize': numpy.array([0], dtype=numpy.int64)}
                 ft = numpy.fft.fft(inputs['x'][:, :, :, 0], 5)
                 got = oinf.run(inputs)
                 output_name = onx.graph.output[0].name
@@ -583,9 +583,9 @@ class TestOptimOnnxManipulations(ExtTestCase):
                           'fft_length': numpy.array([5], dtype=numpy.int64),
                           'weights': numpy.array([1, 1, 1, 1, 1], dtype=numpy.float32),
                           'axis': numpy.array([2], dtype=numpy.int64),
-                          'onesided': numpy.array([0], dtype=numpy.float32),
-                          'inverse': numpy.array([0], dtype=numpy.float32),
-                          'normalize': numpy.array([0], dtype=numpy.float32)}
+                          'onesided': numpy.array([0], dtype=numpy.int64),
+                          'inverse': numpy.array([0], dtype=numpy.int64),
+                          'normalize': numpy.array([0], dtype=numpy.int64)}
                 ft = numpy.fft.fft(inputs['x'][:, :, :, 0], 5)
                 got = oinf.run(inputs)
                 output_name = onx.graph.output[0].name
@@ -778,6 +778,7 @@ class TestOptimOnnxManipulations(ExtTestCase):
 
         # second loop, inlining functions
         inlined_models = {}
+        atts_def = {'inverse': 0, 'onesided': 0}
         for fct, onx in models.items():
             if log:
                 t = time.perf_counter()
@@ -789,6 +790,9 @@ class TestOptimOnnxManipulations(ExtTestCase):
                 f.write(helper.printable_graph(onx.graph))
             with open(os.path.join(temp, fct + ".fct.onnx"), "wb") as f:
                 f.write(onnx_model_to_function(onx).SerializeToString())
+            with open(os.path.join(temp, fct + ".fct.att.onnx"), "wb") as f:
+                f.write(onnx_model_to_function(
+                    onx, inputs2par=atts_def).SerializeToString())
             verbose = 4
             if log:
                 ti = time.perf_counter()

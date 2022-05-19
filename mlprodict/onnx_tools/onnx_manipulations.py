@@ -745,7 +745,8 @@ def insert_results_into_onnx(model, results, as_parameter=True, suffix='_DBG',
 
 
 def onnx_model_to_function(onx, name=None, domain="custom",
-                           opset_imports=None, doc_string=None):
+                           opset_imports=None, doc_string=None,
+                           inputs2par=None):
     """
     Converts an ONNX model into a function. The returned function
     has no attribute.
@@ -756,7 +757,13 @@ def onnx_model_to_function(onx, name=None, domain="custom",
     :param opset_imports: opset to import as a dictionary
         `{domain: version}`
     :param doc_string: doc string
+    :param inputs2par: dictionary to move some inputs as attributes
+        `{ name: None or default value }`
     :return: function
+
+    .. warning::
+        :epkg:`FunctionProto` does not support default values yet.
+        They are ignored.
     """
     if isinstance(onx, ModelProto):
         if opset_imports is None:
@@ -768,7 +775,8 @@ def onnx_model_to_function(onx, name=None, domain="custom",
             doc_string = onx.doc_string
         return onnx_model_to_function(
             onx.graph, name=name, domain=domain,
-            opset_imports=opset_imports, doc_string=doc_string)
+            opset_imports=opset_imports, doc_string=doc_string,
+            inputs2par=inputs2par)
 
     if not isinstance(onx, GraphProto):
         raise TypeError(  # pragma: no cover
@@ -777,8 +785,18 @@ def onnx_model_to_function(onx, name=None, domain="custom",
     if name is None:
         name = onx.name
 
-    inputs = [i.name for i in onx.input]
+    inputs = []
     outputs = [o.name for o in onx.output]
+    attributes = []
+    nodes = []
+    if inputs2par is None:
+        inputs.extend(i.name for i in onx.input)
+    else:
+        for i in onx.input:
+            if i.name not in inputs2par:
+                inputs.append(i.name)
+                continue
+            attributes.append(i.name)
 
     if len(onx.initializer) > 0 or len(onx.sparse_initializer) > 0:
         # Needs to convert every initializer into Constant.
@@ -793,15 +811,17 @@ def onnx_model_to_function(onx, name=None, domain="custom",
             value = from_array(v['sparse_value'])
             n = make_node('Constant', [], [init.name], sparse_value=value)
             csts.append(n)
-        nodes = csts + list(onx.node)
-    else:
-        nodes = onx.node
+        nodes.extend(csts)
+
+    nodes.extend(onx.node)
+
     if isinstance(opset_imports, dict):
         ops = [make_operatorsetid(k, v) for k, v in opset_imports.items()]
         opset_imports = ops
     return make_function(
         domain, name, inputs, outputs, nodes,
-        opset_imports=opset_imports, doc_string=doc_string or '')
+        opset_imports=opset_imports, doc_string=doc_string or '',
+        attributes=attributes)
 
 
 def _onnx_function_to_model_convert_io(ens, type_info):
