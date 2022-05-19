@@ -1,5 +1,5 @@
 """
-@brief      test log(time=2s)
+@brief      test log(time=10s)
 """
 import unittest
 from logging import getLogger
@@ -7,6 +7,8 @@ import numpy
 from pandas import DataFrame, concat
 from pyquickhelper.loghelper import fLOG
 from pyquickhelper.pycode import ExtTestCase
+from pyquickhelper.texthelper import compare_module_version
+import sklearn
 from sklearn.ensemble import GradientBoostingClassifier
 from sklearn.metrics import accuracy_score
 from sklearn.model_selection import train_test_split
@@ -28,6 +30,10 @@ class TestBugsOnnxrtOnnxRuntime(ExtTestCase):
         logger = getLogger('skl2onnx')
         logger.disabled = True
 
+    @unittest.skipIf(
+        compare_module_version(skl2onnx_version, "1.11.1") <= 0 and
+        compare_module_version(sklearn.__version__, "1.1.0") >= 0,
+        "log_loss still not implemented")
     def test_gradient_boosting_regressor_pipeline(self):
         fLOG(__file__, self._testMethodName, OutputPrint=__name__ == "__main__")
 
@@ -49,9 +55,8 @@ class TestBugsOnnxrtOnnxRuntime(ExtTestCase):
         max_depth = 10
         predictor = Pipeline([
             ('prep', ColumnTransformer([
-                            ('num_prep', StandardScaler(), numerical_cols),
-                            ('cat_prep', OneHotEncoder(
-                                handle_unknown='ignore'), categorical_cols)
+                ('num_prep', StandardScaler(), numerical_cols),
+                ('cat_prep', OneHotEncoder(handle_unknown='ignore'), categorical_cols)
             ])),
 
             ('model', GradientBoostingClassifier(

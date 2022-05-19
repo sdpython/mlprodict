@@ -5,6 +5,7 @@ import unittest
 from logging import getLogger
 import numpy
 import pandas
+import sklearn
 from sklearn.datasets import load_iris
 from sklearn.model_selection import train_test_split
 from sklearn.ensemble import (
@@ -12,6 +13,8 @@ from sklearn.ensemble import (
     GradientBoostingClassifier, GradientBoostingRegressor)
 from sklearn.tree import DecisionTreeClassifier, DecisionTreeRegressor
 from pyquickhelper.pycode import ExtTestCase, ignore_warnings
+from pyquickhelper.texthelper import compare_module_version
+import skl2onnx
 from mlprodict.onnx_conv import to_onnx
 from mlprodict.onnxrt import OnnxInference
 
@@ -91,6 +94,10 @@ class TestOnnxrtPythonRuntimeMlTree(ExtTestCase):
         self.assertEqualArray(exp, got, decimal=3)
 
     @ignore_warnings((FutureWarning, DeprecationWarning))
+    @unittest.skipIf(
+        compare_module_version(skl2onnx.__version__, "1.11.1") <= 0 and
+        compare_module_version(sklearn.__version__, "1.1.0") >= 0,
+        "log_loss still not implemented")
     def test_onnxrt_python_GradientBoostingClassifier3(self):
         iris = load_iris()
         X, y = iris.data, iris.target

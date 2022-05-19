@@ -4,10 +4,13 @@
 import sys
 import unittest
 import numpy
+import sklearn
 from sklearn.datasets import load_iris
 from sklearn.model_selection import train_test_split
 from sklearn.ensemble import GradientBoostingClassifier
+import skl2onnx
 from pyquickhelper.pycode import ExtTestCase, skipif_circleci
+from pyquickhelper.texthelper import compare_module_version
 from mlprodict.onnx_conv import to_onnx
 from mlprodict.onnx_tools.model_checker import onnx_shaker, astype_range
 from mlprodict.onnxrt import OnnxInference
@@ -31,6 +34,10 @@ class TestOnnxrtModelChecker(ExtTestCase):
 
     @skipif_circleci('too long')
     @unittest.skipIf(sys.platform == 'darwin', reason='too long')
+    @unittest.skipIf(
+        compare_module_version(skl2onnx.__version__, "1.11.1") <= 0 and
+        compare_module_version(sklearn.__version__, "1.1.0") >= 0,
+        "log_loss still not implemented")
     def test_onnx_shaker(self):
         iris = load_iris()
         X, y = iris.data, iris.target
