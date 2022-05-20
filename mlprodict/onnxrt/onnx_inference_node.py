@@ -5,7 +5,7 @@
 import sys
 import pprint
 import numpy
-from onnx import onnx_pb as onnx_proto
+from onnx import GraphProto, onnx_pb as onnx_proto
 from onnx.onnx_cpp2py_export.defs import SchemaError  # pylint: disable=E0401,E0611
 from ..onnx_tools.onnx2py_helper import get_onnx_schema
 from .excs import MissingOperatorError
@@ -295,6 +295,40 @@ class OnnxInferenceNode:
                     add_inputs.append(i)
                     inputs_set.add(i)
         return add_inputs
+
+    @staticmethod
+    def _find_local_inputs(graph):
+        """
+        Determines the local inputs. It is any defined input
+        used by the subgraph and defined in the parent graph.
+        """
+        if not isinstance(graph, GraphProto):
+            raise TypeError(
+                "Unexpected type %r." % type(graph))
+        local = set()
+        known = set()
+        for init in graph.initializer:
+            known.add(init.name)
+        for init in graph.input:
+            known.add(init.name)
+        for node in graph.node:
+            for o in node.output:
+                known.add(o)
+            for i in node.input:
+                if i not in known:
+                    local.add(i)
+        return list(local)
+
+    def get_local_inputs(self):
+        """
+        Returns any local input used by this node in a subgraph
+        defined as an attribute and not declared as an input of this subgraph.
+        """
+        req = set()
+        for att in self.onnx_node.attribute:
+            if hasattr(att, 'g') and att.g is not None:
+                req |= set(self._find_local_inputs(att.g))
+        return req
 
     def preprocess_parameters(self, runtime, rt_class, ir_version=None,
                               target_opset=None, existing_functions=None):

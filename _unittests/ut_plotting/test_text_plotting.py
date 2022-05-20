@@ -3,9 +3,10 @@
 @brief      test log(time=2s)
 """
 import unittest
+import os
 import textwrap
 import numpy
-from onnx import TensorProto
+from onnx import TensorProto, load
 from onnx.helper import (
     make_model, make_node, make_function,
     make_graph, make_tensor_value_info, make_opsetid)
@@ -203,7 +204,7 @@ class TestPlotTextPlotting(ExtTestCase):
                       target_opset=15)
         text = onnx_simple_text_plot(onx, add_links=True)
         self.assertIn("Sqrt(Ad_C0) -> scores  <------", text)
-        self.assertIn("|-|", text)
+        self.assertIn("|-+-|", text)
 
     def test_scan_plot(self):
         (OnnxSub, OnnxIdentity, OnnxReduceSumSquare, OnnxScan,  # pylint: disable=W0621
@@ -293,6 +294,23 @@ class TestPlotTextPlotting(ExtTestCase):
         text = onnx_simple_text_plot(onx)
         self.assertIn("----- function name=AddAbs domain=mlprodict", text)
 
+    def test_onnx_text_plot_fft(self):
+        data = os.path.join(os.path.dirname(__file__),
+                            '..', 'ut_tools', 'data', 'fft')
+        model = os.path.join(data, 'dft_last_axis.onnx')
+        with open(model, "rb") as f:
+            onx = load(f)
+        text1 = onnx_simple_text_plot(onx)
+        self.assertIn('input:', text1)
+        onnx_simple_text_plot(onx, recursive=True)
+        try:
+            onnx_simple_text_plot(onx, recursive=True)
+        except RuntimeError as e:
+            raise AssertionError(
+                "Unable to display a graph\n%s" % onnx_simple_text_plot(
+                    onx, recursive=True, raise_exc=False)) from e
+
 
 if __name__ == "__main__":
+    # TestPlotTextPlotting().test_onnx_text_plot_fft()
     unittest.main()

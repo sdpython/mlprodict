@@ -4,6 +4,7 @@
 @file
 @brief Runtime operator.
 """
+import numpy
 from ...onnx_tools.onnx2py_helper import guess_dtype
 from ..shape_object import ShapeObject
 from ._op import OpRun
@@ -56,26 +57,34 @@ class If(OpRun):
         if named_inputs is None:
             named_inputs = {}
         if len(self.then_branch.input_names) > 0:
-            if len(named_inputs) == 0:
+            if len(context) == 0:
                 raise RuntimeError(  # pragma: no cover
                     "named_inputs is empty but the graph needs {}, "
                     "sub-graphs for node If must not have any inputs.".format(
                         self.then_branch.input_names))
             for k in self.then_branch.input_names:
-                if k not in named_inputs:
+                if k not in context:
                     raise RuntimeError(  # pragma: no cover
                         "Unable to find named input '{}' in\n{}.".format(
-                            k, "\n".join(sorted(named_inputs))))
+                            k, "\n".join(sorted(context))))
         if len(self.else_branch.input_names) > 0:
-            if len(named_inputs) == 0:
+            if len(context) == 0:
                 raise RuntimeError(  # pragma: no cover
-                    "named_inputs is empty but the graph needs {}.".format(
+                    "context is empty but the graph needs {}.".format(
                         self.then_branch.input_names))
             for k in self.else_branch.input_names:
-                if k not in named_inputs:
+                if k not in context:
                     raise RuntimeError(  # pragma: no cover
                         "Unable to find named input '{}' in\n{}.".format(
-                            k, "\n".join(sorted(named_inputs))))
+                            k, "\n".join(sorted(context))))
+
+        # then_local_inputs = set(self.local_inputs(self.then_branch.obj.graph))
+        # else_local_inputs = set(self.local_inputs(self.else_branch.obj.graph))
+        # self.additional_inputs = list(
+        #     set(self.additional_inputs).union(then_local_inputs.union(else_local_inputs)))
+        # for n in self.additional_inputs:
+        #     self.then_branch.global_index(n)
+        #     self.else_branch.global_index(n)
 
         if len(cond.shape) > 0:
             if all(cond):
@@ -143,6 +152,9 @@ class If(OpRun):
                 "Unable to find name=%r in %r or %r." % (
                     name, list(sorted(res)), list(sorted(out))))
         dt = out[name].type.tensor_type.elem_type
+        if dt == 0:
+            # This part should disappear.
+            return ShapeObject(None, numpy.float32)
         return ShapeObject(None, guess_dtype(dt))
 
     def _infer_shapes(self, cond, named_inputs=None):  # pylint: disable=W0221
