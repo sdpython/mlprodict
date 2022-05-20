@@ -7,7 +7,8 @@ import copy
 from onnx.helper import make_tensor
 from skl2onnx.common.data_types import guess_numpy_type
 from skl2onnx.common._apply_operation import apply_concat, apply_identity
-from ...onnx_tools.onnx2py_helper import _var_as_dict, guess_proto_dtype
+from ...onnx_tools.onnx2py_helper import (
+    _var_as_dict, guess_proto_dtype, get_tensor_shape)
 from ...npy.onnx_version import FctVersion
 
 

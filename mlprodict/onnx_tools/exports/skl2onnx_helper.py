@@ -2,7 +2,7 @@
 @file
 @brief Helpers to run examples created with :epkg:`sklearn-onnx`.
 """
-from onnx import helper, TensorProto
+from onnx import helper, TensorProto, ValueInfoProto, TypeProto
 
 
 def get_tensor_shape(obj):

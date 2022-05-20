@@ -222,7 +222,7 @@ def proto2vars(values):
         Int64Type, Int64TensorType, BooleanTensorType,
         Int32TensorType, DoubleTensorType, FloatType,
         StringTensorType, Float16TensorType)
-    from ..onnx_tools.onnx2py_helper import (
+    from ..onnx2py_helper import (
         get_tensor_elem_type, get_tensor_shape)
 
     def ptype2vttype(it, shape):

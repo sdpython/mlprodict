@@ -1,6 +1,6 @@
 # pylint: disable=R0915
 """
-@brief      test log(time=8s)
+@brief      test log(time=11s)
 """
 import unittest
 import os
@@ -8,7 +8,8 @@ import pprint
 import time
 from collections import Counter
 import numpy
-from onnx import helper, TensorProto, load, FunctionProto
+from onnx import (
+    helper, TensorProto, load, FunctionProto, ModelProto, GraphProto)
 from pyquickhelper.pycode import ExtTestCase, get_temp_folder
 from mlprodict.npy.xop import loadop, OnnxOperatorFunction
 from mlprodict.npy.xop_variable import Variable
@@ -17,6 +18,7 @@ from mlprodict.onnx_tools.onnx_tools import (
     enumerate_onnx_names, enumerate_onnx_nodes)
 from mlprodict.onnxrt import OnnxInference
 from mlprodict.onnx_tools.optim import onnx_remove_node_unused
+from mlprodict.onnx_tools.onnx2py_helper import get_tensor_elem_type
 from mlprodict.onnx_tools.onnx_manipulations import (
     select_model_inputs_outputs, enumerate_model_node_outputs,
     onnx_rename_names, insert_results_into_onnx, onnx_model_to_function,
@@ -1008,7 +1010,10 @@ class TestOptimOnnxManipulations(ExtTestCase):
                       'dims2_3': TensorProto.INT64,
                       'dims3': TensorProto.INT64,
                       'dims3_7': TensorProto.INT64})
-            onx = onnx_rename_inputs_outputs(onx, {'return_val': 'output'})
+            onx = onnx_rename_inputs_outputs(onx, {
+                'return_val': 'output',
+                'norm_67': 'output',
+                'final_3': 'output'})
             return onx
 
         def _type_info(name):
@@ -1018,10 +1023,58 @@ class TestOptimOnnxManipulations(ExtTestCase):
                         'axis1', 'axis2'}:
                 return numpy.int64
             if name in {'onesided', 'inverse', 'normalize'}:
-                return numpy.float32
+                return numpy.int64
             if name in {'final_3', 'return_val', 'final', 'output'}:
                 return numpy.float32
             raise AssertionError("Unexpected name %r." % name)
+
+        def _validate(fct, model):
+            if isinstance(model, ModelProto):
+                _validate(fct, model.graph)
+                return model
+            if isinstance(model, GraphProto):
+                self.assertEqual(len(model.output), 1)
+                for i in model.input:
+                    elem = get_tensor_elem_type(i)
+                    if i.name in {'x', 'data', 'alpha', 'beta', 'window', 'weights'}:
+                        if elem != TensorProto.FLOAT:
+                            raise AssertionError(
+                                "Unexpected element type %r for input %r "
+                                "in function %r.\n%s" % (
+                                    elem, i.name, fct,
+                                    onnx_simple_text_plot(
+                                        model, recursive=True, raise_exc=False)))
+                    else:
+                        if elem != TensorProto.INT64:
+                            raise AssertionError(
+                                "Unexpected element type %r for input %r "
+                                "in function %r.\n%s" % (
+                                    elem, i.name, fct,
+                                    onnx_simple_text_plot(
+                                        model, recursive=True, raise_exc=False)))
+                for i in model.output:
+                    elem = get_tensor_elem_type(i)
+                    if i.name in {'output', 'final'}:
+                        if elem != TensorProto.FLOAT:
+                            raise AssertionError(
+                                "Unexpected element type %r for output %r "
+                                "in function %r.\n%s" % (
+                                    elem, i.name, fct,
+                                    onnx_simple_text_plot(
+                                        model, recursive=True, raise_exc=False)))
+                    else:
+                        if elem != TensorProto.INT64:
+                            raise AssertionError(
+                                "Unexpected element type %r for output %r "
+                                "in function %r.\n%s" % (
+                                    elem, i.name, fct,
+                                    onnx_simple_text_plot(
+                                        model, recursive=True, raise_exc=False)))
+                return model
+            if isinstance(model, FunctionProto):
+                self.assertEqual(len(model.output), 1)
+                return model
+            raise AssertionError('Unexpected type %r.' % type(model))
 
         temp = get_temp_folder(__file__, 'temp_onnx_inline_function_' + subfolder)
         fcts = ["blackman_window", "hamming_window", "hann_window",
@@ -1040,6 +1093,7 @@ class TestOptimOnnxManipulations(ExtTestCase):
                     print("STEP1 begin", fct)
                 onx = load(os.path.join(data, fct + ".onnx"))
                 onx = _repare(fct, onx)
+                _validate(fct, onx)
                 try:
                     OnnxInference(onx)
                     use_fct = False
@@ -1048,7 +1102,9 @@ class TestOptimOnnxManipulations(ExtTestCase):
                     use_fct = True
                 if use_fct:
                     fpr = onnx_model_to_function(onx)
+                    _validate(fct, fpr)
                     onx = onnx_function_to_model(fpr, protos, type_info=_type_info)
+                    _validate(fct, onx)
 
                 try:
                     _check_run(fct, onx, inverse=inv)
@@ -1058,6 +1114,7 @@ class TestOptimOnnxManipulations(ExtTestCase):
                             fct, onnx_simple_text_plot(
                                 onx, recursive=True))) from e
                 proto = onnx_model_to_function(onx)
+                _validate(fct, proto)
                 proto.domain = 'this'
                 protos[proto.domain, proto.name] = proto
                 models[fct] = onx
@@ -1076,6 +1133,7 @@ class TestOptimOnnxManipulations(ExtTestCase):
         inlined_models = {}
         atts_def = {'inverse': 0, 'onesided': 0}
         for fct, onx in models.items():
+            _validate(fct, onx)
             if log:
                 t = time.perf_counter()
                 print("STEP2 begin", fct)
@@ -1091,10 +1149,11 @@ class TestOptimOnnxManipulations(ExtTestCase):
             with open(os.path.join(temp, fct + '.txt'), 'w') as f:
                 f.write(helper.printable_graph(onx.graph))
             with open(os.path.join(temp, fct + ".fct.onnx"), "wb") as f:
-                f.write(onnx_model_to_function(onx).SerializeToString())
+                f.write(_validate(fct, onnx_model_to_function(onx)).SerializeToString())
             with open(os.path.join(temp, fct + ".fct.att.onnx"), "wb") as f:
-                f.write(onnx_model_to_function(
-                    onx, inputs2par=atts_def).SerializeToString())
+                f.write(_validate(
+                    fct, onnx_model_to_function(
+                        onx, inputs2par=atts_def)).SerializeToString())
             verbose = 4
             if log:
                 ti = time.perf_counter()
@@ -1106,6 +1165,7 @@ class TestOptimOnnxManipulations(ExtTestCase):
                     "Unable to inline function %r\n%s\n#####\n%s" % (
                         fct, "\n".join(rows),
                         onnx_simple_text_plot(onx, recursive=True))) from e
+            _validate(fct, inlined)
             if skip_inline is not None and fct in skip_inline:
                 sx = str(inlined)
                 for n in skip_inline[fct]:
@@ -1139,6 +1199,7 @@ class TestOptimOnnxManipulations(ExtTestCase):
                     {n: onnx_model_to_function(inlined_models[n[1]],
                                                domain='this')
                      for n in skip_inline[fct]})
+                _validate(fct, inlined)
 
             with self.subTest(fct=fct, inline=True):
                 try:
@@ -1165,9 +1226,9 @@ class TestOptimOnnxManipulations(ExtTestCase):
                          for i in inlined.graph.input}
             type_info.update({i.name: i.type.tensor_type.elem_type
                              for i in inlined.graph.output})
-            fct_whole = onnx_model_to_function(inlined)
-            simple_graph = onnx_function_to_model(
-                fct_whole, type_info=type_info, as_function=True)
+            fct_whole = _validate(fct, onnx_model_to_function(inlined))
+            simple_graph = _validate(fct, onnx_function_to_model(
+                fct_whole, type_info=type_info, as_function=True))
             with open(os.path.join(temp, fct + '.inlined.graph.onnx'), 'wb') as f:
                 f.write(simple_graph.SerializeToString())
             if log:
@@ -1181,6 +1242,7 @@ class TestOptimOnnxManipulations(ExtTestCase):
         from onnxruntime.capi.onnxruntime_pybind11_state import (  # pylint: disable=E0611
             Fail, InvalidArgument, InvalidGraph)
         for fct, onx in inlined_models.items():
+            _validate(fct, onx)
             if log:
                 t = time.perf_counter()
                 print("STEP3 begin", fct)
@@ -1190,7 +1252,7 @@ class TestOptimOnnxManipulations(ExtTestCase):
                 if log:
                     print("ERROR3", fct, e)
                 # print(onnx_simple_text_plot(onx, recursive=True, raise_exc=False))
-                with open(os.path.join(temp, fct + '.error.onnx'), 'wb') as f:
+                with open(os.path.join(temp, fct + '.error.ort.onnx'), 'wb') as f:
                     f.write(onx.SerializeToString())
             if log:
                 print("STEP3 end  ", fct, time.perf_counter() - t)
