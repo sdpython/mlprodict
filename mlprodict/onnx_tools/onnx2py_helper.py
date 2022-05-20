@@ -34,7 +34,6 @@ def get_tensor_shape(obj):
     return shape
 
 
-
 def get_tensor_elem_type(obj):
     """
     Returns the element type if that makes sense for this object.
