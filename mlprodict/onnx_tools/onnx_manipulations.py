@@ -215,7 +215,7 @@ def select_model_inputs_outputs(model, outputs=None, inputs=None,
                 value_info = ValueInfoProto()
                 value_info.name = name
             else:
-                shape = get_tensor_shape(info)
+                shape = get_tensor_shape(known_shapes[name])
                 value_info = make_tensor_value_info(
                     name, proto_dtype, shape)
         else:
@@ -237,7 +237,7 @@ def select_model_inputs_outputs(model, outputs=None, inputs=None,
                 value_info = ValueInfoProto()
                 value_info.name = name
             else:
-                shape = get_tensor_shape(info)
+                shape = get_tensor_shape(known_shapes[name])
                 value_info = make_tensor_value_info(
                     name, proto_dtype, shape)
         else:
@@ -735,6 +735,12 @@ def onnx_replace_functions(model, replace):
                 raise TypeError(  # pragma: no cover
                     "Unexpected type %r for function %r in replace." % (
                         type(f), key))
+            if len(f.input) != len(fct.input):
+                raise ValueError(  # pragma: no cover
+                    "Input mismatches %r != %r (expected)." % (f.input, fct.input))
+            if len(f.output) != len(fct.output):
+                raise ValueError(  # pragma: no cover
+                    "Output mismatches %r != %r (expected)." % (f.output, fct.output))
             new_functions.append(f)
         else:
             new_functions.append(fct)
