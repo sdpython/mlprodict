@@ -1,3 +1,4 @@
+# pylint: disable=R1716
 """
 @brief      test log(time=16s)
 """
@@ -6,6 +7,8 @@ from logging import getLogger
 import numpy
 from pyquickhelper.loghelper import fLOG
 from pyquickhelper.pycode import ExtTestCase
+from pyquickhelper.texthelper import compare_module_version
+import sklearn
 from sklearn.ensemble import GradientBoostingClassifier
 from sklearn.exceptions import ConvergenceWarning
 try:
@@ -13,6 +16,7 @@ try:
 except ImportError:
     from sklearn.utils.testing import ignore_warnings
 from sklearn.model_selection import train_test_split
+import skl2onnx
 from mlprodict.onnx_conv import to_onnx
 from mlprodict.onnxrt import OnnxInference
 from mlprodict.onnxrt.validate.validate import sklearn_operators, enumerate_validated_operator_opsets
@@ -41,6 +45,10 @@ class TestRtValidateGradientBoosting(ExtTestCase):
         self.assertLesser(max_diff, 1e-2)
 
     @ignore_warnings(category=(UserWarning, ConvergenceWarning, RuntimeWarning))
+    @unittest.skipIf(
+        compare_module_version(skl2onnx.__version__, "1.11.1") <= 0 and
+        compare_module_version(sklearn.__version__, "1.1.0") >= 0,
+        "log_loss still not implemented")
     def test_validate_GradientBoostingClassifier(self):
         fLOG(__file__, self._testMethodName, OutputPrint=__name__ == "__main__")
         logger = getLogger('skl2onnx')
@@ -54,6 +62,10 @@ class TestRtValidateGradientBoosting(ExtTestCase):
         max_diff = max(_.get('max_rel_diff_batch', 1e-11) for _ in rows)
         self.assertLesser(max_diff, 1e-5)
 
+    @unittest.skipIf(
+        compare_module_version(skl2onnx.__version__, "1.11.1") <= 0 and
+        compare_module_version(sklearn.__version__, "1.1.0") >= 0,
+        "log_loss still not implemented")
     def test_validate_GradientBoostingClassifier_custom(self):
         mcl = _problems['m-cl']()
         (X, y, init_types, _, __, ___) = mcl

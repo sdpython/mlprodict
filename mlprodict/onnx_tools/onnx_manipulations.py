@@ -254,8 +254,10 @@ def select_model_inputs_outputs(model, outputs=None, inputs=None,
     if verbose > 0 and fLOG is not None:  # pragma: no cover
         fLOG("[select_model_inputs_outputs] nodes %r --> %r" % (
             len(model.graph.node), len(keep_nodes)))
-        fLOG("[select_model_inputs_outputs] inputs: %r" % [_.name for _ in var_in])
-        fLOG("[select_model_inputs_outputs] inputs: %r" % [_.name for _ in var_out])
+        fLOG("[select_model_inputs_outputs] inputs: %r" %
+             [_.name for _ in var_in])
+        fLOG("[select_model_inputs_outputs] inputs: %r" %
+             [_.name for _ in var_out])
 
     graph = make_graph(keep_nodes, model.graph.name, var_in,
                        var_out, model.graph.initializer,
@@ -286,7 +288,7 @@ def select_model_inputs_outputs(model, outputs=None, inputs=None,
 
 def change_input_type(onx, changes):
     """
-    Changes the input type of an input.
+    Changes the type of an input.
 
     :param onx: ONNX model
     :param changes: dictionary '{ name: new proto element type }`
@@ -324,6 +326,82 @@ def change_input_type(onx, changes):
         op_set.domain = oimp.domain
         op_set.version = oimp.version
     return onnx_model
+
+
+def change_subgraph_io_type(onx, changes, recursive=True):
+    """
+    Changes the type of an input or an output of a subgraph.
+
+    :param onx: ModelProto, GraphProto
+    :param changes: dictionary '{ name: new proto element type }`
+    :param recursive: True
+    :return: new onx
+    """
+    if isinstance(onx, ModelProto):
+        graph = change_subgraph_io_type(onx.graph, changes)
+        onnx_model = make_model(graph, functions=onx.functions)
+        onnx_model.ir_version = onx.ir_version
+        onnx_model.producer_name = onx.producer_name
+        onnx_model.producer_version = onx.producer_version
+        onnx_model.domain = onx.domain
+        onnx_model.model_version = onx.model_version
+        onnx_model.doc_string = onx.doc_string
+        if len(onx.metadata_props) > 0:  # pragma: no cover
+            values = {p.key: p.value for p in onx.metadata_props}
+            set_model_props(onnx_model, values)
+
+        del onnx_model.opset_import[:]  # pylint: disable=E1101
+        for oimp in onx.opset_import:
+            op_set = onnx_model.opset_import.add()  # pylint: disable=E1101
+            op_set.domain = oimp.domain
+            op_set.version = oimp.version
+        return onnx_model
+
+    graph = onx
+    new_inputs = []
+    for inp in graph.input:
+        if inp.name not in changes:
+            new_inputs.append(inp)
+            continue
+        value_info = make_tensor_value_info(
+            inp.name, changes[inp.name], None)
+        new_inputs.append(value_info)
+
+    new_outputs = []
+    for inp in graph.output:
+        if inp.name not in changes:
+            new_outputs.append(inp)
+            continue
+        value_info = make_tensor_value_info(
+            inp.name, changes[inp.name], None)
+        new_outputs.append(value_info)
+
+    # recursive
+    if recursive:
+        new_nodes = []
+        for node in graph.node:
+            modified = False
+            atts = []
+            for att in node.attribute:
+                if (att.type == AttributeProto.GRAPH and
+                        hasattr(att, 'g') and att.g is not None):
+                    modified = True
+                    g = change_subgraph_io_type(att.g, changes,
+                                                recursive=recursive)
+                    att = make_attribute(att.name, g)
+                atts.append(att)
+            if modified:
+                node = make_node(node.op_type, node.input, node.output)
+                node.attribute.extend(atts)
+            new_nodes.append(node)
+    else:
+        new_nodes = list(graph.node)
+
+    # final
+    graph = make_graph(new_nodes, graph.name, new_inputs, new_outputs,
+                       graph.initializer,
+                       sparse_initializer=graph.sparse_initializer)
+    return graph
 
 
 def overwrite_opset(model, new_opset):
@@ -669,7 +747,8 @@ def insert_results_into_onnx(model, results, as_parameter=True, suffix='_DBG',
 
 
 def onnx_model_to_function(onx, name=None, domain="custom",
-                           opset_imports=None, doc_string=None):
+                           opset_imports=None, doc_string=None,
+                           inputs2par=None):
     """
     Converts an ONNX model into a function. The returned function
     has no attribute.
@@ -680,7 +759,13 @@ def onnx_model_to_function(onx, name=None, domain="custom",
     :param opset_imports: opset to import as a dictionary
         `{domain: version}`
     :param doc_string: doc string
+    :param inputs2par: dictionary to move some inputs as attributes
+        `{ name: None or default value }`
     :return: function
+
+    .. warning::
+        :epkg:`FunctionProto` does not support default values yet.
+        They are ignored.
     """
     if isinstance(onx, ModelProto):
         if opset_imports is None:
@@ -692,7 +777,8 @@ def onnx_model_to_function(onx, name=None, domain="custom",
             doc_string = onx.doc_string
         return onnx_model_to_function(
             onx.graph, name=name, domain=domain,
-            opset_imports=opset_imports, doc_string=doc_string)
+            opset_imports=opset_imports, doc_string=doc_string,
+            inputs2par=inputs2par)
 
     if not isinstance(onx, GraphProto):
         raise TypeError(  # pragma: no cover
@@ -701,8 +787,18 @@ def onnx_model_to_function(onx, name=None, domain="custom",
     if name is None:
         name = onx.name
 
-    inputs = [i.name for i in onx.input]
+    inputs = []
     outputs = [o.name for o in onx.output]
+    attributes = []
+    nodes = []
+    if inputs2par is None:
+        inputs.extend(i.name for i in onx.input)
+    else:
+        for i in onx.input:
+            if i.name not in inputs2par:
+                inputs.append(i.name)
+                continue
+            attributes.append(i.name)
 
     if len(onx.initializer) > 0 or len(onx.sparse_initializer) > 0:
         # Needs to convert every initializer into Constant.
@@ -717,29 +813,35 @@ def onnx_model_to_function(onx, name=None, domain="custom",
             value = from_array(v['sparse_value'])
             n = make_node('Constant', [], [init.name], sparse_value=value)
             csts.append(n)
-        nodes = csts + list(onx.node)
-    else:
-        nodes = onx.node
+        nodes.extend(csts)
+
+    nodes.extend(onx.node)
+
     if isinstance(opset_imports, dict):
         ops = [make_operatorsetid(k, v) for k, v in opset_imports.items()]
         opset_imports = ops
     return make_function(
         domain, name, inputs, outputs, nodes,
-        opset_imports=opset_imports, doc_string=doc_string or '')
+        opset_imports=opset_imports, doc_string=doc_string or '',
+        attributes=attributes)
 
 
 def _onnx_function_to_model_convert_io(ens, type_info):
     typed_io = []
     for name in ens:
-        if isinstance(name, dict):
+        if isinstance(type_info, dict):
             res = type_info[name]
         elif callable(type_info):
             res = type_info(name)
         else:
             raise TypeError(
                 "type_info is not a callable or a dictionary, "
-                "unable to guess type for name=%r." % (name, ))
-        proto_dtype = guess_proto_dtype(res)
+                "unable to guess type for name=%r with "
+                "type(type_info)=%r." % (name, type(type_info)))
+        if isinstance(res, int):
+            proto_dtype = res
+        else:
+            proto_dtype = guess_proto_dtype(res)
         value_info = make_tensor_value_info(name, proto_dtype, None)
         typed_io.append(value_info)
     return typed_io
@@ -784,7 +886,7 @@ def onnx_function_to_model(onx, functions=None, type_info=None,
                            [o.name for o in outputs],
                            domain=onx.domain)]
         added_functions.append(onx)
-        opsets = [make_operatorsetid(onx.domain, onx.version)]
+        opsets = [make_operatorsetid(onx.domain, 1)]
     else:
         nodes = list(onx.node)
         opsets = [make_operatorsetid(op.domain, op.version)

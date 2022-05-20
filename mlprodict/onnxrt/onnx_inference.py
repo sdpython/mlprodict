@@ -515,14 +515,20 @@ class OnnxInference:
                 (self.runtime is None or not
                     self.runtime.startswith('onnxruntime1'))):
             for fct in self.obj.functions:
-                functions[fct.domain, fct.name] = OnnxInference(
-                    fct, runtime=self.runtime,
-                    skip_run=self.skip_run,
-                    inplace=self.inplace,
-                    runtime_options=self.runtime_options,
-                    inside_loop=self.inside_loop,
-                    static_inputs=self.static_inputs,
-                    existing_functions=functions)
+                try:
+                    oinf = OnnxInference(
+                        fct, runtime=self.runtime,
+                        skip_run=self.skip_run,
+                        inplace=self.inplace,
+                        runtime_options=self.runtime_options,
+                        inside_loop=self.inside_loop,
+                        static_inputs=self.static_inputs,
+                        existing_functions=functions)
+                except RuntimeError as e:
+                    raise RuntimeError(  # pragma: no cover
+                        "Unable to instantiate function %r, %r." % (
+                            fct.domain, fct.name)) from e
+                functions[fct.domain, fct.name] = oinf
 
         # static variables
         if self.static_inputs is not None:

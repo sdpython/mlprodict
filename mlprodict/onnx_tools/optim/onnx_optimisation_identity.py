@@ -86,7 +86,7 @@ def onnx_remove_node_identity(onnx_model, recursive=True, debug_info=None, **opt
             for o in node.output:
                 known.add(o)
             for att in node.attribute:
-                if (att.type == AttributeProto.GRAPH and
+                if (att.type == AttributeProto.GRAPH and  # pylint: disable=E1101
                         hasattr(att, 'g') and att.g is not None):
                     lv = append_local_variable(att.g, known)
                     local_var |= lv

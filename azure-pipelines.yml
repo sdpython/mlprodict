@@ -43,7 +43,7 @@ jobs:
     displayName: 'Install Requirements'
   - script: python -u setup.py build_ext --inplace
     displayName: 'Build package inplace'
-  - script: python -u setup.py unittests -g ".*((LONG)|(SKIP)|(notebooks)).*"
+  - script: python -u setup.py unittests -g ".*((LONG)|(SKIP)|(notebooks)|(asv_benchmark)|(test_onnx_helper)|(test_onnx_speedup_cluster)).*"
     displayName: 'Runs Unit Tests'
   - script: python -u setup.py bdist_wheel
     displayName: 'Build wheel'

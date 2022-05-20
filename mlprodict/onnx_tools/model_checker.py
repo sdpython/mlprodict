@@ -144,6 +144,9 @@ def check_onnx(model, use_onnx=False, known_results=None,
 
     for node in model.node:
         for i in node.input:
+            if i == '':
+                # optional input
+                continue
             if i not in known_results:
                 raise_missing(i, node, path + [node], known_results)
             for att in node.attribute:
