@@ -12,7 +12,7 @@ from skl2onnx.operator_converters.support_vector_machines import (
 from skl2onnx.common.data_types import guess_numpy_type, guess_proto_type
 from skl2onnx.common._apply_operation import (
     apply_cast, apply_add, apply_div, apply_mul, apply_concat,
-    apply_less)
+    apply_less, apply_abs)
 
 
 def _op_type_domain_regressor(dtype):
