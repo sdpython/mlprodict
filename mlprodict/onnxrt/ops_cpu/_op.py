@@ -7,6 +7,7 @@ import pprint
 import numpy
 import onnx
 import onnx.defs
+from onnx import GraphProto
 from ..shape_object import ShapeObject
 from ..type_object import SequenceType
 from ._new_ops import OperatorSchema
@@ -121,6 +122,30 @@ class OpRun:
                         "Attribute '{}' is expected based on ONNX specifications "
                         "for node '{}' and options {}.".format(
                             k, onnx_node.op_type, pprint.pformat(options)))
+
+    @staticmethod
+    def local_inputs(graph):
+        """
+        Returns all varibles not registered as inputs and not produced by
+        an node inside the graph. This inputs are part of the context
+        existing in the graph calling this one.
+        """
+        if not isinstance(graph, GraphProto):
+            raise TypeError(
+                "Unexpected type %r." % type(graph))
+        local = set()
+        known = set()
+        for init in graph.initializer:
+            known.add(init.name)
+        for init in graph.input:
+            known.add(init.name)
+        for node in graph.node:
+            for o in node.output:
+                known.add(o)
+            for i in node.input:
+                if i not in known:
+                    local.add(i)
+        return list(local)
 
     def need_context(self):
         """

@@ -9,7 +9,9 @@ import traceback
 from io import StringIO
 from contextlib import redirect_stdout, redirect_stderr
 import numpy
-from onnx import helper, numpy_helper, load as onnx_load, TensorProto
+from onnx import (
+    helper, numpy_helper, load as onnx_load, TensorProto,
+    ModelProto)
 from onnx.helper import (
     make_model, make_node, set_model_props, make_tensor, make_graph,
     make_tensor_value_info, make_opsetid, make_function)
@@ -25,7 +27,7 @@ from skl2onnx.common._topology import Variable as SklVariable
 from skl2onnx.common.data_types import FloatTensorType
 from mlprodict.onnx_tools.onnx_export import (
     export2onnx, export2tf2onnx, export2numpy, export2xop,
-    select_attribute)
+    export2cpp, select_attribute)
 from mlprodict.testing.verify_code import verify_code
 from mlprodict.onnxrt import OnnxInference
 from mlprodict.onnx_tools.exports.tf2onnx_helper import (
@@ -1535,6 +1537,16 @@ class TestExportOnnx(ExtTestCase):
                 self.assertEqual(y['Y'], y1['Y'])
                 self.assertEqual(y['Y'], y2['Y'])
 
+    def test_export_function_cpp(self):
+        data = os.path.join(os.path.dirname(__file__), "data")
+        onx_file = os.path.join(data, "switch_axes.inlined.onnx")
+        with open(onx_file, "rb") as f:
+            model = onnx_load(f)
+        self.assertIsInstance(model, ModelProto)
+        code = export2cpp(model)
+        self.assertIn('model.graph.ParseFromString(R"(', code)
+
 
 if __name__ == "__main__":
+    # TestExportOnnx().test_export_function_cpp()
     unittest.main(verbosity=2)
