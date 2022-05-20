@@ -3,12 +3,15 @@
 @brief Helpers to run examples created with :epkg:`sklearn-onnx`.
 """
 from onnx import helper, TensorProto
+from onnx_tools.onnx2py_helper import (
+        get_tensor_shape, get_tensor_elem_type)
 
 
 def _copy_inout(inout, scope, new_name):
-    shape = [s.dim_value for s in inout.type.tensor_type.shape.dim]
+    shape = get_tensor_shape(inout)
+    elem_type = get_tensor_elem_type(inout)
     value_info = helper.make_tensor_value_info(
-        new_name, inout.type.tensor_type.elem_type, shape)
+        new_name, elem_type, shape)
     return value_info
 
 

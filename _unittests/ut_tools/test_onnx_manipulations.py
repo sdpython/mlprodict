@@ -21,7 +21,8 @@ from mlprodict.onnx_tools.onnx_manipulations import (
     select_model_inputs_outputs, enumerate_model_node_outputs,
     onnx_rename_names, insert_results_into_onnx, onnx_model_to_function,
     onnx_inline_function, onnx_function_to_model, change_input_type,
-    change_subgraph_io_type, onnx_rename_inputs_outputs)
+    change_subgraph_io_type, onnx_rename_inputs_outputs,
+    onnx_replace_functions)
 from mlprodict import __max_supported_opset__ as TARGET_OPSET
 from mlprodict.plotting.text_plot import onnx_simple_text_plot
 from mlprodict.onnxrt.excs import MissingOperatorError
@@ -784,7 +785,7 @@ class TestOptimOnnxManipulations(ExtTestCase):
                     inputs['alpha'] = numpy.array([0.56], dtype=numpy.float32)
                     inputs['beta'] = numpy.array([0.54], dtype=numpy.float32)
                 got = oinf.run(inputs)
-                res = got['return_val']
+                res = got['output']
                 self.assertEqual(res.shape, (5, ))
                 self.assertEqual(res.dtype, numpy.float32)
                 return got
@@ -795,7 +796,7 @@ class TestOptimOnnxManipulations(ExtTestCase):
                           'axis1': numpy.array([0], dtype=numpy.int64),
                           'axis2': numpy.array([2], dtype=numpy.int64)}
                 got = oinf.run(inputs)
-                res = got['return_val']
+                res = got['output']
                 self.assertEqual(res.shape, (5, 4, 3))
                 self.assertEqualArray(numpy.transpose(
                     inputs['x'], (2, 1, 0)), res)
@@ -1134,7 +1135,10 @@ class TestOptimOnnxManipulations(ExtTestCase):
             # replaced the skip_inline functions by their inlined versions
             if skip_inline is not None and fct in skip_inline:
                 inlined = onnx_replace_functions(
-                    {n[1]: inlined_models[n[1]] for n in skip_inline[fct]})
+                    inlined,
+                    {n: onnx_model_to_function(inlined_models[n[1]],
+                                               domain='this')
+                     for n in skip_inline[fct]})
 
             with self.subTest(fct=fct, inline=True):
                 try:
@@ -1203,6 +1207,5 @@ class TestOptimOnnxManipulations(ExtTestCase):
 
 
 if __name__ == "__main__":
-    TestOptimOnnxManipulations().test_onnx_inline_function_fft2(True)
-    stop
+    # TestOptimOnnxManipulations().test_onnx_inline_function_fft2(True)
     unittest.main()

@@ -245,7 +245,7 @@ class OnnxInferenceNode:
                     opset=target_opset)
             except SchemaError:
                 fct_names = (
-                    list(existing_functions.key()) if existing_functions
+                    list(existing_functions.keys()) if existing_functions
                     else [])
                 raise MissingOperatorError(
                     "Unable to find runtime for node (%r, %r), "

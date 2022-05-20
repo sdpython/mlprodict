@@ -46,13 +46,9 @@ def new_calculate_sklearn_function_transformer_output_shapes(operator):
             dims = [N]
             out = outputs[0]
             try:
-                extra_dims = out.type.tensor_type.shape.dim
+                extra_dims = get_tensor_shape(out.type)
             except AttributeError:  # pragma: no cover
                 extra_dims = None
-            if extra_dims is not None:
-                val = [d.dim_value if d.dim_value > 0 else None
-                       for d in extra_dims[1:]]
-                dims.extend(val)
         operator.outputs[0].type = input_type(dims)
         return
 
