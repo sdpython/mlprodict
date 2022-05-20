@@ -5,8 +5,7 @@
 
 
 template<typename NTYPE>
-class RuntimeSVMClassifier : public RuntimeSVMCommon<NTYPE>
-{
+class RuntimeSVMClassifier : public RuntimeSVMCommon<NTYPE> {
     public:
 
         std::vector<NTYPE> proba_;
@@ -397,15 +396,13 @@ void RuntimeSVMClassifier<NTYPE>::compute_gil_free(
     }
 }
 
-class RuntimeSVMClassifierFloat : public RuntimeSVMClassifier<float>
-{
+class RuntimeSVMClassifierFloat : public RuntimeSVMClassifier<float> {
     public:
         RuntimeSVMClassifierFloat(int omp_N) : RuntimeSVMClassifier<float>(omp_N) {}
 };
 
 
-class RuntimeSVMClassifierDouble : public RuntimeSVMClassifier<double>
-{
+class RuntimeSVMClassifierDouble : public RuntimeSVMClassifier<double> {
     public:
         RuntimeSVMClassifierDouble(int omp_N) : RuntimeSVMClassifier<double>(omp_N) {}
 };
