@@ -628,6 +628,17 @@ def onnx_rename_names(model, strategy='simple', recursive=True,
     return model
 
 
+def onnx_rename_inputs_outputs(onx, rename):
+    """
+    Renames input or outputs names.
+
+    :param onx: GraphProto, ModelProto, FunctionProto
+    :param rename: dictionary `{old_name: new_name}`
+    :return: new onx
+    """
+    raise NotImplementedError()
+
+
 def insert_results_into_onnx(model, results, as_parameter=True, suffix='_DBG',
                              param_name=None, node_type='DEBUG',
                              domain='DEBUG', domain_opset=1):
