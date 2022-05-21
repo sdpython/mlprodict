@@ -333,6 +333,8 @@ class TestOnnxConvKNN(ExtTestCase):
                 return
             if "Got invalid dimensions for input:" in str(e):
                 return
+            if "Invalid rank for input: knny_Z0" in str(e):
+                return
             raise e
 
     @igw((DeprecationWarning, FutureWarning))

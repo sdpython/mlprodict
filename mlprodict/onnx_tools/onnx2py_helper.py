@@ -30,7 +30,7 @@ def get_tensor_shape(obj):
     if len(shape) == 0:
         shape = None
     else:
-        shape = list(None if s == 0 else s for s in shape)
+        shape = list(None if s in (0, '') else s for s in shape)
     return shape
 
 
