@@ -132,6 +132,19 @@ class OpRunOnnxRuntime:
             outvar = [(name, DictionaryType(otype([1]), FloatTensorType([1])))]
             self.onnx_ = self.inst_.to_onnx(inputs, outputs=outvar)
             forced = True
+        elif self.onnx_node.op_type == 'ArrayFeatureExtractor':
+            from skl2onnx.common.data_types import (  # delayed
+                FloatTensorType, Int64TensorType, DoubleTensorType)
+            self.inst_ = self.alg_class(*self.inputs, output_names=self.outputs,
+                                        op_version=target_opset, **options)
+            inputs = get_defined_inputs(
+                self.inputs, variables, dtype=self.dtype)
+            name = (self.outputs[0] if len(self.outputs) == 1
+                    else self.inst_.expected_outputs[0][0])
+            otype = inputs[0][1].__class__
+            outvar = [(name, otype())]
+            self.onnx_ = self.inst_.to_onnx(inputs, outputs=outvar)
+            forced = True
         elif self.onnx_node.op_type == 'ConstantOfShape':
             for k in options:
                 v = options[k]
