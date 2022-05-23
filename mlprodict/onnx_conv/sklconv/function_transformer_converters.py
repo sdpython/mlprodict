@@ -7,7 +7,8 @@ import copy
 from onnx.helper import make_tensor
 from skl2onnx.common.data_types import guess_numpy_type
 from skl2onnx.common._apply_operation import apply_concat, apply_identity
-from ...onnx_tools.onnx2py_helper import _var_as_dict, guess_proto_dtype
+from ...onnx_tools.onnx2py_helper import (
+    _var_as_dict, guess_proto_dtype, get_tensor_shape)
 from ...npy.onnx_version import FctVersion
 
 
@@ -41,19 +42,19 @@ def new_calculate_sklearn_function_transformer_output_shapes(operator):
         if compiled.meta_.get('signature', None):
             dims = compiled.meta_['signature'].shape_calculator(
                 operator.inputs[0].type.shape)
+            extra_dims = None
         else:
             N = operator.inputs[0].type.shape[0]
             dims = [N]
             out = outputs[0]
             try:
-                extra_dims = out.type.tensor_type.shape.dim
+                extra_dims = get_tensor_shape(out.type)
             except AttributeError:  # pragma: no cover
                 extra_dims = None
-            if extra_dims is not None:
-                val = [d.dim_value if d.dim_value > 0 else None
-                       for d in extra_dims[1:]]
-                dims.extend(val)
-        operator.outputs[0].type = input_type(dims)
+        if extra_dims is not None and len(extra_dims) > 0:
+            operator.outputs[0].shape = list(extra_dims)
+        else:
+            operator.outputs[0].type = input_type(dims)
         return
 
     if operator.raw_operator.func is not None:

@@ -222,6 +222,8 @@ def proto2vars(values):
         Int64Type, Int64TensorType, BooleanTensorType,
         Int32TensorType, DoubleTensorType, FloatType,
         StringTensorType, Float16TensorType)
+    from ..onnx2py_helper import (
+        get_tensor_elem_type, get_tensor_shape)
 
     def ptype2vttype(it, shape):
         if it == TensorProto.FLOAT:  # pylint: disable=E1101
@@ -261,15 +263,7 @@ def proto2vars(values):
             subtype = proto2vars([v.sequence_type.elem_type])[0][1]
             v = SequenceType(subtype)
         elif hasattr(v, 'tensor_type') and str(v.tensor_type) != '':
-            tt = v.tensor_type
-            el = tt.elem_type
-            shape = tt.shape
-            dim = shape.dim
-            if len(dim) == 0:
-                shape = []
-            else:
-                shape = [dim[i].dim_value for i in range(len(dim))]
-            v = ptype2vttype(el, shape)
+            v = ptype2vttype(get_tensor_elem_type(v), get_tensor_shape(v))
         elif hasattr(v, 'map_type') and str(v.map_type) != '':
             mt = v.map_type
             keyt = ptype2vtype(mt.key_type)

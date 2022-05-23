@@ -14,7 +14,9 @@ from onnx.helper import (
     make_tensor_value_info, ValueInfoProto, set_model_props,
     make_graph, make_function, make_model, make_node,
     make_operatorsetid, make_attribute, make_value_info)
-from .onnx2py_helper import guess_proto_dtype, from_array
+from .onnx2py_helper import (
+    guess_proto_dtype, from_array, get_tensor_shape,
+    get_tensor_elem_type)
 from .optim import onnx_remove_node_unused
 from .onnx_tools import enumerate_onnx_names, enumerate_onnx_nodes
 from ..onnx_tools.onnx2py_helper import _var_as_dict, from_array
@@ -213,11 +215,7 @@ def select_model_inputs_outputs(model, outputs=None, inputs=None,
                 value_info = ValueInfoProto()
                 value_info.name = name
             else:
-                shape = [getattr(d, 'dim_value', None) for d in info.shape.dim]
-                if len(shape) == 0:
-                    shape = None
-                else:
-                    shape = [None if s == 0 else s for s in shape]
+                shape = get_tensor_shape(known_shapes[name])
                 value_info = make_tensor_value_info(
                     name, proto_dtype, shape)
         else:
@@ -239,11 +237,7 @@ def select_model_inputs_outputs(model, outputs=None, inputs=None,
                 value_info = ValueInfoProto()
                 value_info.name = name
             else:
-                shape = [getattr(d, 'dim_value', None) for d in info.shape.dim]
-                if len(shape) == 0:
-                    shape = None
-                else:
-                    shape = [None if s == 0 else s for s in shape]
+                shape = get_tensor_shape(known_shapes[name])
                 value_info = make_tensor_value_info(
                     name, proto_dtype, shape)
         else:
@@ -626,6 +620,146 @@ def onnx_rename_names(model, strategy='simple', recursive=True,
                 counts=counts, replace=replace, taken=taken)
 
     return model
+
+
+def onnx_rename_inputs_outputs(onx, rename):
+    """
+    Renames input or outputs names.
+
+    :param onx: GraphProto, ModelProto
+    :param rename: dictionary `{old_name: new_name}`
+    :return: new onx
+    """
+    if isinstance(onx, ModelProto):
+        graph = onnx_rename_inputs_outputs(onx.graph, rename)
+        onnx_model = make_model(graph, functions=onx.functions)
+        onnx_model.ir_version = onx.ir_version
+        onnx_model.producer_name = onx.producer_name
+        onnx_model.producer_version = onx.producer_version
+        onnx_model.domain = onx.domain
+        onnx_model.model_version = onx.model_version
+        onnx_model.doc_string = onx.doc_string
+        if len(onx.metadata_props) > 0:  # pragma: no cover
+            values = {p.key: p.value for p in onx.metadata_props}
+            set_model_props(onnx_model, values)
+
+        del onnx_model.opset_import[:]  # pylint: disable=E1101
+        for oimp in onx.opset_import:
+            op_set = onnx_model.opset_import.add()  # pylint: disable=E1101
+            op_set.domain = oimp.domain
+            op_set.version = oimp.version
+        return onnx_model
+
+    graph = onx
+    new_inputs = []
+    for inp in graph.input:
+        if inp.name not in rename:
+            new_inputs.append(inp)
+            continue
+        value_info = make_tensor_value_info(
+            rename[inp.name], get_tensor_elem_type(inp), get_tensor_shape(inp))
+        new_inputs.append(value_info)
+
+    new_outputs = []
+    for inp in graph.output:
+        if inp.name not in rename:
+            new_outputs.append(inp)
+            continue
+        value_info = make_tensor_value_info(
+            rename[inp.name], get_tensor_elem_type(inp), get_tensor_shape(inp))
+        new_outputs.append(value_info)
+
+    new_inits = []
+    for init in graph.initializer:
+        if init.name in rename:
+            init.name = rename[init.name]
+        new_inits.append(init)
+
+    new_sparse_inits = []
+    for init in graph.sparse_initializer:
+        if init.name in rename:
+            init.name = rename[init.name]
+        new_sparse_inits.append(init)
+
+    new_nodes = []
+    for node in graph.node:
+        modified = False
+        atts = []
+        for att in node.attribute:
+            if (att.type == AttributeProto.GRAPH and
+                    hasattr(att, 'g') and att.g is not None):
+                modified = True
+                g = onnx_rename_inputs_outputs(att.g, rename)
+                att = make_attribute(att.name, g)
+            atts.append(att)
+        if modified:
+            node = make_node(node.op_type, node.input, node.output)
+            node.attribute.extend(atts)
+
+        inp = [rename.get(i, i) for i in node.input]
+        out = [rename.get(i, i) for i in node.output]
+        if inp == list(node.input) and out == list(node.output):
+            new_nodes.append(node)
+            continue
+
+        node = make_node(node.op_type, inp, out, domain=node.domain,
+                         name=node.name)
+        node.attribute.extend(atts)
+        new_nodes.append(node)
+
+    # final
+    graph = make_graph(new_nodes, graph.name, new_inputs, new_outputs,
+                       new_inits, sparse_initializer=new_sparse_inits)
+    return graph
+
+
+def onnx_replace_functions(model, replace):
+    """
+    Replaces some of the function in model.
+
+    :param model: *ModelProto*
+    :param replace: dictionary `{ (domain, name): FunctionProto }`
+    :return: new model
+    """
+    if not isinstance(model, ModelProto):
+        raise TypeError(  # pragma: no cover
+            "Unexpected type %r." % type(model))
+    new_functions = []
+    modified = False
+    for fct in model.functions:
+        key = fct.domain, fct.name
+        if key in replace:
+            modified = True
+            f = replace[key]
+            if not isinstance(f, FunctionProto):
+                raise TypeError(  # pragma: no cover
+                    "Unexpected type %r for function %r in replace." % (
+                        type(f), key))
+            if len(f.input) != len(fct.input):
+                raise ValueError(  # pragma: no cover
+                    "Input mismatches %r != %r (expected)." % (f.input, fct.input))
+            if len(f.output) != len(fct.output):
+                raise ValueError(  # pragma: no cover
+                    "Output mismatches %r != %r (expected)." % (f.output, fct.output))
+            new_functions.append(f)
+        else:
+            new_functions.append(fct)
+    if not modified:
+        return model
+    opsets = [make_operatorsetid(op.domain, op.version)
+              for op in model.opset_import]
+    onnx_model = make_model(
+        model.graph, opset_imports=opsets, functions=new_functions)
+    onnx_model.ir_version = model.ir_version
+    onnx_model.producer_name = model.producer_name
+    onnx_model.producer_version = model.producer_version
+    onnx_model.domain = model.domain
+    onnx_model.model_version = model.model_version
+    onnx_model.doc_string = model.doc_string
+    if len(model.metadata_props) > 0:  # pragma: no cover
+        values = {p.key: p.value for p in model.metadata_props}
+        set_model_props(onnx_model, values)
+    return onnx_model
 
 
 def insert_results_into_onnx(model, results, as_parameter=True, suffix='_DBG',

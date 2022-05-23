@@ -9,9 +9,41 @@ import numpy
 from scipy.sparse import coo_matrix
 from onnx.defs import get_schema, get_function_ops, onnx_opset_version
 from onnx.mapping import NP_TYPE_TO_TENSOR_TYPE, TENSOR_TYPE_TO_NP_TYPE
-from onnx import TensorProto, ValueInfoProto
+from onnx import TensorProto, ValueInfoProto, TypeProto
 from onnx.helper import make_tensor_type_proto
 from onnx.numpy_helper import to_array, from_array as onnx_from_array
+
+
+def get_tensor_shape(obj):
+    """
+    Returns the shape if that makes sense for this object.
+    """
+    if isinstance(obj, ValueInfoProto):
+        return get_tensor_shape(obj.type)
+    elif not isinstance(obj, TypeProto):
+        raise TypeError(  # pragma: no cover
+            "Unexpected type %r." % type(obj))
+    shape = []
+    for d in obj.tensor_type.shape.dim:
+        v = d.dim_value if d.dim_value > 0 else d.dim_param
+        shape.append(v)
+    if len(shape) == 0:
+        shape = None
+    else:
+        shape = list(None if s in (0, '') else s for s in shape)
+    return shape
+
+
+def get_tensor_elem_type(obj):
+    """
+    Returns the element type if that makes sense for this object.
+    """
+    if isinstance(obj, ValueInfoProto):
+        return get_tensor_elem_type(obj.type)
+    elif not isinstance(obj, TypeProto):
+        raise TypeError(  # pragma: no cover
+            "Unexpected type %r." % type(obj))
+    return obj.tensor_type.elem_type
 
 
 def to_bytes(val):
