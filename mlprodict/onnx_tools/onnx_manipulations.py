@@ -701,7 +701,7 @@ def onnx_rename_inputs_outputs(onx, rename):
         if inp == list(node.input) and out == list(node.output):
             new_nodes.append(node)
             continue
-        
+
         node = make_node(node.op_type, inp, out, domain=node.domain,
                          name=node.name)
         node.attribute.extend(atts)

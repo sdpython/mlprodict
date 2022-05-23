@@ -133,8 +133,6 @@ class OpRunOnnxRuntime:
             self.onnx_ = self.inst_.to_onnx(inputs, outputs=outvar)
             forced = True
         elif self.onnx_node.op_type == 'ArrayFeatureExtractor':
-            from skl2onnx.common.data_types import (  # delayed
-                FloatTensorType, Int64TensorType, DoubleTensorType)
             self.inst_ = self.alg_class(*self.inputs, output_names=self.outputs,
                                         op_version=target_opset, **options)
             inputs = get_defined_inputs(

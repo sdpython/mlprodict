@@ -51,6 +51,8 @@ def new_calculate_sklearn_function_transformer_output_shapes(operator):
             except AttributeError:  # pragma: no cover
                 extra_dims = None
         operator.outputs[0].type = input_type(dims)
+        if extra_dims is not None and len(extra_dims) > 0:
+            operator.outputs[0].shape = list(extra_dims)
         return
 
     if operator.raw_operator.func is not None:

@@ -772,7 +772,6 @@ class TestOptimOnnxManipulations(ExtTestCase):
             got3 = oinf3.run(feeds)
             self.assertEqualArray(got['Z'], got3['Z'])
 
-
     def common_test_onnx_inline_function_fft(self, subfolder, log=False,
                                              skip_inline=None):
 
@@ -1143,7 +1142,7 @@ class TestOptimOnnxManipulations(ExtTestCase):
             else:
                 inline_protos = {k: v for k, v in protos.items()
                                  if k not in skip_inline[fct]}
-                
+
             with open(os.path.join(temp, fct + '.onnx'), 'wb') as f:
                 f.write(onx.SerializeToString())
             with open(os.path.join(temp, fct + '.txt'), 'w') as f:
@@ -1264,8 +1263,7 @@ class TestOptimOnnxManipulations(ExtTestCase):
         self.common_test_onnx_inline_function_fft(
             'fft2', log=log, skip_inline={
                 'stft': {('this', 'dft')},
-                'istft': {('this', 'dft')},
-        })
+                'istft': {('this', 'dft')}})
 
 
 if __name__ == "__main__":

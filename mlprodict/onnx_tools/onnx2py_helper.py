@@ -24,7 +24,7 @@ def get_tensor_shape(obj):
         raise TypeError(  # pragma: no cover
             "Unexpected type %r." % type(obj))
     shape = []
-    for dimi, d in enumerate(obj.tensor_type.shape.dim):
+    for d in obj.tensor_type.shape.dim:
         v = d.dim_value if d.dim_value > 0 else d.dim_param
         shape.append(v)
     if len(shape) == 0:
@@ -44,7 +44,7 @@ def get_tensor_elem_type(obj):
         raise TypeError(  # pragma: no cover
             "Unexpected type %r." % type(obj))
     return obj.tensor_type.elem_type
-    
+
 
 def to_bytes(val):
     """
