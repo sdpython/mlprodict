@@ -42,6 +42,7 @@ def new_calculate_sklearn_function_transformer_output_shapes(operator):
         if compiled.meta_.get('signature', None):
             dims = compiled.meta_['signature'].shape_calculator(
                 operator.inputs[0].type.shape)
+            extra_dims = None
         else:
             N = operator.inputs[0].type.shape[0]
             dims = [N]
@@ -50,9 +51,10 @@ def new_calculate_sklearn_function_transformer_output_shapes(operator):
                 extra_dims = get_tensor_shape(out.type)
             except AttributeError:  # pragma: no cover
                 extra_dims = None
-        operator.outputs[0].type = input_type(dims)
         if extra_dims is not None and len(extra_dims) > 0:
             operator.outputs[0].shape = list(extra_dims)
+        else:
+            operator.outputs[0].type = input_type(dims)
         return
 
     if operator.raw_operator.func is not None:
