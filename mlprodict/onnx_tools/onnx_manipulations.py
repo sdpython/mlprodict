@@ -401,8 +401,8 @@ def change_subgraph_io_type_shape(onx, type_changes=None, shape_changes=None,
                         hasattr(att, 'g') and att.g is not None):
                     modified = True
                     g = change_subgraph_io_type_shape(
-                            att.g, type_changes, shape_changes,
-                            recursive=recursive)
+                        att.g, type_changes, shape_changes,
+                        recursive=recursive)
                     att = make_attribute(att.name, g)
                 atts.append(att)
             if modified:

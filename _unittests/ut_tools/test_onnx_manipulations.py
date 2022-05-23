@@ -775,7 +775,8 @@ class TestOptimOnnxManipulations(ExtTestCase):
             self.assertEqualArray(got['Z'], got3['Z'])
 
     def common_test_onnx_inline_function_fft(self, subfolder, log=False,
-                                             skip_inline=None):
+                                             skip_inline=None,
+                                             run_validation=True):
 
         def _check_run_(name, onx, inverse=False, check=False):
             oinf = OnnxInference(onx)
@@ -1056,8 +1057,8 @@ class TestOptimOnnxManipulations(ExtTestCase):
                 return numpy.float32
             raise AssertionError("Unexpected name %r." % name)
 
-        def _validate(fct, model, check_onnx=True, path_error=None, inverse=False):
-            if check_onnx and isinstance(model, ModelProto):
+        def _validate(fct, model, check_onnx_model=True, path_error=None, inverse=False):
+            if check_onnx_model and isinstance(model, ModelProto):
                 try:
                     check_model(model)
                 except Exception as e:
@@ -1072,7 +1073,8 @@ class TestOptimOnnxManipulations(ExtTestCase):
                                         str(node).replace(" ", "").replace("\n", " ")))
                             for att in node.attribute:
                                 if att.type == AttributeProto.GRAPH:
-                                    look(op_type, att.g.node, seq + [node.op_type])
+                                    look(op_type, att.g.node,
+                                         seq + [node.op_type])
 
                     look('Constant', model.graph.node, [])
                     for f in model.functions:
@@ -1087,7 +1089,7 @@ class TestOptimOnnxManipulations(ExtTestCase):
                             fct, str(e), "\n".join(rows),
                             str(model))) from e
             if isinstance(model, ModelProto):
-                _validate(fct, model.graph, check_onnx=check_onnx)
+                _validate(fct, model.graph, check_onnx_model=check_onnx_model)
                 return model
             if isinstance(model, GraphProto):
                 self.assertEqual(len(model.output), 1)
@@ -1133,7 +1135,8 @@ class TestOptimOnnxManipulations(ExtTestCase):
                 return model
             raise AssertionError('Unexpected type %r.' % type(model))
 
-        temp = get_temp_folder(__file__, 'temp_onnx_inline_function_' + subfolder)
+        temp = get_temp_folder(
+            __file__, 'temp_onnx_inline_function_' + subfolder)
         fcts = ["blackman_window", "hamming_window", "hann_window",
                 "switch_axes", "dft_last_axis", "dft_inv", "dft",
                 "stft", "istft"]
@@ -1150,7 +1153,7 @@ class TestOptimOnnxManipulations(ExtTestCase):
                     print("STEP1 begin", fct)
                 onx = load(os.path.join(data, fct + ".onnx"))
                 onx = _repare(fct, onx)
-                if 'dft' not in fct and 'stft' not in fct:
+                if run_validation and fct not in {'stft', 'istft'}:
                     _validate(fct, onx, path_error=os.path.join(
                         temp, fct + '.error.check.onnx'))
                 try:
@@ -1161,9 +1164,11 @@ class TestOptimOnnxManipulations(ExtTestCase):
                     use_fct = True
                 if use_fct:
                     fpr = onnx_model_to_function(onx)
-                    _validate(fct, fpr)
-                    onx = onnx_function_to_model(fpr, protos, type_info=_type_info)
-                    if fct not in {'dft_inv', 'dft', 'stft', 'istft'}:
+                    if run_validation:
+                        _validate(fct, fpr)
+                    onx = onnx_function_to_model(
+                        fpr, protos, type_info=_type_info)
+                    if run_validation:
                         _validate(fct, onx)
 
                 try:
@@ -1193,7 +1198,7 @@ class TestOptimOnnxManipulations(ExtTestCase):
         inlined_models = {}
         atts_def = {'inverse': 0, 'onesided': 0}
         for fct, onx in models.items():
-            if fct not in {'dft_last_axis'}:
+            if run_validation:
                 _validate(fct, onx)
             if log:
                 t = time.perf_counter()
@@ -1210,7 +1215,8 @@ class TestOptimOnnxManipulations(ExtTestCase):
             with open(os.path.join(temp, fct + '.txt'), 'w') as f:
                 f.write(helper.printable_graph(onx.graph))
             with open(os.path.join(temp, fct + ".fct.onnx"), "wb") as f:
-                f.write(_validate(fct, onnx_model_to_function(onx)).SerializeToString())
+                f.write(_validate(fct, onnx_model_to_function(
+                    onx)).SerializeToString())
             with open(os.path.join(temp, fct + ".fct.att.onnx"), "wb") as f:
                 f.write(_validate(
                     fct, onnx_model_to_function(
@@ -1226,7 +1232,8 @@ class TestOptimOnnxManipulations(ExtTestCase):
                     "Unable to inline function %r\n%s\n#####\n%s" % (
                         fct, "\n".join(rows),
                         onnx_simple_text_plot(onx, recursive=True))) from e
-            _validate(fct, inlined)
+            if run_validation:
+                _validate(fct, inlined)
             if skip_inline is not None and fct in skip_inline:
                 sx = str(inlined)
                 for n in skip_inline[fct]:
@@ -1288,8 +1295,12 @@ class TestOptimOnnxManipulations(ExtTestCase):
             type_info.update({i.name: i.type.tensor_type.elem_type
                              for i in inlined.graph.output})
             fct_whole = _validate(fct, onnx_model_to_function(inlined))
-            simple_graph = _validate(fct, onnx_function_to_model(
-                fct_whole, type_info=type_info, as_function=True))
+            if run_validation:
+                simple_graph = _validate(fct, onnx_function_to_model(
+                    fct_whole, type_info=type_info, as_function=True))
+            else:
+                simple_graph = onnx_function_to_model(
+                    fct_whole, type_info=type_info, as_function=True)
             with open(os.path.join(temp, fct + '.inlined.graph.onnx'), 'wb') as f:
                 f.write(simple_graph.SerializeToString())
             if log:
@@ -1321,7 +1332,8 @@ class TestOptimOnnxManipulations(ExtTestCase):
                 print("STEP3 end  ", fct, time.perf_counter() - t)
 
     def test_onnx_inline_function_fft(self, log=False):
-        self.common_test_onnx_inline_function_fft('fft', log=log)
+        self.common_test_onnx_inline_function_fft(
+            'fft', log=log, run_validation=False)
 
     def test_onnx_inline_function_fft2(self, log=False):
         self.common_test_onnx_inline_function_fft(
@@ -1331,6 +1343,5 @@ class TestOptimOnnxManipulations(ExtTestCase):
 
 
 if __name__ == "__main__":
-    TestOptimOnnxManipulations().test_onnx_inline_function_fft2(True)
-    stop
-    unittest.main()
+    # TestOptimOnnxManipulations().test_onnx_inline_function_fft(True)
+    unittest.main(verbosity=2)

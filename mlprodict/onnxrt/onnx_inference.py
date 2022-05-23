@@ -1106,7 +1106,7 @@ class OnnxInference:
         :param res: results in a dictionary
         :param verbose: verbosity
         :param fLOG: logging function
-        :return: dictionary 
+        :return: dictionary
         """
         if verbose >= 2:
             fLOG('[VALIDATE] type %r' % type(self.obj))
@@ -1170,7 +1170,7 @@ class OnnxInference:
                 else:  # pragma: no cover
                     fLOG("CHECK: expected outputs %r != outputs %r" % (
                         outputs, got))
-                mis = {k: None for k in set(got) - get & outputs}
+                mis = {k: None for k in set(got) - got & outputs}
                 if verbose >= 2:
                     fLOG('[VALIDATE] mis=%r' % mis)
                 return mis
