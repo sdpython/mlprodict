@@ -623,14 +623,10 @@ class TestOptimOnnxManipulations(ExtTestCase):
     def test_onnx_inline_subgraph_function_double(self, log=False):
         X = helper.make_tensor_value_info(
             'X', TensorProto.FLOAT, ['N'])  # pylint: disable=E1101
-        I = helper.make_tensor_value_info(
-            'input', TensorProto.FLOAT, ['N'])  # pylint: disable=E1101
         O = helper.make_tensor_value_info(
             'output', TensorProto.FLOAT, ['N'])  # pylint: disable=E1101
         Z = helper.make_tensor_value_info(
             'output', TensorProto.FLOAT, ['N'])  # pylint: disable=E1101
-        one = helper.make_tensor_value_info(
-            'one', TensorProto.FLOAT, ['N'])  # pylint: disable=E1101
 
         func_def_add = helper.make_function(
             'this', 'fctadd', ['input2'], ['output'], [
@@ -842,7 +838,7 @@ class TestOptimOnnxManipulations(ExtTestCase):
     def common_test_onnx_inline_function_fft(self, subfolder, log=False,
                                              skip_inline=None,
                                              run_validation=True):
-        from onnxruntime.capi.onnxruntime_pybind11_state import RuntimeException
+        from onnxruntime.capi.onnxruntime_pybind11_state import RuntimeException  # pylint: disable=E0611
 
         def _check_run_(name, onx, inverse=False, check=False, runtime='python'):
             inplace = True

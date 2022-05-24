@@ -1153,6 +1153,7 @@ class _inline_mapping(dict):
         return m
 
     def remove(self, o):
+        "Removes one element."
         if o not in self:
             raise KeyError(  # pragma: no cover
                 "Cannot remove a key %r." % o)

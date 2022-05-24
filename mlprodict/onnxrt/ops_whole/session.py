@@ -4,9 +4,7 @@
 @brief Shortcut to *ops_whole*.
 """
 import json
-from io import BytesIO
 import numpy
-import onnx
 
 
 class OnnxWholeSession:

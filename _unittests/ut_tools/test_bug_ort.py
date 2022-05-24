@@ -4,11 +4,9 @@
 import os
 import unittest
 import numpy
-from onnx import load
-from pyquickhelper.pycode import ExtTestCase, ignore_warnings
+from pyquickhelper.pycode import ExtTestCase
 from pyquickhelper.texthelper.version_helper import compare_module_version
 from mlprodict.onnxrt import OnnxInference
-from mlprodict.plotting.text_plot import onnx_simple_text_plot
 
 
 def get_ort_version():
@@ -46,7 +44,7 @@ class TestBugOrt(ExtTestCase):
             with self.subTest(runtime=rt, case='with-unused'):
                 oinf2 = OnnxInference(onx2, runtime=rt)
                 res2 = oinf2.run(inputs)
-                self.assertEqualArray(res1["output"], res1["output"])
+                self.assertEqualArray(res1["output"], res2["output"])
 
 
 if __name__ == "__main__":
