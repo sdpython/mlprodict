@@ -842,12 +842,21 @@ class TestOptimOnnxManipulations(ExtTestCase):
     def common_test_onnx_inline_function_fft(self, subfolder, log=False,
                                              skip_inline=None,
                                              run_validation=True):
+        from onnxruntime.capi.onnxruntime_pybind11_state import RuntimeException
 
-        def _check_run_(name, onx, inverse=False, check=False):
-            oinf = OnnxInference(onx)
-            names = oinf.input_names
-            verbose = 0 if not check else -10
+        def _check_run_(name, onx, inverse=False, check=False, runtime='python'):
+            inplace = True
+            if isinstance(check, int):
+                verbose = check
+            else:
+                verbose = 0 if not check else -10
+            intermediate = verbose > 0 and runtime != 'python'
+            if intermediate:
+                inplace = False
             fLOG = print if verbose != 0 else None
+
+            oinf = OnnxInference(onx, runtime=runtime, inplace=inplace)
+            names = oinf.input_names
 
             if names[0] == 'window_length':
                 # window function
@@ -866,7 +875,8 @@ class TestOptimOnnxManipulations(ExtTestCase):
                 inputs = {'x': numpy.random.randn(3, 4, 5).astype(numpy.float32),
                           'axis1': numpy.array([0], dtype=numpy.int64),
                           'axis2': numpy.array([2], dtype=numpy.int64)}
-                got = oinf.run(inputs, verbose=verbose, fLOG=fLOG)
+                got = oinf.run(inputs, verbose=verbose, fLOG=fLOG,
+                               intermediate=intermediate)
                 res = got['output']
                 self.assertEqual(res.shape, (5, 4, 3))
                 self.assertEqualArray(numpy.transpose(
@@ -902,7 +912,8 @@ class TestOptimOnnxManipulations(ExtTestCase):
                           'inverse': numpy.array([0], dtype=numpy.int64),
                           'normalize': numpy.array([0], dtype=numpy.int64)}
                 ft = numpy.fft.fft(inputs['x'][:, :, :, 0], 5)
-                got = oinf.run(inputs, verbose=verbose, fLOG=fLOG)
+                got = oinf.run(inputs, verbose=verbose, fLOG=fLOG,
+                               intermediate=intermediate)
                 output_name = onx.graph.output[0].name
                 res = got[output_name]
                 self.assertEqual(res.shape, (3, 4, 5, 2))
@@ -910,6 +921,12 @@ class TestOptimOnnxManipulations(ExtTestCase):
                     res[:, :, :, 0], numpy.real(ft), decimal=4)
                 self.assertEqualArray(
                     res[:, :, :, 1], numpy.imag(ft), decimal=4)
+                if intermediate:
+                    inter = oinf.intermediate_onnx_inference_
+                    for k, v in inter.items():
+                        self.assertEqual(v.runtime, runtime)
+                        with open("debug_%s.%s.%s.onnx" % (fct, runtime, k), "wb") as f:
+                            f.write(v.obj.SerializeToString())
                 return got
 
             if names == ['x', 'fft_length', 'axis', 'weights', 'onesided',
@@ -1056,9 +1073,10 @@ class TestOptimOnnxManipulations(ExtTestCase):
 
             raise NameError("Unable to process %r." % names)
 
-        def _check_run(name, onx, inverse=False, check=False):
+        def _check_run(name, onx, inverse=False, check=False, runtime='python'):
             t = time.perf_counter()
-            res = _check_run_(name, onx, inverse=inverse, check=check)
+            res = _check_run_(name, onx, inverse=inverse, check=check,
+                              runtime=runtime)
             d = time.perf_counter()
             if log:
                 print("TIME  EXEC ", fct, d - t, "inverse=%d" % inverse)
@@ -1375,18 +1393,24 @@ class TestOptimOnnxManipulations(ExtTestCase):
             print()
 
         # third loop, checking inlined functions with onnxruntime
+        if not run_validation:
+            return
         from onnxruntime import InferenceSession
         from onnxruntime.capi.onnxruntime_pybind11_state import (  # pylint: disable=E0611
             Fail, InvalidArgument, InvalidGraph)
         for fct, onx in inlined_models.items():
+            if fct == "switch_axes":
+                continue
             if run_validation:
                 _validate(fct, onx)
             if log:
                 t = time.perf_counter()
                 print("STEP3 begin", fct)
+            good = True
             try:
                 InferenceSession(onx.SerializeToString())
             except (Fail, InvalidArgument, InvalidGraph) as e:
+                good = False
                 if log:
                     print("ERROR3", fct, e)
                 # print(onnx_simple_text_plot(onx, recursive=True, raise_exc=False))
@@ -1396,6 +1420,28 @@ class TestOptimOnnxManipulations(ExtTestCase):
                     f.write(str(onx))
             if log:
                 print("STEP3 end  ", fct, time.perf_counter() - t)
+
+            if not good:
+                continue
+            try:
+                _check_run(fct, onx, runtime="onnxruntime1")
+            except (RuntimeError, AttributeError, NameError, IndexError,
+                    RuntimeException) as e:
+                with open(os.path.join(temp, fct + '.error.ort.exec.onnx'), 'wb') as f:
+                    f.write(onx.SerializeToString())
+                print("--------------")
+                print("--------------")
+                _check_run_(fct, onx, runtime="python", check=1)
+                print("--------------")
+                print("--------------")
+                _check_run_(fct, onx, runtime="onnxruntime1", check=1)
+                print("--------------")
+                print("--------------")
+                raise AssertionError(
+                    "Unable to run inlined function with onnxruntime %r"
+                    "\n%s" % (
+                        fct, onnx_simple_text_plot(
+                            onx, recursive=True, raise_exc=False))) from e
 
     def test_onnx_inline_function_fft(self, log=False):
         self.common_test_onnx_inline_function_fft(

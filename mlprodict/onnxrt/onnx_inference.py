@@ -1207,7 +1207,7 @@ class OnnxInference:
             if not isinstance(outputs, set):
                 outputs = set(outputs)
         ord = OrderedDict()
-        for output in enumerate_model_node_outputs(self.obj, order=True):
+        for output in enumerate_model_node_outputs(self.obj, order=False):
             if outputs is not None and output not in outputs:
                 continue
             subonx = select_model_inputs_outputs(

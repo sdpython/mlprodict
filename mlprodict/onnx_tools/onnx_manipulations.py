@@ -56,8 +56,10 @@ def enumerate_model_node_outputs(model, add_node=False, order=False):
                 order[0, o] = 0
 
         modif = 1
-        while modif > 0:
+        n_iter = 0
+        while modif > 0 and n_iter <= len(model.graph.node):
             modif = 0
+            n_iter += 1
             for kind, data_name, node_name in edges:
                 if kind == 'in':
                     if (0, data_name) not in order:
@@ -84,6 +86,28 @@ def enumerate_model_node_outputs(model, add_node=False, order=False):
         for node in model.graph.node:
             for out in node.output:
                 yield (out, node) if add_node else out
+
+
+def get_hidden_inputs(nodes):
+    """
+    Returns the list of hidden inputs used by subgraphs.
+
+    :param nodes: list of nodes
+    :return: list of names
+    """
+    inputs = set()
+    outputs = set()
+    for node in nodes:
+        inputs |= set(node.input)
+        outputs |= set(node.output)
+        for att in node.attribute:
+            if (att.type != AttributeProto.GRAPH or  # pylint: disable=E1101
+                    not hasattr(att, 'g') or att.g is None):
+                continue
+            hidden = get_hidden_inputs(att.g.node)
+            inits = set(att.g.initializer)
+            inputs |= hidden - (inits & hidden)
+    return inputs - (outputs & inputs)
 
 
 def select_model_inputs_outputs(model, outputs=None, inputs=None,
@@ -170,8 +194,11 @@ def select_model_inputs_outputs(model, outputs=None, inputs=None,
             if not mod:
                 continue
 
+            hidden = get_hidden_inputs([node])
+            node_inputs = list(node.input) + list(hidden)
+
             nb += 1
-            for inp in node.input:
+            for inp in node_inputs:
                 if inp in inputs:
                     continue
                 if mark_var.get(inp, 0) == 1:
