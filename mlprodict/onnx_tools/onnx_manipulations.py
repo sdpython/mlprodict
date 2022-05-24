@@ -1,4 +1,7 @@
+# Copyright (c) Microsoft Corporation. All rights reserved.
+# Licensed under the MIT License.
 # pylint: disable=E1101, C0302
+
 """
 @file
 @brief Implements a class able to compute the predictions
@@ -1104,6 +1107,10 @@ class _inline_mapping(dict):
         if self._verbose > 3:
             self._fLOG("[_inline_mapping-dict-addkv] %s + %r: %r" %
                        ("  " * self._level, key, value))
+        if key in self:
+            raise RuntimeError(
+                "Key %r was already added (with value %r, new one is %r)."
+                "" % (key, self[key], value))
         dict.__setitem__(self, key, value)
 
     def update(self, d):
@@ -1117,6 +1124,12 @@ class _inline_mapping(dict):
         for k, v in self.items():
             m[k] = v
         return m
+
+    def remove(self, o):
+        if o not in self:
+            raise KeyError(  # pragma: no cover
+                "Cannot remove a key %r." % o)
+        self.pop(o)
 
 
 def _onnx_inline_function_graph(graph, protos, existing_names, mapping,
@@ -1170,7 +1183,7 @@ def _onnx_inline_function_graph(graph, protos, existing_names, mapping,
     outputs = list(graph.output)
 
     if verbose > 1:
-        fLOG("[onnx_inline_function-graph] %s visit graph=%d rename=%r "
+        fLOG("[onnx_inline_function-graph] %s >visit graph=%d rename=%r "
              "len(mapping)=%d begin" % (
                  "  " * level, id(graph), rename, len(mapping)))
 
@@ -1202,14 +1215,26 @@ def _onnx_inline_function_graph(graph, protos, existing_names, mapping,
             if rename:
                 if o not in output_names:
                     new_o = _get_new_name('_inl', o, existing_names)
+                if o in mapping:
+                    # See below.
+                    mapping.remove(o)
             elif o in mapping:
-                raise RuntimeError(
-                    "Output %r in node (%r, %r) (level=%d) is already known."
-                    "" % (o, node.op_type, node.name, level))
+                # That means the main contains a result node but is overwritten by
+                # the subgraph. The local variable cannot be reached anymore,
+                # we remove it.
+                mapping.remove(o)
+                if o in node.input:
+                    new_o = _get_new_name('_inl', o, existing_names)
+                if verbose > 3:
+                    fLOG(
+                        "[onnx_inline_function-renam] %s node %r(%r): %r -> %r "
+                        "overwrite result (%r -> %r)." % (
+                            "  " * level, node.op_type, node.name, node.input,
+                            node.output, o, new_o))
             out.append(new_o)
             mapping[o] = new_o
-            mapping[new_o] = new_o
-            if new_o != o:
+            if o != new_o:
+                mapping[new_o] = new_o
                 mod += 1
 
         if verbose > 3:
@@ -1282,7 +1307,7 @@ def _onnx_inline_function_graph(graph, protos, existing_names, mapping,
                 sparse_initializer=list(graph.sparse_initializer))
 
     if verbose > 1:
-        fLOG("[onnx_inline_function-graph] %s visit graph=%d end "
+        fLOG("[onnx_inline_function-graph] %s <visit graph=%d end "
              "changed=%r len(modified_nodes)=%d" % (
                  "  " * level, id(graph0), id(graph0) != id(graph),
                  len(modified_nodes)))
@@ -1315,7 +1340,8 @@ def _onnx_inline_function_node(node, protos, existing_names, verbose,
                 fLOG("[onnx_inline_function-ninpu] %s add node %r(%r): %r -> %r" % (
                     "  " * level, n.op_type, n.name, n.input, n.output))
             mapping[to] = n.output[0]
-            mapping[n.output[0]] = n.output[0]
+            if to != n.output[0]:
+                mapping[n.output[0]] = n.output[0]
             new_nodes.append(n)
 
         for nn in proto.node:
@@ -1469,13 +1495,17 @@ def onnx_inline_function(obj, protos=None, existing_names=None, verbose=0, fLOG=
     max_iter = onnx_subgraphs_level(obj) + 1
     modified = 1
     while modified > 0 and n_iter < max_iter:
+        if verbose > 0:
+            fLOG("[onnx_inline_function] start iteration %r" % n_iter)
 
         # local context
         mapping = _inline_mapping(verbose, fLOG, level=0)
         if isinstance(obj, GraphProto):
             mapping.update({i.name: i.name for i in obj.initializer})
             mapping.update({i.name: i.name for i in obj.sparse_initializer})
-            mapping.update({i.name: i.name for i in obj.input})
+            for i in obj.input:
+                if i.name not in mapping:
+                    mapping[i.name] = i.name
         elif isinstance(obj, FunctionProto):
             mapping.update({i: i for i in obj.input})
         else:
@@ -1490,12 +1520,13 @@ def onnx_inline_function(obj, protos=None, existing_names=None, verbose=0, fLOG=
             nnodes, m = _onnx_inline_function_node(
                 node, protos, existing_names, verbose, fLOG, level=0)
             mapping.update({o: o for o in node.output})
+
             if len(m) > 0:
                 if verbose > 0:
                     fLOG("[onnx_inline_function] replaced node %r (%r) "
-                         "with %d nodes (id=%r) -- %r -> %r" % (
+                         "with %d nodes (id=%r) -- %r -> %r (iter=%r)" % (
                              node.name, node.op_type, len(nnodes), id(node),
-                             node.input, node.output))
+                             node.input, node.output, n_iter))
                 modified += len(m)
                 new_nodes.extend(nnodes)
                 modified_nodes.extend(m)
@@ -1526,8 +1557,6 @@ def onnx_inline_function(obj, protos=None, existing_names=None, verbose=0, fLOG=
                     # we still need to check that this subgraph does
                     # not include a function
                     new_nodes.append(node)
-
-            mapping.update({o: o for o in node.output})
 
         n_iter += 1
         if verbose > 0:

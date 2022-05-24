@@ -620,6 +620,71 @@ class TestOptimOnnxManipulations(ExtTestCase):
             self.assertEqualArray(
                 got['Z'], numpy.array([1], dtype=numpy.float32))
 
+    def test_onnx_inline_subgraph_function_double(self, log=False):
+        X = helper.make_tensor_value_info(
+            'X', TensorProto.FLOAT, ['N'])  # pylint: disable=E1101
+        I = helper.make_tensor_value_info(
+            'input', TensorProto.FLOAT, ['N'])  # pylint: disable=E1101
+        O = helper.make_tensor_value_info(
+            'output', TensorProto.FLOAT, ['N'])  # pylint: disable=E1101
+        Z = helper.make_tensor_value_info(
+            'output', TensorProto.FLOAT, ['N'])  # pylint: disable=E1101
+        one = helper.make_tensor_value_info(
+            'one', TensorProto.FLOAT, ['N'])  # pylint: disable=E1101
+
+        func_def_add = helper.make_function(
+            'this', 'fctadd', ['input2'], ['output'], [
+                helper.make_node('Constant', [], ['one'], value_floats=[1.]),
+                helper.make_node('Add', ['input2', 'one'], ['output'])],
+            opset_imports=[helper.make_operatorsetid('', 15)])
+
+        graph1 = helper.make_graph(
+            [helper.make_node('fctadd', ['input'], ['output'], domain='this')],
+            'then', [], [O])
+        graph2 = helper.make_graph(
+            [helper.make_node('fctadd', ['input'], ['output'], domain='this')],
+            'else', [], [O])
+
+        func_def = helper.make_function(
+            'this', 'fct', ['input'], ['output'], [
+                helper.make_node('Constant', [], ['one'], value_floats=[1.]),
+                helper.make_node('Greater', ['input', 'one'], ['cond']),
+                helper.make_node('If', ['cond'], ['output'],
+                                 then_branch=graph1, else_branch=graph2)],
+            opset_imports=[helper.make_operatorsetid('', 15),
+                           helper.make_operatorsetid('this', 1)])
+
+        graph_def = helper.make_graph(
+            [helper.make_node('fct', ['X'], ['ztmp'], domain='this'),
+             helper.make_node('fct', ['ztmp'], ['output'], domain='this')],
+            'test', [X], [Z])
+
+        model_def = helper.make_model(
+            graph_def, producer_name='mlprodict',
+            ir_version=7, producer_version='0.1',
+            opset_imports=[helper.make_operatorsetid('', 15),
+                           helper.make_operatorsetid('this', 1)],
+            functions=[func_def_add, func_def])
+        feeds = {'X': numpy.array([-5], dtype=numpy.float32)}
+
+        for rt in ['python']:  # , 'onnxruntime1']:
+            if log:
+                print(rt)
+            oinf = OnnxInference(model_def, runtime=rt)
+            oinf.check_model()
+            got = oinf.run(feeds)
+
+            inlined, m = onnx_inline_function(
+                model_def, verbose=3 if log else 0, fLOG=print)
+            self.assertNotIn('functions {', str(inlined))
+            self.assertEqual(len(m), 10)
+            oinf = OnnxInference(inlined)
+            oinf.check_model()
+            goti = oinf.run(feeds)
+            self.assertEqualArray(got['output'], goti['output'])
+            self.assertEqualArray(
+                got['output'], numpy.array([-3], dtype=numpy.float32))
+
     def test_onnx_inline_subgraph_function2(self, log=False):
         X = helper.make_tensor_value_info(
             'X', TensorProto.FLOAT, ['N'])  # pylint: disable=E1101
@@ -1314,7 +1379,8 @@ class TestOptimOnnxManipulations(ExtTestCase):
         from onnxruntime.capi.onnxruntime_pybind11_state import (  # pylint: disable=E0611
             Fail, InvalidArgument, InvalidGraph)
         for fct, onx in inlined_models.items():
-            _validate(fct, onx)
+            if run_validation:
+                _validate(fct, onx)
             if log:
                 t = time.perf_counter()
                 print("STEP3 begin", fct)
@@ -1343,5 +1409,5 @@ class TestOptimOnnxManipulations(ExtTestCase):
 
 
 if __name__ == "__main__":
-    # TestOptimOnnxManipulations().test_onnx_inline_function_fft(True)
+    # TestOptimOnnxManipulations().test_onnx_inline_function_fft2(True)
     unittest.main(verbosity=2)

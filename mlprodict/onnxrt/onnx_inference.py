@@ -84,12 +84,6 @@ class OnnxInference:
         :epkg:`onnxruntime`
     * *ir_version*: change ir_version
 
-    .. versionchanged:: 0.7
-        Parameters *new_outputs*, *new_opset* were added.
-
-    .. versionchanged:: 0.8
-        Parameters *static_inputs*, *device* were added.
-
     .. versionchanged:: 0.9
         Parameters *existing_functions* was added.
         Removes *device* parameter. See runtime.
@@ -1123,6 +1117,11 @@ class OnnxInference:
                     continue
                 expected = get_tensor_elem_type(outputs[k])
                 shape = get_tensor_shape(outputs[k])
+                if v is None:
+                    rows.append(
+                        "Result %r is None instead of %r." % (
+                            k, expected))
+                    continue
                 dtype = guess_proto_dtype(v.dtype)
                 if expected != dtype:
                     mis[k] = "dtype %r != %r" % (dtype, expected)
@@ -1149,12 +1148,13 @@ class OnnxInference:
                             "instead of %r." % (
                                 k, v.shape, shape))
                         break
-                if len(rows) > 0:
-                    if verbose < 0:
-                        raise RuntimeError(
-                            "Unexpected outputs.\n%s" % "\n".join(rows))
-                    else:
-                        fLOG("Unexpected outputs.\n%s" % "\n".join(rows))
+            if len(rows) > 0:
+                if verbose < 0:
+                    raise RuntimeError(
+                        "Validation failed.\n- %s" % "\n- ".join(rows))
+                else:
+                    fLOG("[VALIDATE] validation failed.\n- %s" %
+                         "\n- ".join(rows))
             if verbose >= 2:
                 fLOG('[VALIDATE] mis=%r' % mis)
             return mis
