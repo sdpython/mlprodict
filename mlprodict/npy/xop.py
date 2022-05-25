@@ -1112,8 +1112,8 @@ class OnnxOperator(OnnxOperatorBase):
             # branch is an input.
             branch = OnnxIdentity(OnnxExisting(branch),
                                   op_version=self.op_version)
-        logger.debug("%s:_add_subgraph:type(branch)=%r",
-                     self.__class__.__name__, type(branch))
+        logger.debug("%s:_add_subgraph:%s=type(branch)=%r",
+                     self.__class__.__name__, attribute, type(branch))
         if isinstance(branch, onnx.ModelProto):
             return self._add_subgraph(attribute, branch.graph)
         if isinstance(branch, onnx.GraphProto):
@@ -1131,16 +1131,20 @@ class OnnxOperator(OnnxOperatorBase):
     def _set_control_op(self, op):
         """
         Sets *control_op* for every instance of @see cl OnnxExisting node.
+
+        :param op: operator calling the subgraph.
         """
-        for inp in self.inputs:
+        for i, inp in enumerate(self.inputs):
             if isinstance(inp, OnnxOperatorBase):
+                logger.debug("%d-%s:_set_control_op:propagate-into-input:%d:p:%d",
+                             id(self), self.__class__.__name__, i, id(op))
                 inp._set_control_op(op)
         if self.kwargs is None:
             return
         for k, v in self.kwargs.items():
             if isinstance(v, OnnxOperatorBase):
-                logger.debug("%s:_set_control_op:propagate-into-attribute:%s",
-                             self.__class__.__name__, k)
+                logger.debug("%d-%s:_set_control_op:propagate-into-attribute:%s:p:%d",
+                             id(self), self.__class__.__name__, k, id(op))
                 v._set_control_op(op)
 
     @property
@@ -1392,11 +1396,17 @@ class OnnxOperator(OnnxOperatorBase):
                         id(inp.inputs[0]), inp.inputs[0], node))
         elif isinstance(inp, OnnxOperator):
             new_stack.append(inp)
+            logger.debug("static:processed[%d]:%s",
+                id(inp), inp.__class__.__name__)
             processed[id(inp)] = inp
         elif isinstance(inp, OnnxOperatorItem):
             new_stack.append(inp)
+            logger.debug("static:processed[%d]:%s",
+                id(inp), inp.__class__.__name__)
             processed[id(inp)] = inp
             new_stack.append(inp.onx_op)
+            logger.debug("static:processed[%d]:%s",
+                id(inp.onx_op), inp.onx_op.__class__.__name__)
             processed[id(inp.onx_op)] = inp.onx_op
         elif isinstance(inp, OnnxOperatorTuple):
             # new_stack.append(inp)
@@ -1603,7 +1613,7 @@ class OnnxOperator(OnnxOperatorBase):
                     pass
                 elif isinstance(obj, (OnnxOperator, OnnxOperatorTuple)):
                     if len(obj.external_inputs) > 0:
-                        # external_inputs are inputs required by a subgraphs
+                        # external_inputs are inputs required by a subgraph
                         # but not necessarily used in the main graph.
                         # They need to be processed first.
                         for inp in obj.external_inputs:
@@ -1752,6 +1762,8 @@ class OnnxOperator(OnnxOperatorBase):
         # get the graph
         if processed is None:
             processed = {}
+        logger.debug("%d-%s:processed[%d]:SELF",
+            id(self), self.__class__.__name__, id(self))
         processed[id(self)] = self
         nodes, graph_inputs, graph_outputs, run_shape2 = self._node_to_graph(
             other_outputs, inputs, outputs, as_function=function_name is not None,
@@ -3068,6 +3080,9 @@ class OnnxExisting(OnnxIdentity):
         if op is None:
             raise RuntimeError(  # pragma: no cover
                 "op cannot be None in _set_control_op.")
+        logger.debug("%d-%s:_set_control_op:found:p:%d:%r",
+                     id(self), self.__class__.__name__, id(op),
+                     self.inputs[0].output_names)
         if self.control_ops_ is None:
             self.control_ops_ = []
         self.control_ops_.append(op)
