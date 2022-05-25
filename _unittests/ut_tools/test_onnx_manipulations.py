@@ -6,6 +6,7 @@ import unittest
 import os
 import pprint
 import time
+import warnings
 from collections import Counter
 import numpy
 from onnx import (
@@ -1465,6 +1466,9 @@ class TestOptimOnnxManipulations(ExtTestCase):
                     f.write(onx.SerializeToString())
                 with open(os.path.join(temp, fct + '.error.ort.onnx.txt'), 'w') as f:
                     f.write(str(onx))
+                warnings.warn(
+                    "Unable to load inlined function %r "
+                    "with onnxruntime due to %r." % (fct, e))
             if log:
                 print("STEP3 end  ", fct, time.perf_counter() - t)
 
@@ -1472,6 +1476,8 @@ class TestOptimOnnxManipulations(ExtTestCase):
                 continue
             try:
                 _check_run(fct, onx, runtime="onnxruntime1")
+                with open(os.path.join(temp, fct + '.valid.ort.exec.onnx'), 'wb') as f:
+                    f.write(onx.SerializeToString())
             except (RuntimeError, AttributeError, NameError, IndexError,
                     RuntimeException) as e:
                 with open(os.path.join(temp, fct + '.error.ort.exec.onnx'), 'wb') as f:
@@ -1486,11 +1492,15 @@ class TestOptimOnnxManipulations(ExtTestCase):
                                 save_intermediate=temp)
                     print("--------------")
                     print("--------------")
-                raise AssertionError(
-                    "Unable to run inlined function with onnxruntime %r"
-                    "\n%s" % (
-                        fct, onnx_simple_text_plot(
-                            onx, recursive=True, raise_exc=False))) from e
+                    raise AssertionError(
+                        "Unable to run inlined function with onnxruntime %r"
+                        "\n%s" % (
+                            fct, onnx_simple_text_plot(
+                                onx, recursive=True, raise_exc=False))) from e
+                else:
+                    warnings.warn(
+                        "Unable to run inlined function %r "
+                        "with onnxruntime due to %r." % (fct, e))
 
     def test_onnx_inline_function_fft(self, log=False):
         self.common_test_onnx_inline_function_fft(
