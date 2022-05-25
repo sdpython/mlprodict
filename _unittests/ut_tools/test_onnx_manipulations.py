@@ -13,6 +13,8 @@ from onnx import (
     GraphProto, AttributeProto)
 from onnx.checker import check_model
 from pyquickhelper.pycode import ExtTestCase, get_temp_folder
+from pyquickhelper.texthelper.edit_text_diff import (
+    diff2html, edit_distance_text)
 from mlprodict.npy.xop import loadop, OnnxOperatorFunction
 from mlprodict.npy.xop_variable import Variable
 from mlprodict.onnx_tools.optim.onnx_helper import onnx_statistics
@@ -840,7 +842,30 @@ class TestOptimOnnxManipulations(ExtTestCase):
                                              run_validation=True):
         from onnxruntime.capi.onnxruntime_pybind11_state import RuntimeException  # pylint: disable=E0611
 
-        def _check_run_(name, onx, inverse=False, check=False, runtime='python'):
+        def _save_intermediate(name, oinf, save_intermediate):
+            if save_intermediate is not None:
+                text_base = onnx_simple_text_plot(
+                    oinf.obj, recursive=True, indent=False)
+                rows_base = text_base.split('\n')
+                rows_base_json = str(oinf.obj).split('\n')
+                for k, v in oinf.intermediate_onnx_inference_.items():
+                    fn = os.path.join(
+                        save_intermediate,
+                        "debug_inter.f-%s.rt-%s.r-%s.onnx" % (name, oinf.runtime, k))
+                    with open(fn, 'wb') as f:
+                        f.write(v.obj.SerializeToString())
+                    text_new = onnx_simple_text_plot(
+                        v.obj, recursive=True, indent=False)
+                    rows_new = text_new.split('\n')
+
+                    _, aligned, final = edit_distance_text(rows_base, rows_new)
+                    ht = diff2html(rows_base, rows_new, aligned, final,
+                                   two_columns=True)
+                    with open(fn + ".html", 'w', encoding='utf-8') as f:
+                        f.write(ht)
+
+        def _check_run_(name, onx, inverse=False, check=False, runtime='python',
+                        save_intermediate=None):
             inplace = True
             if isinstance(check, int):
                 verbose = check
@@ -871,8 +896,15 @@ class TestOptimOnnxManipulations(ExtTestCase):
                 inputs = {'x': numpy.random.randn(3, 4, 5).astype(numpy.float32),
                           'axis1': numpy.array([0], dtype=numpy.int64),
                           'axis2': numpy.array([2], dtype=numpy.int64)}
-                got = oinf.run(inputs, verbose=verbose, fLOG=fLOG,
-                               intermediate=intermediate)
+                try:
+                    got = oinf.run(inputs, verbose=verbose, fLOG=fLOG,
+                                   intermediate=intermediate)
+                    keepe = None
+                except Exception as e:
+                    keepe = e
+                _save_intermediate(name, oinf, save_intermediate)
+                if keepe:
+                    raise keepe
                 res = got['output']
                 self.assertEqual(res.shape, (5, 4, 3))
                 self.assertEqualArray(numpy.transpose(
@@ -889,7 +921,8 @@ class TestOptimOnnxManipulations(ExtTestCase):
                           'inverse': numpy.array([0], dtype=numpy.int64),
                           'normalize': numpy.array([0], dtype=numpy.int64)}
                 ft = numpy.fft.fft(inputs['x'][:, :, :, 0], 5)
-                got = oinf.run(inputs, verbose=verbose, fLOG=fLOG)
+                got = oinf.run(inputs, verbose=verbose, fLOG=fLOG,
+                               intermediate=intermediate)
                 output_name = onx.graph.output[0].name
                 res = got[output_name]
                 self.assertEqual(res.shape, (3, 4, 5, 2))
@@ -897,6 +930,7 @@ class TestOptimOnnxManipulations(ExtTestCase):
                     res[:, :, :, 0], numpy.real(ft), decimal=4)
                 self.assertEqualArray(
                     res[:, :, :, 1], numpy.imag(ft), decimal=4)
+                _save_intermediate(name, oinf, save_intermediate)
                 return got
 
             if names == ['x', 'fft_length', 'onesided',
@@ -923,6 +957,7 @@ class TestOptimOnnxManipulations(ExtTestCase):
                         self.assertEqual(v.runtime, runtime)
                         with open("debug_%s.%s.%s.onnx" % (fct, runtime, k), "wb") as f:
                             f.write(v.obj.SerializeToString())
+                _save_intermediate(name, oinf, save_intermediate)
                 return got
 
             if names == ['x', 'fft_length', 'axis', 'weights', 'onesided',
@@ -936,7 +971,8 @@ class TestOptimOnnxManipulations(ExtTestCase):
                           'inverse': numpy.array([0], dtype=numpy.int64),
                           'normalize': numpy.array([0], dtype=numpy.int64)}
                 ft = numpy.fft.fft(inputs['x'][:, :, :, 0], 5)
-                got = oinf.run(inputs, verbose=verbose, fLOG=fLOG)
+                got = oinf.run(inputs, verbose=verbose, fLOG=fLOG,
+                               intermediate=intermediate)
                 output_name = onx.graph.output[0].name
                 res = got[output_name]
                 self.assertEqual(res.shape, (3, 4, 5, 2))
@@ -944,6 +980,7 @@ class TestOptimOnnxManipulations(ExtTestCase):
                     res[:, :, :, 0], numpy.real(ft), decimal=4)
                 self.assertEqualArray(
                     res[:, :, :, 1], numpy.imag(ft), decimal=4)
+                _save_intermediate(name, oinf, save_intermediate)
                 return got
 
             if names == ['x', 'fft_length', 'axis', 'onesided',
@@ -956,7 +993,8 @@ class TestOptimOnnxManipulations(ExtTestCase):
                           'inverse': numpy.array([0], dtype=numpy.int64),
                           'normalize': numpy.array([0], dtype=numpy.int64)}
                 ft = numpy.fft.fft(inputs['x'][:, :, :, 0], 5)
-                got = oinf.run(inputs, verbose=verbose, fLOG=fLOG)
+                got = oinf.run(inputs, verbose=verbose, fLOG=fLOG,
+                               intermediate=intermediate)
                 output_name = onx.graph.output[0].name
                 res = got[output_name]
                 self.assertEqual(res.shape, (3, 4, 5, 2))
@@ -964,6 +1002,7 @@ class TestOptimOnnxManipulations(ExtTestCase):
                     res[:, :, :, 0], numpy.real(ft), decimal=4)
                 self.assertEqualArray(
                     res[:, :, :, 1], numpy.imag(ft), decimal=4)
+                _save_intermediate(name, oinf, save_intermediate)
                 return got
 
             if names == ['x', 'fft_length', 'axis', 'inverse', 'onesided']:
@@ -977,7 +1016,8 @@ class TestOptimOnnxManipulations(ExtTestCase):
                     ft = numpy.fft.fft(inputs['x'][:, :, :, 0])
                 else:  # idft
                     ft = numpy.fft.ifft(inputs['x'][:, :, :, 0])
-                got = oinf.run(inputs, verbose=verbose, fLOG=fLOG)
+                got = oinf.run(inputs, verbose=verbose, fLOG=fLOG,
+                               intermediate=intermediate)
                 output_name = onx.graph.output[0].name
                 res = got[output_name]
                 self.assertEqual(res.shape, (3, 4, 5, 2))
@@ -985,6 +1025,7 @@ class TestOptimOnnxManipulations(ExtTestCase):
                     res[:, :, :, 0], numpy.real(ft), decimal=4)
                 self.assertEqualArray(
                     res[:, :, :, 1], numpy.imag(ft), decimal=4)
+                _save_intermediate(name, oinf, save_intermediate)
                 return got
 
             if names == ['x', 'fft_length', 'hop_length', 'n_frames',
@@ -1008,7 +1049,8 @@ class TestOptimOnnxManipulations(ExtTestCase):
                     ft = tft.numpy()
                 except ImportError:
                     ft = None
-                got = oinf.run(inputs, verbose=verbose, fLOG=fLOG)
+                got = oinf.run(inputs, verbose=verbose, fLOG=fLOG,
+                               intermediate=intermediate)
                 output_name = onx.graph.output[0].name
                 res = got[output_name]
                 self.assertEqual(res.shape, (3, 6, 2, 2))
@@ -1025,6 +1067,7 @@ class TestOptimOnnxManipulations(ExtTestCase):
                             res[:, :, :, 0], numpy.real(ft), decimal=4)
                         self.assertEqualArray(
                             res[:, :, :, 1], numpy.imag(ft), decimal=4)
+                _save_intermediate(name, oinf, save_intermediate)
                 return got
 
             if names == ['x', 'fft_length', 'hop_length', 'window', 'onesided']:
@@ -1052,7 +1095,8 @@ class TestOptimOnnxManipulations(ExtTestCase):
                     ft = tft.numpy()
                 except ImportError:
                     ft = None
-                got = oinf.run(inputs, verbose=verbose, fLOG=fLOG)
+                got = oinf.run(inputs, verbose=verbose, fLOG=fLOG,
+                               intermediate=intermediate)
                 output_name = onx.graph.output[0].name
                 res = got[output_name]
                 self.assertEqual(res.shape[0], 3)
@@ -1065,6 +1109,7 @@ class TestOptimOnnxManipulations(ExtTestCase):
                     #     res[:, :, 0], numpy.real(ft), decimal=4)
                     # self.assertEqualArray(
                     #     res[:, :, 1], numpy.imag(ft), decimal=4)
+                _save_intermediate(name, oinf, save_intermediate)
                 return got
 
             raise NameError("Unable to process %r." % names)
@@ -1214,6 +1259,14 @@ class TestOptimOnnxManipulations(ExtTestCase):
                 return model
             raise AssertionError('Unexpected type %r.' % type(model))
 
+        def _m2f_shape_fct(name, dtype):
+            if dtype == TensorProto.FLOAT:
+                return []
+            if dtype == TensorProto.INT64:
+                return [1]
+            raise NotImplementedError(
+                "Unable to process %r, %r." % (name, dtype))
+
         temp = get_temp_folder(
             __file__, 'temp_onnx_inline_function_' + subfolder)
         fcts = ["blackman_window", "hamming_window", "hann_window",
@@ -1246,7 +1299,8 @@ class TestOptimOnnxManipulations(ExtTestCase):
                     if run_validation:
                         _validate(fct, fpr)
                     onx = onnx_function_to_model(
-                        fpr, protos, type_info=_type_info)
+                        fpr, protos, type_info=_type_info,
+                        shape_fct=_m2f_shape_fct)
                     if run_validation:
                         _validate(fct, onx)
 
@@ -1374,12 +1428,11 @@ class TestOptimOnnxManipulations(ExtTestCase):
             type_info.update({i.name: i.type.tensor_type.elem_type
                              for i in inlined.graph.output})
             fct_whole = _validate(fct, onnx_model_to_function(inlined))
+            simple_graph = onnx_function_to_model(
+                fct_whole, type_info=type_info, as_function=True,
+                shape_fct=_m2f_shape_fct)
             if run_validation:
-                simple_graph = _validate(fct, onnx_function_to_model(
-                    fct_whole, type_info=type_info, as_function=True))
-            else:
-                simple_graph = onnx_function_to_model(
-                    fct_whole, type_info=type_info, as_function=True)
+                _validate(fct, simple_graph)
             with open(os.path.join(temp, fct + '.inlined.graph.onnx'), 'wb') as f:
                 f.write(simple_graph.SerializeToString())
             if log:
@@ -1395,8 +1448,6 @@ class TestOptimOnnxManipulations(ExtTestCase):
         from onnxruntime.capi.onnxruntime_pybind11_state import (  # pylint: disable=E0611
             Fail, InvalidArgument, InvalidGraph)
         for fct, onx in inlined_models.items():
-            if fct == "switch_axes":
-                continue
             if run_validation:
                 _validate(fct, onx)
             if log:
@@ -1425,14 +1476,16 @@ class TestOptimOnnxManipulations(ExtTestCase):
                     RuntimeException) as e:
                 with open(os.path.join(temp, fct + '.error.ort.exec.onnx'), 'wb') as f:
                     f.write(onx.SerializeToString())
-                print("--------------")
-                print("--------------")
-                _check_run_(fct, onx, runtime="python", check=1)
-                print("--------------")
-                print("--------------")
-                _check_run_(fct, onx, runtime="onnxruntime1", check=1)
-                print("--------------")
-                print("--------------")
+                if log:
+                    print("--------------")
+                    print("--------------")
+                    _check_run_(fct, onx, runtime="python", check=1)
+                    print("--------------")
+                    print("--------------")
+                    _check_run_(fct, onx, runtime="onnxruntime1", check=1,
+                                save_intermediate=temp)
+                    print("--------------")
+                    print("--------------")
                 raise AssertionError(
                     "Unable to run inlined function with onnxruntime %r"
                     "\n%s" % (
