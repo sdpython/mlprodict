@@ -13,8 +13,9 @@ import pprint
 from keyword import iskeyword
 import numpy
 from scipy.sparse import coo_matrix
-from onnx import load, load_model, checker, shape_inference
-from onnx import onnx_pb as onnx_proto
+from onnx import (
+    load, load_model, checker, shape_inference,
+    ModelProto, GraphProto, FunctionProto)
 from onnx.helper import make_model
 from ..tools.code_helper import make_callable, print_code
 from ..onnx_tools.onnx2py_helper import (
@@ -83,12 +84,6 @@ class OnnxInference:
         :epkg:`onnxruntime`
     * *ir_version*: change ir_version
 
-    .. versionchanged:: 0.7
-        Parameters *new_outputs*, *new_opset* were added.
-
-    .. versionchanged:: 0.8
-        Parameters *static_inputs*, *device* were added.
-
     .. versionchanged:: 0.9
         Parameters *existing_functions* was added.
         Removes *device* parameter. See runtime.
@@ -110,10 +105,10 @@ class OnnxInference:
             self.obj = load(onnx_or_bytes_or_stream)
         elif hasattr(onnx_or_bytes_or_stream, 'graph'):
             self.obj = onnx_or_bytes_or_stream
-        elif isinstance(onnx_or_bytes_or_stream, onnx_proto.GraphProto):
+        elif isinstance(onnx_or_bytes_or_stream, GraphProto):
             self.obj = make_model(onnx_or_bytes_or_stream,
                                   producer_name='mlprodict')
-        elif isinstance(onnx_or_bytes_or_stream, onnx_proto.FunctionProto):
+        elif isinstance(onnx_or_bytes_or_stream, FunctionProto):
             self.obj = onnx_or_bytes_or_stream
         else:
             raise TypeError("Unable to handle type {}.".format(  # pragma: no cover
@@ -174,7 +169,7 @@ class OnnxInference:
         self.functions_ = self.graph_['functions']
         self.outputs_ = self.graph_['outputs']
         self.inputs_ = self.graph_['inputs']
-        is_function_proto = isinstance(self.obj, onnx_proto.FunctionProto)
+        is_function_proto = isinstance(self.obj, FunctionProto)
         if is_function_proto:
             obj_graph = self.obj
         else:
@@ -397,7 +392,7 @@ class OnnxInference:
         """
         f = OnnxInference._get_type_property
         names = set(self.input_names)
-        if isinstance(self.obj, onnx_proto.FunctionProto):
+        if isinstance(self.obj, FunctionProto):
             return [(_.name, f(_var_as_dict(_)['type'], 'shape'),
                      'tensor(%s)' % f(_var_as_dict(_)['type'], 'elem'))
                     for _ in self.obj.input if _.name in names]
@@ -410,7 +405,7 @@ class OnnxInference:
         """
         Returns the names of all outputs.
         """
-        if isinstance(self.obj, onnx_proto.FunctionProto):
+        if isinstance(self.obj, FunctionProto):
             return [_ for _ in self.obj.output]
         return [_.name for _ in self.obj.graph.output]
 
@@ -421,7 +416,7 @@ class OnnxInference:
         This method assumes all inputs are tensors.
         """
         f = OnnxInference._get_type_property
-        if isinstance(self.obj, onnx_proto.FunctionProto):
+        if isinstance(self.obj, FunctionProto):
             return [(_, None) for _ in self.obj.output]
         return [(_.name, f(_var_as_dict(_)['type'], 'shape'))
                 for _ in self.obj.graph.output]
@@ -437,7 +432,7 @@ class OnnxInference:
         """
         names = set(self.output_names)
         f = OnnxInference._get_type_property
-        if isinstance(self.obj, onnx_proto.FunctionProto):
+        if isinstance(self.obj, FunctionProto):
             return [(_, None) for _ in self.obj.graph.output if _ in names]
         return [(_.name, f(_var_as_dict(_)['type'], 'shape'),
                  'tensor(%s)' % f(_var_as_dict(_)['type'], 'elem'))
@@ -506,7 +501,7 @@ class OnnxInference:
         functions = {}
         if existing_functions is not None:
             functions.update(existing_functions)
-        is_function_proto = isinstance(self.obj, onnx_proto.FunctionProto)
+        is_function_proto = isinstance(self.obj, FunctionProto)
 
         for o in self.obj.opset_import:
             targets[o.domain] = o.version
@@ -537,7 +532,7 @@ class OnnxInference:
                 self.global_index(n)
 
         obj_graph = (
-            self.obj if isinstance(self.obj, onnx_proto.FunctionProto)
+            self.obj if isinstance(self.obj, FunctionProto)
             else self.obj.graph)
 
         # inputs
@@ -908,7 +903,7 @@ class OnnxInference:
 
         if node_time:
             mtime = []
-        if verbose >= 1 and fLOG is not None:
+        if verbose != 0:
             printed = set()
 
         if context is not None:
@@ -1059,24 +1054,25 @@ class OnnxInference:
                         name = list(
                             name for name in self._global_index  # pylint: disable=C0206
                             if self._global_index[name] == k)
-                        if isinstance(values[k], (numpy.ndarray, coo_matrix)):
-                            name = name[0]
-                            mini = numpy_min(values[k])
-                            maxi = numpy_max(values[k])
-                            fLOG("+kr{}'{}': {} (dtype={} min={} max={}{})".format(
-                                "=" if len(values[k].shape) == 0 or min(
-                                    values[k].shape) > 0 else "*",
-                                name, values[k].shape, values[k].dtype,
-                                mini, maxi,
-                                ' sparse' if isinstance(values[k], coo_matrix) else ''))
-                            if verbose >= 3:
-                                dispsimple(values[k])
-                        else:
-                            fLOG("+kr='{}': {}".format(
-                                name, type(values[k])))
-                            if verbose >= 3:  # pragma: no cover
-                                dispsimple(values[k])
-                if added == 0:
+                        if verbose >= 1:
+                            if isinstance(values[k], (numpy.ndarray, coo_matrix)):
+                                name = name[0]
+                                mini = numpy_min(values[k])
+                                maxi = numpy_max(values[k])
+                                fLOG("+kr{}'{}': {} (dtype={} min={} max={}{})".format(
+                                    "=" if len(values[k].shape) == 0 or min(
+                                        values[k].shape) > 0 else "*",
+                                    name, values[k].shape, values[k].dtype,
+                                    mini, maxi,
+                                    ' sparse' if isinstance(values[k], coo_matrix) else ''))
+                                if verbose >= 3:
+                                    dispsimple(values[k])
+                            else:
+                                fLOG("+kr='{}': {}".format(
+                                    name, type(values[k])))
+                                if verbose >= 3:  # pragma: no cover
+                                    dispsimple(values[k])
+                if added == 0 and verbose >= 1:
                     fLOG("? no new result")  # pragma: no cover
 
         if intermediate:
@@ -1091,7 +1087,99 @@ class OnnxInference:
             raise RuntimeError("Unable to find one output [{}]\n in [{}]"
                                ".".format(", ".join(sorted(self.outputs_)),
                                           ", ".join(sorted(values)))) from e
+        if verbose != 0:
+            # check input and output have the expected type
+            self._validate_outputs(res, verbose=verbose, fLOG=fLOG)
         return (res, mtime) if node_time else res
+
+    def _validate_outputs(self, res, verbose=0, fLOG=None):
+        """
+        Checks the output have the expected type.
+        The function returns the list of mismatches.
+
+        :param res: results in a dictionary
+        :param verbose: verbosity
+        :param fLOG: logging function
+        :return: dictionary
+        """
+        if verbose >= 2:
+            fLOG('[VALIDATE] type %r' % type(self.obj))
+        if isinstance(self.obj, ModelProto):
+            from mlprodict.onnx_tools.onnx2py_helper import (
+                guess_proto_dtype, get_tensor_elem_type, get_tensor_shape)
+            outputs = {o.name: o for o in self.obj.graph.output}
+            rows = []
+            mis = {}
+            for k, v in res.items():
+                if k not in outputs:
+                    rows.append("Result %r cannot be found in %r." % (
+                        k, set(outputs)))
+                    continue
+                expected = get_tensor_elem_type(outputs[k])
+                shape = get_tensor_shape(outputs[k])
+                if v is None:
+                    rows.append(
+                        "Result %r is None instead of %r." % (
+                            k, expected))
+                    continue
+                dtype = guess_proto_dtype(v.dtype)
+                if expected != dtype:
+                    mis[k] = "dtype %r != %r" % (dtype, expected)
+                    rows.append(
+                        "Result %r have unexpected element type %r "
+                        "instead of %r." % (
+                            k, dtype, expected))
+                if shape is None or len(shape) == 0:
+                    continue
+                if len(shape) != len(v.shape):
+                    mis[k] = "shape %r != %r" % (v.shape, shape)
+                    rows.append(
+                        "Result %r have unexpected shape length %r "
+                        "instead of %r." % (
+                            k, v.shape, shape))
+                    continue
+                for a, b in zip(v.shape, shape):
+                    if b is None or isinstance(b, str):
+                        continue
+                    if a != b:
+                        mis[k] = "shape %r != %r" % (v.shape, shape)
+                        rows.append(
+                            "Result %r have unexpected shape %r "
+                            "instead of %r." % (
+                                k, v.shape, shape))
+                        break
+            if len(rows) > 0:
+                if verbose < 0:
+                    raise RuntimeError(
+                        "Validation failed.\n- %s" % "\n- ".join(rows))
+                else:
+                    fLOG("[VALIDATE] validation failed.\n- %s" %
+                         "\n- ".join(rows))
+            if verbose >= 2:
+                fLOG('[VALIDATE] mis=%r' % mis)
+            return mis
+
+        if isinstance(self.obj, FunctionProto):
+            outputs = set(self.obj.output)
+            got = set(res)
+            if got != outputs:
+                if verbose < 0:  # pragma: no cover
+                    raise RuntimeError(
+                        "Unexpected mismatch between outputs %r and "
+                        "expected outputs %r." % (got, outputs))
+                else:  # pragma: no cover
+                    fLOG("CHECK: expected outputs %r != outputs %r" % (
+                        outputs, got))
+                mis = {k: None for k in set(got) - got & outputs}
+                if verbose >= 2:
+                    fLOG('[VALIDATE] mis=%r' % mis)
+                return mis
+            if verbose >= 2:
+                fLOG('[VALIDATE] mis={}')
+            return {}
+
+        raise TypeError(  # pragma: no cover
+            "Unexpected type %r for self.obj." % type(self.obj))
 
     def build_intermediate(self, outputs=None, verbose=0, overwrite_types=None,
                            fLOG=None):
@@ -1119,7 +1207,7 @@ class OnnxInference:
             if not isinstance(outputs, set):
                 outputs = set(outputs)
         ord = OrderedDict()
-        for output in enumerate_model_node_outputs(self.obj, order=True):
+        for output in enumerate_model_node_outputs(self.obj, order=False):
             if outputs is not None and output not in outputs:
                 continue
             subonx = select_model_inputs_outputs(

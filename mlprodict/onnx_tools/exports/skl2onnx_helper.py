@@ -2,13 +2,46 @@
 @file
 @brief Helpers to run examples created with :epkg:`sklearn-onnx`.
 """
-from onnx import helper, TensorProto
+from onnx import helper, TensorProto, ValueInfoProto, TypeProto
+
+
+def get_tensor_shape(obj):
+    """
+    Returns the shape if that makes sense for this object.
+    """
+    if isinstance(obj, ValueInfoProto):
+        return get_tensor_shape(obj.type)
+    elif not isinstance(obj, TypeProto):
+        raise TypeError(  # pragma: no cover
+            "Unexpected type %r." % type(obj))
+    shape = []
+    for d in obj.tensor_type.shape.dim:
+        v = d.dim_value if d.dim_value > 0 else d.dim_param
+        shape.append(v)
+    if len(shape) == 0:
+        shape = None
+    else:
+        shape = list(None if s == 0 else s for s in shape)
+    return shape
+
+
+def get_tensor_elem_type(obj):
+    """
+    Returns the element type if that makes sense for this object.
+    """
+    if isinstance(obj, ValueInfoProto):
+        return get_tensor_elem_type(obj.type)
+    elif not isinstance(obj, TypeProto):
+        raise TypeError(  # pragma: no cover
+            "Unexpected type %r." % type(obj))
+    return obj.tensor_type.elem_type
 
 
 def _copy_inout(inout, scope, new_name):
-    shape = [s.dim_value for s in inout.type.tensor_type.shape.dim]
+    shape = get_tensor_shape(inout)
+    elem_type = get_tensor_elem_type(inout)
     value_info = helper.make_tensor_value_info(
-        new_name, inout.type.tensor_type.elem_type, shape)
+        new_name, elem_type, shape)
     return value_info
 
 

@@ -10,7 +10,7 @@ from onnx import TensorProto, AttributeProto
 from onnx.numpy_helper import to_array
 from onnx.mapping import TENSOR_TYPE_TO_NP_TYPE
 from ..tools.graphs import onnx2bigraph
-from ..onnx_tools.onnx2py_helper import _var_as_dict
+from ..onnx_tools.onnx2py_helper import _var_as_dict, get_tensor_shape
 
 
 def onnx_text_plot(model_onnx, recursive=False, graph_type='basic',
@@ -481,16 +481,7 @@ def _get_shape(obj):
     if hasattr(obj, 'type'):
         obj = obj.type
     if hasattr(obj, 'tensor_type'):
-        obj = obj.tensor_type
-    if hasattr(obj, 'shape'):
-        obj = obj.shape
-        dims = []
-        for d in obj.dim:
-            if hasattr(d, 'dim_value'):
-                dims.append(d.dim_value)
-            else:
-                dims.append(None)
-        return tuple(dims)
+        return get_tensor_shape(obj)
     raise RuntimeError(  # pragma: no cover
         "Unable to guess type from %r." % obj0)
 

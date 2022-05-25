@@ -12,7 +12,8 @@ from onnx.helper import printable_graph
 from onnx import numpy_helper, ModelProto
 from onnx.mapping import TENSOR_TYPE_TO_NP_TYPE
 from .onnx2py_helper import (
-    _var_as_dict, guess_proto_dtype, guess_proto_dtype_name)
+    _var_as_dict, guess_proto_dtype, guess_proto_dtype_name,
+    get_tensor_shape, get_tensor_elem_type)
 from .onnx_export_templates import (
     get_onnx_template, get_tf2onnx_template, get_numpy_template,
     get_xop_template, get_cpp_template)
@@ -242,34 +243,17 @@ def export_template(model_onnx, templates, opset=None,  # pylint: disable=R0914
     # inputs
     inputs = []
     for inp in graph.input:
-        t = inp.type.tensor_type
-        dims = []
-        for d in t.shape.dim:
-            dd = d.dim_value
-            if dd == 0:
-                dd = None
-            dims.append(dd)
-        if len(dims) == 0:
-            dims = None
-        if 'dim_value' in str(dims):
-            raise RuntimeError(  # pragma: no cover
-                "Unexpected issue in %r - %r." % (dims, t))
-        inputs.append((inp.name, t.elem_type, dims))
+        elem_type = get_tensor_elem_type(inp)
+        shape = get_tensor_shape(inp)
+        inputs.append((inp.name, elem_type, shape))
     context['inputs'] = inputs
 
     # outputs
     outputs = []
     for inp in graph.output:
-        t = inp.type.tensor_type
-        dims = []
-        for d in t.shape.dim:
-            dd = d.dim_value
-            if dd == 0:
-                dd = None
-            dims.append(dd)
-        if len(dims) == 0:
-            dims = None
-        outputs.append((inp.name, t.elem_type, dims))
+        elem_type = get_tensor_elem_type(inp)
+        shape = get_tensor_shape(inp)
+        outputs.append((inp.name, elem_type, shape))
     context['outputs'] = outputs
 
     # node

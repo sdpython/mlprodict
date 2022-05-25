@@ -245,7 +245,7 @@ class OnnxInferenceNode:
                     opset=target_opset)
             except SchemaError:
                 fct_names = (
-                    list(existing_functions.key()) if existing_functions
+                    list(existing_functions.keys()) if existing_functions
                     else [])
                 raise MissingOperatorError(
                     "Unable to find runtime for node (%r, %r), "
@@ -418,13 +418,15 @@ class OnnxInferenceNode:
             if verbose == 0 or fLOG is None:
                 outputs = self.function_.run(feeds)
             else:
-                fLOG('-- >%s[%s](%s)  -- len(feeds)=%d' %
-                     (self.function_.obj.name, self.function_.obj.domain,
-                      ", ".join(self.function_.obj.input), len(feeds)))
+                if verbose > 0:
+                    fLOG('-- >%s[%s](%s)  -- len(feeds)=%d' %
+                         (self.function_.obj.name, self.function_.obj.domain,
+                          ", ".join(self.function_.obj.input), len(feeds)))
                 outputs = self.function_.run(feeds, verbose=verbose, fLOG=fLOG)
-                fLOG('-- <%s[%s][%s]' %
-                     (self.function_.obj.name, self.function_.obj.domain,
-                      ", ".join(self.function_.obj.output)))
+                if verbose > 0:
+                    fLOG('-- <%s[%s][%s]' %
+                         (self.function_.obj.name, self.function_.obj.domain,
+                          ", ".join(self.function_.obj.output)))
 
             res = [outputs[k] for k in self.function_.obj.output]
         else:
