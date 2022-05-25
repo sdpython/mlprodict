@@ -623,7 +623,7 @@ class TestOptimOnnxManipulations(ExtTestCase):
     def test_onnx_inline_subgraph_function_double(self, log=False):
         X = helper.make_tensor_value_info(
             'X', TensorProto.FLOAT, ['N'])  # pylint: disable=E1101
-        O = helper.make_tensor_value_info(
+        out = helper.make_tensor_value_info(
             'output', TensorProto.FLOAT, ['N'])  # pylint: disable=E1101
         Z = helper.make_tensor_value_info(
             'output', TensorProto.FLOAT, ['N'])  # pylint: disable=E1101
@@ -636,10 +636,10 @@ class TestOptimOnnxManipulations(ExtTestCase):
 
         graph1 = helper.make_graph(
             [helper.make_node('fctadd', ['input'], ['output'], domain='this')],
-            'then', [], [O])
+            'then', [], [out])
         graph2 = helper.make_graph(
             [helper.make_node('fctadd', ['input'], ['output'], domain='this')],
-            'else', [], [O])
+            'else', [], [out])
 
         func_def = helper.make_function(
             'this', 'fct', ['input'], ['output'], [
