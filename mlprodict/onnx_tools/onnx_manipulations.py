@@ -357,17 +357,26 @@ def _change_subgraph_io_type_shape_list(io_list, type_changes, shape_changes):
     new_inputs = []
     for inp in io_list:
         m = False
-        if inp.name in shape_changes:
-            shape = shape_changes[inp.name]
-            m = True
+        if isinstance(shape_changes, dict):
+            if inp.name in shape_changes:
+                shape = shape_changes[inp.name]
+                m = True
+            else:
+                shape = get_tensor_shape(inp)
         else:
-            shape = get_tensor_shape(inp)
+            shape = shape_changes(inp)
+            m = True
 
-        if inp.name in type_changes:
-            ntype = type_changes[inp.name]
-            m = True
+        if isinstance(type_changes, dict):
+            if inp.name in type_changes:
+                ntype = type_changes[inp.name]
+                m = True
+            else:
+                ntype = get_tensor_elem_type(inp)
         else:
-            ntype = get_tensor_elem_type(inp)
+            ntype = type_changes(inp)
+            m = True
+
         if m:
             ms = True
             value_info = make_tensor_value_info(inp.name, ntype, shape)
@@ -384,7 +393,9 @@ def change_subgraph_io_type_shape(onx, type_changes=None, shape_changes=None,
 
     :param onx: ModelProto, GraphProto
     :param type_changes: dictionary '{ name: new proto element type }`
+        or function `f(input) -> type`
     :param shape_changes: dictionary '{ name: new shape }`
+        or function `f(input) -> shape`
     :param recursive: True
     :return: new onx
     """
@@ -1011,7 +1022,7 @@ def onnx_model_to_function(onx, name=None, domain="custom",
         attributes=attributes)
 
 
-def _onnx_function_to_model_convert_io(ens, type_info):
+def _onnx_function_to_model_convert_io(ens, type_info, shape_fct):
     typed_io = []
     for name in ens:
         if isinstance(type_info, dict):
@@ -1027,13 +1038,14 @@ def _onnx_function_to_model_convert_io(ens, type_info):
             proto_dtype = res
         else:
             proto_dtype = guess_proto_dtype(res)
-        value_info = make_tensor_value_info(name, proto_dtype, [])
+        value_info = make_tensor_value_info(
+            name, proto_dtype, shape_fct(name, proto_dtype))
         typed_io.append(value_info)
     return typed_io
 
 
 def onnx_function_to_model(onx, functions=None, type_info=None,
-                           as_function=False):
+                           as_function=False, shape_fct=None):
     """
     Converts an ONNX FunctionProto into a ModelProto.
     The function does not handle attributes yet.
@@ -1044,6 +1056,8 @@ def onnx_function_to_model(onx, functions=None, type_info=None,
         inputs or outputs if it cannot be guessed
     :param as_function: if True, the function stays as a function and a single node
         is created to call that function
+    :param shape_fct: function to specify the shapes,
+        signature: `shape_fct(name, proto_type) -> list`
     :return: function
     """
     if not isinstance(onx, FunctionProto):
@@ -1063,8 +1077,13 @@ def onnx_function_to_model(onx, functions=None, type_info=None,
         raise TypeError(
             "Unexpected type for functions %r." % type(functions))
 
-    inputs = _onnx_function_to_model_convert_io(onx.input, type_info)
-    outputs = _onnx_function_to_model_convert_io(onx.output, type_info)
+    if shape_fct is None:
+        shape_fct = lambda name, dtype: None
+
+    inputs = _onnx_function_to_model_convert_io(
+        onx.input, type_info, shape_fct=shape_fct)
+    outputs = _onnx_function_to_model_convert_io(
+        onx.output, type_info, shape_fct=shape_fct)
     if as_function:
         nodes = [make_node(onx.name,
                            [i.name for i in inputs],
@@ -1080,7 +1099,9 @@ def onnx_function_to_model(onx, functions=None, type_info=None,
                        [], doc_string=onx.doc_string)
     model = make_model(graph, functions=added_functions,
                        opset_imports=opsets,
-                       doc_string=onx.doc_string)
+                       doc_string=onx.doc_string,
+                       model_version=1,
+                       domain=onx.domain)
     return model
 
 
@@ -1504,7 +1525,9 @@ def onnx_inline_function(obj, protos=None, existing_names=None, verbose=0, fLOG=
                 producer_name=obj.producer_name,
                 producer_version=obj.producer_version,
                 ir_version=obj.ir_version,
-                doc_string=obj.doc_string),
+                doc_string=obj.doc_string,
+                domain=obj.domain,
+                model_version=obj.model_version),
             m)
 
     # FunctionProto, GraphProto

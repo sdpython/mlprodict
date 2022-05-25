@@ -489,7 +489,7 @@ def _get_shape(obj):
 def onnx_simple_text_plot(model, verbose=False, att_display=None,
                           add_links=False, recursive=False, functions=True,
                           raise_exc=True, sub_graphs_names=None,
-                          level=1):
+                          level=1, indent=True):
     """
     Displays an ONNX graph into text.
 
@@ -504,6 +504,7 @@ def onnx_simple_text_plot(model, verbose=False, att_display=None,
         otherwise tries to continue
     :param sub_graphs_names: list of sub-graphs names
     :param level: sub-graph level
+    :param indent: use indentation or not
     :return: str
 
     An ONNX graph is printed the following way:
@@ -566,6 +567,7 @@ def onnx_simple_text_plot(model, verbose=False, att_display=None,
 
         print("DOT-SECTION", oinf.to_dot())
     """
+    use_indentation = indent
     if att_display is None:
         att_display = [
             'activations',
@@ -815,7 +817,7 @@ def onnx_simple_text_plot(model, verbose=False, att_display=None,
                 line_name_in[n] = [len(rows)]
         for n in node.output:
             line_name_new[n] = len(rows)
-        rows.append(str_node(indent, node))
+        rows.append(str_node(indent if use_indentation else 0, node))
         indents[name] = indent
 
         for i, o in enumerate(node.output):
