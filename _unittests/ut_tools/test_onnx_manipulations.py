@@ -9,7 +9,9 @@ import time
 from collections import Counter
 import numpy
 from onnx import (
-    helper, TensorProto, load, FunctionProto, ModelProto, GraphProto)
+    helper, TensorProto, load, FunctionProto, ModelProto,
+    GraphProto, AttributeProto)
+from onnx.checker import check_model
 from pyquickhelper.pycode import ExtTestCase, get_temp_folder
 from mlprodict.npy.xop import loadop, OnnxOperatorFunction
 from mlprodict.npy.xop_variable import Variable
@@ -23,7 +25,7 @@ from mlprodict.onnx_tools.onnx_manipulations import (
     select_model_inputs_outputs, enumerate_model_node_outputs,
     onnx_rename_names, insert_results_into_onnx, onnx_model_to_function,
     onnx_inline_function, onnx_function_to_model, change_input_type,
-    change_subgraph_io_type, onnx_rename_inputs_outputs,
+    change_subgraph_io_type_shape, onnx_rename_inputs_outputs,
     onnx_replace_functions)
 from mlprodict import __max_supported_opset__ as TARGET_OPSET
 from mlprodict.plotting.text_plot import onnx_simple_text_plot
@@ -618,6 +620,67 @@ class TestOptimOnnxManipulations(ExtTestCase):
             self.assertEqualArray(
                 got['Z'], numpy.array([1], dtype=numpy.float32))
 
+    def test_onnx_inline_subgraph_function_double(self, log=False):
+        X = helper.make_tensor_value_info(
+            'X', TensorProto.FLOAT, ['N'])  # pylint: disable=E1101
+        out = helper.make_tensor_value_info(
+            'output', TensorProto.FLOAT, ['N'])  # pylint: disable=E1101
+        Z = helper.make_tensor_value_info(
+            'output', TensorProto.FLOAT, ['N'])  # pylint: disable=E1101
+
+        func_def_add = helper.make_function(
+            'this', 'fctadd', ['input2'], ['output'], [
+                helper.make_node('Constant', [], ['one'], value_floats=[1.]),
+                helper.make_node('Add', ['input2', 'one'], ['output'])],
+            opset_imports=[helper.make_operatorsetid('', 15)])
+
+        graph1 = helper.make_graph(
+            [helper.make_node('fctadd', ['input'], ['output'], domain='this')],
+            'then', [], [out])
+        graph2 = helper.make_graph(
+            [helper.make_node('fctadd', ['input'], ['output'], domain='this')],
+            'else', [], [out])
+
+        func_def = helper.make_function(
+            'this', 'fct', ['input'], ['output'], [
+                helper.make_node('Constant', [], ['one'], value_floats=[1.]),
+                helper.make_node('Greater', ['input', 'one'], ['cond']),
+                helper.make_node('If', ['cond'], ['output'],
+                                 then_branch=graph1, else_branch=graph2)],
+            opset_imports=[helper.make_operatorsetid('', 15),
+                           helper.make_operatorsetid('this', 1)])
+
+        graph_def = helper.make_graph(
+            [helper.make_node('fct', ['X'], ['ztmp'], domain='this'),
+             helper.make_node('fct', ['ztmp'], ['output'], domain='this')],
+            'test', [X], [Z])
+
+        model_def = helper.make_model(
+            graph_def, producer_name='mlprodict',
+            ir_version=7, producer_version='0.1',
+            opset_imports=[helper.make_operatorsetid('', 15),
+                           helper.make_operatorsetid('this', 1)],
+            functions=[func_def_add, func_def])
+        feeds = {'X': numpy.array([-5], dtype=numpy.float32)}
+
+        for rt in ['python']:  # , 'onnxruntime1']:
+            if log:
+                print(rt)
+            oinf = OnnxInference(model_def, runtime=rt)
+            oinf.check_model()
+            got = oinf.run(feeds)
+
+            inlined, m = onnx_inline_function(
+                model_def, verbose=3 if log else 0, fLOG=print)
+            self.assertNotIn('functions {', str(inlined))
+            self.assertEqual(len(m), 10)
+            oinf = OnnxInference(inlined)
+            oinf.check_model()
+            goti = oinf.run(feeds)
+            self.assertEqualArray(got['output'], goti['output'])
+            self.assertEqualArray(
+                got['output'], numpy.array([-3], dtype=numpy.float32))
+
     def test_onnx_inline_subgraph_function2(self, log=False):
         X = helper.make_tensor_value_info(
             'X', TensorProto.FLOAT, ['N'])  # pylint: disable=E1101
@@ -773,10 +836,22 @@ class TestOptimOnnxManipulations(ExtTestCase):
             self.assertEqualArray(got['Z'], got3['Z'])
 
     def common_test_onnx_inline_function_fft(self, subfolder, log=False,
-                                             skip_inline=None):
+                                             skip_inline=None,
+                                             run_validation=True):
+        from onnxruntime.capi.onnxruntime_pybind11_state import RuntimeException  # pylint: disable=E0611
 
-        def _check_run_(name, onx, inverse=False):
-            oinf = OnnxInference(onx)
+        def _check_run_(name, onx, inverse=False, check=False, runtime='python'):
+            inplace = True
+            if isinstance(check, int):
+                verbose = check
+            else:
+                verbose = 0 if not check else -10
+            intermediate = verbose > 0 and runtime != 'python'
+            if intermediate:
+                inplace = False
+            fLOG = print if verbose != 0 else None
+
+            oinf = OnnxInference(onx, runtime=runtime, inplace=inplace)
             names = oinf.input_names
 
             if names[0] == 'window_length':
@@ -785,7 +860,7 @@ class TestOptimOnnxManipulations(ExtTestCase):
                 if 'alpha' in names:
                     inputs['alpha'] = numpy.array([0.56], dtype=numpy.float32)
                     inputs['beta'] = numpy.array([0.54], dtype=numpy.float32)
-                got = oinf.run(inputs)
+                got = oinf.run(inputs, verbose=verbose, fLOG=fLOG)
                 res = got['output']
                 self.assertEqual(res.shape, (5, ))
                 self.assertEqual(res.dtype, numpy.float32)
@@ -796,7 +871,8 @@ class TestOptimOnnxManipulations(ExtTestCase):
                 inputs = {'x': numpy.random.randn(3, 4, 5).astype(numpy.float32),
                           'axis1': numpy.array([0], dtype=numpy.int64),
                           'axis2': numpy.array([2], dtype=numpy.int64)}
-                got = oinf.run(inputs)
+                got = oinf.run(inputs, verbose=verbose, fLOG=fLOG,
+                               intermediate=intermediate)
                 res = got['output']
                 self.assertEqual(res.shape, (5, 4, 3))
                 self.assertEqualArray(numpy.transpose(
@@ -813,7 +889,7 @@ class TestOptimOnnxManipulations(ExtTestCase):
                           'inverse': numpy.array([0], dtype=numpy.int64),
                           'normalize': numpy.array([0], dtype=numpy.int64)}
                 ft = numpy.fft.fft(inputs['x'][:, :, :, 0], 5)
-                got = oinf.run(inputs)
+                got = oinf.run(inputs, verbose=verbose, fLOG=fLOG)
                 output_name = onx.graph.output[0].name
                 res = got[output_name]
                 self.assertEqual(res.shape, (3, 4, 5, 2))
@@ -832,7 +908,8 @@ class TestOptimOnnxManipulations(ExtTestCase):
                           'inverse': numpy.array([0], dtype=numpy.int64),
                           'normalize': numpy.array([0], dtype=numpy.int64)}
                 ft = numpy.fft.fft(inputs['x'][:, :, :, 0], 5)
-                got = oinf.run(inputs)
+                got = oinf.run(inputs, verbose=verbose, fLOG=fLOG,
+                               intermediate=intermediate)
                 output_name = onx.graph.output[0].name
                 res = got[output_name]
                 self.assertEqual(res.shape, (3, 4, 5, 2))
@@ -840,6 +917,12 @@ class TestOptimOnnxManipulations(ExtTestCase):
                     res[:, :, :, 0], numpy.real(ft), decimal=4)
                 self.assertEqualArray(
                     res[:, :, :, 1], numpy.imag(ft), decimal=4)
+                if intermediate:
+                    inter = oinf.intermediate_onnx_inference_
+                    for k, v in inter.items():
+                        self.assertEqual(v.runtime, runtime)
+                        with open("debug_%s.%s.%s.onnx" % (fct, runtime, k), "wb") as f:
+                            f.write(v.obj.SerializeToString())
                 return got
 
             if names == ['x', 'fft_length', 'axis', 'weights', 'onesided',
@@ -853,7 +936,7 @@ class TestOptimOnnxManipulations(ExtTestCase):
                           'inverse': numpy.array([0], dtype=numpy.int64),
                           'normalize': numpy.array([0], dtype=numpy.int64)}
                 ft = numpy.fft.fft(inputs['x'][:, :, :, 0], 5)
-                got = oinf.run(inputs)
+                got = oinf.run(inputs, verbose=verbose, fLOG=fLOG)
                 output_name = onx.graph.output[0].name
                 res = got[output_name]
                 self.assertEqual(res.shape, (3, 4, 5, 2))
@@ -873,7 +956,7 @@ class TestOptimOnnxManipulations(ExtTestCase):
                           'inverse': numpy.array([0], dtype=numpy.int64),
                           'normalize': numpy.array([0], dtype=numpy.int64)}
                 ft = numpy.fft.fft(inputs['x'][:, :, :, 0], 5)
-                got = oinf.run(inputs)
+                got = oinf.run(inputs, verbose=verbose, fLOG=fLOG)
                 output_name = onx.graph.output[0].name
                 res = got[output_name]
                 self.assertEqual(res.shape, (3, 4, 5, 2))
@@ -894,7 +977,7 @@ class TestOptimOnnxManipulations(ExtTestCase):
                     ft = numpy.fft.fft(inputs['x'][:, :, :, 0])
                 else:  # idft
                     ft = numpy.fft.ifft(inputs['x'][:, :, :, 0])
-                got = oinf.run(inputs, verbose=0, fLOG=print)
+                got = oinf.run(inputs, verbose=verbose, fLOG=fLOG)
                 output_name = onx.graph.output[0].name
                 res = got[output_name]
                 self.assertEqual(res.shape, (3, 4, 5, 2))
@@ -925,7 +1008,7 @@ class TestOptimOnnxManipulations(ExtTestCase):
                     ft = tft.numpy()
                 except ImportError:
                     ft = None
-                got = oinf.run(inputs, verbose=0, fLOG=print)
+                got = oinf.run(inputs, verbose=verbose, fLOG=fLOG)
                 output_name = onx.graph.output[0].name
                 res = got[output_name]
                 self.assertEqual(res.shape, (3, 6, 2, 2))
@@ -969,7 +1052,7 @@ class TestOptimOnnxManipulations(ExtTestCase):
                     ft = tft.numpy()
                 except ImportError:
                     ft = None
-                got = oinf.run(inputs, verbose=0, fLOG=print)
+                got = oinf.run(inputs, verbose=verbose, fLOG=fLOG)
                 output_name = onx.graph.output[0].name
                 res = got[output_name]
                 self.assertEqual(res.shape[0], 3)
@@ -986,33 +1069,59 @@ class TestOptimOnnxManipulations(ExtTestCase):
 
             raise NameError("Unable to process %r." % names)
 
-        def _check_run(name, onx, inverse=False):
+        def _check_run(name, onx, inverse=False, check=False, runtime='python'):
             t = time.perf_counter()
-            res = _check_run_(name, onx, inverse=inverse)
+            res = _check_run_(name, onx, inverse=inverse, check=check,
+                              runtime=runtime)
             d = time.perf_counter()
             if log:
                 print("TIME  EXEC ", fct, d - t, "inverse=%d" % inverse)
             return res
 
         def _repare(fct, onx):
-            onx = change_input_type(
-                onx, {'window_length': TensorProto.INT64,
-                      'axis1': TensorProto.INT64,
-                      'axis2': TensorProto.INT64,
-                      'inverse': TensorProto.INT64,
-                      'onesided': TensorProto.INT64,
-                      'normalize': TensorProto.INT64})
-            onx = change_subgraph_io_type(
-                onx, {'dims1': TensorProto.INT64,
-                      'dims1_0': TensorProto.INT64,
-                      'dims2': TensorProto.INT64,
-                      'dims2_3': TensorProto.INT64,
-                      'dims3': TensorProto.INT64,
-                      'dims3_7': TensorProto.INT64})
+            onx.ir_version = 8
+            onx = change_input_type(onx, {
+                'window_length': TensorProto.INT64,
+                'axis1': TensorProto.INT64,
+                'axis2': TensorProto.INT64,
+                'inverse': TensorProto.INT64,
+                'onesided': TensorProto.INT64,
+                'normalize': TensorProto.INT64})
+            onx = change_subgraph_io_type_shape(onx, {
+                'dims1': TensorProto.INT64,
+                'dims1_0': TensorProto.INT64,
+                'dims2': TensorProto.INT64,
+                'dims2_3': TensorProto.INT64,
+                'dims3': TensorProto.INT64,
+                'dims3_7': TensorProto.INT64})
             onx = onnx_rename_inputs_outputs(onx, {
                 'return_val': 'output',
                 'norm_67': 'output',
+                'final_2': 'output',
                 'final_3': 'output'})
+            if "_window" in fct:
+                onx = change_subgraph_io_type_shape(onx, shape_changes={
+                    'output': ['N'],
+                    'alpha': [1],
+                    'beta': [1],
+                    'window_length': [1]})
+            else:
+                onx = change_subgraph_io_type_shape(onx, shape_changes={
+                    'axis1': [1],
+                    'axis2': [1],
+                    'normalize': [1],
+                    'inverse': [1],
+                    'onesided': [1],
+                    'fft_length': [1],
+                    'x': [],
+                    'output': []})
+
+            # domain
+            domains = set(op.domain for op in onx.opset_import)
+            if 'this' not in domains:
+                op_set = onx.opset_import.add()  # pylint: disable=E1101
+                op_set.domain = 'this'
+                op_set.version = 1
             return onx
 
         def _type_info(name):
@@ -1023,13 +1132,43 @@ class TestOptimOnnxManipulations(ExtTestCase):
                 return numpy.int64
             if name in {'onesided', 'inverse', 'normalize'}:
                 return numpy.int64
-            if name in {'final_3', 'return_val', 'final', 'output'}:
+            if name in {'final_3', 'return_val', 'final', 'output', 'final_2'}:
                 return numpy.float32
             raise AssertionError("Unexpected name %r." % name)
 
-        def _validate(fct, model):
+        def _validate(fct, model, check_onnx_model=True, path_error=None, inverse=False):
+            if check_onnx_model and isinstance(model, ModelProto):
+                try:
+                    check_model(model)
+                except Exception as e:
+                    rows = []
+
+                    def look(op_type, nodes, seq):
+                        for node in nodes:
+                            if node.op_type == op_type:
+                                rows.append(
+                                    "%r - %s" % (
+                                        seq,
+                                        str(node).replace(" ", "").replace("\n", " ")))
+                            for att in node.attribute:
+                                if att.type == AttributeProto.GRAPH:
+                                    look(op_type, att.g.node,
+                                         seq + [node.op_type])
+
+                    look('Constant', model.graph.node, [])
+                    for f in model.functions:
+                        look('Constant', f.node, ['F', f.name])
+                    if path_error is not None:
+                        with open(path_error, "wb") as f:
+                            f.write(model.SerializeToString())
+                    _check_run_(fct, model, inverse=inverse, check=True)
+                    raise AssertionError(
+                        "Invalid model for function %r due to %r\n---\n%s"
+                        "\n---\n%s." % (
+                            fct, str(e), "\n".join(rows),
+                            str(model))) from e
             if isinstance(model, ModelProto):
-                _validate(fct, model.graph)
+                _validate(fct, model.graph, check_onnx_model=check_onnx_model)
                 return model
             if isinstance(model, GraphProto):
                 self.assertEqual(len(model.output), 1)
@@ -1075,7 +1214,8 @@ class TestOptimOnnxManipulations(ExtTestCase):
                 return model
             raise AssertionError('Unexpected type %r.' % type(model))
 
-        temp = get_temp_folder(__file__, 'temp_onnx_inline_function_' + subfolder)
+        temp = get_temp_folder(
+            __file__, 'temp_onnx_inline_function_' + subfolder)
         fcts = ["blackman_window", "hamming_window", "hann_window",
                 "switch_axes", "dft_last_axis", "dft_inv", "dft",
                 "stft", "istft"]
@@ -1092,7 +1232,9 @@ class TestOptimOnnxManipulations(ExtTestCase):
                     print("STEP1 begin", fct)
                 onx = load(os.path.join(data, fct + ".onnx"))
                 onx = _repare(fct, onx)
-                _validate(fct, onx)
+                if run_validation and fct not in {'stft', 'istft'}:
+                    _validate(fct, onx, path_error=os.path.join(
+                        temp, fct + '.error.check.onnx'))
                 try:
                     OnnxInference(onx)
                     use_fct = False
@@ -1101,9 +1243,12 @@ class TestOptimOnnxManipulations(ExtTestCase):
                     use_fct = True
                 if use_fct:
                     fpr = onnx_model_to_function(onx)
-                    _validate(fct, fpr)
-                    onx = onnx_function_to_model(fpr, protos, type_info=_type_info)
-                    _validate(fct, onx)
+                    if run_validation:
+                        _validate(fct, fpr)
+                    onx = onnx_function_to_model(
+                        fpr, protos, type_info=_type_info)
+                    if run_validation:
+                        _validate(fct, onx)
 
                 try:
                     _check_run(fct, onx, inverse=inv)
@@ -1132,7 +1277,8 @@ class TestOptimOnnxManipulations(ExtTestCase):
         inlined_models = {}
         atts_def = {'inverse': 0, 'onesided': 0}
         for fct, onx in models.items():
-            _validate(fct, onx)
+            if run_validation:
+                _validate(fct, onx)
             if log:
                 t = time.perf_counter()
                 print("STEP2 begin", fct)
@@ -1148,7 +1294,8 @@ class TestOptimOnnxManipulations(ExtTestCase):
             with open(os.path.join(temp, fct + '.txt'), 'w') as f:
                 f.write(helper.printable_graph(onx.graph))
             with open(os.path.join(temp, fct + ".fct.onnx"), "wb") as f:
-                f.write(_validate(fct, onnx_model_to_function(onx)).SerializeToString())
+                f.write(_validate(fct, onnx_model_to_function(
+                    onx)).SerializeToString())
             with open(os.path.join(temp, fct + ".fct.att.onnx"), "wb") as f:
                 f.write(_validate(
                     fct, onnx_model_to_function(
@@ -1164,7 +1311,8 @@ class TestOptimOnnxManipulations(ExtTestCase):
                     "Unable to inline function %r\n%s\n#####\n%s" % (
                         fct, "\n".join(rows),
                         onnx_simple_text_plot(onx, recursive=True))) from e
-            _validate(fct, inlined)
+            if run_validation:
+                _validate(fct, inlined)
             if skip_inline is not None and fct in skip_inline:
                 sx = str(inlined)
                 for n in skip_inline[fct]:
@@ -1226,8 +1374,12 @@ class TestOptimOnnxManipulations(ExtTestCase):
             type_info.update({i.name: i.type.tensor_type.elem_type
                              for i in inlined.graph.output})
             fct_whole = _validate(fct, onnx_model_to_function(inlined))
-            simple_graph = _validate(fct, onnx_function_to_model(
-                fct_whole, type_info=type_info, as_function=True))
+            if run_validation:
+                simple_graph = _validate(fct, onnx_function_to_model(
+                    fct_whole, type_info=type_info, as_function=True))
+            else:
+                simple_graph = onnx_function_to_model(
+                    fct_whole, type_info=type_info, as_function=True)
             with open(os.path.join(temp, fct + '.inlined.graph.onnx'), 'wb') as f:
                 f.write(simple_graph.SerializeToString())
             if log:
@@ -1237,27 +1389,59 @@ class TestOptimOnnxManipulations(ExtTestCase):
             print()
 
         # third loop, checking inlined functions with onnxruntime
+        if not run_validation:
+            return
         from onnxruntime import InferenceSession
         from onnxruntime.capi.onnxruntime_pybind11_state import (  # pylint: disable=E0611
             Fail, InvalidArgument, InvalidGraph)
         for fct, onx in inlined_models.items():
-            _validate(fct, onx)
+            if fct == "switch_axes":
+                continue
+            if run_validation:
+                _validate(fct, onx)
             if log:
                 t = time.perf_counter()
                 print("STEP3 begin", fct)
+            good = True
             try:
                 InferenceSession(onx.SerializeToString())
             except (Fail, InvalidArgument, InvalidGraph) as e:
+                good = False
                 if log:
                     print("ERROR3", fct, e)
                 # print(onnx_simple_text_plot(onx, recursive=True, raise_exc=False))
                 with open(os.path.join(temp, fct + '.error.ort.onnx'), 'wb') as f:
                     f.write(onx.SerializeToString())
+                with open(os.path.join(temp, fct + '.error.ort.onnx.txt'), 'w') as f:
+                    f.write(str(onx))
             if log:
                 print("STEP3 end  ", fct, time.perf_counter() - t)
 
+            if not good:
+                continue
+            try:
+                _check_run(fct, onx, runtime="onnxruntime1")
+            except (RuntimeError, AttributeError, NameError, IndexError,
+                    RuntimeException) as e:
+                with open(os.path.join(temp, fct + '.error.ort.exec.onnx'), 'wb') as f:
+                    f.write(onx.SerializeToString())
+                print("--------------")
+                print("--------------")
+                _check_run_(fct, onx, runtime="python", check=1)
+                print("--------------")
+                print("--------------")
+                _check_run_(fct, onx, runtime="onnxruntime1", check=1)
+                print("--------------")
+                print("--------------")
+                raise AssertionError(
+                    "Unable to run inlined function with onnxruntime %r"
+                    "\n%s" % (
+                        fct, onnx_simple_text_plot(
+                            onx, recursive=True, raise_exc=False))) from e
+
     def test_onnx_inline_function_fft(self, log=False):
-        self.common_test_onnx_inline_function_fft('fft', log=log)
+        self.common_test_onnx_inline_function_fft(
+            'fft', log=log, run_validation=False)
 
     def test_onnx_inline_function_fft2(self, log=False):
         self.common_test_onnx_inline_function_fft(
@@ -1268,4 +1452,4 @@ class TestOptimOnnxManipulations(ExtTestCase):
 
 if __name__ == "__main__":
     # TestOptimOnnxManipulations().test_onnx_inline_function_fft2(True)
-    unittest.main()
+    unittest.main(verbosity=2)

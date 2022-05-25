@@ -4,9 +4,7 @@
 @brief Shortcut to *ops_whole*.
 """
 import json
-from io import BytesIO
 import numpy
-import onnx
 
 
 class OnnxWholeSession:
@@ -37,6 +35,7 @@ class OnnxWholeSession:
             NotImplemented as OrtNotImplemented,
             RuntimeException as OrtRuntimeException)
 
+        onnx_data0 = onnx_data
         if hasattr(onnx_data, 'SerializeToString'):
             onnx_data = onnx_data.SerializeToString()
         if isinstance(runtime_options, SessionOptions):
@@ -84,10 +83,10 @@ class OnnxWholeSession:
                                          device=device, providers=providers)
         except (OrtFail, OrtNotImplemented, OrtInvalidGraph,
                 OrtInvalidArgument, OrtRuntimeException, RuntimeError) as e:
-            from ...tools.asv_options_helper import display_onnx
+            from ...plotting.text_plot import onnx_simple_text_plot
             raise RuntimeError(
                 "Unable to create InferenceSession due to '{}'\n{}.".format(
-                    e, display_onnx(onnx.load(BytesIO(onnx_data))))) from e
+                    e, onnx_simple_text_plot(onnx_data0, recursive=True))) from e
         self.output_names = [_.name for _ in self.sess.get_outputs()]
 
     def run(self, inputs):
