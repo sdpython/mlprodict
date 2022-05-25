@@ -1,3 +1,4 @@
+# pylint: disable=W0703,W0632
 """
 @brief      test log(time=14s)
 """
@@ -35,15 +36,14 @@ class TestBugOrt(ExtTestCase):
         with open(os.path.join(temp, "diff.html"), 'w', encoding='utf-8') as f:
             f.write(ht)
 
-        if True:  # len(inputs) == 1:
-            # very long
-            rows_base = str(onx1).split('\n')
-            rows_new = str(onx2).split('\n')
-            _, aligned, final = edit_distance_text(rows_base, rows_new)
-            ht = diff2html(rows_base, rows_new, aligned, final,
-                           two_columns=True)
-            with open(os.path.join(temp, "diff.json.html"), 'w', encoding='utf-8') as f:
-                f.write(ht)
+        # very long
+        rows_base = str(onx1).split('\n')
+        rows_new = str(onx2).split('\n')
+        _, aligned, final = edit_distance_text(rows_base, rows_new)
+        ht = diff2html(rows_base, rows_new, aligned, final,
+                       two_columns=True)
+        with open(os.path.join(temp, "diff.json.html"), 'w', encoding='utf-8') as f:
+            f.write(ht)
 
         err = {}
         try:
@@ -94,7 +94,6 @@ class TestBugOrt(ExtTestCase):
         inputs = {'X': numpy.random.randn(3, 4, 5, 1).astype(numpy.float32)}
         OnnxAbs = loadop('Abs')
         temp = get_temp_folder(__file__, "temp_weird_behaviour2")
-        data = os.path.join(os.path.dirname(__file__), "data")
         onx1 = OnnxAbs('X', output_names=['Y']).to_onnx(
             numpy.float32, numpy.float32)
         onx2 = OnnxAbs('X', output_names=['Y']).to_onnx(

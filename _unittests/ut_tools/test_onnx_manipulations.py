@@ -1,4 +1,4 @@
-# pylint: disable=R0915
+# pylint: disable=R0915,W0703,W0632
 """
 @brief      test log(time=11s)
 """
@@ -848,7 +848,6 @@ class TestOptimOnnxManipulations(ExtTestCase):
                 text_base = onnx_simple_text_plot(
                     oinf.obj, recursive=True, indent=False)
                 rows_base = text_base.split('\n')
-                rows_base_json = str(oinf.obj).split('\n')
                 for k, v in oinf.intermediate_onnx_inference_.items():
                     fn = os.path.join(
                         save_intermediate,
