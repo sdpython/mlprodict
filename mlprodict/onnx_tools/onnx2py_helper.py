@@ -23,15 +23,15 @@ def get_tensor_shape(obj):
     elif not isinstance(obj, TypeProto):
         raise TypeError(  # pragma: no cover
             "Unexpected type %r." % type(obj))
+    if not obj.tensor_type.HasField('shape'):
+        return None
     shape = []
     for d in obj.tensor_type.shape.dim:
         v = d.dim_value if d.dim_value > 0 else d.dim_param
         shape.append(v)
     if len(shape) == 0:
-        shape = None
-    else:
-        shape = list(None if s in (0, '') else s for s in shape)
-    return shape
+        return shape
+    return list(None if s in (0, '') else s for s in shape)
 
 
 def get_tensor_elem_type(obj):
