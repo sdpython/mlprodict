@@ -1136,15 +1136,15 @@ class OnnxOperator(OnnxOperatorBase):
         """
         for i, inp in enumerate(self.inputs):
             if isinstance(inp, OnnxOperatorBase):
-                logger.debug("%d-%s:_set_control_op:propagate-into-input:%d:p:%d",
-                             id(self), self.__class__.__name__, i, id(op))
+                logger.debug("%s-%d:_set_control_op:propagate-into-input:%d:p:%d",
+                             self.__class__.__name__, id(self), i, id(op))
                 inp._set_control_op(op)
         if self.kwargs is None:
             return
         for k, v in self.kwargs.items():
             if isinstance(v, OnnxOperatorBase):
-                logger.debug("%d-%s:_set_control_op:propagate-into-attribute:%s:p:%d",
-                             id(self), self.__class__.__name__, k, id(op))
+                logger.debug("%s-%d:_set_control_op:propagate-into-attribute:%s:p:%d",
+                             self.__class__.__name__, id(self), k, id(op))
                 v._set_control_op(op)
 
     @property
@@ -1396,16 +1396,16 @@ class OnnxOperator(OnnxOperatorBase):
                         id(inp.inputs[0]), inp.inputs[0], node))
         elif isinstance(inp, OnnxOperator):
             new_stack.append(inp)
-            logger.debug("static:processed[%d]:%s",
+            logger.debug("static:SG-op:processed[%d]:%s",
                 id(inp), inp.__class__.__name__)
             processed[id(inp)] = inp
         elif isinstance(inp, OnnxOperatorItem):
             new_stack.append(inp)
-            logger.debug("static:processed[%d]:%s",
+            logger.debug("static:SG-it:processed[%d]:%s",
                 id(inp), inp.__class__.__name__)
             processed[id(inp)] = inp
             new_stack.append(inp.onx_op)
-            logger.debug("static:processed[%d]:%s",
+            logger.debug("static:SG-op:processed[%d]:%s",
                 id(inp.onx_op), inp.onx_op.__class__.__name__)
             processed[id(inp.onx_op)] = inp.onx_op
         elif isinstance(inp, OnnxOperatorTuple):
@@ -1418,14 +1418,17 @@ class OnnxOperator(OnnxOperatorBase):
                 return
             if inp.name == '':
                 return
+            logger.debug("static:SG-var:processed[%d]:%s",
+                id(inp), inp.__class__.__name__)
+            processed[id(inp)] = inp
             set_inputs.add(inp.name)
             if inputs is None and inputs_dtype is None:
                 new_inputs.append(InputDetectedVariable(node, inp))
             elif isinstance(inputs, dict):
                 if inp.name in inputs:
-                    new_inputs.append(
-                        InputDetectedVariable(
-                            node, inp.copy_merge(inputs[inp.name])))
+                    var = InputDetectedVariable(
+                        node, inp.copy_merge(inputs[inp.name]))
+                    new_inputs.append(var)
                 else:
                     raise ValueError(  # pragma: no cover
                         "Unable to find input %r in %r." % (inp, inputs))
@@ -1762,8 +1765,8 @@ class OnnxOperator(OnnxOperatorBase):
         # get the graph
         if processed is None:
             processed = {}
-        logger.debug("%d-%s:processed[%d]:SELF",
-            id(self), self.__class__.__name__, id(self))
+        logger.debug("%s-%d:SG-self:processed[%d]:SELF",
+            self.__class__.__name__, id(self), id(self))
         processed[id(self)] = self
         nodes, graph_inputs, graph_outputs, run_shape2 = self._node_to_graph(
             other_outputs, inputs, outputs, as_function=function_name is not None,
@@ -2719,8 +2722,8 @@ class _GraphBuilder:
         return node
 
     def _process_io(self, inputs, input_names_):
-        logger.debug("_GraphBuilder._process_io:inputs=%r:input_names_=%r",
-                     inputs, input_names_)
+        logger.debug("_GraphBuilder._process_io:inputs=%r", inputs)
+        logger.debug("_GraphBuilder._process_io:input_names_=%r", input_names_)
         if input_names_ is None:
             input_names = None
         else:
@@ -3080,8 +3083,8 @@ class OnnxExisting(OnnxIdentity):
         if op is None:
             raise RuntimeError(  # pragma: no cover
                 "op cannot be None in _set_control_op.")
-        logger.debug("%d-%s:_set_control_op:found:p:%d:%r",
-                     id(self), self.__class__.__name__, id(op),
+        logger.debug("%s-%d:_set_control_op:found:p:%d:%r",
+                     self.__class__.__name__, id(self), id(op),
                      self.inputs[0].output_names)
         if self.control_ops_ is None:
             self.control_ops_ = []
