@@ -1188,5 +1188,6 @@ if __name__ == "__main__":
     import logging
     logging.basicConfig(level=logging.DEBUG)
     TestXOps().test_zif_onnx_common_intermediate_level11()
+    TestXOps().test_zif_onnx_common_intermediate_level2()
     stop
     unittest.main(verbosity=2)
