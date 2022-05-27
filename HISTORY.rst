@@ -5,11 +5,25 @@
 History
 =======
 
-current - 2022-04-09 - 0.00Mb
+current - 2022-05-27 - 0.00Mb
 =============================
 
-* #417: C++ implementation for Im2col and Col2Im in 2D (2022-04-09)
+* #432: None and [] should be different function get_tensor_shape (2022-05-25)
+* #431: Adds functions to change the shape of inputs and outputs (2022-05-25)
+* #430: Adds function to rename inputs or outputs (2022-05-23)
+* #428: Investigates SVC discrepancies (2022-05-20)
+* #429: Adds more functions to manipulate graphs (2022-05-20)
+* #427: Adds function to inline function on onnx graph (2022-05-12)
+* #426: Adds support for operator RoiAlign for python runtime (2022-04-25)
+* #425: Adds support for operator GridSample for python runtime (2022-04-22)
+* #424: Adds support for operator GRU in python runtime (2022-04-19)
+* #423: Adds support for Momentum for python runtime (2022-04-15)
+* #422: Adds support for NonMaxSuppression for python runtime (2022-04-14)
+* #421: Adds support for Adagrad, Adam in python runtime (2022-04-12)
+* #420: Adds support for operator Resize for python runtime (2022-04-10)
+* #419: Adds support for ThresholdedRelu for python runtime (2022-04-09)
 * #418: Adds support for operator OneHot, ScatterND for python runtime (2022-04-09)
+* #417: C++ implementation for Im2col and Col2Im in 2D (2022-04-09)
 * #416: Adds support for DepthToSpace and SpaceToDepth for python runtime (2022-04-08)
 * #415: Implements experimentation im2col (used in image convolution) (2022-04-08)
 * #414: Adds support for operator NonZero in python runtime (2022-04-06)
@@ -355,18 +369,10 @@ current - 2022-04-09 - 0.00Mb
 
 * #123: Enables opset 12 (ONNX) (2020-06-04)
 * #117: Support for op_version in onnx grammar (2020-06-04)
-
-0.3.1108 - 2020-05-20 - 0.29Mb
-==============================
-
 * #126: Fix xgboost converter for xgboost >= 1.0 (2020-05-18)
 * #125: Refactor rewritten sklearn operators (2020-05-18)
 * #124: Fixes #122, capture standard C ouptput with dump_data_model, first step for #123 (2020-05-16)
 * #122: Captures C output when calling dump_data_and_model (2020-05-16)
-
-0.3.1082 - 2020-05-01 - 2.84Mb
-==============================
-
 * #121: Add function to convert array to bytes and bytes to array (onnx tensor) (2020-04-30)
 * #120: Fix discrepencies for SVM classifier (ONNX) (2020-04-30)
 * #119: Keep order in topk implementation (2020-04-17)
