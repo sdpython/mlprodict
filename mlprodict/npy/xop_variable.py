@@ -88,6 +88,34 @@ def guess_numpy_type(data_type):
         "Unsupported data_type '{}'.".format(data_type))
 
 
+class ExistingVariable:
+    """
+    Temporary name.
+
+    :param name: variable name
+    :param op: operator it comes from
+    """
+
+    def __init__(self, name, op):
+        self.name = name
+        self.op = op
+
+    def __repr__(self):
+        "usual"
+        return "%s(%r)" % (
+            self.__class__.__name__, self.name)
+
+    @property
+    def dtype(self):
+        "Unknown type, returns None."
+        return None
+
+    @property
+    def added_dtype(self):
+        "Unknown type, returns None."
+        return None
+
+
 class Variable:
     """
     An input or output to an ONNX graph.
@@ -170,6 +198,11 @@ class Variable:
     def dtype(self):
         "Returns `self.dtype_`."
         return self.dtype_
+
+    @property
+    def added_dtype(self):
+        "Returns `self.added_dtype_`."
+        return self.added_dtype_
 
     @property
     def shape(self):
@@ -339,7 +372,7 @@ class DetectedVariable:
     """
 
     def __init__(self, node, var, index):
-        if not isinstance(var, Variable):
+        if not isinstance(var, (Variable, ExistingVariable)):
             raise TypeError(  # pragma: no cover
                 "Unexpected type %r, it should be a Variable."
                 "" % type(var))

@@ -120,6 +120,8 @@ def check_onnx(model, use_onnx=False, known_results=None,
         except MissingInputError as e:
             raise MissingInputError(
                 "Wrong ONNX model\n--ONNX\n%s" % str(model)) from e
+        for f in model.functions:
+            check_onnx(f)
         return
     if known_results is None:
         known_results = {}
