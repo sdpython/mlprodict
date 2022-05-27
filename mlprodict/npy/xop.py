@@ -2973,6 +2973,8 @@ class _GraphBuilder:
                 "Unexpected type for input_names %r (%r)." % (
                     type(input_names), input_names))
 
+        logger.debug("_GraphBuilder-%d._process_io:4:no_exists_names:%r",
+                     id(self), no_exists_names)
         logger.debug("_GraphBuilder-%d._process_io:4:no_exists:%r",
                      id(self), no_exists)
 
