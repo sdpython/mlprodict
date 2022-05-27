@@ -1901,7 +1901,7 @@ class OnnxOperator(OnnxOperatorBase):
         logger.debug(
             "op:%s-%d.to_onnx:to_onnx:b:%s:%d-nodes",
             self.__class__.__name__, id(self), type(onx).__name__,
-            len(onx.graph.node))
+            len(onx.graph.node) if hasattr(onx, 'graph') else onx.node)
         if return_builder:
             return onx, builder
         return onx
