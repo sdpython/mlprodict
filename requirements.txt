@@ -28,7 +28,6 @@ opt-einsum
 pandas
 pandas_streaming
 pillow
-protobuf
 pybind11
 pydata-sphinx-theme
 pydot
