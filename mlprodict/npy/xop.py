@@ -689,7 +689,6 @@ class OnnxOperatorTuple(OnnxOperatorBase):
     """
 
     def __init__(self, first, *args):
-        stop
         OnnxOperatorBase.__init__(self)
         logger.debug("op:%s-%d([%r], %d in)",
                      self.__class__.__name__, id(self), type(first),
