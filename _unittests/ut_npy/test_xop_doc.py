@@ -7,6 +7,7 @@ from mlprodict.npy.xop import _dynamic_class_creation, Xop
 from mlprodict.npy.xop_auto import (
     get_rst_doc, get_operator_schemas, get_onnx_example,
     onnx_documentation_folder)
+from mlprodict.npy.xop_sphinx import setup
 
 
 class TestXopDoc(ExtTestCase):
@@ -19,6 +20,7 @@ class TestXopDoc(ExtTestCase):
     def test_doc_onnx(self):
         rst = get_rst_doc()
         self.assertIn("**Summary**", rst)
+        self.assertNotEmpty(setup)
 
     def test_auto_import(self):
         from mlprodict.npy.xop_auto_import_ import OnnxAdd  # pylint: disable=E0611
