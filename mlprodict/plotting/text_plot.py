@@ -765,7 +765,7 @@ def onnx_simple_text_plot(model, verbose=False, att_display=None,
 
     try:
         nodes = reorder_nodes_for_display(model.node, verbose=verbose)
-    except RuntimeError as e:
+    except RuntimeError as e:  # pragma: no cover
         if raise_exc:
             raise e
         else:

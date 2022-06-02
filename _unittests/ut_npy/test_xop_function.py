@@ -17,8 +17,10 @@ class TestXOpsFunction(ExtTestCase):
         ov = OnnxAbs('X')
         ad = OnnxAdd('X', ov, output_names=['Y'])
         proto = ad.to_onnx(function_name='AddAbs')
-        op = OnnxDiv(OnnxOperatorFunction(proto, 'X'),
-                     numpy.array([2], dtype=numpy.float32),
+        fct = OnnxOperatorFunction(proto, 'X')
+        rp = repr(fct)
+        self.assertStartsWith("OnnxOperatorFunction(", rp)
+        op = OnnxDiv(fct, numpy.array([2], dtype=numpy.float32),
                      output_names=['Y'])
         onx = op.to_onnx(numpy.float32, numpy.float32)
         self.assertNotIn('op_type: "AbsAdd"', str(onx))

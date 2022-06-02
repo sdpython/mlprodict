@@ -9,10 +9,10 @@ from numpy.testing import assert_almost_equal
 from sklearn.datasets import load_iris
 from sklearn.svm import SVC, SVR, NuSVC, NuSVR, OneClassSVM, LinearSVC
 from skl2onnx.common._apply_operation import apply_less
-from skl2onnx import convert_sklearn
 from skl2onnx.common.data_types import (
     BooleanTensorType, FloatTensorType, Int64TensorType)
 from skl2onnx.operator_converters.ada_boost import _scikit_learn_before_022
+from mlprodict.onnx_conv import to_onnx
 from mlprodict.testing.test_utils import (
     dump_data_and_model, fit_regression_model)
 from mlprodict.tools.ort_wrapper import InferenceSession
@@ -78,8 +78,9 @@ class TestSklearnSVM(unittest.TestCase):
             SVC(kernel="linear", probability=False,
                 decision_function_shape='ovo'))
 
-        model_onnx = convert_sklearn(
-            model, "SVC", [("input", FloatTensorType([None, X.shape[1]]))],
+        model_onnx = to_onnx(
+            model, rewrite_ops=True,
+            initial_types=[("input", FloatTensorType([None, X.shape[1]]))],
             target_opset=TARGET_OPSET)
         nodes = model_onnx.graph.node
         self.assertIsNotNone(nodes)
@@ -99,8 +100,9 @@ class TestSklearnSVM(unittest.TestCase):
         dump_data_and_model(
             X, model, model_onnx,
             basename="SklearnBinSVCLinearPF-NoProbOpp")
-        model_onnx = convert_sklearn(
-            model, "SVC", [("input", FloatTensorType([None, X.shape[1]]))],
+        model_onnx = to_onnx(
+            model, rewrite_ops=True,
+            initial_types=[("input", FloatTensorType([None, X.shape[1]]))],
             options={id(model): {'zipmap': False}},
             target_opset=TARGET_OPSET)
         nodes = model_onnx.graph.node
@@ -113,9 +115,9 @@ class TestSklearnSVM(unittest.TestCase):
         model, X = self._fit_binary_classification(
             SVC(kernel="linear", probability=True))
 
-        model_onnx = convert_sklearn(
-            model, "SVC", [("input",
-                            FloatTensorType([None, X.shape[1]]))],
+        model_onnx = to_onnx(
+            model, rewrite_ops=True,
+            initial_types=[("input", FloatTensorType([None, X.shape[1]]))],
             target_opset=TARGET_OPSET)
         nodes = model_onnx.graph.node
         self.assertIsNotNone(nodes)
@@ -140,8 +142,9 @@ class TestSklearnSVM(unittest.TestCase):
         model, X = self._fit_multi_classification(
             SVC(kernel="linear", probability=False,
                 decision_function_shape="ovo"))
-        model_onnx = convert_sklearn(
-            model, "SVC", [("input", FloatTensorType([None, X.shape[1]]))],
+        model_onnx = to_onnx(
+            model, rewrite_ops=True,
+            initial_types=[("input", FloatTensorType([None, X.shape[1]]))],
             target_opset=TARGET_OPSET)
 
         nodes = model_onnx.graph.node
@@ -163,8 +166,9 @@ class TestSklearnSVM(unittest.TestCase):
         model, X = self._fit_multi_classification(
             SVC(kernel="linear", probability=False,
                 decision_function_shape='ovr'))
-        model_onnx = convert_sklearn(
-            model, "SVC", [("input", FloatTensorType([None, X.shape[1]]))],
+        model_onnx = to_onnx(
+            model, rewrite_ops=True,
+            initial_types=[("input", FloatTensorType([None, X.shape[1]]))],
             target_opset=TARGET_OPSET)
         dump_data_and_model(
             X, model, model_onnx,
@@ -174,8 +178,9 @@ class TestSklearnSVM(unittest.TestCase):
         model, X = self._fit_multi_classification(
             SVC(kernel="linear", probability=True),
             nbclass=3)
-        model_onnx = convert_sklearn(
-            model, "SVC", [("input", FloatTensorType([None, X.shape[1]]))],
+        model_onnx = to_onnx(
+            model, rewrite_ops=True,
+            initial_types=[("input", FloatTensorType([None, X.shape[1]]))],
             target_opset=TARGET_OPSET)
         nodes = model_onnx.graph.node
         self.assertIsNotNone(nodes)
@@ -192,8 +197,9 @@ class TestSklearnSVM(unittest.TestCase):
 
     def test_convert_svr_linear(self):
         model, X = self._fit_binary_classification(SVR(kernel="linear"))
-        model_onnx = convert_sklearn(
-            model, "SVR", [("input", FloatTensorType([None, X.shape[1]]))],
+        model_onnx = to_onnx(
+            model, rewrite_ops=True,
+            initial_types=[("input", FloatTensorType([None, X.shape[1]]))],
             target_opset=TARGET_OPSET)
         nodes = model_onnx.graph.node
         self.assertIsNotNone(nodes)
@@ -214,8 +220,9 @@ class TestSklearnSVM(unittest.TestCase):
     def test_convert_nusvc_binary_pfalse(self):
         model, X = self._fit_binary_classification(
             NuSVC(probability=False, decision_function_shape='ovo'))
-        model_onnx = convert_sklearn(
-            model, "SVC", [("input", FloatTensorType([None, X.shape[1]]))],
+        model_onnx = to_onnx(
+            model, rewrite_ops=True,
+            initial_types=[("input", FloatTensorType([None, X.shape[1]]))],
             target_opset=TARGET_OPSET)
         nodes = model_onnx.graph.node
         self.assertIsNotNone(nodes)
@@ -238,8 +245,9 @@ class TestSklearnSVM(unittest.TestCase):
 
     def test_convert_nusvc_binary_ptrue(self):
         model, X = self._fit_binary_classification(NuSVC(probability=True))
-        model_onnx = convert_sklearn(
-            model, "SVC", [("input", FloatTensorType([None, X.shape[1]]))],
+        model_onnx = to_onnx(
+            model, rewrite_ops=True,
+            initial_types=[("input", FloatTensorType([None, X.shape[1]]))],
             target_opset=TARGET_OPSET)
         nodes = model_onnx.graph.node
         self.assertIsNotNone(nodes)
@@ -264,8 +272,9 @@ class TestSklearnSVM(unittest.TestCase):
         model, X = self._fit_multi_classification(
             NuSVC(probability=False, nu=0.1,
                   decision_function_shape='ovo'))
-        model_onnx = convert_sklearn(
-            model, "SVC", [("input", FloatTensorType([None, X.shape[1]]))],
+        model_onnx = to_onnx(
+            model, rewrite_ops=True,
+            initial_types=[("input", FloatTensorType([None, X.shape[1]]))],
             target_opset=TARGET_OPSET)
         nodes = model_onnx.graph.node
         self.assertIsNotNone(nodes)
@@ -290,8 +299,9 @@ class TestSklearnSVM(unittest.TestCase):
         model, X = self._fit_multi_classification(
             SVC(probability=False,
                 decision_function_shape='ovo'), 4)
-        model_onnx = convert_sklearn(
-            model, "SVC", [("input", FloatTensorType([None, X.shape[1]]))],
+        model_onnx = to_onnx(
+            model, rewrite_ops=True,
+            initial_types=[("input", FloatTensorType([None, X.shape[1]]))],
             target_opset=TARGET_OPSET)
         nodes = model_onnx.graph.node
         self.assertIsNotNone(nodes)
@@ -304,8 +314,9 @@ class TestSklearnSVM(unittest.TestCase):
     def test_convert_svc_multi_pfalse_4_break_ties(self):
         model, X = self._fit_multi_classification(
             SVC(probability=True, break_ties=True), 4)
-        model_onnx = convert_sklearn(
-            model, "unused", [("input", FloatTensorType([None, X.shape[1]]))],
+        model_onnx = to_onnx(
+            model, rewrite_ops=True,
+            initial_types=[("input", FloatTensorType([None, X.shape[1]]))],
             target_opset=TARGET_OPSET)
         nodes = model_onnx.graph.node
         self.assertIsNotNone(nodes)
@@ -316,8 +327,9 @@ class TestSklearnSVM(unittest.TestCase):
 
     def test_convert_svc_multi_ptrue_4(self):
         model, X = self._fit_multi_classification(SVC(probability=True), 4)
-        model_onnx = convert_sklearn(
-            model, "SVC", [("input", FloatTensorType([None, X.shape[1]]))],
+        model_onnx = to_onnx(
+            model, rewrite_ops=True,
+            initial_types=[("input", FloatTensorType([None, X.shape[1]]))],
             target_opset=TARGET_OPSET)
         nodes = model_onnx.graph.node
         self.assertIsNotNone(nodes)
@@ -328,8 +340,9 @@ class TestSklearnSVM(unittest.TestCase):
     def test_convert_nusvc_multi_ptrue(self):
         model, X = self._fit_multi_classification(
             NuSVC(probability=True, nu=0.1))
-        model_onnx = convert_sklearn(
-            model, "SVC", [("input", FloatTensorType([None, X.shape[1]]))],
+        model_onnx = to_onnx(
+            model, rewrite_ops=True,
+            initial_types=[("input", FloatTensorType([None, X.shape[1]]))],
             target_opset=TARGET_OPSET)
         nodes = model_onnx.graph.node
         self.assertIsNotNone(nodes)
@@ -352,8 +365,9 @@ class TestSklearnSVM(unittest.TestCase):
 
     def test_convert_nusvr(self):
         model, X = self._fit_binary_classification(NuSVR())
-        model_onnx = convert_sklearn(
-            model, "SVR", [("input", FloatTensorType([None, X.shape[1]]))],
+        model_onnx = to_onnx(
+            model, rewrite_ops=True,
+            initial_types=[("input", FloatTensorType([None, X.shape[1]]))],
             target_opset=TARGET_OPSET)
         node = model_onnx.graph.node[0]
         self.assertIsNotNone(node)
@@ -373,8 +387,9 @@ class TestSklearnSVM(unittest.TestCase):
 
     def test_convert_nusvr_default(self):
         model, X = self._fit_binary_classification(NuSVR())
-        model_onnx = convert_sklearn(
-            model, "SVR", [("input", FloatTensorType([None, X.shape[1]]))],
+        model_onnx = to_onnx(
+            model, rewrite_ops=True,
+            initial_types=[("input", FloatTensorType([None, X.shape[1]]))],
             target_opset=TARGET_OPSET)
         self.assertIsNotNone(model_onnx)
         dump_data_and_model(X, model, model_onnx, basename="SklearnRegNuSVR2")
@@ -382,9 +397,9 @@ class TestSklearnSVM(unittest.TestCase):
     def test_convert_svr_int(self):
         model, X = fit_regression_model(
             SVR(), is_int=True)
-        model_onnx = convert_sklearn(
-            model, "SVR",
-            [("input", Int64TensorType([None, X.shape[1]]))],
+        model_onnx = to_onnx(
+            model, rewrite_ops=True,
+            initial_types=[("input", Int64TensorType([None, X.shape[1]]))],
             target_opset=TARGET_OPSET)
         self.assertIsNotNone(model_onnx)
         dump_data_and_model(
@@ -394,8 +409,9 @@ class TestSklearnSVM(unittest.TestCase):
     def test_convert_nusvr_int(self):
         model, X = fit_regression_model(
             NuSVR(), is_int=True)
-        model_onnx = convert_sklearn(
-            model, "NuSVR", [("input", Int64TensorType([None, X.shape[1]]))],
+        model_onnx = to_onnx(
+            model, rewrite_ops=True,
+            initial_types=[("input", Int64TensorType([None, X.shape[1]]))],
             target_opset=TARGET_OPSET)
         self.assertIsNotNone(model_onnx)
         dump_data_and_model(
@@ -405,9 +421,9 @@ class TestSklearnSVM(unittest.TestCase):
     def test_convert_svr_bool(self):
         model, X = fit_regression_model(
             SVR(), is_bool=True)
-        model_onnx = convert_sklearn(
-            model, "SVR",
-            [("input", BooleanTensorType([None, X.shape[1]]))],
+        model_onnx = to_onnx(
+            model, rewrite_ops=True,
+            initial_types=[("input", BooleanTensorType([None, X.shape[1]]))],
             target_opset=TARGET_OPSET)
         self.assertIsNotNone(model_onnx)
         dump_data_and_model(
@@ -417,9 +433,9 @@ class TestSklearnSVM(unittest.TestCase):
     def test_convert_nusvr_bool(self):
         model, X = fit_regression_model(
             NuSVR(), is_bool=True)
-        model_onnx = convert_sklearn(
-            model, "NuSVR",
-            [("input", BooleanTensorType([None, X.shape[1]]))],
+        model_onnx = to_onnx(
+            model, rewrite_ops=True,
+            initial_types=[("input", BooleanTensorType([None, X.shape[1]]))],
             target_opset=TARGET_OPSET)
         self.assertIsNotNone(model_onnx)
         dump_data_and_model(
@@ -431,8 +447,9 @@ class TestSklearnSVM(unittest.TestCase):
         reason="operator sign available since opset 9")
     def test_convert_oneclasssvm(self):
         model, X = self._fit_one_class_svm(OneClassSVM())
-        model_onnx = convert_sklearn(
-            model, "OCSVM", [("input", FloatTensorType([None, X.shape[1]]))],
+        model_onnx = to_onnx(
+            model, rewrite_ops=True,
+            initial_types=[("input", FloatTensorType([None, X.shape[1]]))],
             target_opset=TARGET_OPSET)
         dump_data_and_model(
             X, model, model_onnx,
@@ -440,9 +457,9 @@ class TestSklearnSVM(unittest.TestCase):
 
     def test_model_linear_svc_binary_class(self):
         model, X = self._fit_binary_classification(LinearSVC(max_iter=10000))
-        model_onnx = convert_sklearn(
-            model, "linear SVC",
-            [("input", FloatTensorType([None, X.shape[1]]))],
+        model_onnx = to_onnx(
+            model, rewrite_ops=True,
+            initial_types=[("input", FloatTensorType([None, X.shape[1]]))],
             target_opset=TARGET_OPSET)
         sess = InferenceSession(model_onnx.SerializeToString())
         res = sess.run(None, {'input': X})
@@ -453,9 +470,9 @@ class TestSklearnSVM(unittest.TestCase):
 
     def test_model_linear_svc_multi_class(self):
         model, X = self._fit_multi_classification(LinearSVC(max_iter=10000))
-        model_onnx = convert_sklearn(
-            model, "linear SVC",
-            [("input", FloatTensorType([None, X.shape[1]]))],
+        model_onnx = to_onnx(
+            model, rewrite_ops=True,
+            initial_types=[("input", FloatTensorType([None, X.shape[1]]))],
             target_opset=TARGET_OPSET)
         sess = InferenceSession(model_onnx.SerializeToString())
         res = sess.run(None, {'input': X})
@@ -466,9 +483,9 @@ class TestSklearnSVM(unittest.TestCase):
 
     def test_model_svc_binary_class_false(self):
         model, X = self._fit_binary_classification(SVC(max_iter=10000))
-        model_onnx = convert_sklearn(
-            model, "linear SVC",
-            [("input", FloatTensorType([None, X.shape[1]]))],
+        model_onnx = to_onnx(
+            model, rewrite_ops=True,
+            initial_types=[("input", FloatTensorType([None, X.shape[1]]))],
             target_opset=TARGET_OPSET)
         sess = InferenceSession(model_onnx.SerializeToString())
         res = sess.run(None, {'input': X})
@@ -480,9 +497,9 @@ class TestSklearnSVM(unittest.TestCase):
     @unittest.skipIf(TARGET_OPSET < 12, reason="operator Less")
     def test_model_svc_multi_class_false(self):
         model, X = self._fit_multi_classification(SVC(max_iter=10000))
-        model_onnx = convert_sklearn(
-            model, "linear SVC",
-            [("input", FloatTensorType([None, X.shape[1]]))],
+        model_onnx = to_onnx(
+            model, rewrite_ops=True,
+            initial_types=[("input", FloatTensorType([None, X.shape[1]]))],
             target_opset=TARGET_OPSET)
         sess = InferenceSession(model_onnx.SerializeToString())
         res = sess.run(None, {'input': X})
@@ -494,9 +511,9 @@ class TestSklearnSVM(unittest.TestCase):
     def test_model_svc_binary_class_true(self):
         model, X = self._fit_binary_classification(
             SVC(max_iter=10000, probability=True))
-        model_onnx = convert_sklearn(
-            model, "linear SVC",
-            [("input", FloatTensorType([None, X.shape[1]]))],
+        model_onnx = to_onnx(
+            model, rewrite_ops=True,
+            initial_types=[("input", FloatTensorType([None, X.shape[1]]))],
             options={'zipmap': False}, target_opset=TARGET_OPSET)
         sess = InferenceSession(model_onnx.SerializeToString())
         res = sess.run(None, {'input': X})
@@ -508,9 +525,9 @@ class TestSklearnSVM(unittest.TestCase):
     def test_model_svc_multi_class_true(self):
         model, X = self._fit_multi_classification(
             SVC(max_iter=10000, probability=True))
-        model_onnx = convert_sklearn(
-            model, "linear SVC",
-            [("input", FloatTensorType([None, X.shape[1]]))],
+        model_onnx = to_onnx(
+            model, rewrite_ops=True,
+            initial_types=[("input", FloatTensorType([None, X.shape[1]]))],
             options={'zipmap': False}, target_opset=TARGET_OPSET)
         sess = InferenceSession(model_onnx.SerializeToString())
         res = sess.run(None, {'input': X})
@@ -519,11 +536,25 @@ class TestSklearnSVM(unittest.TestCase):
         assert_almost_equal(proba, res[1], decimal=5)
         assert_almost_equal(label, res[0])
 
+    def test_model_svc_multi_class_false2(self):
+        model, X = self._fit_multi_classification(
+            SVC(max_iter=10000, probability=False))
+        model_onnx = to_onnx(
+            model, rewrite_ops=True,
+            initial_types=[("input", FloatTensorType([None, X.shape[1]]))],
+            options={'zipmap': False}, target_opset=TARGET_OPSET)
+        sess = InferenceSession(model_onnx.SerializeToString())
+        res = sess.run(None, {'input': X})
+        label = model.predict(X)
+        proba = model.decision_function(X)
+        assert_almost_equal(proba, res[1], decimal=5)
+        assert_almost_equal(label, res[0])
+
     def test_model_nusvc_binary_class_false(self):
         model, X = self._fit_binary_classification(NuSVC(max_iter=10000))
-        model_onnx = convert_sklearn(
-            model, "linear SVC",
-            [("input", FloatTensorType([None, X.shape[1]]))],
+        model_onnx = to_onnx(
+            model, rewrite_ops=True,
+            initial_types=[("input", FloatTensorType([None, X.shape[1]]))],
             target_opset=TARGET_OPSET)
         sess = InferenceSession(model_onnx.SerializeToString())
         res = sess.run(None, {'input': X})
@@ -536,9 +567,9 @@ class TestSklearnSVM(unittest.TestCase):
     def test_model_nusvc_multi_class_false(self):
         model, X = self._fit_multi_classification(
             NuSVC(max_iter=10000, nu=0.1))
-        model_onnx = convert_sklearn(
-            model, "linear SVC",
-            [("input", FloatTensorType([None, X.shape[1]]))],
+        model_onnx = to_onnx(
+            model, rewrite_ops=True,
+            initial_types=[("input", FloatTensorType([None, X.shape[1]]))],
             target_opset=TARGET_OPSET)
         sess = InferenceSession(model_onnx.SerializeToString())
         res = sess.run(None, {'input': X})
@@ -550,9 +581,9 @@ class TestSklearnSVM(unittest.TestCase):
     def test_model_nusvc_binary_class_true(self):
         model, X = self._fit_binary_classification(
             NuSVC(max_iter=10000, probability=True))
-        model_onnx = convert_sklearn(
-            model, "linear SVC",
-            [("input", FloatTensorType([None, X.shape[1]]))],
+        model_onnx = to_onnx(
+            model, rewrite_ops=True,
+            initial_types=[("input", FloatTensorType([None, X.shape[1]]))],
             options={'zipmap': False}, target_opset=TARGET_OPSET)
         sess = InferenceSession(model_onnx.SerializeToString())
         res = sess.run(None, {'input': X})
@@ -564,9 +595,9 @@ class TestSklearnSVM(unittest.TestCase):
     def test_model_nusvc_multi_class_true(self):
         model, X = self._fit_multi_classification(
             NuSVC(max_iter=10000, probability=True, nu=0.1))
-        model_onnx = convert_sklearn(
-            model, "linear SVC",
-            [("input", FloatTensorType([None, X.shape[1]]))],
+        model_onnx = to_onnx(
+            model, rewrite_ops=True,
+            initial_types=[("input", FloatTensorType([None, X.shape[1]]))],
             options={'zipmap': False}, target_opset=TARGET_OPSET)
         sess = InferenceSession(model_onnx.SerializeToString())
         res = sess.run(None, {'input': X})

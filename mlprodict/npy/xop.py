@@ -52,7 +52,8 @@ class _WrapperLogger:
         "unindent"
         self._indent -= 1
         if self._indent < 0:
-            raise RuntimeError("indentation cannot be negative.")
+            raise RuntimeError(  # pragma: no cover
+                "Indentation cannot be negative.")
 
 
 logger = _WrapperLogger(logging.getLogger('xop'))
@@ -688,6 +689,7 @@ class OnnxOperatorTuple(OnnxOperatorBase):
     """
 
     def __init__(self, first, *args):
+        stop
         OnnxOperatorBase.__init__(self)
         logger.debug("op:%s-%d([%r], %d in)",
                      self.__class__.__name__, id(self), type(first),
@@ -1161,7 +1163,7 @@ class OnnxOperator(OnnxOperatorBase):
             self.kwargs[attribute] = branch
             branch._set_control_op(self)
             return self
-        raise TypeError(
+        raise TypeError(  # pragma: no cover
             "Unexpected type %r for a subgraph, attribute %r "
             "and class %r." % (
                 type(branch), attribute, self.__class__.__name__))
@@ -1208,7 +1210,7 @@ class OnnxOperator(OnnxOperatorBase):
             elif isinstance(v, str):
                 res.append(Variable(v))
             else:
-                raise TypeError(
+                raise TypeError(  # pragma: no cover
                     "Unexpected type %r for an output_names %r."
                     "" % type(v))
         self.output_names_ = res
@@ -1435,7 +1437,7 @@ class OnnxOperator(OnnxOperatorBase):
 
         if isinstance(inp, OnnxExisting):
             if inp.inputs[0].output_names is None:
-                raise RuntimeError(
+                raise RuntimeError(  # pragma: no cover
                     "output_names cannot be None for OnnxExisting, "
                     "subop is %r." % (inp.inputs[0], ))
             # We need to check that this input was not already added.
@@ -1923,8 +1925,9 @@ class OnnxOperator(OnnxOperatorBase):
         hidden_inputs = []
         for name in converts:
             if verbose > 0:
-                fLOG('[OnnxOperator._to_onnx_attributes] process %r of type %r.'
-                     '' % (name, type(self.kwargs[name])))
+                fLOG(  # pragma: no cover
+                    '[OnnxOperator._to_onnx_attributes] process %r of type %r.'
+                    '' % (name, type(self.kwargs[name])))
             model, hidden = self._to_onnx_attribute(
                 self.kwargs[name], inputs=inputs, target_opset=target_opset,
                 optim=optim, verbose=verbose, run_shape=run_shape, fLOG=fLOG,
@@ -1935,7 +1938,7 @@ class OnnxOperator(OnnxOperatorBase):
                     self.kwargs[name], inputs=inputs, target_opset=target_opset,
                     optim=False, verbose=verbose, run_shape=run_shape, fLOG=fLOG,
                     processed=processed)
-                raise RuntimeError(
+                raise RuntimeError(  # pragma: no cover
                     "Conversion to graph of parameter %r from\nnode=%r "
                     "and\ninputs=%r\nis empty:\n%s\nHIDDEN\n%r" % (
                         name, self.kwargs[name], self.kwargs[name].inputs,
@@ -1969,7 +1972,8 @@ class OnnxOperator(OnnxOperatorBase):
                     vars.append(Variable(
                         inp.var.name, inp.var.dtype or inp.var.added_dtype))
             if verbose > 0:
-                fLOG('[OnnxOperator._to_onnx_attribute] inputs=%r' % (vars, ))
+                fLOG(  # pragma: no cover
+                    '[OnnxOperator._to_onnx_attribute] inputs=%r' % (vars, ))
             logger.debug("op:%s._to_onnx_attribute:inputs(%r)",
                          self.__class__.__name__, vars)
         logger.indent()
@@ -1981,7 +1985,8 @@ class OnnxOperator(OnnxOperatorBase):
         hidden_inputs = att_builder.hidden_input
         if len(hidden_inputs) > 0:
             if verbose > 0:
-                fLOG('[OnnxOperator._to_onnx_attribute] inputs=%r' % (vars, ))
+                fLOG(  # pragma: no cover
+                    '[OnnxOperator._to_onnx_attribute] inputs=%r' % (vars, ))
             logger.debug("op:%s._to_onnx_attribute:inputs:hidden:%r",
                          self.__class__.__name__, att_builder.hidden_input)
         if len(onx.graph.node) == 0:
@@ -2686,7 +2691,7 @@ class _GraphBuilder:
                             "_GraphBuilder-%d.get_input_names:2:a:%d:+input_names:%s",
                             id(self), id(node), i.name)
                     else:
-                        logger.debug(
+                        logger.debug(  # pragma: no cover
                             "_GraphBuilder-%d.get_input_names:2:a:%d:=input_names:%s",
                             id(self), id(node), i.name)
                 else:
@@ -2698,7 +2703,7 @@ class _GraphBuilder:
                 self._add_name(i.name)
                 names.append(i.name)
                 if i.name in self.input_names:
-                    logger.debug(
+                    logger.debug(  # pragma: no cover
                         "_GraphBuilder-%d.get_input_names:2:c:%d:=input_names:%s",
                         id(self), id(node), i.name)
                 else:
@@ -2715,7 +2720,7 @@ class _GraphBuilder:
                     if isinstance(inp, Variable):
                         self.input_names[n.name] = InputDetectedVariable(
                             None, n)
-                        logger.debug(
+                        logger.debug(  # pragma: no cover
                             "_GraphBuilder-%d.get_input_names:2:d:%d:+input_names:%s",
                             id(self), id(node), n.name)
                     else:
@@ -2890,8 +2895,9 @@ class _GraphBuilder:
                 input_names.append(inp)
 
         if inputs is None:
-            logger.debug("_GraphBuilder-%d._process_io:return:%r",
-                         id(self), self.input_names)
+            logger.debug(  # pragma: no cover
+                "_GraphBuilder-%d._process_io:return:%r",
+                id(self), self.input_names)
             return [
                 make_tensor_value_info(
                     'X', TensorProto.FLOAT, None)  # pylint: disable=E1101
@@ -3196,7 +3202,7 @@ class OnnxExisting(OnnxIdentity):
             name = "%s_%s" % ((var.domain or "").lower().replace(".", ""),
                               var.op_type.lower())
         else:
-            raise TypeError(
+            raise TypeError(  # pragma: no cover
                 "Unexpected type %r for var." % type(var))
         i = 0
         new_name = "_exist_%s_%d" % (name, i)
@@ -3210,7 +3216,7 @@ class OnnxExisting(OnnxIdentity):
         OnnxIdentity.__init__(self, *args, **kwargs)  # pylint: disable=W0233
         self.control_ops_ = None
         if len(self.inputs) != 1:
-            raise RuntimeError(
+            raise RuntimeError(  # pragma: no cover
                 "Unexpected number of inputs %d." % len(self.inputs))
         if isinstance(self.inputs[0], Variable):
             # It is one input
@@ -3221,7 +3227,7 @@ class OnnxExisting(OnnxIdentity):
             self.inputs[0].output_names = new_names
         else:
             if not isinstance(self.inputs[0], OnnxOperatorBase):
-                raise TypeError(
+                raise TypeError(  # pragma: no cover
                     "Only input should a node not %r." % type(self.inputs[0]))
             if self.inputs[0].output_names is None:
                 new_names = [
@@ -3248,7 +3254,7 @@ class OnnxExisting(OnnxIdentity):
         res = []
         for i, inp in enumerate(self.inputs[0].output_names):
             if not isinstance(inp, (Variable, ExistingVariable)):
-                raise TypeError(
+                raise TypeError(  # pragma: no cover
                     "Unexpected type %r for input %r in node type %r."
                     "" % (type(inp), i, type(self)))
             res.append(inp.name)

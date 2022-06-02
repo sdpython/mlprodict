@@ -487,12 +487,8 @@ def overwrite_opset(model, new_opset):
     del onnx_model.opset_import[:]  # pylint: disable=E1101
     for oimp in model.opset_import:
         op_set = onnx_model.opset_import.add()  # pylint: disable=E1101
-        if oimp.domain == '':
-            op_set.domain = oimp.domain
-            op_set.version = new_opset
-        else:
-            op_set.domain = oimp.domain
-            op_set.version = oimp.version
+        op_set.domain = oimp.domain
+        op_set.version = new_opset if oimp.domain == '' else oimp.version
     return onnx_model
 
 
@@ -1030,7 +1026,7 @@ def _onnx_function_to_model_convert_io(ens, type_info, shape_fct):
         elif callable(type_info):
             res = type_info(name)
         else:
-            raise TypeError(
+            raise TypeError(  # pragma: no cover
                 "type_info is not a callable or a dictionary, "
                 "unable to guess type for name=%r with "
                 "type(type_info)=%r." % (name, type(type_info)))
@@ -1074,7 +1070,7 @@ def onnx_function_to_model(onx, functions=None, type_info=None,
     elif functions is None:
         added_functions = []
     else:
-        raise TypeError(
+        raise TypeError(  # pragma: no cover
             "Unexpected type for functions %r." % type(functions))
 
     if shape_fct is None:
@@ -1156,7 +1152,7 @@ class _inline_mapping(dict):
             self._fLOG("[_inline_mapping-dict-addkv] %s + %r: %r" %
                        ("  " * self._level, key, value))
         if key in self:
-            raise RuntimeError(
+            raise RuntimeError(  # pragma: no cover
                 "Key %r was already added (with value %r, new one is %r)."
                 "" % (key, self[key], value))
         dict.__setitem__(self, key, value)
@@ -1187,9 +1183,10 @@ def _onnx_inline_function_graph(graph, protos, existing_names, mapping,
         # Outputs have still to be renamed.
         graph0 = graph
         if verbose > 1:
-            fLOG("[onnx_inline_function-graph] %s visit0 graph=%d rename=%r "
-                 "len(mapping)=%d begin" % (
-                     "  " * level, id(graph), rename, len(mapping)))
+            fLOG(  # pragma: no cover
+                "[onnx_inline_function-graph] %s visit0 graph=%d rename=%r "
+                "len(mapping)=%d begin" % (
+                    "  " * level, id(graph), rename, len(mapping)))
         if rename:
             modified_nodes = []
             mapping = mapping.copy()
@@ -1216,10 +1213,11 @@ def _onnx_inline_function_graph(graph, protos, existing_names, mapping,
             modified_nodes = []
 
         if verbose > 1:
-            fLOG("[onnx_inline_function-graph] %s visit graph=%d end "
-                 "changed=%r len(modified_nodes)=%d" % (
-                     "  " * level, id(graph0), id(graph0) != id(graph),
-                     len(modified_nodes)))
+            fLOG(  # pragma: no cover
+                "[onnx_inline_function-graph] %s visit graph=%d end "
+                "changed=%r len(modified_nodes)=%d" % (
+                    "  " * level, id(graph0), id(graph0) != id(graph),
+                    len(modified_nodes)))
 
         return graph, modified_nodes
 
@@ -1374,7 +1372,7 @@ def _onnx_inline_function_node(node, protos, existing_names, verbose,
     if key in protos:
         proto = protos[key]
         if not isinstance(proto, FunctionProto):
-            raise TypeError(
+            raise TypeError(  # pragma: no cover
                 "Prototype for key=%r must be a Function Proto, not %r." % (
                     key, type(proto)))
         modified_nodes.append(node)
@@ -1484,7 +1482,7 @@ def onnx_inline_function(obj, protos=None, existing_names=None, verbose=0, fLOG=
     if isinstance(protos, list):
         protos = {(f.domain, f.name): f for f in protos}
     if not isinstance(protos, dict):
-        raise TypeError(
+        raise TypeError(  # pragma: no cover
             "obj is of type %r and protos must be a dictionary not %r." % (
                 type(obj), type(protos)))
 
