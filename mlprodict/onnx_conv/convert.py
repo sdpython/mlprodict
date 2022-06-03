@@ -7,6 +7,7 @@ import pprint
 from collections import OrderedDict
 import logging
 import numpy
+from onnx import ValueInfoProto
 import pandas
 try:
     from sklearn.metrics._scorer import _PredictScorer
@@ -14,13 +15,17 @@ except ImportError:  # pragma: no cover
     # scikit-learn < 0.22
     from sklearn.metrics.scorer import _PredictScorer
 from sklearn import __all__ as sklearn__all__, __version__ as sklearn_version
+from sklearn.pipeline import Pipeline, FeatureUnion
+from sklearn.compose import ColumnTransformer
 from skl2onnx.common.data_types import (
     FloatTensorType, DoubleTensorType, DataType, guess_numpy_type,
-    StringTensorType, Int64TensorType)
+    StringTensorType, Int64TensorType, _guess_type_proto)
 from skl2onnx import convert_sklearn
 from skl2onnx.algebra.onnx_operator_mixin import OnnxOperatorMixin
 from skl2onnx.algebra.type_helper import _guess_type
 from ..onnx_tools.onnx_manipulations import onnx_rename_names
+from ..onnx_tools.onnx2py_helper import (
+    guess_dtype, get_tensor_shape, get_tensor_elem_type)
 from .register_rewritten_converters import register_rewritten_operators
 from .register import register_converters
 from .scorers import CustomScorerTransform
@@ -253,10 +258,48 @@ def guess_schema_from_model(model, tensor_type=None, schema=None):
             model.__class__, data, dirs, last))
 
 
+def _guess_type_(X, itype, dtype):
+    initial_types = guess_initial_types(X, itype)
+    if dtype is None:
+        if hasattr(X, 'dtypes'):  # DataFrame
+            dtype = numpy.float32
+        elif hasattr(X, 'dtype'):
+            dtype = X.dtype
+        elif hasattr(X, 'type'):
+            dtype = guess_numpy_type(X.type)
+        elif isinstance(initial_types[0], ValueInfoProto):
+            dtype = guess_dtype(initial_types[0].type.tensor_type.elem_type)
+        elif initial_types is not None:
+            dtype = guess_numpy_type(initial_types[0][1])
+        else:
+            raise RuntimeError(  # pragma: no cover
+                "dtype cannot be guessed: {}".format(
+                    type(X)))
+        if dtype != numpy.float64:
+            dtype = numpy.float32
+    if dtype is None:
+        raise RuntimeError("dtype cannot be None")  # pragma: no cover
+    if isinstance(dtype, FloatTensorType):
+        dtype = numpy.float32  # pragma: no cover
+    elif isinstance(dtype, DoubleTensorType):
+        dtype = numpy.float64  # pragma: no cover
+    new_dtype = dtype
+    if isinstance(dtype, numpy.ndarray):
+        new_dtype = dtype.dtype  # pragma: no cover
+    elif isinstance(dtype, DataType):
+        new_dtype = numpy.float32  # pragma: no cover
+    if new_dtype not in (numpy.float32, numpy.float64, numpy.int64,
+                         numpy.int32, numpy.float16):
+        raise NotImplementedError(  # pragma: no cover
+            "dtype should be real not {} ({})".format(new_dtype, dtype))
+    return initial_types, dtype, new_dtype
+
+
 def to_onnx(model, X=None, name=None, initial_types=None,
             target_opset=None, options=None, rewrite_ops=False,
             white_op=None, black_op=None, final_types=None,
-            rename_strategy=None, verbose=0):
+            rename_strategy=None, verbose=0,
+            as_function=False):
     """
     Converts a model using on :epkg:`sklearn-onnx`.
 
@@ -285,6 +328,8 @@ def to_onnx(model, X=None, name=None, initial_types=None,
     :param rename_strategy: rename any name in the graph, select shorter
         names, see @see fn onnx_rename_names
     :param verbose: display information while converting the model
+    :param as_function: exposes every model in a pipeline as a function,
+        the main graph contains the pipeline structure
     :return: converted model
 
     The function rewrites function *to_onnx* from :epkg:`sklearn-onnx`
@@ -364,8 +409,8 @@ def to_onnx(model, X=None, name=None, initial_types=None,
             onxp = oinf.run(inputs)
             print(onxp)
 
-    .. versionchanged:: 0.7
-        Parameter *rename_strategy* was added.
+    .. versionchanged:: 0.9
+        Parameter *as_function* was added.
     """
     logger.debug("to_onnx(%s, X=%r, initial_types=%r, target_opset=%r, "
                  "options=%r, rewrite_ops=%r, white_op=%r, black_op=%r, "
@@ -392,41 +437,17 @@ def to_onnx(model, X=None, name=None, initial_types=None,
     else:
         old_values, old_shapes = {}, {}
 
-    def _guess_type_(X, itype, dtype):
-        initial_types = guess_initial_types(X, itype)
-        if dtype is None:
-            if hasattr(X, 'dtypes'):  # DataFrame
-                dtype = numpy.float32
-            elif hasattr(X, 'dtype'):
-                dtype = X.dtype
-            elif hasattr(X, 'type'):
-                dtype = guess_numpy_type(X.type)
-            elif initial_types is not None:
-                dtype = guess_numpy_type(initial_types[0][1])
-            else:
-                raise RuntimeError(  # pragma: no cover
-                    "dtype cannot be guessed: {}".format(
-                        type(X)))
-            if dtype != numpy.float64:
-                dtype = numpy.float32
-        if dtype is None:
-            raise RuntimeError("dtype cannot be None")  # pragma: no cover
-        if isinstance(dtype, FloatTensorType):
-            dtype = numpy.float32  # pragma: no cover
-        elif isinstance(dtype, DoubleTensorType):
-            dtype = numpy.float64  # pragma: no cover
-        new_dtype = dtype
-        if isinstance(dtype, numpy.ndarray):
-            new_dtype = dtype.dtype  # pragma: no cover
-        elif isinstance(dtype, DataType):
-            new_dtype = numpy.float32  # pragma: no cover
-        if new_dtype not in (numpy.float32, numpy.float64, numpy.int64,
-                             numpy.int32, numpy.float16):
-            raise NotImplementedError(  # pragma: no cover
-                "dtype should be real not {} ({})".format(new_dtype, dtype))
-        return initial_types, dtype, new_dtype
-
-    if isinstance(model, _PredictScorer):
+    if as_function and isinstance(
+            model, (ColumnTransformer, Pipeline, FeatureUnion)):
+        res = to_onnx_function(
+            model, X=X, name=name, initial_types=initial_types,
+            target_opset=target_opset, options=options,
+            rewrite_ops=False,  # already handled
+            white_op=white_op, black_op=black_op, final_types=final_types,
+            rename_strategy=None,  # already handled
+            verbose=verbose)
+        
+    elif isinstance(model, _PredictScorer):
         if X is not None and not isinstance(X, OrderedDict):
             raise ValueError("For a scorer, parameter X should be a OrderedDict not {}."
                              "".format(type(X)))
@@ -469,3 +490,107 @@ def to_onnx(model, X=None, name=None, initial_types=None,
     if rename_strategy is not None:
         res = onnx_rename_names(res, strategy=rename_strategy)
     return res
+
+
+def _guess_s2o_type(vtype: ValueInfoProto):
+    return _guess_type_proto(
+        get_tensor_elem_type(vtype), get_tensor_shape(vtype))
+
+
+def to_onnx_function(model, X=None, name=None, initial_types=None,
+                     target_opset=None, options=None, rewrite_ops=False,
+                     white_op=None, black_op=None, final_types=None,
+                     rename_strategy=None, verbose=0):
+    """
+    Converts a model using on :epkg:`sklearn-onnx`.
+    The functions works as the same as function @see fn to_onnx
+    but every model is exported as a single function and the main
+    graph represents the pipeline structure.
+
+    :param model: model to convert or a function
+        wrapped into :epkg:`_PredictScorer` with
+        function :epkg:`make_scorer`
+    :param X: training set (at least one row),
+        can be None, it is used to infered the
+        input types (*initial_types*)
+    :param initial_types: if *X* is None, then *initial_types*
+        must be defined
+    :param name: name of the produced model
+    :param target_opset: to do it with a different target opset
+    :param options: additional parameters for the conversion
+    :param rewrite_ops: rewrites some existing converters,
+        the changes are permanent
+    :param white_op: white list of ONNX nodes allowed
+        while converting a pipeline, if empty, all are allowed
+    :param black_op: black list of ONNX nodes allowed
+        while converting a pipeline, if empty,
+        none are blacklisted
+    :param final_types: a python list. Works the same way as
+        initial_types but not mandatory, it is used
+        to overwrites the type (if type is not None)
+        and the name of every output.
+    :param rename_strategy: rename any name in the graph, select shorter
+        names, see @see fn onnx_rename_names
+    :param verbose: display information while converting the model
+    :return: converted model
+    """
+    if rename_strategy is not None or rewrite_ops:
+        return to_onnx(
+            model, X=X, name=name, initial_types=initial_types,
+            target_opset=target_opset, options=options, rewrite_ops=rewrite_ops,
+            white_op=white_op, black_op=black_op, final_types=final_types,
+            rename_strategy=rename_strategy, verbose=verbose)
+
+    logger.debug("to_onnx_pipeline(%s, X=%r, initial_types=%r, target_opset=%r, "
+                 "options=%r, rewrite_ops=%r, white_op=%r, black_op=%r, "
+                 "final_types=%r)",
+                 model.__class__.__name__, type(X), initial_types,
+                 target_opset, options, rewrite_ops, white_op, black_op,
+                 final_types)
+
+    if final_types is not None:
+        raise NotImplementedError(
+            "final_types != None, not implemented yet.")
+
+    if isinstance(model, Pipeline):
+        from ..npy.xop import OnnxOperatorFunction
+        from ..onnx_tools.onnx_manipulations import onnx_model_to_function
+        inputs = {'X': X, 'initial_types': initial_types}
+        p_inputs = None
+        p_outputs = None
+        for i_step, step in enumerate(model.steps):
+            last_op = None
+            prefix = step[0] + "__"
+            if options is None:
+                step_options = None
+            else:
+                step_options = {}
+                for k, v in options.items():
+                    if k.startswith(prefix):
+                        step_options[k[len(prefix):]] = v
+                    elif '__' in k:
+                        step_options[k.split('__', maxsplit=1)[1]] = v
+                    else:
+                        step_options[k] = v
+            protom = to_onnx(
+                step[1], name=name, target_opset=target_opset,
+                options=step_options, rewrite_ops=rewrite_ops,
+                white_op=white_op, black_op=black_op, verbose=verbose,
+                **inputs, as_function=True)
+            if i_step == 0:
+                p_inputs = list(protom.graph.input)
+            elif i_step == len(model.steps) - 1:
+                p_outputs = list(protom.graph.output)
+            protof = onnx_model_to_function(protom, domain='sklearn')
+            names = ["%s_%s" % (step, o) for o in protof.output]
+            op = OnnxOperatorFunction(protof, *names)
+            last_op = op
+            inputs = {
+                'initial_types': [
+                    (o.name, _guess_s2o_type(o)) for o in protom.graph.output]}
+
+        return last_op.to_onnx(
+            p_inputs, p_outputs, target_opset=target_opset, verbose=verbose)
+    
+    raise TypeError(  # pragma: no cover
+        "Unexpected type %r for model to convert." % type(model))

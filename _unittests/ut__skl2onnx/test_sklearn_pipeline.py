@@ -20,12 +20,12 @@ from sklearn.preprocessing import (
     OneHotEncoder, StandardScaler, MinMaxScaler)
 from sklearn.utils._testing import ignore_warnings
 from pyquickhelper.pycode import ExtTestCase
-from skl2onnx import convert_sklearn
 from skl2onnx.common.data_types import (
     FloatTensorType, Int64TensorType, StringTensorType)
 from mlprodict.testing.test_utils import (
     dump_data_and_model, fit_classification_model)
 from mlprodict.tools.ort_wrapper import InferenceSession
+from mlprodict.onnx_conv import to_onnx
 
 
 class PipeConcatenateInput:
@@ -56,9 +56,24 @@ class TestSklearnPipeline(ExtTestCase):
         scaler.fit(data)
         model = Pipeline([("scaler1", scaler), ("scaler2", scaler)])
 
-        model_onnx = convert_sklearn(model, "pipeline",
-                                     [("input", FloatTensorType([None, 2]))])
+        model_onnx = to_onnx(
+            model, initial_types=[("input", FloatTensorType([None, 2]))])
         self.assertTrue(model_onnx is not None)
+        dump_data_and_model(data, model, model_onnx,
+                            basename="SklearnPipelineScaler")
+
+    def test_pipeline_function(self):
+        data = numpy.array([[0, 0], [0, 0], [1, 1], [1, 1]],
+                           dtype=numpy.float32)
+        scaler = StandardScaler()
+        scaler.fit(data)
+        model = Pipeline([("scaler1", scaler), ("scaler2", scaler)])
+
+        model_onnx = to_onnx(
+            model, initial_types=[("input", FloatTensorType([None, 2]))],
+            as_function=True)
+        self.assertTrue(model_onnx is not None)
+        print(model_onnx)
         dump_data_and_model(data, model, model_onnx,
                             basename="SklearnPipelineScaler")
 
@@ -70,14 +85,10 @@ class TestSklearnPipeline(ExtTestCase):
         scaler.fit(data)
         model = Pipeline([("scaler1", scaler), ("scaler2", scaler)])
 
-        model_onnx = convert_sklearn(
+        model_onnx = to_onnx(
             model,
-            "pipeline",
-            [
-                ("input1", FloatTensorType([None, 1])),
-                ("input2", FloatTensorType([None, 1])),
-            ],
-        )
+            initial_types=[("input1", FloatTensorType([None, 1])),
+                           ("input2", FloatTensorType([None, 1]))])
         self.assertTrue(
             len(model_onnx.graph.node[-1].output) == 1)  # pylint: disable=E1101
         self.assertTrue(model_onnx is not None)
@@ -105,14 +116,10 @@ class TestSklearnPipeline(ExtTestCase):
             ),
         ])
         model.fit(data)
-        model_onnx = convert_sklearn(
+        model_onnx = to_onnx(
             model,
-            "pipeline",
-            [
-                ("input1", FloatTensorType([None, 1])),
-                ("input2", FloatTensorType([None, 1])),
-            ],
-        )
+            initial_types=[("input1", FloatTensorType([None, 1])),
+                           ("input2", FloatTensorType([None, 1]))])
         self.assertTrue(
             len(model_onnx.graph.node[-1].output) == 1)  # pylint: disable=E1101
         self.assertTrue(model_onnx is not None)
@@ -130,23 +137,17 @@ class TestSklearnPipeline(ExtTestCase):
         scaler.fit(data)
         model = Pipeline([("scaler1", scaler), ("scaler2", scaler)])
 
-        model_onnx = convert_sklearn(
+        model_onnx = to_onnx(
             model,
-            "pipeline",
-            [
-                # First input decides the output type.
+            initial_types=[# First input decides the output type.
                 ("input2", FloatTensorType([None, 1])),
-                ("input1", Int64TensorType([None, 1])),
-            ],
-        )
+                ("input1", Int64TensorType([None, 1]))])
         self.assertTrue(
             len(model_onnx.graph.node[-1].output) == 1)  # pylint: disable=E1101
         self.assertTrue(model_onnx is not None)
         data = numpy.array(data)
-        data = {
-            "input1": data[:, 0].reshape((-1, 1)).astype(numpy.int64),
-            "input2": data[:, 1].reshape((-1, 1)).astype(numpy.float32),
-        }
+        data = {"input1": data[:, 0].reshape((-1, 1)).astype(numpy.int64),
+                "input2": data[:, 1].reshape((-1, 1)).astype(numpy.float32)}
         dump_data_and_model(
             data, PipeConcatenateInput(model),
             model_onnx, basename="SklearnPipelineScalerMixed")
@@ -201,7 +202,7 @@ class TestSklearnPipeline(ExtTestCase):
         ]
 
         X_train = X_train[:11]
-        model_onnx = convert_sklearn(model, initial_types=initial_type)
+        model_onnx = to_onnx(model, initial_types=initial_type)
 
         dump_data_and_model(
             X_train, model, model_onnx,
@@ -291,7 +292,7 @@ class TestSklearnPipeline(ExtTestCase):
 
         clf.fit(X_train, y_train)
         inputs = convert_dataframe_schema(X_train, to_drop)
-        model_onnx = convert_sklearn(clf, "pipeline_titanic", inputs)
+        model_onnx = to_onnx(clf, initial_types=inputs)
 
         data = X_test[:5]
         pred = clf.transform(data)
@@ -315,10 +316,9 @@ class TestSklearnPipeline(ExtTestCase):
                 [('pca', PCA(n_components=5), slice(0, 10)),
                  ('svd', TruncatedSVD(n_components=5), slice(10, 100))],
                 transformer_weights={'pca': 2, 'svd': 3}), 3, n_features=100)
-        model_onnx = convert_sklearn(
+        model_onnx = to_onnx(
             model,
-            "column transformer weights",
-            [("input", FloatTensorType([None, X.shape[1]]))])
+            initial_types=[("input", FloatTensorType([None, X.shape[1]]))])
         self.assertIsNotNone(model_onnx)
         dump_data_and_model(
             X, model, model_onnx,
@@ -330,10 +330,9 @@ class TestSklearnPipeline(ExtTestCase):
                 [('pca', PCA(n_components=5), slice(0, 10)),
                  ('svd', TruncatedSVD(n_components=5), slice(80, 100))],
                 remainder='drop'), 3, n_features=100)
-        model_onnx = convert_sklearn(
+        model_onnx = to_onnx(
             model,
-            "column transformer drop",
-            [("input", FloatTensorType([None, X.shape[1]]))])
+            initial_types=[("input", FloatTensorType([None, X.shape[1]]))])
         self.assertIsNotNone(model_onnx)
         dump_data_and_model(
             X, model, model_onnx,
@@ -346,9 +345,9 @@ class TestSklearnPipeline(ExtTestCase):
                  ('svd', TruncatedSVD(n_components=5), slice(80, 100))],
                 transformer_weights={'pca': 2, 'svd': 3},
                 remainder='passthrough'), 3, n_features=100)
-        model_onnx = convert_sklearn(
-            model, "column transformer passthrough",
-            [("input", FloatTensorType([None, X.shape[1]]))])
+        model_onnx = to_onnx(
+            model,
+            initial_types=[("input", FloatTensorType([None, X.shape[1]]))])
         self.assertIsNotNone(model_onnx)
         dump_data_and_model(
             X, model, model_onnx,
@@ -360,9 +359,9 @@ class TestSklearnPipeline(ExtTestCase):
                 [('pca', PCA(n_components=5), slice(0, 10)),
                  ('svd', TruncatedSVD(n_components=5), slice(70, 80))],
                 remainder='passthrough'), 3, n_features=100)
-        model_onnx = convert_sklearn(
-            model, "column transformer passthrough",
-            [("input", FloatTensorType([None, X.shape[1]]))])
+        model_onnx = to_onnx(
+            model,
+            initial_types=[("input", FloatTensorType([None, X.shape[1]]))])
         self.assertIsNotNone(model_onnx)
         dump_data_and_model(
             X, model, model_onnx,
@@ -411,7 +410,7 @@ class TestSklearnPipeline(ExtTestCase):
         ]
 
         pipe.fit(X_train)
-        model_onnx = convert_sklearn(pipe, initial_types=init_types)
+        model_onnx = to_onnx(pipe, initial_types=init_types)
         oinf = InferenceSession(model_onnx.SerializeToString())
 
         pred = pipe.transform(X_train)
@@ -424,5 +423,5 @@ class TestSklearnPipeline(ExtTestCase):
 
 
 if __name__ == "__main__":
-    # TestSklearnPipeline().test_combine_inputs_floats_ints()
+    TestSklearnPipeline().test_pipeline_function()
     unittest.main()
