@@ -184,10 +184,19 @@ class Variable:
     @staticmethod
     def from_skl2onnx(var):
         """
-        Converts var from :epkg:`sklearn-onnx` into this class.
+        Converts variable from :epkg:`sklearn-onnx` into this class.
         """
         return Variable(var.onnx_name, guess_numpy_type(var.type),
                         shape=var.type.shape)
+
+    @staticmethod
+    def from_skl2onnx_tuple(var):
+        """
+        Converts variable from :epkg:`sklearn-onnx` into this class
+        defined as a tuple.
+        """
+        return Variable(var[0], guess_numpy_type(var[1]),
+                        shape=var[1].shape)
 
     @property
     def name(self):

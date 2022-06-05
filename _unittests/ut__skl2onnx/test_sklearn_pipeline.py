@@ -62,21 +62,6 @@ class TestSklearnPipeline(ExtTestCase):
         dump_data_and_model(data, model, model_onnx,
                             basename="SklearnPipelineScaler")
 
-    def test_pipeline_function(self):
-        data = numpy.array([[0, 0], [0, 0], [1, 1], [1, 1]],
-                           dtype=numpy.float32)
-        scaler = StandardScaler()
-        scaler.fit(data)
-        model = Pipeline([("scaler1", scaler), ("scaler2", scaler)])
-
-        model_onnx = to_onnx(
-            model, initial_types=[("input", FloatTensorType([None, 2]))],
-            as_function=True)
-        self.assertTrue(model_onnx is not None)
-        print(model_onnx)
-        dump_data_and_model(data, model, model_onnx,
-                            basename="SklearnPipelineScaler")
-
     def test_combine_inputs(self):
         data = numpy.array(
             [[0.0, 0.0], [0.0, 0.0], [1.0, 1.0], [1.0, 1.0]],
@@ -421,7 +406,24 @@ class TestSklearnPipeline(ExtTestCase):
         got = onxp[0]
         assert_almost_equal(pred, got)
 
+    def test_pipeline_function(self):
+        data = numpy.array([[0, 0], [0, 0], [1, 1], [1, 1]],
+                           dtype=numpy.float32)
+        scaler = StandardScaler()
+        scaler.fit(data)
+        scaler2 = StandardScaler()
+        scaler2.fit(data)
+        model = Pipeline([("scaler1", scaler), ("scaler2", scaler2)])
+
+        model_onnx = to_onnx(
+            model, initial_types=[("X", FloatTensorType([None, 2]))],
+            as_function=True)
+        dump_data_and_model(data, model, model_onnx,
+                            basename="SklearnPipelineScaler")
+
 
 if __name__ == "__main__":
+    import logging
+    logging.basicConfig(level=logging.DEBUG)
     TestSklearnPipeline().test_pipeline_function()
     unittest.main()

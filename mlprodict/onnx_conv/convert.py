@@ -3,6 +3,7 @@
 @file
 @brief Overloads a conversion function.
 """
+import json
 import pprint
 from collections import OrderedDict
 import logging
@@ -25,7 +26,8 @@ from skl2onnx.algebra.onnx_operator_mixin import OnnxOperatorMixin
 from skl2onnx.algebra.type_helper import _guess_type
 from ..onnx_tools.onnx_manipulations import onnx_rename_names
 from ..onnx_tools.onnx2py_helper import (
-    guess_dtype, get_tensor_shape, get_tensor_elem_type)
+    guess_dtype, get_tensor_shape, get_tensor_elem_type,
+    copy_value_info)
 from .register_rewritten_converters import register_rewritten_operators
 from .register import register_converters
 from .scorers import CustomScorerTransform
@@ -106,9 +108,9 @@ def guess_initial_types(X, initial_types):
     """
     Guesses initial types from an array or a dataframe.
 
-    @param      X               array or dataframe
-    @param      initial_types   hints about X
-    @return                     data types
+    :param X: array or dataframe
+    :param initial_types: hints about X
+    :return: data types
     """
     if X is None and initial_types is None:
         raise NotImplementedError(  # pragma: no cover
@@ -299,7 +301,7 @@ def to_onnx(model, X=None, name=None, initial_types=None,
             target_opset=None, options=None, rewrite_ops=False,
             white_op=None, black_op=None, final_types=None,
             rename_strategy=None, verbose=0,
-            as_function=False):
+            as_function=False, prefix_name=None):
     """
     Converts a model using on :epkg:`sklearn-onnx`.
 
@@ -330,6 +332,8 @@ def to_onnx(model, X=None, name=None, initial_types=None,
     :param verbose: display information while converting the model
     :param as_function: exposes every model in a pipeline as a function,
         the main graph contains the pipeline structure
+    :param prefix_name: used if *as_function* is True, to give
+        a prefix to variable in a pipeline
     :return: converted model
 
     The function rewrites function *to_onnx* from :epkg:`sklearn-onnx`
@@ -445,8 +449,8 @@ def to_onnx(model, X=None, name=None, initial_types=None,
             rewrite_ops=False,  # already handled
             white_op=white_op, black_op=black_op, final_types=final_types,
             rename_strategy=None,  # already handled
-            verbose=verbose)
-        
+            verbose=verbose, prefix_name=prefix_name)
+
     elif isinstance(model, _PredictScorer):
         if X is not None and not isinstance(X, OrderedDict):
             raise ValueError("For a scorer, parameter X should be a OrderedDict not {}."
@@ -497,10 +501,34 @@ def _guess_s2o_type(vtype: ValueInfoProto):
         get_tensor_elem_type(vtype), get_tensor_shape(vtype))
 
 
+def _new_options(options, prefix):
+    if options is None:
+        step_options = None
+    else:
+        step_options = {}
+        for k, v in options.items():
+            if k.startswith(prefix):
+                step_options[k[len(prefix):]] = v
+            elif '__' in k:
+                step_options[k.split('__', maxsplit=1)[1]] = v
+            else:
+                step_options[k] = v
+    return step_options
+
+
+def get_sklearn_json_params(model):
+    """
+    Retrieves all the parameters of a :epkg:`scikit-learn` model.
+    """
+    pars = model.get_params()
+    return json.dumps(pars)
+
+
 def to_onnx_function(model, X=None, name=None, initial_types=None,
                      target_opset=None, options=None, rewrite_ops=False,
                      white_op=None, black_op=None, final_types=None,
-                     rename_strategy=None, verbose=0):
+                     rename_strategy=None, verbose=0,
+                     prefix_name=None):
     """
     Converts a model using on :epkg:`sklearn-onnx`.
     The functions works as the same as function @see fn to_onnx
@@ -532,6 +560,7 @@ def to_onnx_function(model, X=None, name=None, initial_types=None,
     :param rename_strategy: rename any name in the graph, select shorter
         names, see @see fn onnx_rename_names
     :param verbose: display information while converting the model
+    :param prefix_name: prefix for variable names
     :return: converted model
     """
     if rename_strategy is not None or rewrite_ops:
@@ -541,10 +570,10 @@ def to_onnx_function(model, X=None, name=None, initial_types=None,
             white_op=white_op, black_op=black_op, final_types=final_types,
             rename_strategy=rename_strategy, verbose=verbose)
 
-    logger.debug("to_onnx_pipeline(%s, X=%r, initial_types=%r, target_opset=%r, "
+    logger.debug("to_onnx_function:begin:(%s-%d, X=%r, initial_types=%r, target_opset=%r, "
                  "options=%r, rewrite_ops=%r, white_op=%r, black_op=%r, "
                  "final_types=%r)",
-                 model.__class__.__name__, type(X), initial_types,
+                 model.__class__.__name__, id(model), type(X), initial_types,
                  target_opset, options, rewrite_ops, white_op, black_op,
                  final_types)
 
@@ -552,45 +581,67 @@ def to_onnx_function(model, X=None, name=None, initial_types=None,
         raise NotImplementedError(
             "final_types != None, not implemented yet.")
 
+    from ..npy.xop import OnnxIdentity
+    from ..npy.xop_variable import Variable
+    i_types = guess_initial_types(X, initial_types)
+    input_nodes = [OnnxIdentity(i[0]) for i in initial_types]
+
     if isinstance(model, Pipeline):
         from ..npy.xop import OnnxOperatorFunction
         from ..onnx_tools.onnx_manipulations import onnx_model_to_function
-        inputs = {'X': X, 'initial_types': initial_types}
-        p_inputs = None
-        p_outputs = None
+        inputs = i_types
+        last_op = None
         for i_step, step in enumerate(model.steps):
-            last_op = None
             prefix = step[0] + "__"
-            if options is None:
-                step_options = None
-            else:
-                step_options = {}
-                for k, v in options.items():
-                    if k.startswith(prefix):
-                        step_options[k[len(prefix):]] = v
-                    elif '__' in k:
-                        step_options[k.split('__', maxsplit=1)[1]] = v
-                    else:
-                        step_options[k] = v
+            step_options = _new_options(options, prefix)
+            if prefix_name is not None:
+                prefix = prefix_name + prefix
             protom = to_onnx(
-                step[1], name=name, target_opset=target_opset,
+                step[1], name=name, initial_types=inputs,
+                target_opset=target_opset,
                 options=step_options, rewrite_ops=rewrite_ops,
                 white_op=white_op, black_op=black_op, verbose=verbose,
-                **inputs, as_function=True)
-            if i_step == 0:
-                p_inputs = list(protom.graph.input)
-            elif i_step == len(model.steps) - 1:
-                p_outputs = list(protom.graph.output)
-            protof = onnx_model_to_function(protom, domain='sklearn')
-            names = ["%s_%s" % (step, o) for o in protof.output]
-            op = OnnxOperatorFunction(protof, *names)
-            last_op = op
-            inputs = {
-                'initial_types': [
-                    (o.name, _guess_s2o_type(o)) for o in protom.graph.output]}
+                as_function=True, prefix_name=prefix)
+            jspar = 'HYPER:{"%s":%s}' % (
+                step[1].__class__.__name__, get_sklearn_json_params(step[1]))
+            protof = onnx_model_to_function(
+                protom, domain='sklearn',
+                name="%s_%s_%s" % (prefix, step[1].__class__.__name__,
+                                   id(step[1])),
+                doc_string=jspar)
+            input_names = ["%s_%s" % (step[0], o) for o in protof.input]
+            if last_op is not None:
+                if len(input_names) == 1:
+                    input_nodes = [OnnxIdentity(
+                        last_op, output_names=input_names[0])]
+                else:
+                    input_nodes = [OnnxIdentity(last_op[i], output_names=[n])
+                                   for i, n in enumerate(input_names)]
+            output_names = ["%s_%s" % (step[0], o) for o in protof.output]
 
-        return last_op.to_onnx(
-            p_inputs, p_outputs, target_opset=target_opset, verbose=verbose)
-    
+            logger.debug("to_onnx_function:%s:%r->%r:%r:%s",
+                         step[1].__class__.__name__,
+                         input_names, output_names,
+                         len(protof.node), jspar)
+
+            op = OnnxOperatorFunction(
+                protof, *input_nodes, output_names=output_names)
+            last_op = op
+            inputs = [
+                ('X%d' % i, _guess_s2o_type(o))
+                for i, o in enumerate(protom.graph.output)]
+
+        logger.debug("to_onnx_function:end:(%s-%d, X=%r, initial_types=%r, target_opset=%r, "
+                     "options=%r, rewrite_ops=%r, white_op=%r, black_op=%r, "
+                     "final_types=%r)",
+                     model.__class__.__name__, id(
+                         model), type(X), initial_types,
+                     target_opset, options, rewrite_ops, white_op, black_op,
+                     final_types)
+
+        i_vars = [Variable.from_skl2onnx_tuple(i) for i in i_types]
+        return last_op.to_onnx(inputs=i_vars, target_opset=target_opset,
+                               verbose=verbose)
+
     raise TypeError(  # pragma: no cover
         "Unexpected type %r for model to convert." % type(model))

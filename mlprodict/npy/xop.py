@@ -3153,6 +3153,8 @@ class _GraphBuilder:
                 from ..onnx_tools.optim import onnx_optimisations
                 onnx_model = onnx_optimisations(onnx_model)
                 if check_model:
+                    logger.debug(
+                        "_GraphBuilder-%d.to_onnx:check_onnx", id(self))
                     check_onnx(onnx_model)
 
             logger.debug("_GraphBuilder-%d.to_onnx:optim:n_inputs=%r n_inits=%r "
@@ -3163,6 +3165,7 @@ class _GraphBuilder:
                          len(onnx_model.graph.output))
 
             if run_shape:
+                logger.debug("_GraphBuilder-%d.to_onnx:infer_shapes", id(self))
                 with_shape = infer_shapes(onnx_model)
                 logger.debug("_GraphBuilder-%d.to_onnx:shape:n_inputs=%r "
                              "n_inits=%r n_nodes=%r n_outputs=%r",

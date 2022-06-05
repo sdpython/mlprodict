@@ -797,6 +797,9 @@ def make_value_info(name, dtype, shape):
     Converts a variable defined by its name, type and shape
     into `onnx.ValueInfoProto`.
 
+    :param name: name
+    :param dtype: numpy element type
+    :param shape: shape
     :return: instance of `onnx.ValueInfoProto`
     """
     value_info = ValueInfoProto()
@@ -804,6 +807,19 @@ def make_value_info(name, dtype, shape):
     tensor_type_proto = make_tensor_type_proto(
         numpy_type_prototype(dtype), shape)
     value_info.type.CopyFrom(tensor_type_proto)  # pylint: disable=E1101
+    return value_info
+
+
+def copy_value_info(info, name=None):
+    """
+    Makes a copy of `onnx.ValueInfoProto`.
+
+    :param name: if defined, changed the name
+    :return: instance of `onnx.ValueInfoProto`
+    """
+    value_info = ValueInfoProto()
+    value_info.name = name or info.name
+    value_info.type.CopyFrom(info.type)  # pylint: disable=E1101
     return value_info
 
 
