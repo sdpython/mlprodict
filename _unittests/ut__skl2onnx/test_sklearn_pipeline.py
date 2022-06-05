@@ -124,7 +124,7 @@ class TestSklearnPipeline(ExtTestCase):
 
         model_onnx = to_onnx(
             model,
-            initial_types=[# First input decides the output type.
+            initial_types=[  # First input decides the output type.
                 ("input2", FloatTensorType([None, 1])),
                 ("input1", Int64TensorType([None, 1]))])
         self.assertTrue(
@@ -419,11 +419,29 @@ class TestSklearnPipeline(ExtTestCase):
             model, initial_types=[("X", FloatTensorType([None, 2]))],
             as_function=True)
         dump_data_and_model(data, model, model_onnx,
-                            basename="SklearnPipelineScaler")
+                            basename="SklearnPipelineScalerFunction",
+                            backend=['python'])
+
+    def test_pipeline_pipeline_function(self):
+        data = numpy.array([[0, 0], [0, 0], [1, 1], [1, 1]],
+                           dtype=numpy.float32)
+        scaler = StandardScaler().fit(data)
+        scaler2 = StandardScaler().fit(data)
+        scaler3 = StandardScaler().fit(data)
+        model = Pipeline([
+            ("pipe1", Pipeline([('sub1', scaler), ('sub2', scaler3)])),
+            ("scaler2", scaler2)])
+
+        model_onnx = to_onnx(
+            model, initial_types=[("X", FloatTensorType([None, 2]))],
+            as_function=True, target_opset=15)
+        dump_data_and_model(data, model, model_onnx,
+                            basename="SklearnPipelinePipelineScalerFunction",
+                            backend=['python'])
 
 
 if __name__ == "__main__":
-    import logging
-    logging.basicConfig(level=logging.DEBUG)
-    TestSklearnPipeline().test_pipeline_function()
+    # import logging
+    # logging.basicConfig(level=logging.DEBUG)
+    # TestSklearnPipeline().test_pipeline_pipeline_function()
     unittest.main()

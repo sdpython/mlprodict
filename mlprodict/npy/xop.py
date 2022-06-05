@@ -2562,6 +2562,12 @@ class _GraphBuilder:
         self.function_hashes = {}
         logger.debug('_GraphBuilder-%d:new', id(self))
 
+    def _add_domain(self, domain, version):
+        if domain not in self.opsets:
+            self.opsets[domain] = version
+        else:
+            self.opsets[domain] = max(version, self.opsets[domain])
+
     def _add_name(self, name):
         self.names.add(name)
 
@@ -2834,12 +2840,7 @@ class _GraphBuilder:
                 return
         self.functions[key] = function_proto
         self.function_hashes[key] = _hash(function_proto)
-
-        if function_proto.domain not in self.opsets:
-            self.opsets[function_proto.domain] = opset
-        else:
-            self.opsets[function_proto.domain] = max(
-                opset, self.opsets[function_proto.domain])
+        self._add_domain(function_proto.domain, opset)
 
     def add_node(self, op_type, name, inputs, outputs, domain='',
                  opset=None, **attributes):
@@ -2872,10 +2873,7 @@ class _GraphBuilder:
             raise TypeError(  # pragma: no cover
                 "outputs must be all strings not %r." % outputs)
         if opset is not None:
-            if domain not in self.opsets:
-                self.opsets[domain] = opset
-            else:
-                self.opsets[domain] = max(opset, self.opsets[domain])
+            self._add_domain(domain, opset)
         node = make_node(op_type, inputs, outputs, name=name,
                          domain=domain, **attributes)
         self.node.append(node)

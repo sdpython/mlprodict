@@ -301,7 +301,8 @@ def to_onnx(model, X=None, name=None, initial_types=None,
             target_opset=None, options=None, rewrite_ops=False,
             white_op=None, black_op=None, final_types=None,
             rename_strategy=None, verbose=0,
-            as_function=False, prefix_name=None):
+            as_function=False, prefix_name=None,
+            run_shape=False):
     """
     Converts a model using on :epkg:`sklearn-onnx`.
 
@@ -334,6 +335,7 @@ def to_onnx(model, X=None, name=None, initial_types=None,
         the main graph contains the pipeline structure
     :param prefix_name: used if *as_function* is True, to give
         a prefix to variable in a pipeline
+    :param run_shape: run shape inference
     :return: converted model
 
     The function rewrites function *to_onnx* from :epkg:`sklearn-onnx`
@@ -449,7 +451,8 @@ def to_onnx(model, X=None, name=None, initial_types=None,
             rewrite_ops=False,  # already handled
             white_op=white_op, black_op=black_op, final_types=final_types,
             rename_strategy=None,  # already handled
-            verbose=verbose, prefix_name=prefix_name)
+            verbose=verbose, prefix_name=prefix_name,
+            run_shape=run_shape)
 
     elif isinstance(model, _PredictScorer):
         if X is not None and not isinstance(X, OrderedDict):
@@ -516,19 +519,33 @@ def _new_options(options, prefix):
     return step_options
 
 
+class _ParamEncoder(json.JSONEncoder):
+    def default(self, obj):
+        try:
+            return json.JSONEncoder.default(self, obj)
+        except TypeError as e:
+            # Unable to serialize
+            return '{"classname": "%s", "EXC": "%s"}' % (
+                obj.__class__.__name__, str(e))
+
+
 def get_sklearn_json_params(model):
     """
     Retrieves all the parameters of a :epkg:`scikit-learn` model.
     """
     pars = model.get_params()
-    return json.dumps(pars)
+    try:
+        return json.dumps(pars, cls=_ParamEncoder)
+    except TypeError as e:
+        raise RuntimeError(
+            "Unable to serialize parameters %s." % pprint.pformat(pars)) from e
 
 
 def to_onnx_function(model, X=None, name=None, initial_types=None,
                      target_opset=None, options=None, rewrite_ops=False,
                      white_op=None, black_op=None, final_types=None,
                      rename_strategy=None, verbose=0,
-                     prefix_name=None):
+                     prefix_name=None, run_shape=False):
     """
     Converts a model using on :epkg:`sklearn-onnx`.
     The functions works as the same as function @see fn to_onnx
@@ -561,6 +578,7 @@ def to_onnx_function(model, X=None, name=None, initial_types=None,
         names, see @see fn onnx_rename_names
     :param verbose: display information while converting the model
     :param prefix_name: prefix for variable names
+    :param run_shape: run shape inference on the final onnx model
     :return: converted model
     """
     if rename_strategy is not None or rewrite_ops:
@@ -568,7 +586,8 @@ def to_onnx_function(model, X=None, name=None, initial_types=None,
             model, X=X, name=name, initial_types=initial_types,
             target_opset=target_opset, options=options, rewrite_ops=rewrite_ops,
             white_op=white_op, black_op=black_op, final_types=final_types,
-            rename_strategy=rename_strategy, verbose=verbose)
+            rename_strategy=rename_strategy, verbose=verbose,
+            run_shape=run_shape)
 
     logger.debug("to_onnx_function:begin:(%s-%d, X=%r, initial_types=%r, target_opset=%r, "
                  "options=%r, rewrite_ops=%r, white_op=%r, black_op=%r, "
@@ -583,12 +602,23 @@ def to_onnx_function(model, X=None, name=None, initial_types=None,
 
     from ..npy.xop import OnnxIdentity
     from ..npy.xop_variable import Variable
+
+    if target_opset is None:
+        from .. import __max_supported_opset__
+        op_version = __max_supported_opset__
+    elif isinstance(target_opset, int):
+        op_version = target_opset
+    else:
+        from .. import __max_supported_opset__
+        op_version = target_opset.get('', __max_supported_opset__)
+
     i_types = guess_initial_types(X, initial_types)
-    input_nodes = [OnnxIdentity(i[0]) for i in initial_types]
+    input_nodes = [OnnxIdentity(i[0], op_version=op_version)
+                   for i in initial_types]
 
     if isinstance(model, Pipeline):
         from ..npy.xop import OnnxOperatorFunction
-        from ..onnx_tools.onnx_manipulations import onnx_model_to_function
+        from ..onnx_tools.onnx_manipulations import onnx_model_to_function        
         inputs = i_types
         last_op = None
         for i_step, step in enumerate(model.steps):
@@ -601,7 +631,12 @@ def to_onnx_function(model, X=None, name=None, initial_types=None,
                 target_opset=target_opset,
                 options=step_options, rewrite_ops=rewrite_ops,
                 white_op=white_op, black_op=black_op, verbose=verbose,
-                as_function=True, prefix_name=prefix)
+                as_function=True, prefix_name=prefix, run_shape=run_shape)
+            for o in protom.graph.output:
+                if get_tensor_elem_type(o) == 0:
+                    raise RuntimeError(
+                        "Unabble to guess output type of output %r "
+                        "from model %r." % (protom.graph.output, model))
             jspar = 'HYPER:{"%s":%s}' % (
                 step[1].__class__.__name__, get_sklearn_json_params(step[1]))
             protof = onnx_model_to_function(
@@ -613,9 +648,11 @@ def to_onnx_function(model, X=None, name=None, initial_types=None,
             if last_op is not None:
                 if len(input_names) == 1:
                     input_nodes = [OnnxIdentity(
-                        last_op, output_names=input_names[0])]
+                        last_op, output_names=input_names[0],
+                        op_version=op_version)]
                 else:
-                    input_nodes = [OnnxIdentity(last_op[i], output_names=[n])
+                    input_nodes = [OnnxIdentity(last_op[i], output_names=[n],
+                                                op_version=op_version)
                                    for i, n in enumerate(input_names)]
             output_names = ["%s_%s" % (step[0], o) for o in protof.output]
 
@@ -640,8 +677,14 @@ def to_onnx_function(model, X=None, name=None, initial_types=None,
                      final_types)
 
         i_vars = [Variable.from_skl2onnx_tuple(i) for i in i_types]
-        return last_op.to_onnx(inputs=i_vars, target_opset=target_opset,
-                               verbose=verbose)
+        onx = last_op.to_onnx(inputs=i_vars, target_opset=target_opset,
+                              verbose=verbose, run_shape=run_shape)
+        for o in onx.graph.output:
+            if get_tensor_elem_type(o) == 0:
+                raise RuntimeError(
+                    "Unabble to guess output type of output %r "
+                    "from model %r." % (onx.graph.output, model))
+        return onx
 
     raise TypeError(  # pragma: no cover
         "Unexpected type %r for model to convert." % type(model))
