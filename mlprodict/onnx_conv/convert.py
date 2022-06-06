@@ -637,7 +637,7 @@ def to_onnx_function(model, X=None, name=None, initial_types=None,
             raise RuntimeError(  # pragma: no cover
                 "The pipeline to be converted cannot be empty.")
         from ..npy.xop import OnnxOperatorFunction
-        from ..onnx_tools.onnx_manipulations import onnx_model_to_function        
+        from ..onnx_tools.onnx_manipulations import onnx_model_to_function
         inputs = i_types
         last_op = None
         for i_step, step in enumerate(model.steps):

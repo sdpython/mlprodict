@@ -19,21 +19,7 @@ class TestCodeStyle(ExtTestCase):
                                   'W0622', 'C0123', 'W0107', 'R1728', 'C3001',
                                   'C0415', 'R1721', 'C0411', 'R1735', 'C2801',
                                   'C0208', 'C0325', 'W1514', 'C0209'),
-                   skip=["Instance of 'tuple' has no ",
-                         "do not compare types, use 'isinstance()'",
-                         "Instance of 'AutoAction' has no 'children' member",
-                         "gactions.py:225: R1711",
-                         "gactions.py:238: E1128",
-                         "R1720",
-                         "[E731]",
-                         "onnx_helper.py:8",  # a bug with python3.8
-                         "__init__.py:1: R0401: Cyclic import",
-                         "R0401: Cyclic import (mlprodict -> mlprodict.nb_helper",
-                         "onnx_pipeline.py:1: R0401: Cyclic import",
-                         "validate.py:1: R0401: Cyclic import",
-                         "c_compilation.py:1: R0401: Cyclic import (mlprodict.npy.xop ->",
-                         "plotting.py:1: R0401: Cyclic import",
-                         ])
+                   skip=["R0401: Cyclic import"])
 
     def test_style_test(self):
         thi = os.path.abspath(os.path.dirname(__file__))
@@ -43,12 +29,7 @@ class TestCodeStyle(ExtTestCase):
                                   'C0111', 'W0107', 'C0415', 'R1728', 'C0209',
                                   'R1721', 'C0302', 'C0411', 'R1735', 'W1514',
                                   'C0200', 'E1101', 'W0212', 'C3001', 'C2801'),
-                   skip=["Instance of 'tuple' has no ",
-                         "R1720",
-                         'if __name__ == "__main__":',
-                         "# pylint: disable=E0611",
-                         "[E731]",
-                         ])
+                   skip=['if __name__ == "__main__":'])
 
 
 if __name__ == "__main__":
