@@ -127,8 +127,7 @@ class TestXOpsFunction(ExtTestCase):
         self.assertEqualArray((x + numpy.abs(x)) / 2, got['Y'])
 
     def test_onnx_function_name2(self):
-        OnnxAbs, OnnxAdd, OnnxDiv = loadop(
-            "Abs", "Add", "Div")
+        OnnxAbs, OnnxAdd = loadop("Abs", "Add")
         ov = OnnxAbs('XX')
         ad = OnnxAdd('XX', ov, output_names=['YY'])
         onx = ad.to_onnx(numpy.float32, numpy.float32)

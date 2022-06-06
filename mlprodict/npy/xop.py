@@ -1833,15 +1833,18 @@ class OnnxOperator(OnnxOperatorBase):
         logger.debug("op:%s-%d:SG-self:processed[%d]:SELF",
                      self.__class__.__name__, id(self), id(self))
         processed[id(self)] = self
+
         logger.indent()
         nodes, graph_inputs, graph_outputs, run_shape2 = self._node_to_graph(
             other_outputs, inputs, outputs, as_function=function_name is not None,
             processed=processed)
         logger.dedent()
+
         logger.debug("op:%s.to_onnx:graph_inputs=%r",
                      self.__class__.__name__, graph_inputs)
         logger.debug("op:%s.to_onnx:graph_outputs=%r",
                      self.__class__.__name__, graph_outputs)
+
         if len(nodes) == 0:
             raise RuntimeError(  # pragma: no cover
                 "Node list is empty.")
@@ -2423,6 +2426,11 @@ class OnnxOperatorFunction(OnnxOperator):
     """
     This operator is used to insert existing ONNX function into
     the ONNX graph being built.
+
+    :param function_proto: instance of type :epkg:`FunctionProto`
+    :param inputs: inputs
+    :param output_names: output names
+    :param sub_functions: functions called by this one
     """
 
     domain = 'mlprodict'
@@ -2466,7 +2474,8 @@ class OnnxOperatorFunction(OnnxOperator):
                     dtype, att))
         return value
 
-    def __init__(self, function_proto, *inputs, output_names=None):
+    def __init__(self, function_proto, *inputs, output_names=None,
+                 sub_functions=None):
         logger.debug("op:Function(ONNX, %d in, output_names=%r)",
                      len(inputs), output_names)
         if function_proto is None:
@@ -2487,6 +2496,7 @@ class OnnxOperatorFunction(OnnxOperator):
                     len(output_names), len(function_proto.output)))
         OnnxOperator.__init__(self, *inputs, output_names=output_names)
         self.model = function_proto
+        self.sub_functions = sub_functions
 
     def __repr__(self):
         "usual"
@@ -2496,6 +2506,8 @@ class OnnxOperatorFunction(OnnxOperator):
             if value is not None:
                 atts[att] = value
         atts.update(self.kwargs)
+        if self.sub_functions is not None and len(self.sub_functions) > 0:
+            atts["sub_functions"] = list(range(len(self.sub_functions)))
         msg = ", ".join("%s=%r" % (k, v) for k, v in atts.items())
         if len(atts) > 0:
             msg = ", " + msg
@@ -2517,6 +2529,9 @@ class OnnxOperatorFunction(OnnxOperator):
 
         # linking inputs
         logger.indent()
+        if self.sub_functions is not None:
+            for sub in self.sub_functions:
+                builder.add_function(sub)
         builder.add_function(self.model)
         builder.add_node(
             self.model.name, builder.get_unique_name(

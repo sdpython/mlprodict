@@ -222,7 +222,8 @@ class MLTensor(MLType):
                 self.element_type.validate(num)
             except TypeError as e:  # pragma: no cover
                 raise TypeError(
-                    'Unable to convert an array due to value index {0}: {1}'.format(i, rvalue[i])) from e
+                    'Unable to convert an array due to value index {0}: {1}'.format(
+                        i, num)) from e
         return value
 
     def _byref_c(self):

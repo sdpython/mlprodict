@@ -53,7 +53,7 @@ def sklearn_logistic_regression(model, input_names=None, output_names=None, **kw
     for i, c in enumerate(coef):
         if numpy.isinf(c):
             raise Float32InfError(  # pragma: no cover
-                'Unable to convert coefficient {0}: {1}'.format(i, coef[i]))
+                'Unable to convert coefficient {0}: {1}'.format(i, c))
     if numpy.isinf(bias):
         raise Float32InfError(  # pragma: no cover
             'Unable to convert intercept {0}'.format(model.intercept_[0]))
@@ -111,7 +111,7 @@ def sklearn_linear_regression(model, input_names=None, output_names=None, **kwar
     for i, c in enumerate(coef):
         if numpy.isinf(c):
             raise Float32InfError(  # pragma: no cover
-                'Unable to convert coefficient {0}: {1}'.format(i, coef[i]))
+                'Unable to convert coefficient {0}: {1}'.format(i, c))
     if numpy.isinf(bias):
         raise Float32InfError(  # pragma: no cover
             'Unable to convert intercept {0}'.format(model.intercept_))

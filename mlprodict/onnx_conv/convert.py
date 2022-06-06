@@ -26,8 +26,7 @@ from skl2onnx.algebra.onnx_operator_mixin import OnnxOperatorMixin
 from skl2onnx.algebra.type_helper import _guess_type
 from ..onnx_tools.onnx_manipulations import onnx_rename_names
 from ..onnx_tools.onnx2py_helper import (
-    guess_dtype, get_tensor_shape, get_tensor_elem_type,
-    copy_value_info)
+    guess_dtype, get_tensor_shape, get_tensor_elem_type)
 from .register_rewritten_converters import register_rewritten_operators
 from .register import register_converters
 from .scorers import CustomScorerTransform
@@ -302,7 +301,7 @@ def to_onnx(model, X=None, name=None, initial_types=None,
             white_op=None, black_op=None, final_types=None,
             rename_strategy=None, verbose=0,
             as_function=False, prefix_name=None,
-            run_shape=False):
+            run_shape=False, single_function=True):
     """
     Converts a model using on :epkg:`sklearn-onnx`.
 
@@ -336,6 +335,9 @@ def to_onnx(model, X=None, name=None, initial_types=None,
     :param prefix_name: used if *as_function* is True, to give
         a prefix to variable in a pipeline
     :param run_shape: run shape inference
+    :param single_function: if *as_function* is True, the function returns one graph
+        with one call to the main function if *single_function* is True or
+        a list of node corresponding to the graph structure
     :return: converted model
 
     The function rewrites function *to_onnx* from :epkg:`sklearn-onnx`
@@ -452,7 +454,7 @@ def to_onnx(model, X=None, name=None, initial_types=None,
             white_op=white_op, black_op=black_op, final_types=final_types,
             rename_strategy=None,  # already handled
             verbose=verbose, prefix_name=prefix_name,
-            run_shape=run_shape)
+            run_shape=run_shape, single_function=single_function)
 
     elif isinstance(model, _PredictScorer):
         if X is not None and not isinstance(X, OrderedDict):
@@ -520,7 +522,7 @@ def _new_options(options, prefix):
 
 
 class _ParamEncoder(json.JSONEncoder):
-    def default(self, obj):
+    def default(self, obj):  # pylint: disable=W0237
         try:
             return json.JSONEncoder.default(self, obj)
         except TypeError as e:
@@ -545,7 +547,8 @@ def to_onnx_function(model, X=None, name=None, initial_types=None,
                      target_opset=None, options=None, rewrite_ops=False,
                      white_op=None, black_op=None, final_types=None,
                      rename_strategy=None, verbose=0,
-                     prefix_name=None, run_shape=False):
+                     prefix_name=None, run_shape=False,
+                     single_function=True):
     """
     Converts a model using on :epkg:`sklearn-onnx`.
     The functions works as the same as function @see fn to_onnx
@@ -579,6 +582,8 @@ def to_onnx_function(model, X=None, name=None, initial_types=None,
     :param verbose: display information while converting the model
     :param prefix_name: prefix for variable names
     :param run_shape: run shape inference on the final onnx model
+    :param single_function: if True, the main graph only includes one node
+        calling the main function
     :return: converted model
     """
     if rename_strategy is not None or rewrite_ops:
@@ -600,6 +605,17 @@ def to_onnx_function(model, X=None, name=None, initial_types=None,
         raise NotImplementedError(
             "final_types != None, not implemented yet.")
 
+    if single_function and (not isinstance(model, Pipeline) or
+                            len(model.steps) != 1):
+        # Wraps the model into a single pipeline.
+        new_model = Pipeline(steps=[('main', model)])
+        return to_onnx_function(
+            new_model, X=X, name=name, initial_types=initial_types,
+            target_opset=target_opset, options=options, rewrite_ops=rewrite_ops,
+            white_op=white_op, black_op=black_op, final_types=final_types,
+            rename_strategy=rename_strategy, verbose=verbose,
+            prefix_name=prefix_name, run_shape=run_shape, single_function=False)
+
     from ..npy.xop import OnnxIdentity
     from ..npy.xop_variable import Variable
 
@@ -617,6 +633,9 @@ def to_onnx_function(model, X=None, name=None, initial_types=None,
                    for i in initial_types]
 
     if isinstance(model, Pipeline):
+        if len(model.steps) == 0:
+            raise RuntimeError(  # pragma: no cover
+                "The pipeline to be converted cannot be empty.")
         from ..npy.xop import OnnxOperatorFunction
         from ..onnx_tools.onnx_manipulations import onnx_model_to_function        
         inputs = i_types
@@ -631,12 +650,14 @@ def to_onnx_function(model, X=None, name=None, initial_types=None,
                 target_opset=target_opset,
                 options=step_options, rewrite_ops=rewrite_ops,
                 white_op=white_op, black_op=black_op, verbose=verbose,
-                as_function=True, prefix_name=prefix, run_shape=run_shape)
+                as_function=True, prefix_name=prefix, run_shape=run_shape,
+                single_function=False)
             for o in protom.graph.output:
                 if get_tensor_elem_type(o) == 0:
                     raise RuntimeError(
                         "Unabble to guess output type of output %r "
-                        "from model %r." % (protom.graph.output, model))
+                        "from model step %d: %r." % (
+                            protom.graph.output, i_step, step[1]))
             jspar = 'HYPER:{"%s":%s}' % (
                 step[1].__class__.__name__, get_sklearn_json_params(step[1]))
             protof = onnx_model_to_function(
@@ -651,7 +672,7 @@ def to_onnx_function(model, X=None, name=None, initial_types=None,
                         last_op, output_names=input_names[0],
                         op_version=op_version)]
                 else:
-                    input_nodes = [OnnxIdentity(last_op[i], output_names=[n],
+                    input_nodes = [OnnxIdentity(last_op[i], output_names=[n],  # pylint: disable=E1136
                                                 op_version=op_version)
                                    for i, n in enumerate(input_names)]
             output_names = ["%s_%s" % (step[0], o) for o in protof.output]
@@ -662,7 +683,8 @@ def to_onnx_function(model, X=None, name=None, initial_types=None,
                          len(protof.node), jspar)
 
             op = OnnxOperatorFunction(
-                protof, *input_nodes, output_names=output_names)
+                protof, *input_nodes, output_names=output_names,
+                sub_functions=list(protom.functions))
             last_op = op
             inputs = [
                 ('X%d' % i, _guess_s2o_type(o))
@@ -670,19 +692,29 @@ def to_onnx_function(model, X=None, name=None, initial_types=None,
 
         logger.debug("to_onnx_function:end:(%s-%d, X=%r, initial_types=%r, target_opset=%r, "
                      "options=%r, rewrite_ops=%r, white_op=%r, black_op=%r, "
-                     "final_types=%r)",
+                     "final_types=%r, outputs=%r)",
                      model.__class__.__name__, id(
                          model), type(X), initial_types,
                      target_opset, options, rewrite_ops, white_op, black_op,
-                     final_types)
+                     final_types, inputs)
 
         i_vars = [Variable.from_skl2onnx_tuple(i) for i in i_types]
+        if final_types is None:
+            outputs_tuple = [
+                (n, _guess_s2o_type(o))
+                for i, (n, o) in enumerate(zip(output_names, protom.graph.output))]
+            outputs = [Variable.from_skl2onnx_tuple(i) for i in outputs_tuple]
+        else:
+            outputs = final_types
+
         onx = last_op.to_onnx(inputs=i_vars, target_opset=target_opset,
-                              verbose=verbose, run_shape=run_shape)
+                              verbose=verbose, run_shape=run_shape,
+                              outputs=outputs)
+
         for o in onx.graph.output:
             if get_tensor_elem_type(o) == 0:
                 raise RuntimeError(
-                    "Unabble to guess output type of output %r "
+                    "Unable to guess output type of output %r "
                     "from model %r." % (onx.graph.output, model))
         return onx
 

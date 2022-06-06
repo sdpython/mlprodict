@@ -31,7 +31,7 @@ pydata-sphinx-theme
 pydot
 py-cpuinfo
 pyinstrument
-pylint
+pylint>=2.14.0
 pyquickhelper
 pyquicksetup
 scikit-learn

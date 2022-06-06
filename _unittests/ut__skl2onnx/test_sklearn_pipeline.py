@@ -418,6 +418,8 @@ class TestSklearnPipeline(ExtTestCase):
         model_onnx = to_onnx(
             model, initial_types=[("X", FloatTensorType([None, 2]))],
             as_function=True)
+        self.assertEqual(len(model_onnx.graph.node), 1)
+        self.assertEqual(len(model_onnx.functions), 3)
         dump_data_and_model(data, model, model_onnx,
                             basename="SklearnPipelineScalerFunction",
                             backend=['python'])
@@ -435,6 +437,8 @@ class TestSklearnPipeline(ExtTestCase):
         model_onnx = to_onnx(
             model, initial_types=[("X", FloatTensorType([None, 2]))],
             as_function=True, target_opset=15)
+        self.assertEqual(len(model_onnx.graph.node), 1)
+        self.assertEqual(len(model_onnx.functions), 5)
         dump_data_and_model(data, model, model_onnx,
                             basename="SklearnPipelinePipelineScalerFunction",
                             backend=['python'])
@@ -444,4 +448,4 @@ if __name__ == "__main__":
     # import logging
     # logging.basicConfig(level=logging.DEBUG)
     # TestSklearnPipeline().test_pipeline_pipeline_function()
-    unittest.main()
+    unittest.main(verbosity=2)
