@@ -17,7 +17,7 @@ class AutoAction:
         and keep some information about it.
         """
         self._cache = None
-        for child in self.children:
+        for child in self.children:  # pylint: disable=E1101
             child._reset_cache()
 
     def export(self, lang="json", hook=None, result_name=None):
