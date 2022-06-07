@@ -443,9 +443,48 @@ class TestSklearnPipeline(ExtTestCase):
                             basename="SklearnPipelinePipelineScalerFunction",
                             backend=['python'])
 
+    def test_pipeline_column_transformer_function(self):
+        data = numpy.array([[0, 0], [0, 0], [1, 1], [1, 1]],
+                           dtype=numpy.float32)
+        model = Pipeline([
+            ("pipe1", ColumnTransformer([
+                ('sub1', StandardScaler(), [0]),
+                ('sub2', StandardScaler(), [0, 1])])),
+            ("scaler2", StandardScaler())])
+        model.fit(data)
+
+        model_onnx = to_onnx(
+            model, initial_types=[("X", FloatTensorType([None, 2]))],
+            as_function=True, target_opset=15)
+        self.assertEqual(len(model_onnx.graph.node), 1)
+        self.assertEqual(len(model_onnx.functions), 5)
+        dump_data_and_model(
+            data, model, model_onnx,
+            basename="SklearnPipelineColumnTransformerScalerFunction",
+            backend=['python', 'onnxruntime'])
+
+    def test_pipeline_column_transformer_function_passthrough(self):
+        data = numpy.array([[0, 0], [0, 0], [1, 1], [1, 1]],
+                           dtype=numpy.float32)
+        model = Pipeline([
+            ("pipe1", ColumnTransformer([
+                ('sub1', StandardScaler(), [0]),
+                ('sub2', StandardScaler(), "passthrough")])),
+            ("scaler2", StandardScaler())])
+        model.fit(data)
+
+        model_onnx = to_onnx(
+            model, initial_types=[("X", FloatTensorType([None, 2]))],
+            as_function=True, target_opset=15)
+        self.assertEqual(len(model_onnx.graph.node), 1)
+        dump_data_and_model(
+            data, model, model_onnx,
+            basename="SklearnPipelineColumnTransformerScalerPassThroughFunction",
+            backend=['python', 'onnxruntime'])
+
 
 if __name__ == "__main__":
     # import logging
     # logging.basicConfig(level=logging.DEBUG)
-    # TestSklearnPipeline().test_pipeline_pipeline_function()
+    TestSklearnPipeline().test_pipeline_column_transformer_function()
     unittest.main(verbosity=2)
