@@ -18,7 +18,7 @@ class TestCodeStyle(ExtTestCase):
                                   'R1702', 'W0212', 'W0640', 'W0223', 'W0201',
                                   'W0622', 'C0123', 'W0107', 'R1728', 'C3001',
                                   'C0415', 'R1721', 'C0411', 'R1735', 'C2801',
-                                  'C0208', 'C0325', 'W1514', 'C0209'),
+                                  'C0208', 'C0325', 'W1514', 'C0209', 'R1720'),
                    skip=["R0401: Cyclic import",
                          '[E731] do not assign a lambda expression',
                          'gactions_num.py:',

@@ -1,3 +1,4 @@
+# pylint: disable=E1101
 """
 Common class for all benchmarks testing
 converted models from :epkg:`scikit-learn`

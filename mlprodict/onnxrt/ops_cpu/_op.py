@@ -808,8 +808,8 @@ class OpRunReduceNumpy(OpRunUnaryNum):
                                expected_attributes=expected_attributes,
                                **options)
         if isinstance(self.axes, numpy.ndarray):  # pylint: disable=E0203
-            if (len(self.axes.shape) == 0 or  # pylint: disable=E0203
-                    self.axes.shape[0] == 0):  # pylint: disable=E0203
+            if (len(self.axes.shape) == 0 or  # pylint: disable=E0203,E1101
+                    self.axes.shape[0] == 0):  # pylint: disable=E0203,E1101
                 self.axes = None
             else:
                 self.axes = tuple(self.axes)

@@ -1,3 +1,4 @@
+# pylint: disable=E1101
 """
 @file
 @brief Validates runtime for many :scikit-learn: operators.
