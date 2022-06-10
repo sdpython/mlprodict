@@ -9,6 +9,7 @@ import os
 import pprint
 import logging
 import hashlib
+import json
 from collections import OrderedDict
 import numpy
 from scipy.sparse.coo import coo_matrix
@@ -103,10 +104,87 @@ def _domain_to_class_name(domain):
     return "".join(res)
 
 
+class _CustomSchema:
+    """
+    For operators defined outside onnx.
+    """
+
+    class _io:
+        "input, output"
+        def __init__(self, t):
+            self.name = t.name
+            self.typeStr = t.typeStr
+
+        def data(self):
+            return {'name': self.name, 'typeStr': self.typeStr}
+
+    class _attribute:
+        "attribute"
+        def __init__(self, att):
+            self.name = att.name
+            self.type = att.type.value
+
+        def data(self):
+            return {'name': self.name, 'type': self.type}
+
+        def data(self):
+            return {'name': self.name, 'type': self.type}
+
+    def __init__(self, schema):
+        self._schema = schema
+        self.domain = schema.domain
+        self.name = schema.name
+        self.since_version = schema.since_version
+        self.inputs = [_CustomSchema._io(t) for t in schema.inputs]
+        self.outputs = [_CustomSchema._io(t) for t in schema.outputs]
+        self.attributes = [_CustomSchema._attribute(a) for a in schema.attributes.values()]
+        self.min_input = schema.min_input
+        self.max_input = schema.max_input
+        self.min_output = schema.min_output
+        self.max_output = schema.max_output
+
+    def data(self):
+        def _(x):
+            if isinstance(x, (str, int)):
+                return x
+            if isinstance(x, list):
+                return [_(e) for e in x]
+            if hasattr(x, 'data'):
+                return x.data()
+            raise TypeError(  # pragma: no cover
+                "Unable to handle type %r - %r." % (type(x), x))
+
+        return {k: _(getattr(self, k)) for k in [
+            'domain', 'name', 'since_version', 'inputs', 'outputs',
+            'attributes', 'min_input', 'max_input',
+            'min_output', 'max_output']}
+
+    def SerializeToString(self):
+        return json.dumps(self.data())
+
+
 def _populate_schemas():
     """
     Populates all schemas.
     """
+    def _populate_schema(schema):
+        # Multiple version can coexist. The last one is kept.
+        key = schema.domain, schema.name
+        if key in res:
+            if schema.since_version > res[key].since_version:
+                # We keep the most recent one.
+                res[key] = schema
+        else:
+            res[key] = schema
+        full_name = schema.name + '_' + str(schema.since_version)
+        res[schema.domain, full_name] = schema
+        if key not in versions:
+            versions[key] = set()
+        if schema.name not in domains:
+            domains[schema.name] = set()
+        domains[schema.name].add(schema.domain)
+        versions[key].add(full_name)
+
     res = {}
     versions = {}
     domains = {}
@@ -114,22 +192,25 @@ def _populate_schemas():
         if schema.support_level == schema.SupportType.EXPERIMENTAL:
             # Skips experimental operators.
             continue
-        # Multiple version can coexist. The last one is kept.
-        if schema.name in res:
-            if schema.since_version > res[schema.name].since_version:
-                # We keep the most recent one.
-                res[schema.domain, schema.name] = schema
-        else:
-            res[schema.domain, schema.name] = schema
-        full_name = schema.name + '_' + str(schema.since_version)
-        res[schema.domain, full_name] = schema
-        key = schema.domain, schema.name
-        if key not in versions:
-            versions[key] = set()
-        if schema.name not in domains:
-            domains[schema.name] = set()
-        domains[schema.name].add(schema.domain)
-        versions[key].add(full_name)
+        _populate_schema(schema)
+
+    try:
+        import onnxruntime.capi.onnxruntime_pybind11_state as rtpy
+    except ImportError:
+        rtpy = None
+
+    if rtpy is not None:
+        # If onnxruntime is available, it is being populated with these operators as well.
+        try:
+            get_schemas = rtpy.get_all_operator_schema
+        except AttributeError:
+            # onnxruntime must be compiled with flag --gen_doc.
+            # a local copy is retrieved.
+            get_schemas = get_all_operator_schema
+        for op in get_schemas():
+            sch = _CustomSchema(op)
+            _populate_schema(sch)
+
     return res, versions, domains
 
 
@@ -338,7 +419,7 @@ def _dynamic_class_creation(operator_names=None, cache=False, include_past=False
     operator_names = ops
 
     # versions
-    res = _all_schemas
+    res = _S.all_schemas
     cls = {}
     set_names = dict()
     set_skip = set()
@@ -367,10 +448,10 @@ def _dynamic_class_creation(operator_names=None, cache=False, include_past=False
             fLOG(  # pragma: no cover
                 '[_dynamic_class_creation] cl_name=%r op_domain=%r op_name=%r (in=%d)' % (
                     cl_name, op_domain, op_name, 1 if cl_name in _all_classes else 0))
-        if cl_name in _all_classes:
+        if cl_name in _S.all_classes:
             if cl_name not in set_skip:
                 if position >= 0:
-                    returned_classes.append((position, _all_classes[cl_name]))
+                    returned_classes.append((position, _S.all_classes[cl_name]))
             continue
 
         # operator name without domain
@@ -378,7 +459,7 @@ def _dynamic_class_creation(operator_names=None, cache=False, include_past=False
             names = [op_name]
         else:
             try:
-                names = _all_schemas_versions[op_domain, op_name].copy()
+                names = _S.all_schemas_versions[op_domain, op_name].copy()
             except KeyError as e:  # pragma: no cover
                 raise ValueError(
                     "Operator %r (domain=%r) does not exists." % (
@@ -447,7 +528,7 @@ def _dynamic_class_creation(operator_names=None, cache=False, include_past=False
         last.past_version[name] = cls[name]
 
     # final
-    _all_classes.update(cls)
+    _S.all_classes.update(cls)
     for cl_name, v in cls.items():
         if v not in set_skip and positions.get(cl_name, -1) >= 0:
             returned_classes.append((positions[cl_name], v))
@@ -3175,13 +3256,49 @@ class _GraphBuilder:
             return onnx_model
 
 
-_all_schemas, _all_schemas_versions, _all_domains = _populate_schemas()
-_all_classes = {}
+class _StaticVariables:
+    """
+    Holds static variables.
+    """
+    def __init__(self):
+        self._all_schemas_ = None
+        self._all_schemas_versions_ = None
+        self._all_domains_ = None
+        self._all_classes_ = None
+
+    @property
+    def all_schemas(self):
+        self.populate()
+        return self._all_schemas_
+
+    @property
+    def all_classes(self):
+        self.populate()
+        return self._all_classes_
+
+    @property
+    def all_schemas_versions(self):
+        self.populate()
+        return self._all_schemas_versions_
+
+    @property
+    def all_domains(self):
+        self.populate()
+        return self._all_domains_
+
+    def populate(self):
+        if self._all_schemas_ is not None:
+            return
+        (self._all_schemas_, self._all_schemas_versions_,
+         self._all_domains_) = _populate_schemas()
+        self._all_classes_ = {}
+
+_S = _StaticVariables()
 onnx_load_factory = Xop = OnnxLoadFactory()
-OnnxIdentity = loadop('Identity')
+# OnnxIdentity = loadop('Identity')
 
 
-class OnnxExisting(OnnxIdentity):
+class OnnxExisting(OnnxOperator):
     """
     Wrapper around OnnxIdentity to specify this operator is
     not part of the subgraph it is used in.
@@ -3212,7 +3329,8 @@ class OnnxExisting(OnnxIdentity):
         return new_name
 
     def __init__(self, *args, **kwargs):  # pylint: disable=W0231
-        OnnxIdentity.__init__(self, *args, **kwargs)  # pylint: disable=W0233
+        # OnnxIdentity.__init__(self, *args, **kwargs)  # pylint: disable=W0233
+        OnnxOperator.__init__(self, *args, **kwargs)  # pylint: disable=W0233
         self.control_ops_ = None
         if len(self.inputs) != 1:
             raise RuntimeError(  # pragma: no cover
