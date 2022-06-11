@@ -51,7 +51,7 @@ class TestXOpsOrt(ExtTestCase):
         onx = inv.to_onnx(numpy.float32, numpy.float32)
 
         x = numpy.array([[1, 0.5], [0.2, 5]], dtype=numpy.float32)
-        i = x ** (-1)
+        i = numpy.linalg.inv(x)
         oinf = OnnxInference(onx, runtime='onnxruntime1')
         got = oinf.run({'X': x})
         self.assertEqualArray(i, got['Y'])
@@ -69,7 +69,7 @@ class TestXOpsOrt(ExtTestCase):
         onx = inv.to_onnx(numpy.float32, numpy.float32)
 
         x = numpy.array([[1, 0.5], [0.2, 5]], dtype=numpy.float32)
-        i = x ** (-1)
+        i = numpy.linalg.inv(x)
         oinf = OnnxInference(onx, runtime='onnxruntime1')
         got = oinf.run({'X': x})
         self.assertEqualArray(i, got['Y'])

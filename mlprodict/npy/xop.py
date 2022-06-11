@@ -111,6 +111,7 @@ class _CustomSchema:
 
     class _io:
         "input, output"
+
         def __init__(self, t):
             self.name = t.name
             self.typeStr = t.typeStr
@@ -120,12 +121,10 @@ class _CustomSchema:
 
     class _attribute:
         "attribute"
+
         def __init__(self, att):
             self.name = att.name
             self.type = att.type.value
-
-        def data(self):
-            return {'name': self.name, 'type': self.type}
 
         def data(self):
             return {'name': self.name, 'type': self.type}
@@ -137,7 +136,8 @@ class _CustomSchema:
         self.since_version = schema.since_version
         self.inputs = [_CustomSchema._io(t) for t in schema.inputs]
         self.outputs = [_CustomSchema._io(t) for t in schema.outputs]
-        self.attributes = [_CustomSchema._attribute(a) for a in schema.attributes.values()]
+        self.attributes = [_CustomSchema._attribute(
+            a) for a in schema.attributes.values()]
         self.min_input = schema.min_input
         self.max_input = schema.max_input
         self.min_output = schema.min_output
@@ -208,6 +208,9 @@ def _populate_schemas():
             # a local copy is retrieved.
             get_schemas = get_all_operator_schema
         for op in get_schemas():
+            if (op.domain, op.name) in res:
+                # an existing onnx schema
+                continue
             sch = _CustomSchema(op)
             _populate_schema(sch)
 
@@ -222,16 +225,25 @@ def _find_operator_domain(name):
     :param name: operator name
     :return: domain
     """
-    if name not in _all_domains:
+    if name not in _S.all_domains:
         raise ValueError(
             "Unable to guess domain for operator %r. "
             "Not found in %r." % (name, list(_all_domains)))
-    domains = _all_domains[name]
+    domains = _S.all_domains[name]
     if len(domains) == 1:
         return list(domains)[0]
     raise ValueError(  # pragma: no cover
         "Unable to guess domain of operator %r, found domains %r." % (
             name, domains))
+
+
+def _split_op_name(name):
+    spl = name.split('_')
+    try:
+        i = int(spl[-1])
+    except ValueError:
+        return name, None
+    return "_".join(spl[:-1]), i
 
 
 def ClassFactory(class_name, op_name, inputs, outputs,
@@ -259,8 +271,6 @@ def ClassFactory(class_name, op_name, inputs, outputs,
     def __init__(self, *args, **kwargs):
 
         op_version = kwargs.pop('op_version', None)
-        if isinstance(op_version, dict):
-            op_version = op_version.get(domain, None)
 
         if op_version is None:
             if len(args) == 0 and input_range[0] == input_range[1]:
@@ -273,8 +283,8 @@ def ClassFactory(class_name, op_name, inputs, outputs,
                         len(args), len(inputs), op_name))
 
         attr_names = self.attr_names
-        if '_' in self.__class__.__name__:
-            op_version_class = int(self.__class__.__name__.split('_')[-1])
+        _, op_version_class = _split_op_name(self.__class__.__name__)
+        if op_version_class is not None:
             if op_version is None:
                 op_version = op_version_class
             try:
@@ -304,6 +314,11 @@ def ClassFactory(class_name, op_name, inputs, outputs,
                 if name in self.past_version:
                     found = (name, op)
                     attr_names = self.past_version[name].attr_names
+                    if len(attr_names) > 0 and not isinstance(attr_names[0], str):
+                        raise TypeError(  # pragma: no cover
+                            "attr_names must be a list of string not a list of %r for "
+                            "operator %r and domain %r." % (
+                                type(attr_names[0]), name, domain))
                     break
         if (op_version_class is not None and found is not None and
                 found[-1] != op_version_class):
@@ -316,11 +331,15 @@ def ClassFactory(class_name, op_name, inputs, outputs,
                 continue
             if key not in attr_names:
                 raise TypeError(  # pragma: no cover
-                    "Argument '%s' not valid for '%s' opset=%s."
-                    % (key, op_name, op_version))
+                    "Argument '%s' not valid for '%s' domain=%r opset=%s "
+                    "(should be in %r, type(self)=%r)." % (
+                        key, op_name, domain, op_version, attr_names,
+                        type(self)))
 
         if op_version is not None:
             kwargs['op_version'] = op_version
+        if 'domain' not in kwargs:
+            kwargs['domain'] = domain
         # This class can only be created by a user. Let's check
         # types are either a variable, an operator or an array.
         for i, a in enumerate(args):
@@ -388,13 +407,13 @@ def _dynamic_class_creation(operator_names=None, cache=False, include_past=False
 
     cache_dir = cache_folder()
     if operator_names is None:
-        operator_names = list(_all_schemas_versions)
+        operator_names = list(_S.all_schemas_versions)
         if include_past:
             add = []
             for domain, op in operator_names:
                 add.extend(
                     [(domain, k)
-                     for k in _all_schemas_versions[domain, op]])
+                     for k in _S.all_schemas_versions[domain, op]])
             operator_names.extend(add)
             operator_names.sort()
 
@@ -427,8 +446,8 @@ def _dynamic_class_creation(operator_names=None, cache=False, include_past=False
         if op_domain == 'ai.onnx':
             op_domain = ''
         set_names[op_domain, op_name] = pos
-        if '_' in op_name and not include_past:
-            n = op_name.split('_')[0]
+        n, v = _split_op_name(op_name)
+        if v is not None and not include_past:
             set_skip.add((op_domain, n))
             if n not in set_names:
                 set_names[op_domain, n] = -1
@@ -451,7 +470,8 @@ def _dynamic_class_creation(operator_names=None, cache=False, include_past=False
         if cl_name in _S.all_classes:
             if cl_name not in set_skip:
                 if position >= 0:
-                    returned_classes.append((position, _S.all_classes[cl_name]))
+                    returned_classes.append(
+                        (position, _S.all_classes[cl_name]))
             continue
 
         # operator name without domain
@@ -480,10 +500,18 @@ def _dynamic_class_creation(operator_names=None, cache=False, include_past=False
                         op_domain, name, pprint.pformat(list(res)))) from e
             inputs = [_c(o, 'I', i) for i, o in enumerate(schema.inputs)]
             outputs = [_c(o, 'O', i) for i, o in enumerate(schema.outputs)]
-            args = [p for p in schema.attributes]
+            args = [p if isinstance(
+                p, str) else p.name for p in schema.attributes]
+            if len(args) > 0 and not isinstance(args[0], str):
+                raise TypeError(  # pragma: no cover
+                    "args must be a list of string not a list of %r for "
+                    "operator %r and domain %r." % (
+                        type(args[0]), name, op_domain))
 
-            if '_' in name:
-                class_name = "Onnx" + _domain_to_class_name(op_domain) + name
+            n_name, v = _split_op_name(name)
+
+            if v is not None:
+                class_name = "Onnx" + _domain_to_class_name(op_domain) + n_name
             else:
                 class_name = (
                     "Onnx" + _domain_to_class_name(op_domain) + schema.name)
@@ -518,13 +546,13 @@ def _dynamic_class_creation(operator_names=None, cache=False, include_past=False
 
     # Retrieves past classes.
     for name in cls:  # pylint: disable=C0206
-        if '_' not in name:
+        main, v = _split_op_name(name)
+        if v is None:
             continue
-        main, _ = name.split('_')
         if main in cls:  # pylint: disable=R1715
             last = cls[main]
         else:
-            last = _all_classes[main]
+            last = _S.all_classes[main]
         last.past_version[name] = cls[name]
 
     # final
@@ -3260,6 +3288,7 @@ class _StaticVariables:
     """
     Holds static variables.
     """
+
     def __init__(self):
         self._all_schemas_ = None
         self._all_schemas_versions_ = None
@@ -3292,6 +3321,7 @@ class _StaticVariables:
         (self._all_schemas_, self._all_schemas_versions_,
          self._all_domains_) = _populate_schemas()
         self._all_classes_ = {}
+
 
 _S = _StaticVariables()
 onnx_load_factory = Xop = OnnxLoadFactory()
