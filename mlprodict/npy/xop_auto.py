@@ -148,6 +148,35 @@ def _populate__get_all_schemas_with_history():
         if name not in res[domain]:
             res[domain][name] = {}
         res[domain][name][version] = schema
+
+    try:
+        import onnxruntime.capi.onnxruntime_pybind11_state as rtpy
+    except ImportError:
+        rtpy = None
+
+    if rtpy is not None:
+        # If onnxruntime is available, it is being populated with these operators as well.
+        from .xop import _CustomSchema
+        try:
+            get_schemas = rtpy.get_all_operator_schema
+        except AttributeError:
+            # onnxruntime must be compiled with flag --gen_doc.
+            # a local copy is retrieved.
+            from .xop import _get_all_operator_schema
+            get_schemas = _get_all_operator_schema
+        for op in get_schemas():
+            sch = _CustomSchema(op)
+            domain, name = sch.domain, sch.name
+            if domain in res and name in res[domain]:
+                # already handled
+                continue
+            version = sch.since_version
+            if domain not in res:
+                res[domain] = {}
+            if name not in res[domain]:
+                res[domain][name] = {}
+            res[domain][name][version] = sch
+
     return res
 
 
@@ -195,9 +224,13 @@ def get_operator_schemas(op_name, version=None, domain=None):
             for op, v in ops.items():
                 if version is None:
                     sch.extend(v.values())
+                elif version == 'last' and (dom == '' or 'onnx' in dom):
+                    try:
+                        sch.append(onnx.defs.get_schema(op, domain=dom))
+                    except onnx.onnx_cpp2py_export.defs.SchemaError:
+                        sch.append(v[max(v)])
                 elif version == 'last':
-                    sch.append(
-                        onnx.defs.get_schema(op, domain=dom))
+                    sch.append(v[max(v)])
                 else:
                     sch.append(v[version])
         elif op_name in ops:
@@ -281,6 +314,9 @@ def get_rst_doc(op_name=None, domain=None, version='last', clean=True,
     def process_documentation(doc):
         if doc is None:
             doc = ''
+        if not isinstance(doc, str):
+            raise TypeError(  # pragma: no cover
+                "doc must be a string not %r - %r." % (type(doc), doc + 42))
         doc = textwrap.dedent(doc)
         main_docs_url = "https://github.com/onnx/onnx/blob/master/"
         rep = {

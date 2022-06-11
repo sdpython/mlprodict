@@ -109,15 +109,49 @@ class _CustomSchema:
     For operators defined outside onnx.
     """
 
+    class _empty:
+        "dummy class"
+
+        @staticmethod
+        def from_attribute(data):
+            self = _CustomSchema._empty()
+            setattr(self, 'name', data['name'])
+            setattr(self, 'description', data['description'])
+            setattr(self, 'required', data['required'])
+            setattr(self, 'type', _CustomSchema._empty())
+            setattr(self.type, 'value', data['type'])
+            setattr(self, 'default_value', '?')
+            return self
+
+        @staticmethod
+        def from_io(data):
+            self = _CustomSchema._empty()
+            setattr(self, 'name', data['name'])
+            setattr(self, 'typeStr', data['typeStr'])
+            setattr(self, 'description', data['description'])
+            setattr(self, 'option', _CustomSchema._empty())
+            setattr(self.option, 'value', data['option'])
+            setattr(self, 'isHomogeneous', data['isHomogeneous'])
+            return self
+
     class _io:
         "input, output"
 
         def __init__(self, t):
             self.name = t.name
             self.typeStr = t.typeStr
+            self.option = t.option.value
+            self.description = t.description
+            self.isHomogeneous = t.isHomogeneous
 
         def data(self):
-            return {'name': self.name, 'typeStr': self.typeStr}
+            return {'name': self.name, 'typeStr': self.typeStr,
+                    'description': self.description,
+                    'isHomogeneous': self.isHomogeneous,
+                    'option': self.option}
+
+        def __eq__(self, ot):
+            return self.name == ot.name and self.typeStr == ot.typeStr
 
     class _attribute:
         "attribute"
@@ -125,9 +159,17 @@ class _CustomSchema:
         def __init__(self, att):
             self.name = att.name
             self.type = att.type.value
+            self.default_value = '?'
+            self.description = att.description
+            self.required = att.required
 
         def data(self):
-            return {'name': self.name, 'type': self.type}
+            return {'name': self.name, 'type': self.type,
+                    'description': self.description,
+                    'required': self.required}
+
+        def __eq__(self, ot):
+            return self.name == ot.name and self.type == ot.type
 
     def __init__(self, schema):
         self._schema = schema
@@ -136,31 +178,67 @@ class _CustomSchema:
         self.since_version = schema.since_version
         self.inputs = [_CustomSchema._io(t) for t in schema.inputs]
         self.outputs = [_CustomSchema._io(t) for t in schema.outputs]
-        self.attributes = [_CustomSchema._attribute(
-            a) for a in schema.attributes.values()]
+        self.attributes = {a.name: _CustomSchema._attribute(a)
+                           for a in schema.attributes.values()}
         self.min_input = schema.min_input
         self.max_input = schema.max_input
         self.min_output = schema.min_output
         self.max_output = schema.max_output
+        self.doc = schema.doc
+
+    _atts = ['domain', 'name', 'since_version', 'inputs', 'outputs',
+             'attributes', 'min_input', 'max_input',
+             'min_output', 'max_output', 'doc']
+
+    def __eq__(self, ot):
+        for k in _CustomSchema._atts:
+            if getattr(self, k) == getattr(ot, k):
+                continue
+            return False
+        return True
 
     def data(self):
         def _(x):
+            if x is None:
+                return None
             if isinstance(x, (str, int)):
                 return x
             if isinstance(x, list):
                 return [_(e) for e in x]
+            if isinstance(x, dict):
+                return {k: _(v) for k, v in x.items()}
             if hasattr(x, 'data'):
                 return x.data()
             raise TypeError(  # pragma: no cover
                 "Unable to handle type %r - %r." % (type(x), x))
 
-        return {k: _(getattr(self, k)) for k in [
-            'domain', 'name', 'since_version', 'inputs', 'outputs',
-            'attributes', 'min_input', 'max_input',
-            'min_output', 'max_output']}
+        return {k: _(getattr(self, k)) for k in _CustomSchema._atts}
 
     def SerializeToString(self):
         return json.dumps(self.data())
+
+    @staticmethod
+    def ParseFromString(s):
+        obj = json.loads(s)
+        e = _CustomSchema._empty()
+        for k in _CustomSchema._atts:
+            if k == 'attributes':
+                setattr(e, k, {a['name']: _CustomSchema._empty.from_attribute(a)
+                               for a in obj[k]})
+            elif k in ('inputs', 'outputs'):
+                setattr(e, k, [_CustomSchema._empty.from_io(o)
+                               for o in obj[k]])
+            else:
+                setattr(e, k, obj[k])
+        return _CustomSchema(e)
+
+
+def _get_all_operator_schema():
+    data = os.path.join(os.path.dirname(__file__),
+                        "ort_get_all_operator_schema.txt")
+    with open(data, 'r', encoding='utf-8') as f:
+        js = f.readlines()
+    return [_CustomSchema.ParseFromString(j) for j in js[1:]]
 
 
 def _populate_schemas():
@@ -206,7 +284,7 @@ def _populate_schemas():
         except AttributeError:
             # onnxruntime must be compiled with flag --gen_doc.
             # a local copy is retrieved.
-            get_schemas = get_all_operator_schema
+            get_schemas = _get_all_operator_schema
         for op in get_schemas():
             if (op.domain, op.name) in res:
                 # an existing onnx schema
@@ -528,7 +606,8 @@ def _dynamic_class_creation(operator_names=None, cache=False, include_past=False
                 with open(filename, "r", encoding="utf-8") as f:  # pragma: no cover
                     doc = f.read()
             else:
-                doc = get_rst_doc(schema)
+                doc = get_rst_doc(schema.name, domain=schema.domain,
+                                  version=schema.since_version)
                 if cache:  # pragma: no cover
                     with open(filename, 'w', encoding='utf-8') as f:
                         f.write(doc)

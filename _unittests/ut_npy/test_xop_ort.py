@@ -1,6 +1,6 @@
 # pylint: disable=E0611
 """
-@brief      test log(time=15s)
+@brief      test log(time=4s)
 """
 import unittest
 import os
@@ -13,7 +13,8 @@ except (ImportError, AttributeError):
     get_all_opkernel_def = None
 from mlprodict.onnxrt import OnnxInference
 from mlprodict.npy.xop import (
-    loadop, OnnxOperatorFunction, _CustomSchema, __file__ as xop_file)
+    loadop, OnnxOperatorFunction, _CustomSchema, __file__ as xop_file,
+    _get_all_operator_schema)
 
 
 class TestXOpsOrt(ExtTestCase):
@@ -22,15 +23,17 @@ class TestXOpsOrt(ExtTestCase):
                      reason="onnxruntime not compiled with flag --gen_doc.")
     def test_onnxruntime_serialize(self):
         data = []
+        schs = []
         for op in get_all_operator_schema():
             if op.domain in ('', 'ai.onnx.ml', 'ai.onnx.preview.training'):
                 continue
             sch = _CustomSchema(op)
+            schs.append(sch)
             data.append(sch.SerializeToString())
 
         temp = get_temp_folder(__file__, "temp_get_all_operator_schema")
         ser = os.path.join(temp, "ort_get_all_operator_schema.txt")
-        with open(ser, "w") as f:
+        with open(ser, "w", encoding='utf-8') as f:
             f.write("%d\n" % len(data))
             for d in data:
                 f.write("%s\n" % d.replace(" ", ""))
@@ -40,6 +43,9 @@ class TestXOpsOrt(ExtTestCase):
         size1 = os.lstat(ser).st_size
         size2 = os.lstat(current).st_size
         self.assertEqual(size1, size2)
+
+        restored = _get_all_operator_schema()
+        self.assertEqual(schs, restored)
 
     def test_onnxruntime_inverse(self):
         # See https://github.com/microsoft/onnxruntime/blob/master/docs/ContribOperators.md.

@@ -92,5 +92,5 @@ class TestXopDoc(ExtTestCase):
 
 
 if __name__ == "__main__":
-    # TestXopDoc().test_onnx_documentation_folder()
+    TestXopDoc().test_get_operator_schemas()
     unittest.main(verbosity=2)
