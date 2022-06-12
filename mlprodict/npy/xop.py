@@ -148,7 +148,10 @@ class _CustomSchema:
         def __init__(self, t):
             self.name = t.name
             self.typeStr = t.typeStr
-            self.option = t.option.value
+            if isinstance(t.option, int):
+                self.option = t.option
+            else:
+                self.option = t.option.value
             self.description = t.description
             self.isHomogeneous = t.isHomogeneous
 
@@ -167,7 +170,10 @@ class _CustomSchema:
 
         def __init__(self, att):
             self.name = att.name
-            self.type = att.type.value
+            if isinstance(att.type, int):
+                self.type = att.type
+            else:
+                self.type = att.type.value
             self.default_value = '?'
             self.description = att.description
             self.required = att.required
@@ -190,14 +196,18 @@ class _CustomSchema:
             self.inputs = [_CustomSchema._io(t) for t in schema.inputs]
         except AttributeError as e:
             raise AttributeError(
-                "Issue with operator=%r domain=%r since_version=%r."
-                "" % (schema.name, schema.domain, schema.since_version)) from e
+                "Issue with operator=%r domain=%r since_version=%r, "
+                "type(schema)=%r" % (
+                    schema.name, schema.domain, schema.since_version,
+                    type(schema))) from e
         try:
             self.outputs = [_CustomSchema._io(t) for t in schema.outputs]
         except AttributeError as e:
             raise AttributeError(
-                "Issue with operator=%r domain=%r since_version=%r."
-                "" % (schema.name, schema.domain, schema.since_version)) from e
+                "Issue with operator=%r domain=%r since_version=%r, "
+                "type(schema)=%r" % (
+                    schema.name, schema.domain, schema.since_version,
+                    type(schema))) from e
         self.attributes = {a.name: _CustomSchema._attribute(a)
                            for a in schema.attributes.values()}
         self.min_input = schema.min_input
