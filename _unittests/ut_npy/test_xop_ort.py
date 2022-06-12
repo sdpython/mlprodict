@@ -12,6 +12,7 @@ try:
 except (ImportError, AttributeError):
     get_all_opkernel_def = None
 from mlprodict.onnxrt import OnnxInference
+from mlprodict.onnx_tools.onnx_manipulations import get_opsets
 from mlprodict.npy.xop import (
     loadop, OnnxOperatorFunction, _CustomSchema, __file__ as xop_file,
     _get_all_operator_schema)
@@ -36,7 +37,7 @@ class TestXOpsOrt(ExtTestCase):
         with open(ser, "w", encoding='utf-8') as f:
             f.write("%d\n" % len(data))
             for d in data:
-                f.write("%s\n" % d.replace(" ", ""))
+                f.write("%s\n" % d)
 
         current = os.path.join(os.path.dirname(xop_file),
                                "ort_get_all_operator_schema.txt")
@@ -45,16 +46,23 @@ class TestXOpsOrt(ExtTestCase):
         self.assertEqual(size1, size2)
 
         restored = _get_all_operator_schema()
-        self.assertEqual(schs, restored)
+        self.assertEqual(len(schs), len(restored))
+        for a, b in zip(schs, restored):
+            self.assertEqual(a, b)
 
     def test_onnxruntime_inverse(self):
         # See https://github.com/microsoft/onnxruntime/blob/master/docs/ContribOperators.md.
         OnnxAbs = loadop(('', "Abs"))
         OnnxInverse = loadop(("com.microsoft", "Inverse"))
         ov = OnnxAbs('X')
+        self.assertGreater(ov.op_version, 10)
         inv = OnnxInverse(ov, output_names=['Y'],
                           domain='com.microsoft')
+        self.assertEqual(inv.op_version, 1)
         onx = inv.to_onnx(numpy.float32, numpy.float32)
+        opsets = get_opsets(onx)
+        self.assertEqual(opsets['com.microsoft'], 1)
+        self.assertGreater(opsets[''], 10)
 
         x = numpy.array([[1, 0.5], [0.2, 5]], dtype=numpy.float32)
         i = numpy.linalg.inv(x)
@@ -71,8 +79,13 @@ class TestXOpsOrt(ExtTestCase):
         OnnxAbs = loadop(('', "Abs"))
         OnnxInverse = loadop(("com.microsoft", "Inverse"))
         ov = OnnxAbs('X')
+        self.assertGreater(ov.op_version, 10)
         inv = OnnxInverse(ov, output_names=['Y'])
+        self.assertEqual(inv.op_version, 1)
         onx = inv.to_onnx(numpy.float32, numpy.float32)
+        opsets = get_opsets(onx)
+        self.assertEqual(opsets['com.microsoft'], 1)
+        self.assertGreater(opsets[''], 10)
 
         x = numpy.array([[1, 0.5], [0.2, 5]], dtype=numpy.float32)
         i = numpy.linalg.inv(x)
@@ -86,4 +99,5 @@ class TestXOpsOrt(ExtTestCase):
 
 
 if __name__ == "__main__":
+    # TestXOpsOrt().test_onnxruntime_inverse()
     unittest.main(verbosity=2)

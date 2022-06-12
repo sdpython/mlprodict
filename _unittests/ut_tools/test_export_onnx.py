@@ -1548,5 +1548,5 @@ class TestExportOnnx(ExtTestCase):
 
 
 if __name__ == "__main__":
-    # TestExportOnnx().test_export_function_cpp()
+    TestExportOnnx().test_export_function_onnx()
     unittest.main(verbosity=2)

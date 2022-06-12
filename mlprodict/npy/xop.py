@@ -114,6 +114,9 @@ class _CustomSchema:
 
         @staticmethod
         def from_attribute(data):
+            if not isinstance(data, dict):
+                raise TypeError(
+                    "Unexpected type %r." % type(data))
             self = _CustomSchema._empty()
             setattr(self, 'name', data['name'])
             setattr(self, 'description', data['description'])
@@ -125,6 +128,9 @@ class _CustomSchema:
 
         @staticmethod
         def from_io(data):
+            if not isinstance(data, dict):
+                raise TypeError(
+                    "Unexpected type %r." % type(data))
             self = _CustomSchema._empty()
             setattr(self, 'name', data['name'])
             setattr(self, 'typeStr', data['typeStr'])
@@ -224,13 +230,16 @@ class _CustomSchema:
         for k in _CustomSchema._atts:
             if k == 'attributes':
                 setattr(e, k, {a['name']: _CustomSchema._empty.from_attribute(a)
-                               for a in obj[k]})
+                               for a in obj[k].values()})
             elif k in ('inputs', 'outputs'):
                 setattr(e, k, [_CustomSchema._empty.from_io(o)
                                for o in obj[k]])
             else:
                 setattr(e, k, obj[k])
         return _CustomSchema(e)
+
+    def __repr__(self):
+        return "_CustomSchema(**%s)" % pprint.pformat(self.data())
 
 
 def _get_all_operator_schema():
@@ -502,7 +511,8 @@ def _dynamic_class_creation(operator_names=None, cache=False, include_past=False
             if name.startswith('Onnx'):
                 raise ValueError(
                     "Operator name cannot start with Onnx: %r." % name)
-            domain = _find_operator_domain(name.split('_', maxsplit=1)[0])
+            n_name, n_ver = _split_op_name(name)
+            domain = _find_operator_domain(n_name)
             ops.append((domain, name))
         elif isinstance(name, tuple) and len(name) == 2:
             if name[1].startswith('Onnx'):
@@ -530,11 +540,9 @@ def _dynamic_class_creation(operator_names=None, cache=False, include_past=False
             if n not in set_names:
                 set_names[op_domain, n] = -1
 
-    if verbose > 1 and fLOG is not None:
-        fLOG(  # pragma: no cover
-            "[_dynamic_class_creation] set_names=%r" % set_names)
-        fLOG(  # pragma: no cover
-            "[_dynamic_class_creation] set_skip=%r" % set_skip)
+    if verbose > 1 and fLOG is not None:  # pragma: no cover
+        fLOG("[_dynamic_class_creation] set_names=%r" % set_names)
+        fLOG("[_dynamic_class_creation] set_skip=%r" % set_skip)
 
     returned_classes = []
     positions = {}
@@ -548,8 +556,7 @@ def _dynamic_class_creation(operator_names=None, cache=False, include_past=False
         if cl_name in _S.all_classes:
             if cl_name not in set_skip:
                 if position >= 0:
-                    returned_classes.append(
-                        (position, _S.all_classes[cl_name]))
+                    returned_classes.append((position, _S.all_classes[cl_name]))
             continue
 
         # operator name without domain
@@ -578,8 +585,8 @@ def _dynamic_class_creation(operator_names=None, cache=False, include_past=False
                         op_domain, name, pprint.pformat(list(res)))) from e
             inputs = [_c(o, 'I', i) for i, o in enumerate(schema.inputs)]
             outputs = [_c(o, 'O', i) for i, o in enumerate(schema.outputs)]
-            args = [p if isinstance(
-                p, str) else p.name for p in schema.attributes]
+            args = [p if isinstance(p, str) else p.name
+                    for p in schema.attributes]
             if len(args) > 0 and not isinstance(args[0], str):
                 raise TypeError(  # pragma: no cover
                     "args must be a list of string not a list of %r for "

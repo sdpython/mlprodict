@@ -26,6 +26,13 @@ numpy_bool = get_bool(None)
 
 
 @onnxnumpy_default
+def otest_abs_greater_or_equal(x: NDArray[Any, numpy.float32],
+                               ) -> NDArray[Any, numpy_bool]:
+    "onnx numpy greater or equal"
+    return nxnp.abs(x) >= x
+
+
+@onnxnumpy_default
 def otest_abs(x: NDArray[Any, numpy.float32],
               ) -> NDArray[Any, numpy.float32]:
     "onnx numpy abs"
@@ -158,13 +165,6 @@ def otest_abs_greater(x: NDArray[Any, numpy.float32],
                       ) -> NDArray[Any, numpy_bool]:
     "onnx numpy greater"
     return nxnp.abs(x) > x
-
-
-@onnxnumpy_default
-def otest_abs_greater_or_equal(x: NDArray[Any, numpy.float32],
-                               ) -> NDArray[Any, numpy_bool]:
-    "onnx numpy greater or equal"
-    return nxnp.abs(x) >= x
 
 
 @onnxnumpy_default
