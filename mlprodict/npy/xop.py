@@ -186,8 +186,18 @@ class _CustomSchema:
         self.domain = schema.domain
         self.name = schema.name
         self.since_version = schema.since_version
-        self.inputs = [_CustomSchema._io(t) for t in schema.inputs]
-        self.outputs = [_CustomSchema._io(t) for t in schema.outputs]
+        try:
+            self.inputs = [_CustomSchema._io(t) for t in schema.inputs]
+        except AttributeError as e:
+            raise AttributeError(
+                "Issue with operator=%r domain=%r since_version=%r."
+                "" % (schema.name, schema.domain, schema.since_version)) from e
+        try:
+            self.outputs = [_CustomSchema._io(t) for t in schema.outputs]
+        except AttributeError as e:
+            raise AttributeError(
+                "Issue with operator=%r domain=%r since_version=%r."
+                "" % (schema.name, schema.domain, schema.since_version)) from e
         self.attributes = {a.name: _CustomSchema._attribute(a)
                            for a in schema.attributes.values()}
         self.min_input = schema.min_input
