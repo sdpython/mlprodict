@@ -114,8 +114,7 @@ def get_opsets(model, include_functions=True, exc=True):
                                 raise ValueError(  # pragma: no cover
                                     "Domain %r has different version in "
                                     "main graph (%d) and function %r "
-                                    "(%d)." % (
-                                        op.domain, res[k], f.name, v))
+                                    "(%d)." % (k, res[k], f.name, v))
                             res[k] = max(res[k], v)
                     else:
                         res[k] = v

@@ -12,6 +12,7 @@ import inspect
 import onnx
 import onnx.defs
 from onnx.backend.test.case.base import _Exporter
+from onnx.onnx_cpp2py_export.defs import SchemaError  # pylint: disable=E1101
 from onnx.defs import OpSchema
 
 
@@ -227,7 +228,7 @@ def get_operator_schemas(op_name, version=None, domain=None):
                 elif version == 'last' and (dom == '' or 'onnx' in dom):
                     try:
                         sch.append(onnx.defs.get_schema(op, domain=dom))
-                    except onnx.onnx_cpp2py_export.defs.SchemaError:
+                    except SchemaError:
                         sch.append(v[max(v)])
                 elif version == 'last':
                     sch.append(v[max(v)])
