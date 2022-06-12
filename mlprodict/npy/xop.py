@@ -114,6 +114,7 @@ class _CustomSchema:
 
         @staticmethod
         def from_attribute(data):
+            "Creates an instance of `_CustomSchema._attribute`."
             if not isinstance(data, dict):
                 raise TypeError(
                     "Unexpected type %r." % type(data))
@@ -128,6 +129,7 @@ class _CustomSchema:
 
         @staticmethod
         def from_io(data):
+            "Creates an instance of `_CustomSchema._io`."
             if not isinstance(data, dict):
                 raise TypeError(
                     "Unexpected type %r." % type(data))
@@ -151,6 +153,7 @@ class _CustomSchema:
             self.isHomogeneous = t.isHomogeneous
 
         def data(self):
+            "Returns all data in that class in a dictionary."
             return {'name': self.name, 'typeStr': self.typeStr,
                     'description': self.description,
                     'isHomogeneous': self.isHomogeneous,
@@ -170,6 +173,7 @@ class _CustomSchema:
             self.required = att.required
 
         def data(self):
+            "Returns all data in that class in a dictionary."
             return {'name': self.name, 'type': self.type,
                     'description': self.description,
                     'required': self.required}
@@ -204,6 +208,7 @@ class _CustomSchema:
         return True
 
     def data(self):
+        "Returns all data in that class in a dictionary."
         def _(x):
             if x is None:
                 return None
@@ -221,10 +226,12 @@ class _CustomSchema:
         return {k: _(getattr(self, k)) for k in _CustomSchema._atts}
 
     def SerializeToString(self):
+        "Serializes this class into json."
         return json.dumps(self.data())
 
     @staticmethod
     def ParseFromString(s):
+        "Parses this class from a json string."
         obj = json.loads(s)
         e = _CustomSchema._empty()
         for k in _CustomSchema._atts:
@@ -315,7 +322,7 @@ def _find_operator_domain(name):
     if name not in _S.all_domains:
         raise ValueError(
             "Unable to guess domain for operator %r. "
-            "Not found in %r." % (name, list(_all_domains)))
+            "Not found in %r." % (name, list(_S.all_domains)))
     domains = _S.all_domains[name]
     if len(domains) == 1:
         return list(domains)[0]
@@ -511,7 +518,7 @@ def _dynamic_class_creation(operator_names=None, cache=False, include_past=False
             if name.startswith('Onnx'):
                 raise ValueError(
                     "Operator name cannot start with Onnx: %r." % name)
-            n_name, n_ver = _split_op_name(name)
+            n_name, _ = _split_op_name(name)
             domain = _find_operator_domain(n_name)
             ops.append((domain, name))
         elif isinstance(name, tuple) and len(name) == 2:
@@ -551,16 +558,21 @@ def _dynamic_class_creation(operator_names=None, cache=False, include_past=False
         cl_name = 'Onnx' + _domain_to_class_name(op_domain) + op_name
         if verbose > 3 and fLOG is not None:
             fLOG(  # pragma: no cover
-                '[_dynamic_class_creation] cl_name=%r op_domain=%r op_name=%r (in=%d)' % (
-                    cl_name, op_domain, op_name, 1 if cl_name in _all_classes else 0))
+                '[_dynamic_class_creation] cl_name=%r op_domain=%r op_name=%r (in=%d) '
+                'position=%r' % (
+                    cl_name, op_domain, op_name,
+                    1 if cl_name in _S.all_classes else 0,
+                    position))
         if cl_name in _S.all_classes:
             if cl_name not in set_skip:
                 if position >= 0:
-                    returned_classes.append((position, _S.all_classes[cl_name]))
+                    returned_classes.append(
+                        (position, _S.all_classes[cl_name]))
             continue
 
         # operator name without domain
-        if '_' in op_name:
+        n, v = _split_op_name(op_name)
+        if v is not None:
             names = [op_name]
         else:
             try:
@@ -596,15 +608,19 @@ def _dynamic_class_creation(operator_names=None, cache=False, include_past=False
             n_name, v = _split_op_name(name)
 
             if v is not None:
-                class_name = "Onnx" + _domain_to_class_name(op_domain) + n_name
+                if v != schema.since_version:
+                    raise ValueError(  # pragma: no cover
+                        "Inconsistent version number %d != %d for operator %r, %r."
+                        "" % (v, schema.since_version, schema.domain, schema.name))
+                class_name = "Onnx" + _domain_to_class_name(op_domain) + name
             else:
                 class_name = (
                     "Onnx" + _domain_to_class_name(op_domain) + schema.name)
 
             if verbose > 0 and fLOG is not None:
                 fLOG(  # pragma: no cover
-                    "[_dynamic_class_creation] op_name=%r, cl_name=%r cache=%r"
-                    "" % (op_name, class_name, cache))
+                    "[_dynamic_class_creation] op_name=%r, cl_name=%r cache=%r v=%r"
+                    "" % (op_name, class_name, cache, v))
 
             filename = os.path.join(
                 cache_dir,
@@ -1344,6 +1360,7 @@ class OnnxOperator(OnnxOperatorBase):
         """
         if isinstance(branch, str):
             # branch is an input.
+            OnnxIdentity = loadop('Identity')
             branch = OnnxIdentity(OnnxExisting(branch),
                                   op_version=self.op_version)
         logger.debug("op:%s:_add_subgraph:%s=type(branch)=%r",
@@ -3383,25 +3400,30 @@ class _StaticVariables:
 
     @property
     def all_schemas(self):
+        "Returns all schemas."
         self.populate()
         return self._all_schemas_
 
     @property
     def all_classes(self):
+        "Returns all operators wrapped in classes."
         self.populate()
         return self._all_classes_
 
     @property
     def all_schemas_versions(self):
+        "Returns all operators, domains, versions."
         self.populate()
         return self._all_schemas_versions_
 
     @property
     def all_domains(self):
+        "Returns all domains."
         self.populate()
         return self._all_domains_
 
     def populate(self):
+        "Populates static variables."
         if self._all_schemas_ is not None:
             return
         (self._all_schemas_, self._all_schemas_versions_,
@@ -3411,7 +3433,6 @@ class _StaticVariables:
 
 _S = _StaticVariables()
 onnx_load_factory = Xop = OnnxLoadFactory()
-# OnnxIdentity = loadop('Identity')
 
 
 class OnnxExisting(OnnxOperator):

@@ -14,7 +14,7 @@ except (ImportError, AttributeError):
 from mlprodict.onnxrt import OnnxInference
 from mlprodict.onnx_tools.onnx_manipulations import get_opsets
 from mlprodict.npy.xop import (
-    loadop, OnnxOperatorFunction, _CustomSchema, __file__ as xop_file,
+    loadop, _CustomSchema, __file__ as xop_file,
     _get_all_operator_schema)
 
 

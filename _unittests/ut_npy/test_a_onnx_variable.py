@@ -1,4 +1,4 @@
-# -*- coding: utf-8 -*-
+# pylint: disable=C2801
 """
 @brief      test log(time=3s)
 """
