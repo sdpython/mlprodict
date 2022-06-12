@@ -628,10 +628,16 @@ def _dynamic_class_creation(operator_names=None, cache=False, include_past=False
             n_name, v = _split_op_name(name)
 
             if v is not None:
-                if v != schema.since_version:
+                if op_domain == 'com.microsoft' and name in {
+                        'SoftmaxGrad_13', 'LogSoftmaxGrad_13'}:
+                    # exception
+                    pass
+                elif v != schema.since_version:
                     raise ValueError(  # pragma: no cover
-                        "Inconsistent version number %d != %d for operator %r, %r."
-                        "" % (v, schema.since_version, schema.domain, schema.name))
+                        "Inconsistent version number %d != %d for operator "
+                        " %r, %r (%r)." % (
+                            v, schema.since_version, schema.domain,
+                            schema.name, name))
                 class_name = "Onnx" + _domain_to_class_name(op_domain) + name
             else:
                 class_name = (
@@ -3462,6 +3468,19 @@ class OnnxExisting(OnnxOperator):
     """
 
     _unique_names = set()
+
+    expected_inputs = ['X']
+    expected_outputs = ['Y']
+    operator_name = 'Existing'
+    input_range = [1, 1]
+    output_range = [1, 1]
+    domain = ''
+    is_deprecated = False
+    since_version = 1
+    past_version = []
+    attr_names = []
+    op_type = 'Existing'
+    __module__ = __name__
 
     @staticmethod
     def get_unique_name(var):

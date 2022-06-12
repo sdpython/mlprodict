@@ -380,7 +380,7 @@ def pad(x, pads, constant_value=None, mode='constant'):
     It does not implement :func:`numpy.pad` but the ONNX version
     :func:`onnx_pad <mlprodict.onnxrt.ops_cpu.op_pad.onnx_pad>`.
     """
-    OnnxPad = loadop('Pad')
+    OnnxPad = loadop(('', 'Pad'))
     if constant_value is None:
         return OnnxVar(x, pads, op=OnnxPad, mode=mode)
     return OnnxVar(x, pads, constant_value, op=OnnxPad, mode=mode)
