@@ -9,6 +9,7 @@ import os
 import pprint
 import logging
 import hashlib
+import json
 from collections import OrderedDict
 import numpy
 from scipy.sparse.coo import coo_matrix
@@ -103,10 +104,201 @@ def _domain_to_class_name(domain):
     return "".join(res)
 
 
+class _CustomSchema:
+    """
+    For operators defined outside onnx.
+    """
+
+    class _empty:
+        "dummy class"
+
+        @staticmethod
+        def from_attribute(data):
+            "Creates an instance of `_CustomSchema._attribute`."
+            if not isinstance(data, dict):
+                raise TypeError(
+                    "Unexpected type %r." % type(data))
+            self = _CustomSchema._empty()
+            setattr(self, 'name', data['name'])
+            setattr(self, 'description', data['description'])
+            setattr(self, 'required', data['required'])
+            setattr(self, 'type', _CustomSchema._empty())
+            setattr(self.type, 'value', data['type'])
+            setattr(self, 'default_value', '?')
+            return self
+
+        @staticmethod
+        def from_io(data):
+            "Creates an instance of `_CustomSchema._io`."
+            if not isinstance(data, dict):
+                raise TypeError(
+                    "Unexpected type %r." % type(data))
+            self = _CustomSchema._empty()
+            setattr(self, 'name', data['name'])
+            setattr(self, 'typeStr', data['typeStr'])
+            setattr(self, 'description', data['description'])
+            setattr(self, 'option', _CustomSchema._empty())
+            setattr(self.option, 'value', data['option'])
+            setattr(self, 'isHomogeneous', data['isHomogeneous'])
+            return self
+
+    class _io:
+        "input, output"
+
+        def __init__(self, t):
+            self.name = t.name
+            self.typeStr = t.typeStr
+            if isinstance(t.option, int):
+                self.option = t.option
+            else:
+                self.option = t.option.value
+            self.description = t.description
+            self.isHomogeneous = t.isHomogeneous
+
+        def data(self):
+            "Returns all data in that class in a dictionary."
+            return {'name': self.name, 'typeStr': self.typeStr,
+                    'description': self.description,
+                    'isHomogeneous': self.isHomogeneous,
+                    'option': self.option}
+
+        def __eq__(self, ot):
+            return self.name == ot.name and self.typeStr == ot.typeStr
+
+    class _attribute:
+        "attribute"
+
+        def __init__(self, att):
+            self.name = att.name
+            if isinstance(att.type, int):
+                self.type = att.type
+            else:
+                self.type = att.type.value
+            self.default_value = '?'
+            self.description = att.description
+            self.required = att.required
+
+        def data(self):
+            "Returns all data in that class in a dictionary."
+            return {'name': self.name, 'type': self.type,
+                    'description': self.description,
+                    'required': self.required}
+
+        def __eq__(self, ot):
+            return self.name == ot.name and self.type == ot.type
+
+    def __init__(self, schema):
+        self._schema = schema
+        self.domain = schema.domain
+        self.name = schema.name
+        self.since_version = schema.since_version
+        try:
+            self.inputs = [_CustomSchema._io(t) for t in schema.inputs]
+        except AttributeError as e:
+            raise AttributeError(
+                "Issue with operator=%r domain=%r since_version=%r, "
+                "type(schema)=%r" % (
+                    schema.name, schema.domain, schema.since_version,
+                    type(schema))) from e
+        try:
+            self.outputs = [_CustomSchema._io(t) for t in schema.outputs]
+        except AttributeError as e:
+            raise AttributeError(
+                "Issue with operator=%r domain=%r since_version=%r, "
+                "type(schema)=%r" % (
+                    schema.name, schema.domain, schema.since_version,
+                    type(schema))) from e
+        self.attributes = {a.name: _CustomSchema._attribute(a)
+                           for a in schema.attributes.values()}
+        self.min_input = schema.min_input
+        self.max_input = schema.max_input
+        self.min_output = schema.min_output
+        self.max_output = schema.max_output
+        self.doc = schema.doc
+
+    _atts = ['domain', 'name', 'since_version', 'inputs', 'outputs',
+             'attributes', 'min_input', 'max_input',
+             'min_output', 'max_output', 'doc']
+
+    def __eq__(self, ot):
+        for k in _CustomSchema._atts:
+            if getattr(self, k) == getattr(ot, k):
+                continue
+            return False
+        return True
+
+    def data(self):
+        "Returns all data in that class in a dictionary."
+        def _(x):
+            if x is None:
+                return None
+            if isinstance(x, (str, int)):
+                return x
+            if isinstance(x, list):
+                return [_(e) for e in x]
+            if isinstance(x, dict):
+                return {k: _(v) for k, v in x.items()}
+            if hasattr(x, 'data'):
+                return x.data()
+            raise TypeError(  # pragma: no cover
+                "Unable to handle type %r - %r." % (type(x), x))
+
+        return {k: _(getattr(self, k)) for k in _CustomSchema._atts}
+
+    def SerializeToString(self):
+        "Serializes this class into json."
+        return json.dumps(self.data())
+
+    @staticmethod
+    def ParseFromString(s):
+        "Parses this class from a json string."
+        obj = json.loads(s)
+        e = _CustomSchema._empty()
+        for k in _CustomSchema._atts:
+            if k == 'attributes':
+                setattr(e, k, {a['name']: _CustomSchema._empty.from_attribute(a)
+                               for a in obj[k].values()})
+            elif k in ('inputs', 'outputs'):
+                setattr(e, k, [_CustomSchema._empty.from_io(o)
+                               for o in obj[k]])
+            else:
+                setattr(e, k, obj[k])
+        return _CustomSchema(e)
+
+    def __repr__(self):
+        return "_CustomSchema(**%s)" % pprint.pformat(self.data())
+
+
+def _get_all_operator_schema():
+    data = os.path.join(os.path.dirname(__file__),
+                        "ort_get_all_operator_schema.txt")
+    with open(data, 'r', encoding='utf-8') as f:
+        js = f.readlines()
+    return [_CustomSchema.ParseFromString(j) for j in js[1:]]
+
+
 def _populate_schemas():
     """
     Populates all schemas.
     """
+    def _populate_schema(schema):
+        # Multiple version can coexist. The last one is kept.
+        key = schema.domain, schema.name
+        if key in res:
+            if schema.since_version > res[key].since_version:
+                # We keep the most recent one.
+                res[key] = schema
+        else:
+            res[key] = schema
+        full_name = schema.name + '_' + str(schema.since_version)
+        res[schema.domain, full_name] = schema
+        if key not in versions:
+            versions[key] = set()
+        if schema.name not in domains:
+            domains[schema.name] = set()
+        domains[schema.name].add(schema.domain)
+        versions[key].add(full_name)
+
     res = {}
     versions = {}
     domains = {}
@@ -114,22 +306,28 @@ def _populate_schemas():
         if schema.support_level == schema.SupportType.EXPERIMENTAL:
             # Skips experimental operators.
             continue
-        # Multiple version can coexist. The last one is kept.
-        if schema.name in res:
-            if schema.since_version > res[schema.name].since_version:
-                # We keep the most recent one.
-                res[schema.domain, schema.name] = schema
-        else:
-            res[schema.domain, schema.name] = schema
-        full_name = schema.name + '_' + str(schema.since_version)
-        res[schema.domain, full_name] = schema
-        key = schema.domain, schema.name
-        if key not in versions:
-            versions[key] = set()
-        if schema.name not in domains:
-            domains[schema.name] = set()
-        domains[schema.name].add(schema.domain)
-        versions[key].add(full_name)
+        _populate_schema(schema)
+
+    try:
+        import onnxruntime.capi.onnxruntime_pybind11_state as rtpy
+    except ImportError:
+        rtpy = None
+
+    if rtpy is not None:
+        # If onnxruntime is available, it is being populated with these operators as well.
+        try:
+            get_schemas = rtpy.get_all_operator_schema
+        except AttributeError:
+            # onnxruntime must be compiled with flag --gen_doc.
+            # a local copy is retrieved.
+            get_schemas = _get_all_operator_schema
+        for op in get_schemas():
+            if (op.domain, op.name) in res:
+                # an existing onnx schema
+                continue
+            sch = _CustomSchema(op)
+            _populate_schema(sch)
+
     return res, versions, domains
 
 
@@ -141,16 +339,25 @@ def _find_operator_domain(name):
     :param name: operator name
     :return: domain
     """
-    if name not in _all_domains:
+    if name not in _S.all_domains:
         raise ValueError(
             "Unable to guess domain for operator %r. "
-            "Not found in %r." % (name, list(_all_domains)))
-    domains = _all_domains[name]
+            "Not found in %r." % (name, list(_S.all_domains)))
+    domains = _S.all_domains[name]
     if len(domains) == 1:
         return list(domains)[0]
     raise ValueError(  # pragma: no cover
         "Unable to guess domain of operator %r, found domains %r." % (
             name, domains))
+
+
+def _split_op_name(name):
+    spl = name.split('_')
+    try:
+        i = int(spl[-1])
+    except ValueError:
+        return name, None
+    return "_".join(spl[:-1]), i
 
 
 def ClassFactory(class_name, op_name, inputs, outputs,
@@ -178,8 +385,6 @@ def ClassFactory(class_name, op_name, inputs, outputs,
     def __init__(self, *args, **kwargs):
 
         op_version = kwargs.pop('op_version', None)
-        if isinstance(op_version, dict):
-            op_version = op_version.get(domain, None)
 
         if op_version is None:
             if len(args) == 0 and input_range[0] == input_range[1]:
@@ -192,8 +397,8 @@ def ClassFactory(class_name, op_name, inputs, outputs,
                         len(args), len(inputs), op_name))
 
         attr_names = self.attr_names
-        if '_' in self.__class__.__name__:
-            op_version_class = int(self.__class__.__name__.split('_')[-1])
+        _, op_version_class = _split_op_name(self.__class__.__name__)
+        if op_version_class is not None:
             if op_version is None:
                 op_version = op_version_class
             try:
@@ -223,6 +428,11 @@ def ClassFactory(class_name, op_name, inputs, outputs,
                 if name in self.past_version:
                     found = (name, op)
                     attr_names = self.past_version[name].attr_names
+                    if len(attr_names) > 0 and not isinstance(attr_names[0], str):
+                        raise TypeError(  # pragma: no cover
+                            "attr_names must be a list of string not a list of %r for "
+                            "operator %r and domain %r." % (
+                                type(attr_names[0]), name, domain))
                     break
         if (op_version_class is not None and found is not None and
                 found[-1] != op_version_class):
@@ -235,11 +445,15 @@ def ClassFactory(class_name, op_name, inputs, outputs,
                 continue
             if key not in attr_names:
                 raise TypeError(  # pragma: no cover
-                    "Argument '%s' not valid for '%s' opset=%s."
-                    % (key, op_name, op_version))
+                    "Argument '%s' not valid for '%s' domain=%r opset=%s "
+                    "(should be in %r, type(self)=%r)." % (
+                        key, op_name, domain, op_version, attr_names,
+                        type(self)))
 
         if op_version is not None:
             kwargs['op_version'] = op_version
+        if 'domain' not in kwargs:
+            kwargs['domain'] = domain
         # This class can only be created by a user. Let's check
         # types are either a variable, an operator or an array.
         for i, a in enumerate(args):
@@ -307,13 +521,13 @@ def _dynamic_class_creation(operator_names=None, cache=False, include_past=False
 
     cache_dir = cache_folder()
     if operator_names is None:
-        operator_names = list(_all_schemas_versions)
+        operator_names = list(_S.all_schemas_versions)
         if include_past:
             add = []
             for domain, op in operator_names:
                 add.extend(
                     [(domain, k)
-                     for k in _all_schemas_versions[domain, op]])
+                     for k in _S.all_schemas_versions[domain, op]])
             operator_names.extend(add)
             operator_names.sort()
 
@@ -324,7 +538,8 @@ def _dynamic_class_creation(operator_names=None, cache=False, include_past=False
             if name.startswith('Onnx'):
                 raise ValueError(
                     "Operator name cannot start with Onnx: %r." % name)
-            domain = _find_operator_domain(name.split('_', maxsplit=1)[0])
+            n_name, _ = _split_op_name(name)
+            domain = _find_operator_domain(n_name)
             ops.append((domain, name))
         elif isinstance(name, tuple) and len(name) == 2:
             if name[1].startswith('Onnx'):
@@ -338,7 +553,7 @@ def _dynamic_class_creation(operator_names=None, cache=False, include_past=False
     operator_names = ops
 
     # versions
-    res = _all_schemas
+    res = _S.all_schemas
     cls = {}
     set_names = dict()
     set_skip = set()
@@ -346,17 +561,15 @@ def _dynamic_class_creation(operator_names=None, cache=False, include_past=False
         if op_domain == 'ai.onnx':
             op_domain = ''
         set_names[op_domain, op_name] = pos
-        if '_' in op_name and not include_past:
-            n = op_name.split('_')[0]
+        n, v = _split_op_name(op_name)
+        if v is not None and not include_past:
             set_skip.add((op_domain, n))
             if n not in set_names:
                 set_names[op_domain, n] = -1
 
-    if verbose > 1 and fLOG is not None:
-        fLOG(  # pragma: no cover
-            "[_dynamic_class_creation] set_names=%r" % set_names)
-        fLOG(  # pragma: no cover
-            "[_dynamic_class_creation] set_skip=%r" % set_skip)
+    if verbose > 1 and fLOG is not None:  # pragma: no cover
+        fLOG("[_dynamic_class_creation] set_names=%r" % set_names)
+        fLOG("[_dynamic_class_creation] set_skip=%r" % set_skip)
 
     returned_classes = []
     positions = {}
@@ -365,20 +578,25 @@ def _dynamic_class_creation(operator_names=None, cache=False, include_past=False
         cl_name = 'Onnx' + _domain_to_class_name(op_domain) + op_name
         if verbose > 3 and fLOG is not None:
             fLOG(  # pragma: no cover
-                '[_dynamic_class_creation] cl_name=%r op_domain=%r op_name=%r (in=%d)' % (
-                    cl_name, op_domain, op_name, 1 if cl_name in _all_classes else 0))
-        if cl_name in _all_classes:
+                '[_dynamic_class_creation] cl_name=%r op_domain=%r op_name=%r (in=%d) '
+                'position=%r' % (
+                    cl_name, op_domain, op_name,
+                    1 if cl_name in _S.all_classes else 0,
+                    position))
+        if cl_name in _S.all_classes:
             if cl_name not in set_skip:
                 if position >= 0:
-                    returned_classes.append((position, _all_classes[cl_name]))
+                    returned_classes.append(
+                        (position, _S.all_classes[cl_name]))
             continue
 
         # operator name without domain
-        if '_' in op_name:
+        n, v = _split_op_name(op_name)
+        if v is not None:
             names = [op_name]
         else:
             try:
-                names = _all_schemas_versions[op_domain, op_name].copy()
+                names = _S.all_schemas_versions[op_domain, op_name].copy()
             except KeyError as e:  # pragma: no cover
                 raise ValueError(
                     "Operator %r (domain=%r) does not exists." % (
@@ -399,9 +617,27 @@ def _dynamic_class_creation(operator_names=None, cache=False, include_past=False
                         op_domain, name, pprint.pformat(list(res)))) from e
             inputs = [_c(o, 'I', i) for i, o in enumerate(schema.inputs)]
             outputs = [_c(o, 'O', i) for i, o in enumerate(schema.outputs)]
-            args = [p for p in schema.attributes]
+            args = [p if isinstance(p, str) else p.name
+                    for p in schema.attributes]
+            if len(args) > 0 and not isinstance(args[0], str):
+                raise TypeError(  # pragma: no cover
+                    "args must be a list of string not a list of %r for "
+                    "operator %r and domain %r." % (
+                        type(args[0]), name, op_domain))
 
-            if '_' in name:
+            n_name, v = _split_op_name(name)
+
+            if v is not None:
+                if op_domain == 'com.microsoft' and name in {
+                        'SoftmaxGrad_13', 'LogSoftmaxGrad_13'}:
+                    # exception
+                    pass
+                elif v != schema.since_version:
+                    raise ValueError(  # pragma: no cover
+                        "Inconsistent version number %d != %d for operator "
+                        " %r, %r (%r)." % (
+                            v, schema.since_version, schema.domain,
+                            schema.name, name))
                 class_name = "Onnx" + _domain_to_class_name(op_domain) + name
             else:
                 class_name = (
@@ -409,8 +645,8 @@ def _dynamic_class_creation(operator_names=None, cache=False, include_past=False
 
             if verbose > 0 and fLOG is not None:
                 fLOG(  # pragma: no cover
-                    "[_dynamic_class_creation] op_name=%r, cl_name=%r cache=%r"
-                    "" % (op_name, class_name, cache))
+                    "[_dynamic_class_creation] op_name=%r, cl_name=%r cache=%r v=%r"
+                    "" % (op_name, class_name, cache, v))
 
             filename = os.path.join(
                 cache_dir,
@@ -419,7 +655,8 @@ def _dynamic_class_creation(operator_names=None, cache=False, include_past=False
                 with open(filename, "r", encoding="utf-8") as f:  # pragma: no cover
                     doc = f.read()
             else:
-                doc = get_rst_doc(schema)
+                doc = get_rst_doc(schema.name, domain=schema.domain,
+                                  version=schema.since_version)
                 if cache:  # pragma: no cover
                     with open(filename, 'w', encoding='utf-8') as f:
                         f.write(doc)
@@ -437,17 +674,17 @@ def _dynamic_class_creation(operator_names=None, cache=False, include_past=False
 
     # Retrieves past classes.
     for name in cls:  # pylint: disable=C0206
-        if '_' not in name:
+        main, v = _split_op_name(name)
+        if v is None:
             continue
-        main, _ = name.split('_')
         if main in cls:  # pylint: disable=R1715
             last = cls[main]
         else:
-            last = _all_classes[main]
+            last = _S.all_classes[main]
         last.past_version[name] = cls[name]
 
     # final
-    _all_classes.update(cls)
+    _S.all_classes.update(cls)
     for cl_name, v in cls.items():
         if v not in set_skip and positions.get(cl_name, -1) >= 0:
             returned_classes.append((positions[cl_name], v))
@@ -1149,6 +1386,7 @@ class OnnxOperator(OnnxOperatorBase):
         """
         if isinstance(branch, str):
             # branch is an input.
+            OnnxIdentity = loadop('Identity')
             branch = OnnxIdentity(OnnxExisting(branch),
                                   op_version=self.op_version)
         logger.debug("op:%s:_add_subgraph:%s=type(branch)=%r",
@@ -3175,19 +3413,74 @@ class _GraphBuilder:
             return onnx_model
 
 
-_all_schemas, _all_schemas_versions, _all_domains = _populate_schemas()
-_all_classes = {}
+class _StaticVariables:
+    """
+    Holds static variables.
+    """
+
+    def __init__(self):
+        self._all_schemas_ = None
+        self._all_schemas_versions_ = None
+        self._all_domains_ = None
+        self._all_classes_ = None
+
+    @property
+    def all_schemas(self):
+        "Returns all schemas."
+        self.populate()
+        return self._all_schemas_
+
+    @property
+    def all_classes(self):
+        "Returns all operators wrapped in classes."
+        self.populate()
+        return self._all_classes_
+
+    @property
+    def all_schemas_versions(self):
+        "Returns all operators, domains, versions."
+        self.populate()
+        return self._all_schemas_versions_
+
+    @property
+    def all_domains(self):
+        "Returns all domains."
+        self.populate()
+        return self._all_domains_
+
+    def populate(self):
+        "Populates static variables."
+        if self._all_schemas_ is not None:
+            return
+        (self._all_schemas_, self._all_schemas_versions_,
+         self._all_domains_) = _populate_schemas()
+        self._all_classes_ = {}
+
+
+_S = _StaticVariables()
 onnx_load_factory = Xop = OnnxLoadFactory()
-OnnxIdentity = loadop('Identity')
 
 
-class OnnxExisting(OnnxIdentity):
+class OnnxExisting(OnnxOperator):
     """
     Wrapper around OnnxIdentity to specify this operator is
     not part of the subgraph it is used in.
     """
 
     _unique_names = set()
+
+    expected_inputs = ['X']
+    expected_outputs = ['Y']
+    operator_name = 'Existing'
+    input_range = [1, 1]
+    output_range = [1, 1]
+    domain = ''
+    is_deprecated = False
+    since_version = 1
+    past_version = []
+    attr_names = []
+    op_type = 'Existing'
+    __module__ = __name__
 
     @staticmethod
     def get_unique_name(var):
@@ -3212,7 +3505,8 @@ class OnnxExisting(OnnxIdentity):
         return new_name
 
     def __init__(self, *args, **kwargs):  # pylint: disable=W0231
-        OnnxIdentity.__init__(self, *args, **kwargs)  # pylint: disable=W0233
+        # OnnxIdentity.__init__(self, *args, **kwargs)  # pylint: disable=W0233
+        OnnxOperator.__init__(self, *args, **kwargs)  # pylint: disable=W0233
         self.control_ops_ = None
         if len(self.inputs) != 1:
             raise RuntimeError(  # pragma: no cover

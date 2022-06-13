@@ -105,7 +105,7 @@ def test_qlinear_conv(x: QuantizedTensor, x_shape,
     :param strides: optional parameter for operator `QLinearConv`
     :param group: optional paramerer for operator `QLinearConv`
     """
-    OnnxQLinearConv = loadop('QLinearConv')
+    OnnxQLinearConv = loadop(('', 'QLinearConv'))
 
     if opset is None:
         from ... import __max_supported_opset__

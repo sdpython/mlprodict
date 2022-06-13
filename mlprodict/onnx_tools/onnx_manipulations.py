@@ -88,6 +88,47 @@ def enumerate_model_node_outputs(model, add_node=False, order=False):
                 yield (out, node) if add_node else out
 
 
+def get_opsets(model, include_functions=True, exc=True):
+    """
+    Enumerates all opsets used in a model.
+
+    :param model: :epkg:`ModelProto` or :epkg:`FunctionProto`
+    :param include_functions: include opsets used in functions
+    :param exc: raise an exception if conflicts are detected
+    :return: dictionary
+    """
+    if isinstance(model, ModelProto):
+        res = {}
+        for op in model.opset_import:
+            if exc and op.domain in res:
+                raise ValueError(  # pragma: no cover
+                    "Domain %r appears multiple times." % op.domain)
+            res[op.domain] = op.version
+        if include_functions:
+            for f in model.functions:
+                ops = get_opsets(f, exc=exc)
+                for k, v in ops.items():
+                    if k in res:
+                        if res[k] != v:
+                            if exc:
+                                raise ValueError(  # pragma: no cover
+                                    "Domain %r has different version in "
+                                    "main graph (%d) and function %r "
+                                    "(%d)." % (k, res[k], f.name, v))
+                            res[k] = max(res[k], v)
+                    else:
+                        res[k] = v
+        return res
+
+    res = {}
+    for op in model.opset_import:
+        if exc and op.domain in res:
+            raise ValueError(  # pragma: no cover
+                "Domain %r appears multiple times." % op.domain)
+        res[op.domain] = op.version
+    return res
+
+
 def get_hidden_inputs(nodes):
     """
     Returns the list of hidden inputs used by subgraphs.
