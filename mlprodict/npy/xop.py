@@ -271,7 +271,7 @@ class _CustomSchema:
 
 def _get_all_operator_schema():
     data = os.path.join(os.path.dirname(__file__),
-                        "ort_get_all_operator_schema.txt")
+                        "ort_get_all_operator_schema.tmpl")
     with open(data, 'r', encoding='utf-8') as f:
         js = f.readlines()
     return [_CustomSchema.ParseFromString(j) for j in js[1:]]
