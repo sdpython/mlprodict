@@ -13,7 +13,7 @@ from onnx import (
     helper, TensorProto, load, FunctionProto, ModelProto,
     GraphProto, AttributeProto)
 from onnx.checker import check_model
-from pyquickhelper.pycode import ExtTestCase, get_temp_folder
+from pyquickhelper.pycode import ExtTestCase, get_temp_folder, ignore_warnings
 from pyquickhelper.texthelper.edit_text_diff import (
     diff2html, edit_distance_text)
 from mlprodict.npy.xop import loadop, OnnxOperatorFunction
@@ -29,7 +29,7 @@ from mlprodict.onnx_tools.onnx_manipulations import (
     onnx_rename_names, insert_results_into_onnx, onnx_model_to_function,
     onnx_inline_function, onnx_function_to_model, change_input_type,
     change_subgraph_io_type_shape, onnx_rename_inputs_outputs,
-    onnx_replace_functions)
+    onnx_replace_functions, get_opsets)
 from mlprodict import __max_supported_opset__ as TARGET_OPSET
 from mlprodict.plotting.text_plot import onnx_simple_text_plot
 from mlprodict.onnxrt.excs import MissingOperatorError
@@ -489,7 +489,10 @@ class TestOptimOnnxManipulations(ExtTestCase):
         x = numpy.random.randn(7, 7).astype(numpy.float32)
         y = oinf.run({'x': x})['y']
 
+        opsets1 = get_opsets(onx)
         fct = onnx_model_to_function(onx, name="fft2d")
+        opsets2 = get_opsets(fct)
+        self.assertEqual(opsets1, opsets2)
         self.assertIsInstance(fct, FunctionProto)
 
         op = OnnxOperatorFunction(fct, 'X', output_names=['Y'])
@@ -1505,6 +1508,7 @@ class TestOptimOnnxManipulations(ExtTestCase):
         self.common_test_onnx_inline_function_fft(
             'fft', log=log, run_validation=False)
 
+    @ignore_warnings(UserWarning)
     def test_onnx_inline_function_fft2(self, log=False):
         self.common_test_onnx_inline_function_fft(
             'fft2', log=log, skip_inline={

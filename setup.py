@@ -45,6 +45,7 @@ packages = find_packages()
 package_dir = {k: os.path.join('.', k.replace(".", "/")) for k in packages}
 package_data = {
     project_var_name + ".asv_benchmark": ["*.json"],
+    project_var_name + ".npy": ["ort_get_all_operator_schema.txt"],
     project_var_name + ".onnxrt.ops_cpu": ["*.cpp", "*.hpp"],
     project_var_name + ".onnxrt.validate.data": ["*.csv"],
     project_var_name + ".onnx_tools": ["*.tmpl"],

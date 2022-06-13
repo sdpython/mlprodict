@@ -1,4 +1,4 @@
-# -*- coding: utf-8 -*-
+# pylint: disable=C2801
 """
 @brief      test log(time=3s)
 """
@@ -23,6 +23,13 @@ def get_bool(unused):
 
 
 numpy_bool = get_bool(None)
+
+
+@onnxnumpy_default
+def otest_abs_greater_or_equal(x: NDArray[Any, numpy.float32],
+                               ) -> NDArray[Any, numpy_bool]:
+    "onnx numpy greater or equal"
+    return nxnp.abs(x) >= x
 
 
 @onnxnumpy_default
@@ -158,13 +165,6 @@ def otest_abs_greater(x: NDArray[Any, numpy.float32],
                       ) -> NDArray[Any, numpy_bool]:
     "onnx numpy greater"
     return nxnp.abs(x) > x
-
-
-@onnxnumpy_default
-def otest_abs_greater_or_equal(x: NDArray[Any, numpy.float32],
-                               ) -> NDArray[Any, numpy_bool]:
-    "onnx numpy greater or equal"
-    return nxnp.abs(x) >= x
 
 
 @onnxnumpy_default
