@@ -12,7 +12,7 @@ import inspect
 import onnx
 import onnx.defs
 from onnx.backend.test.case.base import _Exporter
-from onnx.onnx_cpp2py_export.defs import SchemaError  # pylint: disable=E1101
+from onnx.onnx_cpp2py_export.defs import SchemaError  # pylint: disable=E1101,E0611,E0401
 from onnx.defs import OpSchema
 
 
