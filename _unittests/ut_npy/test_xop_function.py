@@ -4,7 +4,15 @@
 """
 import unittest
 import numpy
+import numpy
+from onnx import numpy_helper, TensorProto, AttributeProto
+from onnx.helper import (
+    make_model, make_node, set_model_props, make_tensor,
+    make_graph, make_tensor_value_info, make_opsetid,
+    make_function)
+from onnx.checker import check_model
 from pyquickhelper.pycode import ExtTestCase
+from mlprodict.plotting.text_plot import onnx_simple_text_plot
 from mlprodict.onnxrt import OnnxInference
 from mlprodict.npy.xop import loadop, OnnxOperatorFunction
 
@@ -101,6 +109,48 @@ class TestXOpsFunction(ExtTestCase):
         x = numpy.array([-2, 2], dtype=numpy.float32)
         got = oinf.run({'X': x})
         self.assertEqualArray((numpy.abs(x) + 1) / 2, got['Y'])
+
+    def test_onnx_function_att_plot(self):
+
+        new_domain = 'custom'
+        opset_imports = [make_opsetid("", 14), make_opsetid(new_domain, 1)]
+
+        cst = make_node('Constant',  [], ['B'])
+        att = AttributeProto()
+        att.name = "value"
+        att.ref_attr_name = "bias"
+        att.type = AttributeProto.TENSOR
+        cst.attribute.append(att)
+
+        node1 = make_node('MatMul', ['X', 'A'], ['XA'])
+        node2 = make_node('Add', ['XA', 'B'], ['Y'])
+
+        linear_regression = make_function(
+            new_domain, 'LinearRegression', ['X', 'A'],
+            ['Y'], [cst, node1, node2], opset_imports,
+            ["bias"])
+
+        X = make_tensor_value_info('X', TensorProto.FLOAT, [None, None])
+        A = make_tensor_value_info('A', TensorProto.FLOAT, [None, None])
+        B = make_tensor_value_info('B', TensorProto.FLOAT, [None, None])
+        Y = make_tensor_value_info('Y', TensorProto.FLOAT, [None])
+
+        graph = make_graph(
+            [make_node('LinearRegression', ['X', 'A'], ['Y1'], domain=new_domain,
+                       bias=make_tensor('former_B', TensorProto.FLOAT, [1], [0.67])),
+             make_node('Abs', ['Y1'], ['Y'])],
+            'example',
+            [X, A], [Y])
+
+        onnx_model = make_model(
+            graph, opset_imports=opset_imports,
+            functions=[linear_regression])
+        check_model(onnx_model)
+
+        text = onnx_simple_text_plot(onnx_model)
+        self.assertIn("attribute: 'bias'", text)
+        self.assertIn("Constant(value=$bias)", text)
+        self.assertIn("LinearRegression[custom](X, A, bias=[0.670000", text)
 
 
 if __name__ == "__main__":
