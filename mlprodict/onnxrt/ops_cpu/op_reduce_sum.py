@@ -53,8 +53,8 @@ class ReduceSum_13(OpRunReduceNumpy):
                     data.dtype, res[0].dtype, self.__class__.__name__))
         return res
 
-    def _run_no_checks_(self, x, axes=None, verbose=0, fLOG=None):  # pylint: disable=W0221,W0237
-        return OpRun.run(self, x, axes, verbose=verbose, fLOG=fLOG)
+    def _run_no_checks_(self, x, axes=None, attributes=None, verbose=0, fLOG=None):  # pylint: disable=W0221,W0237
+        return OpRun.run(self, x, axes, attributes=attributes, verbose=verbose, fLOG=fLOG)
 
     def _run(self, data, axes=None, attributes=None, verbose=0, fLOG=None):  # pylint: disable=W0221
         if ((axes is None or len(axes.shape) == 0 or axes.shape[0] == 0) and

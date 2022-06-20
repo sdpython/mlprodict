@@ -129,7 +129,8 @@ class Constant_12(OpRun):
                     "" % self.cst)
             if self.cst.name not in attributes:
                 raise RuntimeError(  # pragma: no cover
-                    "Cannot find attribute %r." % self.cst)
+                    "Cannot find attribute %r in %r." % (
+                        self.cst, list(attributes)))
             return (attributes[self.cst.name]['value'], )
         return (self.cst, )
 

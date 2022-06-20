@@ -192,11 +192,12 @@ class TestXOpsFunction(ExtTestCase):
         def my_print(*args):
             pass
 
-        exe = oinf.run({'X': x, 'A': a}, verbose=2, fLOG=my_print)
         exe2 = oinf.run({'X': x, 'A': a})
+        exe = oinf.run({'X': x, 'A': a}, verbose=2, fLOG=my_print)
         self.assertEqualArray(exe['Y'], exe2['Y'])
         self.assertEqualArray(exe['Y'], x @ a + 0.67)
 
 
 if __name__ == "__main__":
+    # TestXOpsFunction().test_onnx_function_att_execute()
     unittest.main(verbosity=2)

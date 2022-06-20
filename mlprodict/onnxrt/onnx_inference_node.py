@@ -411,12 +411,6 @@ class OnnxInferenceNode:
 
         if self.ops_ is None:
             # Then a function.
-            feeds = {}
-            for name, val in zip(self.function_.obj.input, args):
-                if val is None:
-                    raise ValueError(  # pragma: no cover
-                        "Input name %r is None." % name)
-                feeds[name] = val
             if 'atts' in self.desc:
                 # attributes of a function
                 if attributes is None:
@@ -425,8 +419,15 @@ class OnnxInferenceNode:
                     attibutes = attributes.copy()
                 attributes.update(self.desc['atts'])
 
+            feeds = {}
+            for name, val in zip(self.function_.obj.input, args):
+                if val is None:
+                    raise ValueError(  # pragma: no cover
+                        "Input name %r is None." % name)
+                feeds[name] = val
+
             if verbose == 0 or fLOG is None:
-                outputs = self.function_.run(feeds)
+                outputs = self.function_.run(feeds, attributes=attributes)
             else:
                 if verbose > 0:
                     fLOG('-- >%s[%s](%s)  -- len(feeds)=%d' %
