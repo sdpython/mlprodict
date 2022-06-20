@@ -728,7 +728,7 @@ class OnnxInference:
     def run(self, inputs, clean_right_away=False,
             intermediate=False, verbose=0, node_time=False,
             overwrite_types=None, yield_ops=None, fLOG=None,
-            context=None):
+            context=None, attributes=None):
         """
         Computes the predictions for this :epkg:`onnx` graph.
 
@@ -746,6 +746,8 @@ class OnnxInference:
             operator *YieldOp*
         :param fLOG: logging function if *verbose > 0*
         :param context: local variables, needed when this object is a subgraph
+        :param attributes: this uses when this class runs a :epkg:`FunctionProto`
+            to store the values of the attributes of the function
         :return: outputs as dictionary
             and a second dictionary of the time spent
             in each node if *node_time* is True
@@ -790,8 +792,8 @@ class OnnxInference:
         to keep the one output and converted into
         *OnnxInference*.
 
-        .. versionchanged:: 0.8
-            Parameter *yield_ops* was added.
+        .. versionchanged:: 0.9
+            Parameter *attributes* was added.
         """
         def retype(col_array):
             if (hasattr(col_array, 'categories') and
@@ -823,7 +825,7 @@ class OnnxInference:
                          intermediate=intermediate,
                          verbose=verbose, node_time=node_time,
                          yield_ops=yield_ops, fLOG=fLOG,
-                         context=context)
+                         context=context, attributes=attributes)
 
     def run2onnx(self, inputs, verbose=0, fLOG=None,
                  as_parameter=True, suffix='_DBG',
@@ -900,7 +902,7 @@ class OnnxInference:
     def _run_sequence_runtime(self, inputs, clean_right_away=False,
                               intermediate=False, verbose=0, node_time=False,
                               overwrite_types=None, yield_ops=None,
-                              fLOG=None, context=None):
+                              fLOG=None, context=None, attributes=None):
         if overwrite_types is not None:
             raise NotImplementedError(  # pragma: no cover
                 "overwrite_types != None not implemented.")
@@ -958,12 +960,8 @@ class OnnxInference:
             if verbose == 0 or fLOG is None:
                 self._values_init = values.copy()
 
-        attributes = None
         for name, value in inputs.items():
-            if name is None:
-                attributes = value
-            else:
-                values[self._global_index[name]] = value
+            values[self._global_index[name]] = value
 
         if verbose == 0 or fLOG is None:
             if node_time:

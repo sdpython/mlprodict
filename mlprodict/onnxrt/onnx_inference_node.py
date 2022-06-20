@@ -419,7 +419,11 @@ class OnnxInferenceNode:
                 feeds[name] = val
             if 'atts' in self.desc:
                 # attributes of a function
-                feeds[None] = self.desc['atts']
+                if attributes is None:
+                    attributes = {}
+                else:
+                    attibutes = attributes.copy()
+                attributes.update(self.desc['atts'])
 
             if verbose == 0 or fLOG is None:
                 outputs = self.function_.run(feeds)
@@ -428,7 +432,8 @@ class OnnxInferenceNode:
                     fLOG('-- >%s[%s](%s)  -- len(feeds)=%d' %
                          (self.function_.obj.name, self.function_.obj.domain,
                           ", ".join(self.function_.obj.input), len(feeds)))
-                outputs = self.function_.run(feeds, verbose=verbose, fLOG=fLOG)
+                outputs = self.function_.run(
+                    feeds, attributes=attributes, verbose=verbose, fLOG=fLOG)
                 if verbose > 0:
                     fLOG('-- <%s[%s][%s]' %
                          (self.function_.obj.name, self.function_.obj.domain,

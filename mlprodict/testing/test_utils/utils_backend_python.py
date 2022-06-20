@@ -72,9 +72,10 @@ class OnnxInference2(OnnxInference):
         "onnxruntime API"
         return [MockVariableNameShape(*n) for n in self.output_names_shapes]
 
-    def run_in_scan(self, inputs, verbose=0, fLOG=None):
+    def run_in_scan(self, inputs, attributes=None, verbose=0, fLOG=None):
         "Instance to run in operator scan."
-        return OnnxInference.run(self, inputs, verbose=verbose, fLOG=fLOG)
+        return OnnxInference.run(
+            self, inputs, attributes=attributes, verbose=verbose, fLOG=fLOG)
 
 
 def compare_runtime(test, decimal=5, options=None,
