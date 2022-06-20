@@ -52,7 +52,8 @@ class Clip_11(OpRunUnaryNum):
         Calls method ``_run``.
         """
         try:
-            res = self._run(x, *minmax, attributes=attributes, verbose=verbose, fLOG=fLOG)
+            res = self._run(x, *minmax, attributes=attributes,
+                            verbose=verbose, fLOG=fLOG)
         except TypeError as e:  # pragma: no cover
             raise TypeError("Issues with types {} (binary operator {}).".format(
                 ", ".join(str(type(_)) for _ in [x]),

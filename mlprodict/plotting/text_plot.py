@@ -1,4 +1,4 @@
-# pylint: disable=R0912,R0914
+# pylint: disable=R0912,R0914,C0302
 """
 @file
 @brief Text representations of graphs.
@@ -486,7 +486,7 @@ def _get_shape(obj):
         "Unable to guess type from %r." % obj0)
 
 
-def onnx_simple_text_plot(model, verbose=False, att_display=None,
+def onnx_simple_text_plot(model, verbose=False, att_display=None,  # pylint: disable=R0915
                           add_links=False, recursive=False, functions=True,
                           raise_exc=True, sub_graphs_names=None,
                           level=1, indent=True):
@@ -705,15 +705,13 @@ def onnx_simple_text_plot(model, verbose=False, att_display=None,
                     done = False
                 if done:
                     continue
-                if att.type in (AttributeProto.TENSOR,
-                                AttributeProto.TENSORS,
-                                AttributeProto.SPARSE_TENSOR,
-                                AttributeProto.SPARSE_TENSORS):
+                if att.type in (AttributeProto.TENSOR,  # pylint: disable=E1101
+                                AttributeProto.TENSORS,  # pylint: disable=E1101
+                                AttributeProto.SPARSE_TENSOR,  # pylint: disable=E1101
+                                AttributeProto.SPARSE_TENSORS):  # pylint: disable=E1101
                     try:
                         val = str(to_array(att.t).tolist())
                     except TypeError as e:
-                        import pprint
-                        pprint.pprint(dir(AttributeProto))
                         raise TypeError(
                             "Unable to display tensor type %r.\n%s" % (
                                 att.type, str(att))) from e
@@ -721,9 +719,9 @@ def onnx_simple_text_plot(model, verbose=False, att_display=None,
                         val = val.split("\n", maxsplit=1) + "..."
                     if len(val) > 10:
                         val = val[:10] + "..."
-                elif att.type == AttributeProto.INT:
+                elif att.type == AttributeProto.INT:  # pylint: disable=E1101
                     val = str(att.i)
-                elif att.type == AttributeProto.FLOAT:
+                elif att.type == AttributeProto.FLOAT:  # pylint: disable=E1101
                     val = str(att.f)
                 else:
                     val = '.'

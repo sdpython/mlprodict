@@ -116,7 +116,7 @@ class Constant_12(OpRun):
             raise AttributeError(  # pragma: no cover
                 "No constant is defined for operator 'Constant'.")
         if isinstance(self.cst, RefAttrName):
-           self.is_linked_attribute = True
+            self.is_linked_attribute = True
         else:
             self.is_linked_attribute = False
             _check_dtype(self.cst)

@@ -4,9 +4,8 @@
 """
 import unittest
 import numpy
-import numpy
 from onnx import numpy_helper, TensorProto, AttributeProto
-from onnx.helper import (
+from onnx.helper import (  # pylint: disable=W0611
     make_model, make_node, set_model_props, make_tensor,
     make_graph, make_tensor_value_info, make_opsetid,
     make_function)
@@ -115,7 +114,7 @@ class TestXOpsFunction(ExtTestCase):
         new_domain = 'custom'
         opset_imports = [make_opsetid("", 14), make_opsetid(new_domain, 1)]
 
-        cst = make_node('Constant',  [], ['B'])
+        cst = make_node('Constant', [], ['B'])
         att = AttributeProto()
         att.name = "value"
         att.ref_attr_name = "bias"
@@ -132,7 +131,6 @@ class TestXOpsFunction(ExtTestCase):
 
         X = make_tensor_value_info('X', TensorProto.FLOAT, [None, None])
         A = make_tensor_value_info('A', TensorProto.FLOAT, [None, None])
-        B = make_tensor_value_info('B', TensorProto.FLOAT, [None, None])
         Y = make_tensor_value_info('Y', TensorProto.FLOAT, [None])
 
         graph = make_graph(
@@ -157,7 +155,7 @@ class TestXOpsFunction(ExtTestCase):
         new_domain = 'custom'
         opset_imports = [make_opsetid("", 14), make_opsetid(new_domain, 1)]
 
-        cst = make_node('Constant',  [], ['B'])
+        cst = make_node('Constant', [], ['B'])
         att = AttributeProto()
         att.name = "value"
         att.ref_attr_name = "bias"

@@ -53,6 +53,7 @@ class RefAttrName:
 
     :param name: name of the input
     """
+
     def __init__(self, name):
         self.name = name
 
@@ -453,7 +454,8 @@ class OpRunUnary(OpRun):
         Calls method ``_run``.
         """
         try:
-            res = self._run(x, attributes=attributes, verbose=verbose, fLOG=fLOG)
+            res = self._run(x, attributes=attributes,
+                            verbose=verbose, fLOG=fLOG)
         except TypeError as e:
             raise TypeError(  # pragma: no cover
                 "Issues with types {} (binary operator {}).".format(
@@ -518,7 +520,8 @@ class OpRunArg(OpRunUnary):
         """
         Calls method ``_run``.
         """
-        res = OpRunUnary.run(self, x, attributes=attributes, verbose=verbose, fLOG=fLOG)
+        res = OpRunUnary.run(self, x, attributes=attributes,
+                             verbose=verbose, fLOG=fLOG)
         if res[0].dtype != numpy.int64:
             raise RuntimeTypeError(  # pragma: no cover
                 "Output type mismatch: should be '{}' != output '{}' "
@@ -555,7 +558,8 @@ class OpRunUnaryNum(OpRunUnary):
         """
         Calls method ``_run``.
         """
-        res = OpRunUnary.run(self, x, attributes=attributes, verbose=verbose, fLOG=fLOG)
+        res = OpRunUnary.run(self, x, attributes=attributes,
+                             verbose=verbose, fLOG=fLOG)
         if len(res) == 0 or res[0] is None:
             return res
         if not isinstance(res[0], list) and res[0].dtype != x.dtype:
@@ -585,7 +589,8 @@ class OpRunClassifierProb(OpRunUnary):
         """
         Calls method ``_run``.
         """
-        res = OpRunUnary.run(self, x, attributes=attributes, verbose=verbose, fLOG=fLOG)
+        res = OpRunUnary.run(self, x, attributes=attributes,
+                             verbose=verbose, fLOG=fLOG)
         if x.dtype in (numpy.float32, numpy.float64) and res[1].dtype != x.dtype:
             raise RuntimeTypeError(  # pragma: no cover
                 "Output type mismatch: {} != {} (operator '{}')".format(
@@ -646,7 +651,8 @@ class OpRunBinary(OpRun):
                     x.dtype, y.dtype, self.__class__.__name__,
                     x.shape, y.shape))
         try:
-            res = self._run(x, y, attributes=attributes, verbose=verbose, fLOG=fLOG)
+            res = self._run(x, y, attributes=attributes,
+                            verbose=verbose, fLOG=fLOG)
         except (TypeError, ValueError) as e:  # pragma: no cover
             raise TypeError(
                 "Issues with types {} (binary operator {}).".format(
@@ -659,7 +665,8 @@ class OpRunBinary(OpRun):
         Calls method ``_run``.
         """
         try:
-            res = self._run(x, y, attributes=attributes, verbose=verbose, fLOG=fLOG)
+            res = self._run(x, y, attributes=attributes,
+                            verbose=verbose, fLOG=fLOG)
         except TypeError as e:  # pragma: no cover
             raise TypeError(
                 "Issues with types {} (binary operator {}).".format(
@@ -732,7 +739,8 @@ class OpRunBinaryNum(OpRunBinary):
         """
         Calls method ``_run``.
         """
-        res = OpRunBinary.run(self, x, y, attributes=attributes, verbose=verbose, fLOG=fLOG)
+        res = OpRunBinary.run(
+            self, x, y, attributes=attributes, verbose=verbose, fLOG=fLOG)
         if res[0].dtype != x.dtype:
             raise RuntimeTypeError(
                 "Output type mismatch: {} != {} or {} (operator '{}')"

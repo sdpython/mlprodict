@@ -445,7 +445,8 @@ class OnnxInferenceNode:
                                         attributes=attributes,
                                         verbose=verbose, fLOG=fLOG)
                 else:
-                    res = self.ops_.run(*args, attributes=attributes, verbose=verbose, fLOG=fLOG)
+                    res = self.ops_.run(
+                        *args, attributes=attributes, verbose=verbose, fLOG=fLOG)
             except (ValueError, TypeError) as e:
                 raise RuntimeError(  # pragma: no cover
                     "Unable to run operator %r, inputs=%r."
