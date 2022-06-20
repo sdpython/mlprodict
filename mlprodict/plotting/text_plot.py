@@ -705,12 +705,26 @@ def onnx_simple_text_plot(model, verbose=False, att_display=None,
                     done = False
                 if done:
                     continue
-                if att.t:
-                    val = str(to_array(att.t).tolist())
+                if att.type in (AttributeProto.TENSOR,
+                                AttributeProto.TENSORS,
+                                AttributeProto.SPARSE_TENSOR,
+                                AttributeProto.SPARSE_TENSORS):
+                    try:
+                        val = str(to_array(att.t).tolist())
+                    except TypeError as e:
+                        import pprint
+                        pprint.pprint(dir(AttributeProto))
+                        raise TypeError(
+                            "Unable to display tensor type %r.\n%s" % (
+                                att.type, str(att))) from e
                     if "\n" in val:
                         val = val.split("\n", maxsplit=1) + "..."
                     if len(val) > 10:
                         val = val[:10] + "..."
+                elif att.type == AttributeProto.INT:
+                    val = str(att.i)
+                elif att.type == AttributeProto.FLOAT:
+                    val = str(att.f)
                 else:
                     val = '.'
                 atts.append("%s=%s" % (att.name, val))
