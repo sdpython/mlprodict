@@ -19,7 +19,7 @@ class CDist(OpRunBinaryNum):
                                 expected_attributes=CDist.atts,
                                 **options)
 
-    def _run(self, a, b, verbose=0, fLOG=None):  # pylint: disable=W0221
+    def _run(self, a, b, attributes=None, verbose=0, fLOG=None):  # pylint: disable=W0221
         metric = self.metric.decode('ascii')
         if metric == 'minkowski':
             res = cdist(a, b, metric=metric, p=self.p)

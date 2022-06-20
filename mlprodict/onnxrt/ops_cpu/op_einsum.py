@@ -25,7 +25,7 @@ class Einsum(OpRun):
         if len(self.equation) == 0:
             raise TypeError("equation is empty.")  # pragma: no cover
 
-    def _run(self, *args, verbose=0, fLOG=None):  # pylint: disable=W0221
+    def _run(self, *args, attributes=None, verbose=0, fLOG=None):  # pylint: disable=W0221
         try:
             return (numpy.einsum(self.equation, *args, optimize=True), )
         except TypeError:

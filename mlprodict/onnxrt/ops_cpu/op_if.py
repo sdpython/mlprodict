@@ -50,7 +50,7 @@ class If(OpRun):
         return True
 
     def _run(self, cond, named_inputs=None, context=None,  # pylint: disable=W0221
-             verbose=0, fLOG=None):
+             attributes=None, verbose=0, fLOG=None):
         if cond is None:
             raise RuntimeError(  # pragma: no cover
                 "cond cannot be None")

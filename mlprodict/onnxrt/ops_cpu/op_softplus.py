@@ -14,7 +14,7 @@ class Softplus(OpRunUnaryNum):
         OpRunUnaryNum.__init__(self, onnx_node, desc=desc,
                                **options)
 
-    def _run(self, X, verbose=0, fLOG=None):  # pylint: disable=W0221
+    def _run(self, X, attributes=None, verbose=0, fLOG=None):  # pylint: disable=W0221
         if self.inplaces.get(0, False) and X.flags['WRITEABLE']:
             return self._run_inplace(X)
         tmp = numpy.exp(X)

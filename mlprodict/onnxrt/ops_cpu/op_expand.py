@@ -21,7 +21,7 @@ class CommonExpand(OpRun):
             self, onnx_node, desc=desc,
             expected_attributes=expected_attributes, **options)
 
-    def _run(self, data, shape, verbose=0, fLOG=None):  # pylint: disable=W0221
+    def _run(self, data, shape, attributes=None, verbose=0, fLOG=None):  # pylint: disable=W0221
         return (common_reference_implementation(data, shape), )
 
     def _infer_shapes(self, data, shape):  # pylint: disable=W0221

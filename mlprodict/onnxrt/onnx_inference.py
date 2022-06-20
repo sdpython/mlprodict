@@ -169,6 +169,7 @@ class OnnxInference:
         self.functions_ = self.graph_['functions']
         self.outputs_ = self.graph_['outputs']
         self.inputs_ = self.graph_['inputs']
+        self.attributes_ = self.graph_['attributes']
         is_function_proto = isinstance(self.obj, FunctionProto)
         if is_function_proto:
             obj_graph = self.obj
@@ -499,9 +500,13 @@ class OnnxInference:
         statics = {}
         targets = {}
         functions = {}
+        attributes = {}
         if existing_functions is not None:
             functions.update(existing_functions)
         is_function_proto = isinstance(self.obj, FunctionProto)
+        if is_function_proto and self.obj.attribute:
+            for att in self.obj.attribute:
+                attributes[att] = None
 
         for o in self.obj.opset_import:
             targets[o.domain] = o.version
@@ -579,7 +584,8 @@ class OnnxInference:
             if 'atts' in dobj:
                 atts = dobj['atts']
                 for k, v in atts.items():
-                    if not isinstance(v, dict) or 'value' not in v:
+                    if not isinstance(v, dict) or (
+                            'value' not in v and 'ref_attr_name' not in v):
                         raise RuntimeError(  # pragma: no cover
                             "A parameter has no (sparse) value '{}' "
                             "for node '{}'\nv={}\ndobj=[{}]".format(
@@ -695,6 +701,7 @@ class OnnxInference:
             sequence[ord].add_variable_to_clean(k)
 
         results = dict(inits=inits, inputs=variables, outputs=outputs,
+                       attributes=attributes,
                        nodes=nodes, sequence=sequence,
                        functions=functions,
                        intermediate=intermediate,
@@ -951,8 +958,12 @@ class OnnxInference:
             if verbose == 0 or fLOG is None:
                 self._values_init = values.copy()
 
+        attributes = None
         for name, value in inputs.items():
-            values[self._global_index[name]] = value
+            if name is None:
+                attributes = value
+            else:
+                values[self._global_index[name]] = value
 
         if verbose == 0 or fLOG is None:
             if node_time:
@@ -967,14 +978,14 @@ class OnnxInference:
                             "yield_ops: %r (node=%r)." % (
                                 out, list(sorted(yield_ops)), node.onnx_node))
                     t = perf_counter()
-                    node.run(values)
+                    node.run(values, attributes=attributes)
                     t2 = perf_counter()
                     mtime.append(dict(i=i, name=node.onnx_node.name,
                                       op_type=node.onnx_node.op_type,
                                       time=t2 - t))
             else:
                 for node in self.sequence_:
-                    node.run(values)
+                    node.run(values, attributes=attributes)
         else:
             def dispsimple(arr):
                 if hasattr(arr, 'shape'):
@@ -1037,13 +1048,14 @@ class OnnxInference:
                                 out, list(sorted(yield_ops)), node.onnx_node))
                 elif node_time:
                     t = perf_counter()
-                    node.run(values)
+                    node.run(values, attributes=attributes)
                     t2 = perf_counter()
                     mtime.append(dict(i=i, name=node.onnx_node.name,
                                       op_type=node.onnx_node.op_type,
                                       time=t2 - t))
                 else:
-                    node.run(values, verbose=verbose, fLOG=fLOG)
+                    node.run(values, verbose=verbose, fLOG=fLOG,
+                             attributes=attributes)
                 added = 0
                 for k in range(len(values)):  # pylint: disable=C0200
                     if values[k] is None:

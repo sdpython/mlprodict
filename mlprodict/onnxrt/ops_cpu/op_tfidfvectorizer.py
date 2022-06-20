@@ -46,7 +46,7 @@ class TfIdfVectorizer(OpRunUnary):
             self.mode, self.ngram_counts, self.ngram_indexes, pool_int64s,
             self.weights)
 
-    def _run(self, x, verbose=0, fLOG=None):  # pylint: disable=W0221
+    def _run(self, x, attributes=None, verbose=0, fLOG=None):  # pylint: disable=W0221
         if self.mapping_ is None:
             res = self.rt_.compute(x)
             return (res.reshape((x.shape[0], -1)), )

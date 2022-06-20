@@ -31,7 +31,7 @@ class StringNormalizer(OpRunUnary):
         self.slocale = self.locale.decode('ascii')
         self.stops = set(self.stopwords)
 
-    def _run(self, x, verbose=0, fLOG=None):  # pylint: disable=W0221
+    def _run(self, x, attributes=None, verbose=0, fLOG=None):  # pylint: disable=W0221
         """
         Normalizes strings.
         """

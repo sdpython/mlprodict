@@ -85,7 +85,7 @@ class Dropout_12(DropoutBase):
                              expected_attributes=Dropout_12.atts,
                              **options)
 
-    def _run(self, *inputs, verbose=0, fLOG=None):  # pylint: disable=W0221
+    def _run(self, *inputs, attributes=None, verbose=0, fLOG=None):  # pylint: disable=W0221
         X = inputs[0]
         ratio = 0.5 if len(inputs) <= 1 else inputs[1]
         training_mode = False if len(inputs) <= 2 else inputs[2]

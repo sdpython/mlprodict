@@ -15,7 +15,7 @@ class Det(OpRun):
         OpRun.__init__(self, onnx_node, desc=desc,
                        **options)
 
-    def _run(self, x, verbose=0, fLOG=None):  # pylint: disable=W0221
+    def _run(self, x, attributes=None, verbose=0, fLOG=None):  # pylint: disable=W0221
         res = numpy.linalg.det(x)
         if not isinstance(res, numpy.ndarray):
             res = numpy.array([res])

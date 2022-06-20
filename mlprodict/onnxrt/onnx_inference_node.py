@@ -392,12 +392,15 @@ class OnnxInferenceNode:
             context[n] = v
         return context
 
-    def run(self, values, verbose=0, fLOG=None):
+    def run(self, values, attributes=None, verbose=0, fLOG=None):
         """
         Runs the node.
         The function updates values with outputs.
 
         :param values: list of existing values
+        :param attributes: attributes known at function level
+        :param verbose: verbosity
+        :param fLOG: logging function
         """
         # This code takes time if the graph contains many nodes.
         # Maybe a C++ container would help in that case (to skip GIL).
@@ -414,6 +417,9 @@ class OnnxInferenceNode:
                     raise ValueError(  # pragma: no cover
                         "Input name %r is None." % name)
                 feeds[name] = val
+            if 'atts' in self.desc:
+                # attributes of a function
+                feeds[None] = self.desc['atts']
 
             if verbose == 0 or fLOG is None:
                 outputs = self.function_.run(feeds)
@@ -436,9 +442,10 @@ class OnnxInferenceNode:
                     context = self._build_context(values,
                                                   self.ops_.additional_inputs)
                     res = self.ops_.run(*args, context=context,
+                                        attributes=attributes,
                                         verbose=verbose, fLOG=fLOG)
                 else:
-                    res = self.ops_.run(*args, verbose=verbose, fLOG=fLOG)
+                    res = self.ops_.run(*args, attributes=attributes, verbose=verbose, fLOG=fLOG)
             except (ValueError, TypeError) as e:
                 raise RuntimeError(  # pragma: no cover
                     "Unable to run operator %r, inputs=%r."

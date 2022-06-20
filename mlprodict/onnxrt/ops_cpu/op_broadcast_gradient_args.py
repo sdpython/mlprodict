@@ -24,7 +24,7 @@ class BroadcastGradientArgs(OpRun):
         raise RuntimeError(  # pragma: no cover
             "Unable to find a schema for operator '{}'.".format(op_name))
 
-    def _run(self, a_shape, b_shape, verbose=0, fLOG=None):  # pylint: disable=W0221
+    def _run(self, a_shape, b_shape, attributes=None, verbose=0, fLOG=None):  # pylint: disable=W0221
 
         A_dims = a_shape
         B_dims = b_shape

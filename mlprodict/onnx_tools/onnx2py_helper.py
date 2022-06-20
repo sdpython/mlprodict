@@ -463,11 +463,18 @@ def _var_as_dict(var):
         elif hasattr(var, 'g') and dtype.get('elem', None) == 5:
             res['value'] = var.g
         elif hasattr(var, 't') and dtype.get('elem', None) == 4:
-            ts = _var_as_dict(var.t)
-            res['value'] = ts['value']
+            if hasattr(var, 'ref_attr_name') and var.ref_attr_name:
+                res['ref_attr_name'] = var.ref_attr_name
+            else:
+                ts = _var_as_dict(var.t)
+                res['value'] = ts['value']
         elif hasattr(var, 'sparse_tensor') and dtype.get('elem', None) == 11:
             ts = _var_as_dict(var.sparse_tensor)
-            res['value'] = ts['value']
+            if hasattr(var, 'ref_attr_name') and var.ref_attr_name:
+                res['ref_attr_name'] = var.ref_attr_name
+            else:
+                ts = _var_as_dict(var.t)
+                res['value'] = ts['value']
         elif "'value'" in str(var):
             warnings.warn("No value: {} -- {}".format(  # pragma: no cover
                 dtype, str(var).replace("\n", "").replace(" ", "")))

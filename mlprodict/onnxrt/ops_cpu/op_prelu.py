@@ -14,7 +14,7 @@ class PRelu(OpRun):
         OpRun.__init__(self, onnx_node, desc=desc,
                        **options)
 
-    def _run(self, x, slope, verbose=0, fLOG=None):  # pylint: disable=W0221
+    def _run(self, x, slope, attributes=None, verbose=0, fLOG=None):  # pylint: disable=W0221
         return (numpy.where(x > 0, x, x * slope), )
 
     def _infer_shapes(self, x, slope, weight=None):  # pylint: disable=W0221

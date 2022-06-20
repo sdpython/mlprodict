@@ -75,7 +75,7 @@ class Bernoulli(_CommonRandom):
             TENSOR_TYPE_TO_NP_TYPE[self.dtype] if self.dtype > 0
             else None)
 
-    def _run(self, x, verbose=0, fLOG=None):  # pylint: disable=W0221
+    def _run(self, x, attributes=None, verbose=0, fLOG=None):  # pylint: disable=W0221
         dtype = self._dtype(x, dtype_first=True)
         state = self._get_state(self.seed)
         res = state.binomial(1, p=x).astype(dtype)
@@ -110,7 +110,7 @@ class RandomUniform(_CommonRandom):
                 "" % self.__class__.__name__)
         self.numpy_type = TENSOR_TYPE_TO_NP_TYPE[self.dtype]
 
-    def _run(self, *args, verbose=0, fLOG=None):  # pylint: disable=W0221
+    def _run(self, *args, attributes=None, verbose=0, fLOG=None):  # pylint: disable=W0221
         if len(args) != 0:
             raise RuntimeError(  # pragma: no cover
                 "Operator %s cannot have inputs." % self.__class__.__name__)
@@ -145,7 +145,7 @@ class RandomUniformLike(_CommonRandom):
         self.numpy_type = (
             None if self.dtype == 0 else TENSOR_TYPE_TO_NP_TYPE[self.dtype])
 
-    def _run(self, x, verbose=0, fLOG=None):  # pylint: disable=W0221
+    def _run(self, x, attributes=None, verbose=0, fLOG=None):  # pylint: disable=W0221
         dtype = self._dtype(x)
         state = self._get_state(self.seed)
         res = state.rand(*x.shape).astype(dtype)
@@ -187,7 +187,7 @@ class RandomNormal(_CommonRandom):
                 "" % self.__class__.__name__)
         self.numpy_type = TENSOR_TYPE_TO_NP_TYPE[self.dtype]
 
-    def _run(self, *args, verbose=0, fLOG=None):  # pylint: disable=W0221
+    def _run(self, *args, attributes=None, verbose=0, fLOG=None):  # pylint: disable=W0221
         if len(args) != 0:
             raise RuntimeError(  # pragma: no cover
                 "Operator %s cannot have inputs." % self.__class__.__name__)
@@ -221,7 +221,7 @@ class RandomNormalLike(_CommonRandom):
         self.numpy_type = (
             None if self.dtype == 0 else TENSOR_TYPE_TO_NP_TYPE[self.dtype])
 
-    def _run(self, x, verbose=0, fLOG=None):  # pylint: disable=W0221
+    def _run(self, x, attributes=None, verbose=0, fLOG=None):  # pylint: disable=W0221
         dtype = self._dtype(x)
         state = self._get_state(self.seed)
         res = state.randn(*x.shape).astype(dtype)

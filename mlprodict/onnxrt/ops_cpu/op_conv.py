@@ -35,7 +35,7 @@ class Conv(OpRun):
                     numpy.array(self.pads, dtype=numpy.int64),
                     numpy.array(self.strides, dtype=numpy.int64))
 
-    def _run(self, X, W, B=None, verbose=0, fLOG=None):  # pylint: disable=W0221
+    def _run(self, X, W, B=None, attributes=None, verbose=0, fLOG=None):  # pylint: disable=W0221
         if X is None:
             raise ValueError(  # pragma: no cover
                 "X cannot be None for operator %r, ONNX=%r" % (

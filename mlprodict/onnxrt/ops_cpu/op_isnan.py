@@ -14,7 +14,7 @@ class IsNaN(OpRunUnary):
         OpRunUnary.__init__(self, onnx_node, desc=desc,
                             **options)
 
-    def _run(self, data, verbose=0, fLOG=None):  # pylint: disable=W0221
+    def _run(self, data, attributes=None, verbose=0, fLOG=None):  # pylint: disable=W0221
         return (numpy.isnan(data), )
 
     def _infer_shapes(self, x):  # pylint: disable=W0221

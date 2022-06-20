@@ -16,7 +16,7 @@ class SliceCommon(OpRun):
         OpRun.__init__(self, onnx_node, desc=desc,
                        **options)
 
-    def _run(self, data, starts, ends, axes=None, steps=None, verbose=0, fLOG=None):  # pylint: disable=W0221
+    def _run(self, data, starts, ends, axes=None, steps=None, attributes=None, verbose=0, fLOG=None):  # pylint: disable=W0221
         if len(starts.shape) == 0:
             starts = numpy.array([starts])
         if len(ends.shape) == 0:
@@ -77,7 +77,7 @@ class Slice_1(SliceCommon):
             if getattr(self, f) is not None and len(getattr(self, f)) == 0:
                 setattr(self, f, None)
 
-    def _run(self, data, verbose=0, fLOG=None):  # pylint: disable=W0221
+    def _run(self, data, attributes=None, verbose=0, fLOG=None):  # pylint: disable=W0221
         return SliceCommon._run(
             self, data, self.starts, self.ends, self.axes)
 

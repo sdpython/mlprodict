@@ -67,7 +67,7 @@ class GatherND(OpRun):
                        expected_attributes=GatherND.atts,
                        **options)
 
-    def _run(self, data, indices, verbose=0, fLOG=None):  # pylint: disable=W0221
+    def _run(self, data, indices, attributes=None, verbose=0, fLOG=None):  # pylint: disable=W0221
         return _gather_nd_impl(data, indices, self.batch_dims)  # pylint: disable=E1101
 
     def _infer_shapes(self, x, target, weight=None):  # pylint: disable=W0221

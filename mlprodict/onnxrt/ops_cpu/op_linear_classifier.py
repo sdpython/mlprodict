@@ -39,7 +39,7 @@ class LinearClassifier(OpRunClassifierProb, _ClassifierCommon):
         n = self.coefficients.shape[0] // self.nb_class
         self.coefficients = self.coefficients.reshape(self.nb_class, n).T
 
-    def _run(self, x, verbose=0, fLOG=None):  # pylint: disable=W0221
+    def _run(self, x, attributes=None, verbose=0, fLOG=None):  # pylint: disable=W0221
         scores = numpy_dot_inplace(self.inplaces, x, self.coefficients)
         if self.intercepts is not None:
             scores += self.intercepts

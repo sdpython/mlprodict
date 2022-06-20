@@ -40,7 +40,7 @@ class ConvTranspose(OpRun):
                     numpy.array(self.output_padding, dtype=numpy.int64),
                     numpy.array(self.output_shape, dtype=numpy.int64))
 
-    def _run(self, X, W, B=None, verbose=0, fLOG=None):  # pylint: disable=W0221
+    def _run(self, X, W, B=None, attributes=None, verbose=0, fLOG=None):  # pylint: disable=W0221
         if X.dtype == numpy.float32:
             return (self.rt32_.compute(X, W, B), )
         return (self.rt64_.compute(X, W, B), )

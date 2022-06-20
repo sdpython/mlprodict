@@ -6,7 +6,7 @@
 """
 import numpy
 from onnx.defs import onnx_opset_version
-from ._op import OpRun
+from ._op import OpRun, RefAttrName
 from ..shape_object import ShapeObject
 
 
@@ -115,9 +115,22 @@ class Constant_12(OpRun):
         else:
             raise AttributeError(  # pragma: no cover
                 "No constant is defined for operator 'Constant'.")
-        _check_dtype(self.cst)
+        if isinstance(self.cst, RefAttrName):
+           self.is_linked_attribute = True
+        else:
+            self.is_linked_attribute = False
+            _check_dtype(self.cst)
 
-    def _run(self, verbose=0, fLOG=None):  # pylint: disable=W0221
+    def _run(self, attributes=None, verbose=0, fLOG=None):  # pylint: disable=W0221
+        if self.is_linked_attribute:
+            if attributes is None:
+                raise RuntimeError(  # pragma: no cover
+                    "Attributes are empty, cannot retrieve value for %r."
+                    "" % self.cst)
+            if self.cst.name not in attributes:
+                raise RuntimeError(  # pragma: no cover
+                    "Cannot find attribute %r." % self.cst)
+            return (attributes[self.cst.name]['value'], )
         return (self.cst, )
 
     def _infer_shapes(self):  # pylint: disable=W0221

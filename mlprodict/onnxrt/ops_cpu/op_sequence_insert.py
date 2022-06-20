@@ -17,7 +17,7 @@ class SequenceInsert(OpRun):
         OpRun.__init__(self, onnx_node, desc=desc,
                        atts=SequenceInsert.atts, **options)
 
-    def _run(self, S, T, ind=None, verbose=0, fLOG=None):  # pylint: disable=W0221
+    def _run(self, S, T, ind=None, attributes=None, verbose=0, fLOG=None):  # pylint: disable=W0221
         S = S.copy()
         if ind is not None:
             S.insert(ind[0], T)

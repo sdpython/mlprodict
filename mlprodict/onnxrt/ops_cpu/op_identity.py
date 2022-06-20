@@ -13,7 +13,7 @@ class Identity(OpRunUnaryNum):
         OpRunUnaryNum.__init__(self, onnx_node, desc=desc,
                                **options)
 
-    def _run(self, a, verbose=0, fLOG=None):  # pylint: disable=W0221
+    def _run(self, a, attributes=None, verbose=0, fLOG=None):  # pylint: disable=W0221
         if a is None:
             return (None, )
         if self.inplaces.get(0, False):

@@ -67,7 +67,7 @@ class QuantizeLinear(_CommonQuantizeLinear):
             expected_attributes=QuantizeLinear.atts,
             **options)
 
-    def _run(self, *args, verbose=0, fLOG=None):  # pylint: disable=W0221
+    def _run(self, *args, attributes=None, verbose=0, fLOG=None):  # pylint: disable=W0221
         # args: x, y_scale, zero_point
         return self.common_run(*args, axis=self.axis)
 
@@ -95,7 +95,7 @@ class DynamicQuantizeLinear(OpRun):
                        **options)
         self.dtype = numpy.uint8
 
-    def _run(self, x, verbose=0, fLOG=None):  # pylint: disable=W0221
+    def _run(self, x, attributes=None, verbose=0, fLOG=None):  # pylint: disable=W0221
         # args: x, y_scale, zero_point
         qmin, qmax = 0, 255
         minx = numpy.min(x)
