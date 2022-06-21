@@ -310,6 +310,17 @@ class TestPlotTextPlotting(ExtTestCase):
                 "Unable to display a graph\n%s" % onnx_simple_text_plot(
                     onx, recursive=True, raise_exc=False)) from e
 
+    def test_onnx_text_plot_tree_simple(self):
+        iris = load_iris()
+        X, y = iris.data.astype(numpy.float32), iris.target
+        clr = DecisionTreeRegressor(max_depth=3)
+        clr.fit(X, y)
+        onx = to_onnx(clr, X)
+        res = onnx_simple_text_plot(onx)
+        self.assertIn("nodes_featureids=9:", res)
+        self.assertIn("nodes_modes=9:b'", res)
+        self.assertIn("target_weights=5:", res)
+
 
 if __name__ == "__main__":
     # TestPlotTextPlotting().test_onnx_text_plot_fft()
