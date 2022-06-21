@@ -136,17 +136,21 @@ def onnx_text_plot_tree(node):
                    if atts['%s_treeids' % prefix][i] == treeid]
             for k, v in atts.items():
                 if k.startswith(prefix):
-                    short[k] = [v[i] for i in idx]
+                    if 'classlabels' in k:
+                        short[k] = list(v)
+                    else:
+                        short[k] = [v[i] for i in idx]
 
         nodes = OrderedDict()
         for i in range(len(short['nodes_treeids'])):
             nodes[i] = Node(i, short)
-        for i in range(len(short['target_treeids'])):
-            idn = short['target_nodeids'][i]
+        prefix = 'target' if 'target_treeids' in short else 'class'
+        for i in range(len(short['%s_treeids' % prefix])):
+            idn = short['%s_nodeids' % prefix][i]
             node = nodes[idn]
             node.target_nodeids = idn
-            node.target_ids = short['target_ids'][i]
-            node.target_weights = short['target_weights'][i]
+            node.target_ids = short['%s_ids' % prefix][i]
+            node.target_weights = short['%s_weights' % prefix][i]
 
         def iterate(nodes, node, depth=0, true_false=''):
             node.depth = depth
@@ -164,22 +168,27 @@ def onnx_text_plot_tree(node):
             rows.append(node.process_node())
         return rows
 
-    if node.op_type != "TreeEnsembleRegressor":
-        raise NotImplementedError(  # pragma: no cover
-            "Type %r cannot be displayed." % node.op_type)
-    d = {k: v['value'] for k, v in _var_as_dict(node)['atts'].items()}
-    atts = {}
-    for k, v in d.items():
-        atts[k] = v if isinstance(v, int) else list(v)
-    trees = list(sorted(set(atts['nodes_treeids'])))
-    rows = ['n_targets=%r' % atts['n_targets'],
-            'n_trees=%r' % len(trees)]
-    for tree in trees:
-        r = process_tree(atts, tree)
-        rows.append('----')
-        rows.extend(r)
+    if node.op_type in ("TreeEnsembleRegressor", "TreeEnsembleClassifier"):
+        d = {k: v['value'] for k, v in _var_as_dict(node)['atts'].items()}
+        atts = {}
+        for k, v in d.items():
+            atts[k] = v if isinstance(v, int) else list(v)
+        trees = list(sorted(set(atts['nodes_treeids'])))
+        if 'n_targets' in atts:
+            rows = ['n_targets=%r' % atts['n_targets']]
+        else:
+            rows = ['n_classes=%r' % len(
+                atts.get('classlabels_int64s',
+                         atts.get('classlabels_strings', [])))]
+        rows.append('n_trees=%r' % len(trees))
+        for tree in trees:
+            r = process_tree(atts, tree)
+            rows.append('----')
+            rows.extend(r)
+        return "\n".join(rows)
 
-    return "\n".join(rows)
+    raise NotImplementedError(  # pragma: no cover
+        "Type %r cannot be displayed." % node.op_type)
 
 
 def _append_succ_pred(subgraphs, successors, predecessors, node_map, node, prefix="",
@@ -726,7 +735,10 @@ def onnx_simple_text_plot(model, verbose=False, att_display=None,  # pylint: dis
                     if len(n_val) < 3:
                         val = ",".join(map(str, n_val))
                     else:
-                        val = "%d:%s..." % (len(n_val), ",".join(map(str, n_val[:3])))
+                        val = "%d:%s...%s" % (
+                            len(n_val),
+                            ",".join(map(str, n_val[:3])),
+                            ",".join(map(str, n_val[-3:])))
                 elif att.type == AttributeProto.INT:  # pylint: disable=E1101
                     val = str(att.i)
                 elif att.type == AttributeProto.FLOAT:  # pylint: disable=E1101
@@ -736,13 +748,19 @@ def onnx_simple_text_plot(model, verbose=False, att_display=None,  # pylint: dis
                     if len(n_val) < 5:
                         val = ",".join(map(str, n_val))
                     else:
-                        val = "%d:%s..." % (len(n_val), ",".join(map(str, n_val[:5])))
+                        val = "%d:%s...%s" % (
+                            len(n_val),
+                            ",".join(map(str, n_val[:3])),
+                            ",".join(map(str, n_val[-3:])))
                 elif att.type == AttributeProto.FLOATS:  # pylint: disable=E1101
                     n_val = list(att.floats)
                     if len(n_val) < 3:
                         val = ",".join(map(str, n_val))
                     else:
-                        val = "%d:%s..." % (len(n_val), ",".join(map(str, n_val[:3])))
+                        val = "%d:%s...%s" % (
+                            len(n_val),
+                            ",".join(map(str, n_val[:3])),
+                            ",".join(map(str, n_val[-3:])))
                 else:
                     val = '.%d' % att.type
                 atts.append("%s=%s" % (att.name, val))

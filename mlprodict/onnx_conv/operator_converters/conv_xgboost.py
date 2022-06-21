@@ -296,6 +296,7 @@ class XGBClassifierConverter(XGBConverter):
             ncl = 2
             # See https://github.com/dmlc/xgboost/blob/master/src/common/math.h#L23.
             attr_pairs['post_transform'] = "LOGISTIC"
+            # attr_pairs['base_values'] = [base_score for n in range(ncl)]
             attr_pairs['class_ids'] = [0 for v in attr_pairs['class_treeids']]
         else:
             # See https://github.com/dmlc/xgboost/blob/master/src/common/math.h#L35.

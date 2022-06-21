@@ -12,6 +12,7 @@ from sklearn.datasets import make_regression, make_classification
 from pyquickhelper.pycode import ExtTestCase, skipif_circleci, ignore_warnings
 from mlprodict.onnxrt import OnnxInference
 from mlprodict.onnx_conv import register_converters, to_onnx
+from mlprodict.plotting.plotting import onnx_text_plot_tree
 from mlprodict import __max_supported_opsets__
 
 
@@ -144,6 +145,40 @@ class TestOnnxrtRuntimeXGBoost(ExtTestCase):
         pred_xgboost = clr.predict_proba(predict_array)
         self.assertEqualArray(pred_xgboost, pred_onx)
 
+    @skipif_circleci('stuck')
+    @unittest.skipIf(sys.platform == 'darwin', reason='stuck')
+    @ignore_warnings(UserWarning)
+    def test_onnxrt_python_xgbclassifier(self):
+        from xgboost import XGBClassifier  # pylint: disable=C0411
+        x = numpy.random.randn(100, 10).astype(numpy.float32)
+        y = ((x.sum(axis=1) + numpy.random.randn(x.shape[0]) / 20) >= 0).astype(numpy.int64)
+        x_train, x_test, y_train, y_test = train_test_split(x, y)
+        bmy = numpy.mean(y_train)
+        
+        for bm in [None, bmy]:
+            with self.subTest(base_score=bm):
+                model_skl = XGBClassifier(n_estimators=1, 
+                                          learning_rate=0.01,
+                                          subsample=0.5, objective="binary:logistic",
+                                          base_score=bm, max_depth=2)
+                model_skl.fit(x_train, y_train, eval_set=[(x_test, y_test)], verbose=0)
+
+                model_onnx_skl = to_onnx(model_skl, x_train, rewrite_ops=True,
+                                        target_opset={'': 15, 'ai.onnx.ml': 2},
+                                        options={'zipmap': False})    
+
+                oinf = OnnxInference(model_onnx_skl)
+                res2 = oinf.run({'X': x_test})
+                dump = model_skl.get_booster().get_dump()
+
+                print(bm)
+                from pprint import pprint
+                pprint(model_skl.get_xgb_params())
+                print("\n".join(dump))
+                print(onnx_text_plot_tree(model_onnx_skl.graph.node[0]))
+                self.assertEqualArray(model_skl.predict_proba(x_test),
+                                      res2['probabilities'])
+
 
 if __name__ == "__main__":
-    unittest.main()
+    unittest.main(verbosity=2)
