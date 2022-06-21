@@ -416,7 +416,7 @@ class OnnxInferenceNode:
                 if attributes is None:
                     attributes = {}
                 else:
-                    attibutes = attributes.copy()
+                    attributes = attributes.copy()
                 attributes.update(self.desc['atts'])
 
             feeds = {}
