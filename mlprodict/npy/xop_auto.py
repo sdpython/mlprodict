@@ -504,7 +504,7 @@ def is_last_schema(sch):
     """
     try:
         last = onnx.defs.get_schema(sch.name, domain=sch.domain)
-    except SchemaError as e:
+    except SchemaError:
         # raise RuntimeError(
         #     "Unable to find schema for operator %r and domain %r."
         #     "" % (sch.name, sch.domain))

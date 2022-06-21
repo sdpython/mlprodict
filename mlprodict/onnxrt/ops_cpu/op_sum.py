@@ -12,7 +12,7 @@ class Sum(OpRun):
     def __init__(self, onnx_node, desc=None, **options):
         OpRun.__init__(self, onnx_node, desc=desc, **options)
 
-    def _run(self, *args, verbose=0, fLOG=None):  # pylint: disable=W0221
+    def _run(self, *args, attributes=None, verbose=0, fLOG=None):  # pylint: disable=W0221
         return (sum(args), )
 
     def _infer_shapes(self, *args):  # pylint: disable=W0221

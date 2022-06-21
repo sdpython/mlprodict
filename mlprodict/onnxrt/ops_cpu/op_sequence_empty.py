@@ -18,7 +18,7 @@ class SequenceEmpty(OpRun):
         OpRun.__init__(self, onnx_node, desc=desc,
                        atts=SequenceEmpty.atts, **options)
 
-    def _run(self, verbose=0, fLOG=None):  # pylint: disable=W0221
+    def _run(self, attributes=None, verbose=0, fLOG=None):  # pylint: disable=W0221
         return ([], )
 
     def _infer_shapes(self):  # pylint: disable=W0221

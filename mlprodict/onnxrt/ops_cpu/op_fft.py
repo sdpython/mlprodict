@@ -26,7 +26,7 @@ class FFT(OpRun):
         raise RuntimeError(  # pragma: no cover
             "Unable to find a schema for operator '{}'.".format(op_name))
 
-    def _run(self, a, fft_length=None, verbose=0, fLOG=None):  # pylint: disable=W0221
+    def _run(self, a, fft_length=None, attributes=None, verbose=0, fLOG=None):  # pylint: disable=W0221
         if fft_length is not None:
             fft_length = fft_length[0]
             y = fft(a, fft_length, axis=self.axis)

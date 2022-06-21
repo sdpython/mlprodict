@@ -169,6 +169,7 @@ class OnnxInference:
         self.functions_ = self.graph_['functions']
         self.outputs_ = self.graph_['outputs']
         self.inputs_ = self.graph_['inputs']
+        self.attributes_ = self.graph_['attributes']
         is_function_proto = isinstance(self.obj, FunctionProto)
         if is_function_proto:
             obj_graph = self.obj
@@ -263,6 +264,7 @@ class OnnxInference:
                 self.shapes_ = self._set_shape_inference_runtime()
             if self.inplace:
                 self.inplaces_ = self._guess_inplace(self.input_inplace)
+
         self.exporters_ = OnnxInferenceExport(self)
         self.to_json = self.exporters_.to_json
         self.to_dot = self.exporters_.to_dot
@@ -280,7 +282,7 @@ class OnnxInference:
     def _run_sequence_runtime_compiled(
             self, inputs, clean_right_away=False, intermediate=False,
             verbose=0, node_time=False, yield_ops=None, fLOG=None,
-            context=None):
+            context=None, attributes=None):
         """
         Executes a compiled version of @see me _run_sequence_runtime,
         compiled with method @see me _build_compile_run.
@@ -289,7 +291,8 @@ class OnnxInference:
         """
         try:
             return self._run_compiled(  # pylint: disable=E1101
-                inputs, yield_ops=yield_ops, context=context)
+                inputs, yield_ops=yield_ops, context=context,
+                attributes=attributes)
         except NameError as e:
             raise RuntimeError(  # pragma: no cover
                 "Unable to compute prediction due to %r. Code:\n%s"
@@ -499,9 +502,13 @@ class OnnxInference:
         statics = {}
         targets = {}
         functions = {}
+        attributes = {}
         if existing_functions is not None:
             functions.update(existing_functions)
         is_function_proto = isinstance(self.obj, FunctionProto)
+        if is_function_proto and self.obj.attribute:
+            for att in self.obj.attribute:
+                attributes[att] = None
 
         for o in self.obj.opset_import:
             targets[o.domain] = o.version
@@ -579,7 +586,8 @@ class OnnxInference:
             if 'atts' in dobj:
                 atts = dobj['atts']
                 for k, v in atts.items():
-                    if not isinstance(v, dict) or 'value' not in v:
+                    if not isinstance(v, dict) or (
+                            'value' not in v and 'ref_attr_name' not in v):
                         raise RuntimeError(  # pragma: no cover
                             "A parameter has no (sparse) value '{}' "
                             "for node '{}'\nv={}\ndobj=[{}]".format(
@@ -695,6 +703,7 @@ class OnnxInference:
             sequence[ord].add_variable_to_clean(k)
 
         results = dict(inits=inits, inputs=variables, outputs=outputs,
+                       attributes=attributes,
                        nodes=nodes, sequence=sequence,
                        functions=functions,
                        intermediate=intermediate,
@@ -721,7 +730,7 @@ class OnnxInference:
     def run(self, inputs, clean_right_away=False,
             intermediate=False, verbose=0, node_time=False,
             overwrite_types=None, yield_ops=None, fLOG=None,
-            context=None):
+            context=None, attributes=None):
         """
         Computes the predictions for this :epkg:`onnx` graph.
 
@@ -739,6 +748,8 @@ class OnnxInference:
             operator *YieldOp*
         :param fLOG: logging function if *verbose > 0*
         :param context: local variables, needed when this object is a subgraph
+        :param attributes: this uses when this class runs a :epkg:`FunctionProto`
+            to store the values of the attributes of the function
         :return: outputs as dictionary
             and a second dictionary of the time spent
             in each node if *node_time* is True
@@ -783,8 +794,8 @@ class OnnxInference:
         to keep the one output and converted into
         *OnnxInference*.
 
-        .. versionchanged:: 0.8
-            Parameter *yield_ops* was added.
+        .. versionchanged:: 0.9
+            Parameter *attributes* was added.
         """
         def retype(col_array):
             if (hasattr(col_array, 'categories') and
@@ -808,7 +819,7 @@ class OnnxInference:
                              verbose=verbose, node_time=node_time,
                              overwrite_types=overwrite_types,
                              yield_ops=yield_ops, fLOG=fLOG,
-                             context=context)
+                             context=context, attributes=attributes)
         if overwrite_types is not None:
             raise RuntimeError(  # pragma: no cover
                 "overwrite_types is not used if intermediate is False.")
@@ -816,12 +827,13 @@ class OnnxInference:
                          intermediate=intermediate,
                          verbose=verbose, node_time=node_time,
                          yield_ops=yield_ops, fLOG=fLOG,
-                         context=context)
+                         context=context, attributes=attributes)
 
     def run2onnx(self, inputs, verbose=0, fLOG=None,
                  as_parameter=True, suffix='_DBG',
                  param_name=None, node_type='DEBUG',
-                 domain='DEBUG', domain_opset=1):
+                 domain='DEBUG', domain_opset=1,
+                 attributes=None):
         """
         Executes the graphs with the given inputs, then adds the intermediate
         results into ONNX nodes in the original graph. Once saved, it can be
@@ -839,6 +851,8 @@ class OnnxInference:
         :param node_type: type of the new node
         :param domain: domain the new node
         :param domain_opset: opset for *domain*
+        :param attributes: values for attributes if this class runs a
+            :epkg:`FunctionProto`
         :return: outputs as dictionary
             and the onnx graph with new nodes
 
@@ -870,7 +884,7 @@ class OnnxInference:
         .. versionadded:: 0.7
         """
         intermediate = self.run(inputs, verbose=verbose, fLOG=fLOG,
-                                intermediate=True)
+                                intermediate=True, attributes=attributes)
         for name in self.input_names:
             del intermediate[name]
         new_onx = insert_results_into_onnx(
@@ -893,7 +907,7 @@ class OnnxInference:
     def _run_sequence_runtime(self, inputs, clean_right_away=False,
                               intermediate=False, verbose=0, node_time=False,
                               overwrite_types=None, yield_ops=None,
-                              fLOG=None, context=None):
+                              fLOG=None, context=None, attributes=None):
         if overwrite_types is not None:
             raise NotImplementedError(  # pragma: no cover
                 "overwrite_types != None not implemented.")
@@ -967,14 +981,14 @@ class OnnxInference:
                             "yield_ops: %r (node=%r)." % (
                                 out, list(sorted(yield_ops)), node.onnx_node))
                     t = perf_counter()
-                    node.run(values)
+                    node.run(values, attributes=attributes)
                     t2 = perf_counter()
                     mtime.append(dict(i=i, name=node.onnx_node.name,
                                       op_type=node.onnx_node.op_type,
                                       time=t2 - t))
             else:
                 for node in self.sequence_:
-                    node.run(values)
+                    node.run(values, attributes=attributes)
         else:
             def dispsimple(arr):
                 if hasattr(arr, 'shape'):
@@ -1037,13 +1051,14 @@ class OnnxInference:
                                 out, list(sorted(yield_ops)), node.onnx_node))
                 elif node_time:
                     t = perf_counter()
-                    node.run(values)
+                    node.run(values, attributes=attributes)
                     t2 = perf_counter()
                     mtime.append(dict(i=i, name=node.onnx_node.name,
                                       op_type=node.onnx_node.op_type,
                                       time=t2 - t))
                 else:
-                    node.run(values, verbose=verbose, fLOG=fLOG)
+                    node.run(values, verbose=verbose, fLOG=fLOG,
+                             attributes=attributes)
                 added = 0
                 for k in range(len(values)):  # pylint: disable=C0200
                     if values[k] is None:
@@ -1230,7 +1245,7 @@ class OnnxInference:
     def _run_whole_runtime(self, inputs, clean_right_away=False,
                            intermediate=False, verbose=0, node_time=False,
                            overwrite_types=None, yield_ops=None, fLOG=None,
-                           context=None):
+                           context=None, attributes=None):
         # node_time is unused, context is unused
         if clean_right_away:
             raise RuntimeError(  # pragma: no cover
@@ -1273,7 +1288,7 @@ class OnnxInference:
                         "YieldOp output %r could not be found in "
                         "yield_ops: %r (node=%r)." % (
                             out, list(sorted(yield_ops)), node.onnx_node))
-                output = oinf.run(inputs)[node]
+                output = oinf.run(inputs, attributes=attributes)[node]
                 values[node] = output
                 if verbose >= 1:
                     if verbose >= 4:  # pragma: no cover
@@ -1716,7 +1731,7 @@ class OnnxInference:
 
         # inits
         inputs = self.input_names
-        code = ['def compiled_run(dict_inputs, yield_ops=None, context=None):']
+        code = ['def compiled_run(dict_inputs, yield_ops=None, context=None, attributes=None):']
         code.append("    if yield_ops is not None:")
         code.append("        raise NotImplementedError"
                     "('yields_ops should be None.')")

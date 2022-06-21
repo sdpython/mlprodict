@@ -392,12 +392,15 @@ class OnnxInferenceNode:
             context[n] = v
         return context
 
-    def run(self, values, verbose=0, fLOG=None):
+    def run(self, values, attributes=None, verbose=0, fLOG=None):
         """
         Runs the node.
         The function updates values with outputs.
 
         :param values: list of existing values
+        :param attributes: attributes known at function level
+        :param verbose: verbosity
+        :param fLOG: logging function
         """
         # This code takes time if the graph contains many nodes.
         # Maybe a C++ container would help in that case (to skip GIL).
@@ -408,6 +411,14 @@ class OnnxInferenceNode:
 
         if self.ops_ is None:
             # Then a function.
+            if 'atts' in self.desc:
+                # attributes of a function
+                if attributes is None:
+                    attributes = {}
+                else:
+                    attributes = attributes.copy()
+                attributes.update(self.desc['atts'])
+
             feeds = {}
             for name, val in zip(self.function_.obj.input, args):
                 if val is None:
@@ -416,13 +427,14 @@ class OnnxInferenceNode:
                 feeds[name] = val
 
             if verbose == 0 or fLOG is None:
-                outputs = self.function_.run(feeds)
+                outputs = self.function_.run(feeds, attributes=attributes)
             else:
                 if verbose > 0:
                     fLOG('-- >%s[%s](%s)  -- len(feeds)=%d' %
                          (self.function_.obj.name, self.function_.obj.domain,
                           ", ".join(self.function_.obj.input), len(feeds)))
-                outputs = self.function_.run(feeds, verbose=verbose, fLOG=fLOG)
+                outputs = self.function_.run(
+                    feeds, attributes=attributes, verbose=verbose, fLOG=fLOG)
                 if verbose > 0:
                     fLOG('-- <%s[%s][%s]' %
                          (self.function_.obj.name, self.function_.obj.domain,
@@ -436,9 +448,11 @@ class OnnxInferenceNode:
                     context = self._build_context(values,
                                                   self.ops_.additional_inputs)
                     res = self.ops_.run(*args, context=context,
+                                        attributes=attributes,
                                         verbose=verbose, fLOG=fLOG)
                 else:
-                    res = self.ops_.run(*args, verbose=verbose, fLOG=fLOG)
+                    res = self.ops_.run(
+                        *args, attributes=attributes, verbose=verbose, fLOG=fLOG)
             except (ValueError, TypeError) as e:
                 raise RuntimeError(  # pragma: no cover
                     "Unable to run operator %r, inputs=%r."

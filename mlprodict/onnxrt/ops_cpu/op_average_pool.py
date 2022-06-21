@@ -144,7 +144,7 @@ class AveragePool(OpRun):
                        expected_attributes=AveragePool.atts,
                        **options)
 
-    def _run(self, x, verbose=0, fLOG=None):  # pylint: disable=W0221
+    def _run(self, x, attributes=None, verbose=0, fLOG=None):  # pylint: disable=W0221
         if len(self.strides) == 0:
             strides = [1] * (len(x.shape) - 2)
         else:

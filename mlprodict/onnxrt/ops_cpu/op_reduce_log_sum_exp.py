@@ -17,7 +17,7 @@ class ReduceLogSumExp(OpRunReduceNumpy):
                                   expected_attributes=ReduceLogSumExp.atts,
                                   **options)
 
-    def _run(self, data, verbose=0, fLOG=None):  # pylint: disable=W0221
+    def _run(self, data, attributes=None, verbose=0, fLOG=None):  # pylint: disable=W0221
         tax = tuple(self.axes) if self.axes else None
         data_max = data.copy()
         ind = numpy.isinf(data_max)

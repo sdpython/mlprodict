@@ -32,7 +32,7 @@ class OneHot(OpRun):
                        expected_attributes=OneHot.atts,
                        **options)
 
-    def _run(self, indices, depth, values, verbose=0, fLOG=None):  # pylint: disable=W0221
+    def _run(self, indices, depth, values, attributes=None, verbose=0, fLOG=None):  # pylint: disable=W0221
         off_value, on_value = values
         y = _one_hot(indices, depth, dtype=values.dtype)
         y = y * (on_value - off_value) + off_value

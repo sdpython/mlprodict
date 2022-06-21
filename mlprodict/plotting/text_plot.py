@@ -1,4 +1,4 @@
-# pylint: disable=R0912,R0914
+# pylint: disable=R0912,R0914,C0302
 """
 @file
 @brief Text representations of graphs.
@@ -486,7 +486,7 @@ def _get_shape(obj):
         "Unable to guess type from %r." % obj0)
 
 
-def onnx_simple_text_plot(model, verbose=False, att_display=None,
+def onnx_simple_text_plot(model, verbose=False, att_display=None,  # pylint: disable=R0915
                           add_links=False, recursive=False, functions=True,
                           raise_exc=True, sub_graphs_names=None,
                           level=1, indent=True):
@@ -684,6 +684,7 @@ def onnx_simple_text_plot(model, verbose=False, att_display=None,
         atts = []
         if hasattr(node, 'attribute'):
             for att in node.attribute:
+                done = True
                 if att.name in att_display:
                     if att.type == AttributeProto.INT:  # pylint: disable=E1101
                         atts.append("%s=%d" % (att.name, att.i))
@@ -692,10 +693,39 @@ def onnx_simple_text_plot(model, verbose=False, att_display=None,
                     elif att.type == AttributeProto.INTS:  # pylint: disable=E1101
                         atts.append("%s=%s" % (att.name, str(
                             list(att.ints)).replace(" ", "")))
+                    else:
+                        done = False
                 elif (att.type == AttributeProto.GRAPH and  # pylint: disable=E1101
                         hasattr(att, 'g') and att.g is not None):
                     atts.append("%s=%s" %
                                 (att.name, _get_subgraph_name(id(att.g))))
+                elif att.ref_attr_name:
+                    atts.append("%s=$%s" % (att.name, att.ref_attr_name))
+                else:
+                    done = False
+                if done:
+                    continue
+                if att.type in (AttributeProto.TENSOR,  # pylint: disable=E1101
+                                AttributeProto.TENSORS,  # pylint: disable=E1101
+                                AttributeProto.SPARSE_TENSOR,  # pylint: disable=E1101
+                                AttributeProto.SPARSE_TENSORS):  # pylint: disable=E1101
+                    try:
+                        val = str(to_array(att.t).tolist())
+                    except TypeError as e:
+                        raise TypeError(
+                            "Unable to display tensor type %r.\n%s" % (
+                                att.type, str(att))) from e
+                    if "\n" in val:
+                        val = val.split("\n", maxsplit=1) + "..."
+                    if len(val) > 10:
+                        val = val[:10] + "..."
+                elif att.type == AttributeProto.INT:  # pylint: disable=E1101
+                    val = str(att.i)
+                elif att.type == AttributeProto.FLOAT:  # pylint: disable=E1101
+                    val = str(att.f)
+                else:
+                    val = '.'
+                atts.append("%s=%s" % (att.name, val))
         inputs = list(node.input)
         if len(atts) > 0:
             inputs.extend(atts)
@@ -730,6 +760,14 @@ def onnx_simple_text_plot(model, verbose=False, att_display=None,
             line_name_new[inp.name] = len(rows)
             rows.append("input: name=%r type=%r shape=%r" % (
                 inp.name, _get_type(inp), _get_shape(inp)))
+    if hasattr(model, 'attribute'):
+        for att in model.attribute:
+            if isinstance(att, str):
+                rows.append("attribute: %r" % att)
+            else:
+                raise NotImplementedError(  # pragma: no cover
+                    "Not yet introduced in onnx.")
+
     # initializer
     if hasattr(model, 'initializer'):
         if len(model.initializer) and level == 0:

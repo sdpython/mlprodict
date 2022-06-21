@@ -14,7 +14,7 @@ class Less(OpRunBinaryComparison):
         OpRunBinaryComparison.__init__(
             self, onnx_node, desc=desc, **options)
 
-    def _run(self, a, b, verbose=0, fLOG=None):  # pylint: disable=W0221
+    def _run(self, a, b, attributes=None, verbose=0, fLOG=None):  # pylint: disable=W0221
         return (numpy.less(a, b), )
 
     def to_python(self, inputs):
@@ -27,7 +27,7 @@ class LessOrEqual(OpRunBinaryComparison):
         OpRunBinaryComparison.__init__(
             self, onnx_node, desc=desc, **options)
 
-    def _run(self, a, b, verbose=0, fLOG=None):  # pylint: disable=W0221
+    def _run(self, a, b, attributes=None, verbose=0, fLOG=None):  # pylint: disable=W0221
         return (numpy.less_equal(a, b), )
 
     def to_python(self, inputs):

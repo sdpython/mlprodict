@@ -24,7 +24,7 @@ class Gather(OpRun):
             'float64': GatherDouble(self.axis),
             'int64': GatherInt64(self.axis)}
 
-    def _run(self, x, indices, verbose=0, fLOG=None):  # pylint: disable=W0221
+    def _run(self, x, indices, attributes=None, verbose=0, fLOG=None):  # pylint: disable=W0221
         if not x.flags['C_CONTIGUOUS']:
             x = numpy.ascontiguousarray(x)
         if not indices.flags['C_CONTIGUOUS']:

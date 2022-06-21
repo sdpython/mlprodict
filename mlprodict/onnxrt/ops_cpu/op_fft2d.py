@@ -31,7 +31,7 @@ class FFT2D(OpRun):
         raise RuntimeError(  # pragma: no cover
             "Unable to find a schema for operator '{}'.".format(op_name))
 
-    def _run(self, a, fft_length=None, verbose=0, fLOG=None):  # pylint: disable=W0221
+    def _run(self, a, fft_length=None, attributes=None, verbose=0, fLOG=None):  # pylint: disable=W0221
         if fft_length is None:
             y = fft2(a, axes=self.axes)
         else:

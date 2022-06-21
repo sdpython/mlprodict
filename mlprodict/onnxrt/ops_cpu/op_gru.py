@@ -70,8 +70,8 @@ class CommonGRU(OpRun):
 
         return Y, Y_h
 
-    def _run(self, X, W, R, B=None, sequence_lens=None, initial_h=None,  # pylint: disable=W0221
-             verbose=0, fLOG=None):
+    def _run(self, X, W, R, B=None, attributes=None, sequence_lens=None,  # pylint: disable=W0221
+             initial_h=None, verbose=0, fLOG=None):
         self.num_directions = W.shape[0]
 
         if self.num_directions == 1:

@@ -225,7 +225,7 @@ class Resize(OpRun):
             raise ValueError(  # pragma: no cover
                 "Unexpected value %r for mode." % self.mode)
 
-    def _run(self, X, roi, scales=None, sizes=None, verbose=0, fLOG=None):  # pylint: disable=W0221
+    def _run(self, X, roi, scales=None, sizes=None, attributes=None, verbose=0, fLOG=None):  # pylint: disable=W0221
         output = _interpolate_nd(
             X, self.fct, scale_factors=scales,
             output_size=sizes, roi=roi,

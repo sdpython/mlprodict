@@ -52,7 +52,7 @@ class Gemm(OpRun):
             o += c * beta
         return o
 
-    def _run(self, a, b, c=None, verbose=0, fLOG=None):  # pylint: disable=W0221
+    def _run(self, a, b, c=None, attributes=None, verbose=0, fLOG=None):  # pylint: disable=W0221
         return (self._meth(a, b, c), )
 
     def _infer_shapes(self, a, b, c=None):  # pylint: disable=W0221

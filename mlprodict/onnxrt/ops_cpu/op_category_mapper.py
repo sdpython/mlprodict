@@ -32,7 +32,7 @@ class CategoryMapper(OpRun):
             self.int2str_[a] = be
             self.str2int_[be] = a
 
-    def _run(self, x, verbose=0, fLOG=None):  # pylint: disable=W0221
+    def _run(self, x, attributes=None, verbose=0, fLOG=None):  # pylint: disable=W0221
         if x.dtype == numpy.int64:
             xf = x.ravel()
             res = [self.int2str_.get(xf[i], self.default_string)

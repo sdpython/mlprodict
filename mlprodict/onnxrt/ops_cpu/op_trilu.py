@@ -19,7 +19,7 @@ class Trilu(OpRun):
         if self.upper not in (0, 1):
             raise ValueError("upper must be 0 or 1 not %r." % (self.upper, ))
 
-    def _run(self, *inputs, verbose=0, fLOG=None):  # pylint: disable=W0221
+    def _run(self, *inputs, attributes=None, verbose=0, fLOG=None):  # pylint: disable=W0221
         x = inputs[0]
         k = 0 if len(inputs) == 1 else int(inputs[1])
         if self.upper:

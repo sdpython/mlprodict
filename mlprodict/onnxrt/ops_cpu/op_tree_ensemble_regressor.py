@@ -87,7 +87,7 @@ class TreeEnsembleRegressorCommon(OpRunUnaryNum):
                 "Unsupported dtype={}.".format(dtype))
         self.rt_.init(*atts)
 
-    def _run(self, x, verbose=0, fLOG=None):  # pylint: disable=W0221
+    def _run(self, x, attributes=None, verbose=0, fLOG=None):  # pylint: disable=W0221
         """
         This is a C++ implementation coming from
         :epkg:`onnxruntime`.

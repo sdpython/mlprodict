@@ -25,7 +25,7 @@ class LinearRegressor(OpRunUnaryNum):
         n = self.coefficients.shape[0] // self.targets
         self.coefficients = self.coefficients.reshape(self.targets, n).T
 
-    def _run(self, x, verbose=0, fLOG=None):  # pylint: disable=W0221
+    def _run(self, x, attributes=None, verbose=0, fLOG=None):  # pylint: disable=W0221
         score = numpy_dot_inplace(self.inplaces, x, self.coefficients)
         if self.intercepts is not None:
             score += self.intercepts

@@ -24,7 +24,7 @@ class FeatureVectorizer(OpRun):
             return a.reshape(new_shape)
         return a
 
-    def _run(self, *args, verbose=0, fLOG=None):  # pylint: disable=W0221
+    def _run(self, *args, attributes=None, verbose=0, fLOG=None):  # pylint: disable=W0221
         args = [self._preprocess(a) for a in args]
         res = numpy.concatenate(args, self.axis)
         return (res, )

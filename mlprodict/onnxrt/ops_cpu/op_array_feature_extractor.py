@@ -55,7 +55,7 @@ class ArrayFeatureExtractor(OpRun):
         OpRun.__init__(self, onnx_node, desc=desc,
                        **options)
 
-    def _run(self, data, indices, verbose=0, fLOG=None):  # pylint: disable=W0221
+    def _run(self, data, indices, attributes=None, verbose=0, fLOG=None):  # pylint: disable=W0221
         """
         Runtime for operator *ArrayFeatureExtractor*.
 

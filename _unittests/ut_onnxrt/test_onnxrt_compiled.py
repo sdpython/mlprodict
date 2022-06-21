@@ -38,11 +38,11 @@ class TestOnnxrtCompiled(ExtTestCase):
         code = oinf._run_compiled_code  # pylint: disable=W0212,E1101
         self.assertIsInstance(code, str)
         self.assertIn(
-            'def compiled_run(dict_inputs, yield_ops=None, context=None):',
+            'def compiled_run(dict_inputs, yield_ops=None, context=None, attributes=None):',
             code)
         self.assertIn('(Y, ) = n0_add(X, Ad_Addcst)', code)
         self.assertIn(
-            ' def compiled_run(dict_inputs, yield_ops=None, context=None):',
+            ' def compiled_run(dict_inputs, yield_ops=None, context=None, attributes=None):',
             str(oinf))
 
     def test_onnxt_idi_debug(self):
@@ -63,11 +63,11 @@ class TestOnnxrtCompiled(ExtTestCase):
         code = oinf._run_compiled_code  # pylint: disable=W0212,E1101
         self.assertIsInstance(code, str)
         self.assertIn(
-            'def compiled_run(dict_inputs, yield_ops=None, context=None):',
+            'def compiled_run(dict_inputs, yield_ops=None, context=None, attributes=None):',
             code)
         self.assertIn('(Y, ) = n0_add(X, Ad_Addcst)', code)
         self.assertIn(
-            ' def compiled_run(dict_inputs, yield_ops=None, context=None):',
+            ' def compiled_run(dict_inputs, yield_ops=None, context=None, attributes=None):',
             str(oinf))
 
     @skipif_circleci('fails to finish')
@@ -106,7 +106,7 @@ class TestOnnxrtCompiled(ExtTestCase):
         # print(me1, me2)
         # print(oinf2._run_compiled_code)
         self.assertIn(
-            ' def compiled_run(dict_inputs, yield_ops=None, context=None):',
+            ' def compiled_run(dict_inputs, yield_ops=None, context=None, attributes=None):',
             str(oinf2))
 
     def test_onnxt_reduce_size(self):

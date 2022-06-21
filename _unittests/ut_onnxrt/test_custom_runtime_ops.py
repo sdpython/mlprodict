@@ -174,7 +174,7 @@ class OpEig(OpRunCustom):  # pylint: disable=W0223
                              expected_attributes=OpEig.atts,
                              **options)
 
-    def run(self, x, verbose=0, fLOG=None):  # pylint: disable=W0221
+    def run(self, x, attributes=None, verbose=0, fLOG=None):  # pylint: disable=W0221
         if self.eigv:  # pylint: disable=E1101
             return eig(x)
         return (eigvals(x), )

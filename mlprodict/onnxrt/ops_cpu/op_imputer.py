@@ -28,7 +28,7 @@ class Imputer(OpRunUnaryNum):
         else:
             raise ValueError("Missing are not defined.")  # pragma: no cover
 
-    def _run(self, x, verbose=0, fLOG=None):  # pylint: disable=W0221
+    def _run(self, x, attributes=None, verbose=0, fLOG=None):  # pylint: disable=W0221
         if len(x.shape) != 2:
             raise RuntimeTypeError(
                 "x must be a matrix but shape is {}".format(x.shape))

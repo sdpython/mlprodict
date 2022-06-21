@@ -16,7 +16,7 @@ class Scaler(OpRunUnary):
                             expected_attributes=Scaler.atts,
                             **options)
 
-    def _run(self, x, verbose=0, fLOG=None):  # pylint: disable=W0221
+    def _run(self, x, attributes=None, verbose=0, fLOG=None):  # pylint: disable=W0221
         return self._run_no_checks_(x, verbose=verbose, fLOG=fLOG)
 
     def _run_no_checks_(self, x, verbose=0, fLOG=None):  # pylint: disable=W0221
