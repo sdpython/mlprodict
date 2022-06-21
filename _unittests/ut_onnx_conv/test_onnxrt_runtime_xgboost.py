@@ -151,7 +151,7 @@ class TestOnnxrtRuntimeXGBoost(ExtTestCase):
     def test_onnxrt_python_xgbclassifier(self):
         from xgboost import XGBClassifier  # pylint: disable=C0411
         x = numpy.random.randn(100, 10).astype(numpy.float32)
-        y = ((x.sum(axis=1) + numpy.random.randn(x.shape[0]) / 20) >= 0).astype(numpy.int64)
+        y = ((x.sum(axis=1) + numpy.random.randn(x.shape[0]) / 50 + 0.5) >= 0).astype(numpy.int64)
         x_train, x_test, y_train, y_test = train_test_split(x, y)
         bmy = numpy.mean(y_train)
         
