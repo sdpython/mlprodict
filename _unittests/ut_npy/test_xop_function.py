@@ -4,7 +4,7 @@
 """
 import unittest
 import numpy
-from onnx import numpy_helper, TensorProto, AttributeProto
+from onnx import TensorProto, AttributeProto
 from onnx.helper import (  # pylint: disable=W0611
     make_model, make_node, set_model_props, make_tensor,
     make_graph, make_tensor_value_info, make_opsetid,

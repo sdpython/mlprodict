@@ -72,7 +72,7 @@ class Dropout_7(DropoutBase):
                              expected_attributes=Dropout_7.atts,
                              **options)
 
-    def _run(self, X, verbose=0, fLOG=None):  # pylint: disable=W0221
+    def _run(self, X, attributes=None, verbose=0, fLOG=None):  # pylint: disable=W0221
         return self._private_run(X, self.ratio)
 
 
