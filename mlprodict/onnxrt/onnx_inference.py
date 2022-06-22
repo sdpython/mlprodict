@@ -1731,7 +1731,8 @@ class OnnxInference:
 
         # inits
         inputs = self.input_names
-        code = ['def compiled_run(dict_inputs, yield_ops=None, context=None, attributes=None):']
+        code = [
+            'def compiled_run(dict_inputs, yield_ops=None, context=None, attributes=None):']
         code.append("    if yield_ops is not None:")
         code.append("        raise NotImplementedError"
                     "('yields_ops should be None.')")
