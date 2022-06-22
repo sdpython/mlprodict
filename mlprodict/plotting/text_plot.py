@@ -126,7 +126,8 @@ def onnx_text_plot_tree(node):
         "tree to string"
         rows = ['treeid=%r' % treeid]
         if 'base_values' in atts:
-            rows.append('base_value=%r' % atts['base_values'][treeid])
+            if treeid < len(atts['base_values']):
+                rows.append('base_value=%r' % atts['base_values'][treeid])
 
         short = {}
         for prefix in ['nodes', 'target', 'class']:

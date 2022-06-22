@@ -1093,7 +1093,7 @@ class OnnxOperatorTuple(OnnxOperatorBase):
         method of the unique input object or the first one
         if there are several. In that case, other inputs in
         attribute `values` are moved into container
-        `other_outputs`.
+        `other_outputs`. (OnnxOperatorTuple)
         """
         logger.debug('op:%s-%d.to_onnx:%r:%r:%r',
                      self.__class__.__name__, id(self),
@@ -2034,6 +2034,24 @@ class OnnxOperator(OnnxOperatorBase):
         :param return_builder: if True, returns the instance of @see cl GraphBuilder
             used to build the onnx graph.
         :return: ONNX stucture
+
+        *inputs* and *outputs* parameters work the same way.
+        Here is some possible walues:
+            - `inputs=numpy.float32`: all inputs are dense tensors of
+              unknown shapes sharing the same element type
+            - `inputs={'X': numpy.float32`, 'Y': numpy.in64}`:
+              input `X` is a dense tensor of float32,
+              input `Y` is a dense tensor of int64,
+            - `{'X': numpy.array(...)}}`: input `X` is a dense
+              tensor with a precise shape
+            - `inputs=[Variable('X', numpy.float32, [1, 2])]`:
+              input `X` is a dense tensor of float32 with shape `[1, 2]`
+            - `inputs=[Variable('X', numpy.float32, [None, 2])]`:
+              input `X` is a dense tensor of float32 with a 2D tensor
+              with an unknown dimension (first one)
+            - see @see cl Variable
+
+        (OnnxOperator)
         """
         # opsets
         logger.debug(
@@ -3289,6 +3307,8 @@ class _GraphBuilder:
         :param verbose: prints information
         :param check_model: checks the output model
         :return: onnx graph
+
+        (_GraphBuilder)
         """
         logger.debug("_GraphBuilder-%d.to_onnx:#####:%s",
                      id(self), str(function_name))
