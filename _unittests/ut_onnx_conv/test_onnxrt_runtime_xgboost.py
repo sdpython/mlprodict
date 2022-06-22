@@ -153,7 +153,7 @@ class TestOnnxrtRuntimeXGBoost(ExtTestCase):
         x = numpy.random.randn(100, 10).astype(numpy.float32)
         y = ((x.sum(axis=1) + numpy.random.randn(x.shape[0]) / 50 + 0.5) >= 0).astype(numpy.int64)
         x_train, x_test, y_train, y_test = train_test_split(x, y)
-        bmy = 0.7  # numpy.mean(y_train)
+        bmy = numpy.mean(y_train)
         
         for bm, n_est in [(None, 1), (None, 3), (bmy, 1), (bmy, 3)]:
             model_skl = XGBClassifier(n_estimators=n_est, 
