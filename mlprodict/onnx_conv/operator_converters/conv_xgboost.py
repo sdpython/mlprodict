@@ -296,7 +296,9 @@ class XGBClassifierConverter(XGBConverter):
             ncl = 2
             # See https://github.com/dmlc/xgboost/blob/master/src/common/math.h#L23.
             attr_pairs['post_transform'] = "LOGISTIC"
-            if base_score != 0.5:
+            if js_trees[0].get('leaf', None) == 0:
+                attr_pairs['base_values'] = [0.5]
+            elif base_score != 0.5:
                 cst = - numpy.log(1 / numpy.float32(base_score) - 1.)
                 attr_pairs['base_values'] = [cst]
             attr_pairs['class_ids'] = [0 for v in attr_pairs['class_treeids']]
