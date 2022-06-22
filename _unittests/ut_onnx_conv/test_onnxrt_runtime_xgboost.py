@@ -169,7 +169,6 @@ class TestOnnxrtRuntimeXGBoost(ExtTestCase):
                 with self.subTest(base_score=bm, runtime=rt, n_estimators=n_est):
                     oinf = OnnxInference(model_onnx_skl, runtime=rt)
                     res2 = oinf.run({'X': x_test})
-                    dump = model_skl.get_booster().get_dump()
                     self.assertEqualArray(model_skl.predict_proba(x_test),
                                           res2['probabilities'])
 
