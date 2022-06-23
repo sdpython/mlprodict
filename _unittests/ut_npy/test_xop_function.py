@@ -9,11 +9,11 @@ from onnx.helper import (  # pylint: disable=W0611
     make_model, make_node, set_model_props, make_tensor,
     make_graph, make_tensor_value_info, make_opsetid,
     make_function)
-from onnx.checker import check_model
 from pyquickhelper.pycode import ExtTestCase
 from mlprodict.plotting.text_plot import onnx_simple_text_plot
 from mlprodict.onnxrt import OnnxInference
 from mlprodict.npy.xop import loadop, OnnxOperatorFunction
+from mlprodict.onnx_tools.model_checker import check_onnx
 
 
 class TestXOpsFunction(ExtTestCase):
@@ -143,7 +143,7 @@ class TestXOpsFunction(ExtTestCase):
         onnx_model = make_model(
             graph, opset_imports=opset_imports,
             functions=[linear_regression])
-        check_model(onnx_model)
+        check_onnx(onnx_model)
 
         text = onnx_simple_text_plot(onnx_model)
         self.assertIn("attribute: 'bias'", text)
@@ -184,7 +184,7 @@ class TestXOpsFunction(ExtTestCase):
         onnx_model = make_model(
             graph, opset_imports=opset_imports,
             functions=[linear_regression])
-        check_model(onnx_model)
+        check_onnx(onnx_model)
         oinf = OnnxInference(onnx_model)
         x = numpy.array([[0, 1], [2, 3]], dtype=numpy.float32)
         a = numpy.array([[4, 5], [6, 7]], dtype=numpy.float32)

@@ -12,6 +12,7 @@ from pyquickhelper.pycode import ExtTestCase, get_temp_folder
 from pyquickhelper.texthelper.version_helper import compare_module_version
 from pyquickhelper.texthelper.edit_text_diff import (
     diff2html, edit_distance_text)
+from mlprodict.onnx_tools.model_checker import check_onnx
 from mlprodict.onnxrt import OnnxInference
 from mlprodict.plotting.text_plot import onnx_simple_text_plot
 from mlprodict.npy.xop import loadop
@@ -48,11 +49,11 @@ class TestBugOrt(ExtTestCase):
         err = {}
         try:
             # : ValidationError: Field 'shape' of type is required but missing.
-            check_model(onx1)
+            check_onnx(onx1)
         except Exception as e:
             err['check', 1] = e
         try:
-            check_model(onx2)
+            check_onnx(onx2)
         except Exception as e:
             err['check', 2] = e
         try:

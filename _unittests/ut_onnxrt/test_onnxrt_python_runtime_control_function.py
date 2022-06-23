@@ -8,6 +8,7 @@ from onnx import FunctionProto, parser
 from pyquickhelper.pycode import ExtTestCase, ignore_warnings
 from mlprodict.plotting.text_plot import onnx_simple_text_plot
 from mlprodict.onnxrt import OnnxInference
+from mlprodict.onnx_tools.model_checker import check_onnx
 
 
 class TestOnnxrtPythonRuntimeControlFunction(ExtTestCase):
@@ -81,7 +82,7 @@ class TestOnnxrtPythonRuntimeControlFunction(ExtTestCase):
                                    opset_imports=[onnx.helper.make_opsetid("", 14), onnx.helper.make_opsetid("custom", 1)])
         m.functions.extend([f])
 
-        onnx.checker.check_model(m)
+        check_onnx(m)
 
         for rt in ['onnxruntime1', 'python']:
             with self.subTest(rt=rt):
@@ -143,7 +144,7 @@ class TestOnnxrtPythonRuntimeControlFunction(ExtTestCase):
 
         text = onnx_simple_text_plot(m)
         self.assertIn("func[local](x) -> x_processed", text)
-        onnx.checker.check_model(m)
+        check_onnx(m)
 
         for rt in ['python', 'onnxruntime1']:
             with self.subTest(rt=rt):

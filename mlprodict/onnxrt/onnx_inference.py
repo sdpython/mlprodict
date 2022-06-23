@@ -18,6 +18,7 @@ from onnx import (
     ModelProto, GraphProto, FunctionProto)
 from onnx.helper import make_model
 from ..tools.code_helper import make_callable, print_code
+from ..onnx_tools.model_checker import check_onnx
 from ..onnx_tools.onnx2py_helper import (
     _var_as_dict, numpy_min, numpy_max, guess_numpy_type_from_string)
 from ..onnx_tools.onnx_manipulations import (
@@ -329,11 +330,11 @@ class OnnxInference:
         """
         return "OnnxInference(...)"  # pragma: no cover
 
-    def check_model(self):
+    def check_onnx(self):
         """
         Checks the model follow :epkg:`ONNX` conventions.
         """
-        checker.check_model(self.obj)
+        check_onnx(self.obj)
 
     def shape_inference(self):
         """

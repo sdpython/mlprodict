@@ -566,14 +566,14 @@ class TestOptimOnnxManipulations(ExtTestCase):
             if log:
                 print(rt)
             oinf = OnnxInference(model_def, runtime=rt)
-            oinf.check_model()
+            oinf.check_onnx()
             got = oinf.run(feeds)
 
             inlined, m = onnx_inline_function(
                 model_def, {}, verbose=1 if log else 0, fLOG=print)
             self.assertEqual(len(m), 0)
             oinf = OnnxInference(inlined)
-            oinf.check_model()
+            oinf.check_onnx()
             goti = oinf.run(feeds)
             self.assertEqualArray(got['Z'], goti['Z'])
 
@@ -612,7 +612,7 @@ class TestOptimOnnxManipulations(ExtTestCase):
             if log:
                 print(rt)
             oinf = OnnxInference(model_def, runtime=rt)
-            oinf.check_model()
+            oinf.check_onnx()
             got = oinf.run(feeds)
 
             inlined, m = onnx_inline_function(
@@ -620,7 +620,7 @@ class TestOptimOnnxManipulations(ExtTestCase):
             self.assertNotIn('functions {', str(inlined))
             self.assertEqual(len(m), 1)
             oinf = OnnxInference(inlined)
-            oinf.check_model()
+            oinf.check_onnx()
             goti = oinf.run(feeds)
             self.assertEqualArray(got['Z'], goti['Z'])
             self.assertEqualArray(
@@ -673,7 +673,7 @@ class TestOptimOnnxManipulations(ExtTestCase):
             if log:
                 print(rt)
             oinf = OnnxInference(model_def, runtime=rt)
-            oinf.check_model()
+            oinf.check_onnx()
             got = oinf.run(feeds)
 
             inlined, m = onnx_inline_function(
@@ -681,7 +681,7 @@ class TestOptimOnnxManipulations(ExtTestCase):
             self.assertNotIn('functions {', str(inlined))
             self.assertEqual(len(m), 10)
             oinf = OnnxInference(inlined)
-            oinf.check_model()
+            oinf.check_onnx()
             goti = oinf.run(feeds)
             self.assertEqualArray(got['output'], goti['output'])
             self.assertEqualArray(
@@ -735,7 +735,7 @@ class TestOptimOnnxManipulations(ExtTestCase):
             if log:
                 print(rt)
             oinf = OnnxInference(model_def, runtime=rt)
-            oinf.check_model()
+            oinf.check_onnx()
             got = oinf.run(feeds)
 
             inlined, m = onnx_inline_function(
@@ -743,7 +743,7 @@ class TestOptimOnnxManipulations(ExtTestCase):
             self.assertNotIn('functions {', str(inlined))
             self.assertEqual(len(m), 1)
             oinf = OnnxInference(inlined)
-            oinf.check_model()
+            oinf.check_onnx()
             goti = oinf.run(feeds)
             self.assertEqualArray(got['Z'], goti['Z'])
             self.assertEqualArray(
@@ -823,7 +823,7 @@ class TestOptimOnnxManipulations(ExtTestCase):
             if log:
                 print(rt)
             oinf = OnnxInference(model_def, runtime=rt)
-            oinf.check_model()
+            oinf.check_onnx()
             got = oinf.run(feeds)
 
             inlined, m = onnx_inline_function(
@@ -832,12 +832,12 @@ class TestOptimOnnxManipulations(ExtTestCase):
             self.assertEqual(len(m), 5)
 
             oinf2 = OnnxInference(model_def)
-            oinf2.check_model()
+            oinf2.check_onnx()
             got2 = oinf2.run(feeds)
             self.assertEqualArray(got['Z'], got2['Z'])
 
             oinf3 = OnnxInference(inlined)
-            oinf3.check_model()
+            oinf3.check_onnx()
             got3 = oinf3.run(feeds)
             self.assertEqualArray(got['Z'], got3['Z'])
 
@@ -1187,7 +1187,7 @@ class TestOptimOnnxManipulations(ExtTestCase):
         def _validate(fct, model, check_onnx_model=True, path_error=None, inverse=False):
             if check_onnx_model and isinstance(model, ModelProto):
                 try:
-                    check_model(model)
+                    check_onnx(model)
                 except Exception as e:
                     rows = []
 
