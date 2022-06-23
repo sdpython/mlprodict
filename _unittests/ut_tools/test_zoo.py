@@ -24,7 +24,7 @@ class TestZoo(ExtTestCase):
             warnings.warn("Unable to continue this test due to %r." % e)
             return
         self.assertEndsWith("mobilenetv2-7.onnx", link)
-        self.assertEqual(len(data), 3)
+        self.assertEqual(len(data), 1)
         for k, data in data.items():
             self.assertIn("test_data_set", k)
             self.assertEqual(len(data), 2)
@@ -89,4 +89,5 @@ class TestZoo(ExtTestCase):
 
 
 if __name__ == "__main__":
+    # TestZoo().test_verify_model_squeezenet()
     unittest.main()
