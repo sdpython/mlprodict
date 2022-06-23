@@ -20,7 +20,7 @@ from sklearn.ensemble import (
 from lightgbm import LGBMRegressor, LGBMClassifier
 from xgboost import XGBRegressor, XGBClassifier
 import skl2onnx
-from mlprodict.onnx_tools.model_check import check_onnx
+from mlprodict.onnx_tools.model_checker import check_onnx
 from mlprodict.onnxrt import OnnxInference
 from mlprodict.onnx_conv import to_onnx
 from mlprodict.plotting.text_plot import onnx_simple_text_plot
