@@ -26,11 +26,11 @@ def checker_check_model(model, full_check=True):
     exc = None
     exc2 = None
     try:
-        checker.check_model(model, full_check=full_check)
+        checker.check_model(model, full_check=False)
     except Exception as e:  # pylint: disable=W0703
         exc = e
     try:
-        check_model_py(model, full_check=full_check)
+        check_model_py(model)
     except OnnxCheckError as ee:
         exc2 = ee
     if exc is None and exc2 is not None:
@@ -38,12 +38,16 @@ def checker_check_model(model, full_check=True):
     if exc is not None and exc2 is None:
         raise AssertionError("%r != %r" % (exc, exc2))
     if exc is None and exc2 is None:
+        if full_check:
+            checker.check_model(model, full_check=True)
         return
     if not _cmp_error(exc, exc2):
         raise AssertionError(
             "Error messages are different:\n%s\n%s." % (exc, exc2)) from exc2
     if exc is not None:
         raise exc
+    if full_check:
+        checker.check_model(model, full_check=True)
 
 
 class TestCheckModel(ExtTestCase):
@@ -68,8 +72,10 @@ class TestCheckModel(ExtTestCase):
         sparse.dims.extend(shape)
         nnz = len(values)
 
-        sparse.values.CopyFrom(helper.make_tensor(name, TensorProto.INT64, (nnz,), values))
-        sparse.indices.CopyFrom(helper.make_tensor('spind', TensorProto.INT64, indices_shape, indices))
+        sparse.values.CopyFrom(helper.make_tensor(
+            name, TensorProto.INT64, (nnz,), values))
+        sparse.indices.CopyFrom(helper.make_tensor(
+            'spind', TensorProto.INT64, indices_shape, indices))
         return sparse
 
     def test_check_node(self) -> None:
@@ -158,7 +164,8 @@ class TestCheckModel(ExtTestCase):
 
         model = helper.make_model(graph, producer_name='test')
 
-        self.assertRaises(shape_inference.InferenceError, checker_check_model, model, True)
+        self.assertRaises(shape_inference.InferenceError,
+                          checker_check_model, model, True)
 
         checker.check_graph(graph)
 
@@ -173,7 +180,8 @@ class TestCheckModel(ExtTestCase):
 
         model = helper.make_model(graph, producer_name='test')
 
-        self.assertRaises(shape_inference.InferenceError, checker_check_model, model, True)
+        self.assertRaises(shape_inference.InferenceError,
+                          checker_check_model, model, True)
 
         checker.check_graph(graph)
 
@@ -306,7 +314,8 @@ class TestCheckModel(ExtTestCase):
             [helper.make_tensor_value_info("X", TensorProto.FLOAT, [1, 2])],
             [helper.make_tensor_value_info("Y", TensorProto.FLOAT, [1, 2])])
         onnx_id = helper.make_opsetid("", 1)
-        model = helper.make_model(graph, producer_name='test', opset_imports=[onnx_id])
+        model = helper.make_model(
+            graph, producer_name='test', opset_imports=[onnx_id])
 
         checker_check_model(model)
 
@@ -314,8 +323,10 @@ class TestCheckModel(ExtTestCase):
         tensor = self._sample_float_tensor
         checker.check_tensor(tensor)
 
-        tensor.raw_data = numpy.random.randn(2, 3).astype(numpy.float32).tobytes()
-        self.assertRaises(checker.ValidationError, checker.check_tensor, tensor)
+        tensor.raw_data = numpy.random.randn(
+            2, 3).astype(numpy.float32).tobytes()
+        self.assertRaises(checker.ValidationError,
+                          checker.check_tensor, tensor)
 
     def test_check_string_tensor(self) -> None:
         tensor = TensorProto()
@@ -327,12 +338,14 @@ class TestCheckModel(ExtTestCase):
         del tensor.string_data[:]
         tensor.raw_data = b'Test'
         # string data should not be stored in raw_data field
-        self.assertRaises(checker.ValidationError, checker.check_tensor, tensor)
+        self.assertRaises(checker.ValidationError,
+                          checker.check_tensor, tensor)
 
     def test_check_tensor_mismatched_field(self) -> None:
         tensor = self._sample_float_tensor
         tensor.data_type = TensorProto.INT32
-        self.assertRaises(checker.ValidationError, checker.check_tensor, tensor)
+        self.assertRaises(checker.ValidationError,
+                          checker.check_tensor, tensor)
 
     def test_nested_graph(self) -> None:
         n1 = helper.make_node(
@@ -359,7 +372,8 @@ class TestCheckModel(ExtTestCase):
                 helper.make_tensor_value_info("cond", TensorProto.BOOL, [1]),
                 helper.make_tensor_value_info("X", TensorProto.FLOAT, [1, 2])
             ],
-            outputs=[helper.make_tensor_value_info("Z", TensorProto.FLOAT, [1, 2])],
+            outputs=[helper.make_tensor_value_info(
+                "Z", TensorProto.FLOAT, [1, 2])],
         )
 
         checker.check_graph(graph)
@@ -391,7 +405,8 @@ class TestCheckModel(ExtTestCase):
                 helper.make_tensor_value_info("cond", TensorProto.BOOL, [1]),
                 helper.make_tensor_value_info("X", TensorProto.FLOAT, [1, 2])
             ],
-            outputs=[helper.make_tensor_value_info("Z", TensorProto.FLOAT, [1, 2])],
+            outputs=[helper.make_tensor_value_info(
+                "Z", TensorProto.FLOAT, [1, 2])],
         )
 
         checker.check_graph(graph)
@@ -435,28 +450,36 @@ class TestCheckModel(ExtTestCase):
     def test_check_sparse_tensor_invalid_index(self) -> None:
         # index value 181 is out-of-range
         sparse = self.make_sparse([100], [13, 17, 19], [3], [9, 27, 181])
-        self.assertRaises(checker.ValidationError, checker.check_sparse_tensor, sparse)
+        self.assertRaises(checker.ValidationError,
+                          checker.check_sparse_tensor, sparse)
 
     def test_check_sparse_tensor_unordered(self) -> None:
         # index values are not in sorted order
         sparse = self.make_sparse([100], [13, 17, 19], [3], [27, 9, 81])
-        self.assertRaises(checker.ValidationError, checker.check_sparse_tensor, sparse)
+        self.assertRaises(checker.ValidationError,
+                          checker.check_sparse_tensor, sparse)
 
     def test_check_sparse_tensor_coo_format(self) -> None:
-        sparse = self.make_sparse([10, 10], [13, 17, 19], [3, 2], [0, 9, 2, 7, 8, 1])
+        sparse = self.make_sparse([10, 10], [13, 17, 19], [
+                                  3, 2], [0, 9, 2, 7, 8, 1])
         checker.check_sparse_tensor(sparse)
 
     def test_check_sparse_tensor_coo_format_invalid_index(self) -> None:
-        sparse = self.make_sparse([10, 10], [13, 17, 19], [3, 2], [0, 9, 0, 27, 8, 1])
-        self.assertRaises(checker.ValidationError, checker.check_sparse_tensor, sparse)
+        sparse = self.make_sparse([10, 10], [13, 17, 19], [
+                                  3, 2], [0, 9, 0, 27, 8, 1])
+        self.assertRaises(checker.ValidationError,
+                          checker.check_sparse_tensor, sparse)
 
     def test_check_sparse_tensor_coo_format_invalid_shape(self) -> None:
-        sparse = self.make_sparse([10, 10], [13, 17, 19], [2, 3], [0, 9, 2, 7, 8, 1])
-        self.assertRaises(checker.ValidationError, checker.check_sparse_tensor, sparse)
+        sparse = self.make_sparse([10, 10], [13, 17, 19], [
+                                  2, 3], [0, 9, 2, 7, 8, 1])
+        self.assertRaises(checker.ValidationError,
+                          checker.check_sparse_tensor, sparse)
 
     def test_check_sparse_tensor_coo_format_invalid_dim2(self) -> None:
         sparse = self.make_sparse([10, 10], [13, 17, 19], [3, 1], [0, 1, 2])
-        self.assertRaises(checker.ValidationError, checker.check_sparse_tensor, sparse)
+        self.assertRaises(checker.ValidationError,
+                          checker.check_sparse_tensor, sparse)
 
     def test_check_sparse_matmul(self) -> None:
         M = 5
@@ -465,7 +488,8 @@ class TestCheckModel(ExtTestCase):
         X = helper.make_tensor_value_info('X', TensorProto.FLOAT, [N])
         # Create a [M,N] sparse-matrix constant C
         sparse_tensor = self.make_sparse([M, N], [2, 3, 1], [3], [3, 11, 37])
-        node1 = helper.make_node('Constant', [], ['C'], sparse_value=sparse_tensor)
+        node1 = helper.make_node(
+            'Constant', [], ['C'], sparse_value=sparse_tensor)
         # Create ValueInfoProto for output Y of shape [M]
         Y = helper.make_tensor_value_info('Y', TensorProto.FLOAT, [M])
         # Compute Y = C X
@@ -483,8 +507,10 @@ class TestCheckModel(ExtTestCase):
         onnx_id = helper.make_opsetid("", 6)
         node = helper.make_node('Add', ['X', 'Y'], ['Z'])
         graph = helper.make_graph([node], "test_add_input", [X, Y], [Z])
-        model = helper.make_model(graph, producer_name='test', opset_imports=[onnx_id])
-        self.assertRaises(shape_inference.InferenceError, checker_check_model, model, True)
+        model = helper.make_model(
+            graph, producer_name='test', opset_imports=[onnx_id])
+        self.assertRaises(shape_inference.InferenceError,
+                          checker_check_model, model, True)
 
     def test_check_model_inconsistent_type(self) -> None:
         N = 10
@@ -494,8 +520,10 @@ class TestCheckModel(ExtTestCase):
         onnx_id = helper.make_opsetid("", 6)
         node = helper.make_node('Add', ['X', 'Y'], ['Z'])
         graph = helper.make_graph([node], "test_add_input", [X, Y], [Z])
-        model = helper.make_model(graph, producer_name='test', opset_imports=[onnx_id])
-        self.assertRaises(shape_inference.InferenceError, checker_check_model, model, True)
+        model = helper.make_model(
+            graph, producer_name='test', opset_imports=[onnx_id])
+        self.assertRaises(shape_inference.InferenceError,
+                          checker_check_model, model, True)
 
     def test_check_model_unsupported_output_type(self) -> None:
         N = 10
@@ -505,8 +533,10 @@ class TestCheckModel(ExtTestCase):
         onnx_id = helper.make_opsetid("", 6)
         node = helper.make_node('Add', ['X', 'Y'], ['Z'])
         graph = helper.make_graph([node], "test_add_input", [X, Y], [Z])
-        model = helper.make_model(graph, producer_name='test', opset_imports=[onnx_id])
-        self.assertRaises(shape_inference.InferenceError, checker_check_model, model, True)
+        model = helper.make_model(
+            graph, producer_name='test', opset_imports=[onnx_id])
+        self.assertRaises(shape_inference.InferenceError,
+                          checker_check_model, model, True)
 
     def test_loop_with_same_initializer_input_below_ir4(self) -> None:
         # This is for testing IR<4: tensors must exist both in initializer and input
@@ -519,53 +549,84 @@ class TestCheckModel(ExtTestCase):
             graph=helper.make_graph(
                 name='test-loop',
                 inputs=[
-                    helper.make_tensor_value_info('input_0', TensorProto.INT32, shape=[1]),
-                    helper.make_tensor_value_info('while_maximum_iterations_0', TensorProto.INT64, shape=[]),
-                    helper.make_tensor_value_info('const_fold_opt__18', TensorProto.INT64, shape=[1]),
-                    helper.make_tensor_value_info('const_fold_opt__17', TensorProto.FLOAT, shape=[]),
-                    helper.make_tensor_value_info('Const_0', TensorProto.INT32, shape=[1]),
+                    helper.make_tensor_value_info(
+                        'input_0', TensorProto.INT32, shape=[1]),
+                    helper.make_tensor_value_info(
+                        'while_maximum_iterations_0', TensorProto.INT64, shape=[]),
+                    helper.make_tensor_value_info(
+                        'const_fold_opt__18', TensorProto.INT64, shape=[1]),
+                    helper.make_tensor_value_info(
+                        'const_fold_opt__17', TensorProto.FLOAT, shape=[]),
+                    helper.make_tensor_value_info(
+                        'Const_0', TensorProto.INT32, shape=[1]),
                 ],
-                outputs=[helper.make_tensor_value_info('output_0', TensorProto.INT32, shape=[1])],
+                outputs=[helper.make_tensor_value_info(
+                    'output_0', TensorProto.INT32, shape=[1])],
                 initializer=[
-                    numpy_helper.from_array(numpy.array(9223372036854775807, dtype=numpy.int64), name='while_maximum_iterations_0'),
-                    numpy_helper.from_array(numpy.array([-1], dtype=numpy.int64), name='const_fold_opt__18'),
-                    numpy_helper.from_array(numpy.array(10.0, dtype=numpy.float32), name='const_fold_opt__17'),
-                    numpy_helper.from_array(numpy.array([1], dtype=numpy.int32), name='Const_0'),
+                    numpy_helper.from_array(numpy.array(
+                        9223372036854775807, dtype=numpy.int64), name='while_maximum_iterations_0'),
+                    numpy_helper.from_array(numpy.array(
+                        [-1], dtype=numpy.int64), name='const_fold_opt__18'),
+                    numpy_helper.from_array(numpy.array(
+                        10.0, dtype=numpy.float32), name='const_fold_opt__17'),
+                    numpy_helper.from_array(numpy.array(
+                        [1], dtype=numpy.int32), name='Const_0'),
                 ],
                 nodes=[
-                    helper.make_node('Cast', inputs=['input_0'], outputs=['while_cond_158_while_Less__13_0'], name='while_cond_158_while_Less__13', domain='', to=TensorProto.FLOAT),
-                    helper.make_node('Less', inputs=['while_cond_158_while_Less__13_0', 'const_fold_opt__17'], outputs=['while_cond_158_while_Less_0'], name='while_cond_158_while_Less', domain=''),
-                    helper.make_node('Squeeze', inputs=['while_cond_158_while_Less_0'], outputs=['while_cond_158_while_Squeeze_0'], name='while_cond_158_while_Squeeze', domain=''),
+                    helper.make_node(
+                        'Cast', inputs=['input_0'],
+                        outputs=['while_cond_158_while_Less__13_0'],
+                        name='while_cond_158_while_Less__13', domain='', to=TensorProto.FLOAT),
+                    helper.make_node('Less', inputs=['while_cond_158_while_Less__13_0', 'const_fold_opt__17'], outputs=[
+                                     'while_cond_158_while_Less_0'], name='while_cond_158_while_Less', domain=''),
+                    helper.make_node('Squeeze', inputs=['while_cond_158_while_Less_0'], outputs=[
+                                     'while_cond_158_while_Squeeze_0'], name='while_cond_158_while_Squeeze', domain=''),
                     helper.make_node(
                         'Loop',
-                        inputs=['while_maximum_iterations_0', 'while_cond_158_while_Squeeze_0', 'input_0', 'Const_0'],
+                        inputs=['while_maximum_iterations_0',
+                                'while_cond_158_while_Squeeze_0', 'input_0', 'Const_0'],
                         outputs=['while_loop_0', 'while_loop_1'],
                         name='while_loop',
                         body=helper.make_graph(
                             name='while_body',
                             inputs=[
-                                helper.make_tensor_value_info('while_while_loop_counter_0', TensorProto.INT64, shape=[]),
-                                helper.make_tensor_value_info('cond__15_0', TensorProto.BOOL, shape=[]),
-                                helper.make_tensor_value_info('while_placeholder_0', TensorProto.INT32, shape=[1]),
-                                helper.make_tensor_value_info('while_add_const_0_0', TensorProto.INT32, shape=[1]),
-                                helper.make_tensor_value_info('const_fold_opt__19', TensorProto.FLOAT, shape=[]),
+                                helper.make_tensor_value_info(
+                                    'while_while_loop_counter_0', TensorProto.INT64, shape=[]),
+                                helper.make_tensor_value_info(
+                                    'cond__15_0', TensorProto.BOOL, shape=[]),
+                                helper.make_tensor_value_info(
+                                    'while_placeholder_0', TensorProto.INT32, shape=[1]),
+                                helper.make_tensor_value_info(
+                                    'while_add_const_0_0', TensorProto.INT32, shape=[1]),
+                                helper.make_tensor_value_info(
+                                    'const_fold_opt__19', TensorProto.FLOAT, shape=[]),
                             ],
                             outputs=[
-                                helper.make_tensor_value_info('cond___while_Identity_graph_outputs_Identity__3_0', TensorProto.BOOL, shape=[]),
-                                helper.make_tensor_value_info('while_Identity_2_0', TensorProto.INT32, shape=[1]),
-                                helper.make_tensor_value_info('while_add_const_0_0', TensorProto.INT32, shape=[1]),
+                                helper.make_tensor_value_info(
+                                    'cond___while_Identity_graph_outputs_Identity__3_0', TensorProto.BOOL, shape=[]),
+                                helper.make_tensor_value_info(
+                                    'while_Identity_2_0', TensorProto.INT32, shape=[1]),
+                                helper.make_tensor_value_info(
+                                    'while_add_const_0_0', TensorProto.INT32, shape=[1]),
                             ],
-                            initializer=[numpy_helper.from_array(numpy.array(10.0, dtype=numpy.float32), name='const_fold_opt__19')],
+                            initializer=[numpy_helper.from_array(numpy.array(
+                                10.0, dtype=numpy.float32), name='const_fold_opt__19')],
                             nodes=[
-                                helper.make_node('Add', inputs=['while_placeholder_0', 'while_add_const_0_0'], outputs=['while_Identity_2_0'], name='while_Add'),
-                                helper.make_node('Cast', inputs=['while_Identity_2_0'], outputs=['cond___while_Less__13_0'], name='cond___while_Less__13', domain='', to=TensorProto.FLOAT),
-                                helper.make_node('Less', inputs=['cond___while_Less__13_0', 'const_fold_opt__19'], outputs=['cond___while_Less_0'], name='cond___while_Less', domain=''),
-                                helper.make_node('Squeeze', inputs=['cond___while_Less_0'], outputs=['cond___while_Identity_graph_outputs_Identity__3_0'], name='cond___while_Squeeze', domain=''),
+                                helper.make_node('Add', inputs=['while_placeholder_0', 'while_add_const_0_0'], outputs=[
+                                                 'while_Identity_2_0'], name='while_Add'),
+                                helper.make_node('Cast', inputs=['while_Identity_2_0'], outputs=[
+                                                 'cond___while_Less__13_0'], name='cond___while_Less__13', domain='', to=TensorProto.FLOAT),
+                                helper.make_node('Less', inputs=['cond___while_Less__13_0', 'const_fold_opt__19'], outputs=[
+                                                 'cond___while_Less_0'], name='cond___while_Less', domain=''),
+                                helper.make_node('Squeeze', inputs=['cond___while_Less_0'], outputs=[
+                                                 'cond___while_Identity_graph_outputs_Identity__3_0'], name='cond___while_Squeeze', domain=''),
                             ],
                         ),
                     ),
-                    helper.make_node('Unsqueeze', inputs=['while_loop_0'], outputs=['Reshape_tensor_0'], name='Reshape_tensor', axes=[0]),
-                    helper.make_node('Reshape', inputs=['Reshape_tensor_0', 'const_fold_opt__18'], outputs=['output_0'], name='Reshape'),
+                    helper.make_node('Unsqueeze', inputs=['while_loop_0'], outputs=[
+                                     'Reshape_tensor_0'], name='Reshape_tensor', axes=[0]),
+                    helper.make_node('Reshape', inputs=[
+                                     'Reshape_tensor_0', 'const_fold_opt__18'], outputs=['output_0'], name='Reshape'),
                 ],
             ),
         )
@@ -583,56 +644,85 @@ class TestCheckModel(ExtTestCase):
             graph=helper.make_graph(
                 name='test-loop',
                 inputs=[
-                    helper.make_tensor_value_info('input_0', TensorProto.INT32, shape=[1]),
-                    helper.make_tensor_value_info('while_maximum_iterations_0', TensorProto.INT64, shape=[]),
-                    helper.make_tensor_value_info('const_fold_opt__18', TensorProto.INT64, shape=[1]),
-                    helper.make_tensor_value_info('const_fold_opt__17', TensorProto.FLOAT, shape=[]),
-                    helper.make_tensor_value_info('Const_0', TensorProto.INT32, shape=[1]),
+                    helper.make_tensor_value_info(
+                        'input_0', TensorProto.INT32, shape=[1]),
+                    helper.make_tensor_value_info(
+                        'while_maximum_iterations_0', TensorProto.INT64, shape=[]),
+                    helper.make_tensor_value_info(
+                        'const_fold_opt__18', TensorProto.INT64, shape=[1]),
+                    helper.make_tensor_value_info(
+                        'const_fold_opt__17', TensorProto.FLOAT, shape=[]),
+                    helper.make_tensor_value_info(
+                        'Const_0', TensorProto.INT32, shape=[1]),
                 ],
-                outputs=[helper.make_tensor_value_info('output_0', TensorProto.INT32, shape=[1])],
+                outputs=[helper.make_tensor_value_info(
+                    'output_0', TensorProto.INT32, shape=[1])],
                 initializer=[
-                    numpy_helper.from_array(numpy.array(9223372036854775807, dtype=numpy.int64), name='while_maximum_iterations_0'),
-                    numpy_helper.from_array(numpy.array([-1], dtype=numpy.int64), name='const_fold_opt__18'),
-                    numpy_helper.from_array(numpy.array(10.0, dtype=numpy.float32), name='const_fold_opt__17'),
-                    numpy_helper.from_array(numpy.array([1], dtype=numpy.int32), name='Const_0'),
+                    numpy_helper.from_array(numpy.array(
+                        9223372036854775807, dtype=numpy.int64), name='while_maximum_iterations_0'),
+                    numpy_helper.from_array(numpy.array(
+                        [-1], dtype=numpy.int64), name='const_fold_opt__18'),
+                    numpy_helper.from_array(numpy.array(
+                        10.0, dtype=numpy.float32), name='const_fold_opt__17'),
+                    numpy_helper.from_array(numpy.array(
+                        [1], dtype=numpy.int32), name='Const_0'),
                 ],
                 nodes=[
-                    helper.make_node('Cast', inputs=['input_0'], outputs=['while_cond_158_while_Less__13_0'], name='while_cond_158_while_Less__13', domain='', to=TensorProto.FLOAT),
-                    helper.make_node('Less', inputs=['while_cond_158_while_Less__13_0', 'const_fold_opt__17'], outputs=['while_cond_158_while_Less_0'], name='while_cond_158_while_Less', domain=''),
-                    helper.make_node('Squeeze', inputs=['while_cond_158_while_Less_0'], outputs=['while_cond_158_while_Squeeze_0'], name='while_cond_158_while_Squeeze', domain=''),
+                    helper.make_node(
+                        'Cast', inputs=['input_0'],
+                        outputs=['while_cond_158_while_Less__13_0'],
+                        name='while_cond_158_while_Less__13', domain='', to=TensorProto.FLOAT),
+                    helper.make_node('Less', inputs=['while_cond_158_while_Less__13_0', 'const_fold_opt__17'], outputs=[
+                                     'while_cond_158_while_Less_0'], name='while_cond_158_while_Less', domain=''),
+                    helper.make_node('Squeeze', inputs=['while_cond_158_while_Less_0'], outputs=[
+                                     'while_cond_158_while_Squeeze_0'], name='while_cond_158_while_Squeeze', domain=''),
                     helper.make_node(
                         'Loop',
-                        inputs=['while_maximum_iterations_0', 'while_cond_158_while_Squeeze_0', 'input_0', 'Const_0'],
+                        inputs=['while_maximum_iterations_0',
+                                'while_cond_158_while_Squeeze_0', 'input_0', 'Const_0'],
                         outputs=['while_loop_0', 'while_loop_1'],
                         name='while_loop',
                         body=helper.make_graph(
                             name='while_body',
                             inputs=[
-                                helper.make_tensor_value_info('while_while_loop_counter_0', TensorProto.INT64, shape=[]),
-                                helper.make_tensor_value_info('cond__15_0', TensorProto.BOOL, shape=[]),
-                                helper.make_tensor_value_info('while_placeholder_0', TensorProto.INT32, shape=[1]),
-                                helper.make_tensor_value_info('while_add_const_0_0', TensorProto.INT32, shape=[1]),
+                                helper.make_tensor_value_info(
+                                    'while_while_loop_counter_0', TensorProto.INT64, shape=[]),
+                                helper.make_tensor_value_info(
+                                    'cond__15_0', TensorProto.BOOL, shape=[]),
+                                helper.make_tensor_value_info(
+                                    'while_placeholder_0', TensorProto.INT32, shape=[1]),
+                                helper.make_tensor_value_info(
+                                    'while_add_const_0_0', TensorProto.INT32, shape=[1]),
                                 # The following input cannot be found in initializer and checker should throw an error
-                                helper.make_tensor_value_info('const_fold_opt__18', TensorProto.FLOAT, shape=[]),
+                                helper.make_tensor_value_info(
+                                    'const_fold_opt__18', TensorProto.FLOAT, shape=[]),
                             ],
                             outputs=[
-                                helper.make_tensor_value_info('cond___while_Identity_graph_outputs_Identity__3_0', TensorProto.BOOL, shape=[]),
-                                helper.make_tensor_value_info('while_Identity_2_0', TensorProto.INT32, shape=[1]),
-                                helper.make_tensor_value_info('while_add_const_0_0', TensorProto.INT32, shape=[1]),
+                                helper.make_tensor_value_info(
+                                    'cond___while_Identity_graph_outputs_Identity__3_0', TensorProto.BOOL, shape=[]),
+                                helper.make_tensor_value_info(
+                                    'while_Identity_2_0', TensorProto.INT32, shape=[1]),
+                                helper.make_tensor_value_info(
+                                    'while_add_const_0_0', TensorProto.INT32, shape=[1]),
                             ],
                             initializer=[],
                             nodes=[
-                                helper.make_node('Add', inputs=['while_placeholder_0', 'while_add_const_0_0'], outputs=['while_Identity_2_0'], name='while_Add'),
-                                helper.make_node('Cast', inputs=['while_Identity_2_0'], outputs=['cond___while_Less__13_0'], name='cond___while_Less__13', domain='', to=TensorProto.FLOAT)
+                                helper.make_node('Add', inputs=['while_placeholder_0', 'while_add_const_0_0'], outputs=[
+                                                 'while_Identity_2_0'], name='while_Add'),
+                                helper.make_node('Cast', inputs=['while_Identity_2_0'], outputs=[
+                                                 'cond___while_Less__13_0'], name='cond___while_Less__13', domain='', to=TensorProto.FLOAT)
                             ],
                         ),
                     ),
-                    helper.make_node('Unsqueeze', inputs=['while_loop_0'], outputs=['Reshape_tensor_0'], name='Reshape_tensor', axes=[0]),
-                    helper.make_node('Reshape', inputs=['Reshape_tensor_0', 'const_fold_opt__18'], outputs=['output_0'], name='Reshape'),
+                    helper.make_node('Unsqueeze', inputs=['while_loop_0'], outputs=[
+                                     'Reshape_tensor_0'], name='Reshape_tensor', axes=[0]),
+                    helper.make_node('Reshape', inputs=[
+                                     'Reshape_tensor_0', 'const_fold_opt__18'], outputs=['output_0'], name='Reshape'),
                 ],
             ),
         )
-        self.assertRaises(shape_inference.InferenceError, checker_check_model, model, True)
+        self.assertRaises(shape_inference.InferenceError,
+                          checker_check_model, model, True)
 
     def test_loop_with_same_initializer_input_above_ir4(self) -> None:
         # This is for testing IR>=4:
@@ -644,60 +734,90 @@ class TestCheckModel(ExtTestCase):
             graph=helper.make_graph(
                 name='test-loop',
                 inputs=[
-                    helper.make_tensor_value_info('input_0', TensorProto.INT32, shape=[1]),
-                    helper.make_tensor_value_info('while_maximum_iterations_0', TensorProto.INT64, shape=[]),
-                    helper.make_tensor_value_info('const_fold_opt__18', TensorProto.INT64, shape=[1]),
-                    helper.make_tensor_value_info('const_fold_opt__17', TensorProto.FLOAT, shape=[]),
-                    helper.make_tensor_value_info('Const_0', TensorProto.INT32, shape=[1]),
+                    helper.make_tensor_value_info(
+                        'input_0', TensorProto.INT32, shape=[1]),
+                    helper.make_tensor_value_info(
+                        'while_maximum_iterations_0', TensorProto.INT64, shape=[]),
+                    helper.make_tensor_value_info(
+                        'const_fold_opt__18', TensorProto.INT64, shape=[1]),
+                    helper.make_tensor_value_info(
+                        'const_fold_opt__17', TensorProto.FLOAT, shape=[]),
+                    helper.make_tensor_value_info(
+                        'Const_0', TensorProto.INT32, shape=[1]),
                 ],
-                outputs=[helper.make_tensor_value_info('output_0', TensorProto.INT32, shape=[1])],
+                outputs=[helper.make_tensor_value_info(
+                    'output_0', TensorProto.INT32, shape=[1])],
                 initializer=[
-                    numpy_helper.from_array(numpy.array(9223372036854775807, dtype=numpy.int64), name='while_maximum_iterations_0'),
-                    numpy_helper.from_array(numpy.array([-1], dtype=numpy.int64), name='const_fold_opt__18'),
-                    numpy_helper.from_array(numpy.array(10.0, dtype=numpy.float32), name='const_fold_opt__17'),
-                    numpy_helper.from_array(numpy.array([1], dtype=numpy.int32), name='Const_0'),
+                    numpy_helper.from_array(numpy.array(
+                        9223372036854775807, dtype=numpy.int64), name='while_maximum_iterations_0'),
+                    numpy_helper.from_array(numpy.array(
+                        [-1], dtype=numpy.int64), name='const_fold_opt__18'),
+                    numpy_helper.from_array(numpy.array(
+                        10.0, dtype=numpy.float32), name='const_fold_opt__17'),
+                    numpy_helper.from_array(numpy.array(
+                        [1], dtype=numpy.int32), name='Const_0'),
                 ],
                 nodes=[
-                    helper.make_node('Cast', inputs=['input_0'], outputs=['while_cond_158_while_Less__13_0'], name='while_cond_158_while_Less__13', domain='', to=TensorProto.FLOAT),
-                    helper.make_node('Less', inputs=['while_cond_158_while_Less__13_0', 'const_fold_opt__17'], outputs=['while_cond_158_while_Less_0'], name='while_cond_158_while_Less', domain=''),
-                    helper.make_node('Squeeze', inputs=['while_cond_158_while_Less_0'], outputs=['while_cond_158_while_Squeeze_0'], name='while_cond_158_while_Squeeze', domain=''),
+                    helper.make_node(
+                        'Cast', inputs=['input_0'],
+                        outputs=['while_cond_158_while_Less__13_0'],
+                        name='while_cond_158_while_Less__13', domain='', to=TensorProto.FLOAT),
+                    helper.make_node('Less', inputs=['while_cond_158_while_Less__13_0', 'const_fold_opt__17'], outputs=[
+                                     'while_cond_158_while_Less_0'], name='while_cond_158_while_Less', domain=''),
+                    helper.make_node('Squeeze', inputs=['while_cond_158_while_Less_0'], outputs=[
+                                     'while_cond_158_while_Squeeze_0'], name='while_cond_158_while_Squeeze', domain=''),
                     helper.make_node(
                         'Loop',
-                        inputs=['while_maximum_iterations_0', 'while_cond_158_while_Squeeze_0', 'input_0', 'Const_0'],
+                        inputs=['while_maximum_iterations_0',
+                                'while_cond_158_while_Squeeze_0', 'input_0', 'Const_0'],
                         outputs=['while_loop_0', 'while_loop_1'],
                         name='while_loop',
                         body=helper.make_graph(
                             name='while_body',
                             inputs=[
-                                helper.make_tensor_value_info('while_while_loop_counter_0', TensorProto.INT64, shape=[]),
-                                helper.make_tensor_value_info('cond__15_0', TensorProto.BOOL, shape=[]),
-                                helper.make_tensor_value_info('while_placeholder_0', TensorProto.INT32, shape=[1]),
-                                helper.make_tensor_value_info('while_add_const_0_0', TensorProto.INT32, shape=[1]),
+                                helper.make_tensor_value_info(
+                                    'while_while_loop_counter_0', TensorProto.INT64, shape=[]),
+                                helper.make_tensor_value_info(
+                                    'cond__15_0', TensorProto.BOOL, shape=[]),
+                                helper.make_tensor_value_info(
+                                    'while_placeholder_0', TensorProto.INT32, shape=[1]),
+                                helper.make_tensor_value_info(
+                                    'while_add_const_0_0', TensorProto.INT32, shape=[1]),
                             ],
                             outputs=[
-                                helper.make_tensor_value_info('cond___while_Identity_graph_outputs_Identity__3_0', TensorProto.BOOL, shape=[]),
-                                helper.make_tensor_value_info('while_Identity_2_0', TensorProto.INT32, shape=[1]),
-                                helper.make_tensor_value_info('while_add_const_0_0', TensorProto.INT32, shape=[1]),
+                                helper.make_tensor_value_info(
+                                    'cond___while_Identity_graph_outputs_Identity__3_0', TensorProto.BOOL, shape=[]),
+                                helper.make_tensor_value_info(
+                                    'while_Identity_2_0', TensorProto.INT32, shape=[1]),
+                                helper.make_tensor_value_info(
+                                    'while_add_const_0_0', TensorProto.INT32, shape=[1]),
                             ],
                             # Cannot use the same name as both a subgraph initializer and subgraph input: while_while_loop_counter_0
-                            initializer=[numpy_helper.from_array(numpy.array(10, dtype=numpy.int64), name='while_while_loop_counter_0')],
+                            initializer=[numpy_helper.from_array(numpy.array(
+                                10, dtype=numpy.int64), name='while_while_loop_counter_0')],
                             nodes=[
-                                helper.make_node('Add', inputs=['while_placeholder_0', 'while_add_const_0_0'], outputs=['while_Identity_2_0'], name='while_Add'),
-                                helper.make_node('Cast', inputs=['while_Identity_2_0'], outputs=['cond___while_Less__13_0'], name='cond___while_Less__13', domain='', to=TensorProto.FLOAT),
-                                helper.make_node('Less', inputs=['cond___while_Less__13_0', 'while_while_loop_counter_0'], outputs=['cond___while_Less_0'], name='cond___while_Less', domain=''),
-                                helper.make_node('Squeeze', inputs=['cond___while_Less_0'], outputs=['cond___while_Identity_graph_outputs_Identity__3_0'], name='cond___while_Squeeze', domain=''),
+                                helper.make_node('Add', inputs=['while_placeholder_0', 'while_add_const_0_0'], outputs=[
+                                                 'while_Identity_2_0'], name='while_Add'),
+                                helper.make_node('Cast', inputs=['while_Identity_2_0'], outputs=[
+                                                 'cond___while_Less__13_0'], name='cond___while_Less__13', domain='', to=TensorProto.FLOAT),
+                                helper.make_node('Less', inputs=['cond___while_Less__13_0', 'while_while_loop_counter_0'], outputs=[
+                                                 'cond___while_Less_0'], name='cond___while_Less', domain=''),
+                                helper.make_node('Squeeze', inputs=['cond___while_Less_0'], outputs=[
+                                                 'cond___while_Identity_graph_outputs_Identity__3_0'], name='cond___while_Squeeze', domain=''),
                             ],
                         ),
                     ),
-                    helper.make_node('Unsqueeze', inputs=['while_loop_0'], outputs=['Reshape_tensor_0'], name='Reshape_tensor', axes=[0]),
-                    helper.make_node('Reshape', inputs=['Reshape_tensor_0', 'const_fold_opt__18'], outputs=['output_0'], name='Reshape'),
+                    helper.make_node('Unsqueeze', inputs=['while_loop_0'], outputs=[
+                                     'Reshape_tensor_0'], name='Reshape_tensor', axes=[0]),
+                    helper.make_node('Reshape', inputs=[
+                                     'Reshape_tensor_0', 'const_fold_opt__18'], outputs=['output_0'], name='Reshape'),
                 ],
             ),
         )
-        self.assertRaises(shape_inference.InferenceError, checker_check_model, model, True)
-
+        self.assertRaises(shape_inference.InferenceError,
+                          checker_check_model, model, True)
 
 
 if __name__ == "__main__":
-    TestCheckModel().test_check_graph_types()
+    # TestCheckModel().test_check_graph_types()
     unittest.main(verbosity=2)
