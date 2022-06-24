@@ -14,7 +14,7 @@ from keyword import iskeyword
 import numpy
 from scipy.sparse import coo_matrix
 from onnx import (
-    load, load_model, checker, shape_inference,
+    load, load_model, shape_inference,
     ModelProto, GraphProto, FunctionProto)
 from onnx.helper import make_model
 from ..tools.code_helper import make_callable, print_code

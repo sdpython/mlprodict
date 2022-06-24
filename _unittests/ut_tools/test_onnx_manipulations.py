@@ -12,7 +12,6 @@ import numpy
 from onnx import (
     helper, TensorProto, load, FunctionProto, ModelProto,
     GraphProto, AttributeProto)
-from onnx.checker import check_model
 from pyquickhelper.pycode import ExtTestCase, get_temp_folder, ignore_warnings
 from pyquickhelper.texthelper.edit_text_diff import (
     diff2html, edit_distance_text)

@@ -163,10 +163,11 @@ def download_model_data(name, model=None, cache=None, verbose=False):
     if suggested_folder is not None:
         fold_onnx = [suggested_folder] + foldtar
     else:
-        fold_onnx =  foldtar + [onnx_file, onnx_file.split('-')[0],
-                     '-'.join(onnx_file.split('-')[:-1]),
-                     '-'.join(onnx_file.split('-')[:-1]).replace('-', '_')]
-    fold_onnx_ok = set(_ for _ in fold_onnx if os.path.exists(_) and os.path.isdir(_))
+        fold_onnx = foldtar + [onnx_file, onnx_file.split('-')[0],
+                               '-'.join(onnx_file.split('-')[:-1]),
+                               '-'.join(onnx_file.split('-')[:-1]).replace('-', '_')]
+    fold_onnx_ok = set(
+        _ for _ in fold_onnx if os.path.exists(_) and os.path.isdir(_))
     if len(fold_onnx_ok) != 1:
         raise FileNotFoundError(  # pragma: no cover
             "Unable to find an existing folder among %r." % fold_onnx)

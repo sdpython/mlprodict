@@ -15,7 +15,6 @@ from io import BytesIO
 import unittest
 import numpy
 from onnx import version, load as onnx_load
-from onnx.checker import check_model
 from onnx.backend.base import Backend, BackendRep
 from ..onnx_tools.model_checker import check_onnx
 from .onnx_inference import OnnxInference

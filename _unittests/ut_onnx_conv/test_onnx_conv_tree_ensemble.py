@@ -4,7 +4,6 @@
 """
 import unittest
 import numpy
-from onnx.checker import check_model
 from onnxruntime import __version__ as ort_version, InferenceSession
 from pyquickhelper.pycode import ExtTestCase, ignore_warnings
 from pyquickhelper.texthelper.version_helper import compare_module_version

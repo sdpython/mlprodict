@@ -7,7 +7,6 @@ import unittest
 import numpy
 from onnx import load
 from onnx.shape_inference import infer_shapes
-from onnx.checker import check_model
 from pyquickhelper.pycode import ExtTestCase, get_temp_folder
 from pyquickhelper.texthelper.version_helper import compare_module_version
 from pyquickhelper.texthelper.edit_text_diff import (
