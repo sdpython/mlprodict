@@ -1,4 +1,4 @@
-# pylint: disable=W0511,E1101,W1309,E0611,C0302,R0912,C0200,R1725,R0205,E0401
+# pylint: disable=W0511,E1101,W1309,E0611,C0302,R0912,C0200,R1725,R0205,E0401,E1136,E1111
 """
 @file
 @brief Python implementation of `onnx.checker.check_model`.
@@ -108,7 +108,6 @@ class Schema(object):
                 len(node.output) > self.max_output_):
             raise OnnxCheckError(
                 f"Node '{node.name}' has output size {len(node.output)} "
-                f"not in range [min=",
                 f"not in range [min={self.min_output_}, "
                 f"max={self.max_output_}].",
                 node)
@@ -472,7 +471,7 @@ def _check_data_field(tensor, field, num_value_fields):
     return None
 
 
-def _check_field(tensor, field, value_field):
+def _check_field(tensor, field, value_field, nelem):
     if nelem != 0 and len(getattr(tensor, field)):
         raise OnnxCheckError(
             f"values of data_type '{tensor.data_type} "
@@ -514,7 +513,8 @@ def _check_tensor(tensor, ctx):
 
         has_location = False
         for entry in tensor.external_data():
-            if entry.has_key() and entry.has_value() and entry.key() == "location":
+            # if entry.has_key() and entry.has_value() and entry.key() == "location":
+            if entry.has_value() and entry.key() == "location":
                 has_location = True
                 data_path = os.path.join(ctx.get_model_dir(), entry.value())
                 # use stat to check whether the file exists
@@ -553,10 +553,10 @@ def _check_tensor(tensor, ctx):
     else:
         if tensor.data_type in (TensorProto.FLOAT,
                                 TensorProto.COMPLEX64):
-            _check_field(tensor, "float_data", value_field)
+            _check_field(tensor, "float_data", value_field, nelem)
         elif tensor.data_type in (TensorProto.DOUBLE,
                                   TensorProto.COMPLEX128):
-            _check_field(tensor, "double_data", value_field)
+            _check_field(tensor, "double_data", value_field, nelem)
         elif tensor.data_type in (TensorProto.INT32,
                                   TensorProto.UINT8,
                                   TensorProto.INT8,
@@ -565,16 +565,16 @@ def _check_tensor(tensor, ctx):
                                   TensorProto.BOOL,
                                   TensorProto.FLOAT16,
                                   TensorProto.BFLOAT16):
-            _check_field(tensor, "int32_data", value_field)
+            _check_field(tensor, "int32_data", value_field, nelem)
         elif tensor.data_type == TensorProto.INT64:
-            _check_field(tensor, "int64_data", value_field)
+            _check_field(tensor, "int64_data", value_field, nelem)
         elif tensor.data_type == TensorProto.INT64:
-            _check_field(tensor, "int64_data", value_field)
+            _check_field(tensor, "int64_data", value_field, nelem)
         elif tensor.data_type in (TensorProto.UINT32,
                                   TensorProto.UINT64):
-            _check_field(tensor, "uint64_data", value_field)
+            _check_field(tensor, "uint64_data", value_field, nelem)
         elif tensor.data_type == TensorProto.STRING:
-            _check_field(tensor, "string_data", value_field)
+            _check_field(tensor, "string_data", value_field, nelem)
         else:
             raise OnnxCheckError(
                 f"Unrecognized data_type (tensor name: {tensor.name} "
