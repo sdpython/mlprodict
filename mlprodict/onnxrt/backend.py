@@ -15,8 +15,8 @@ from io import BytesIO
 import unittest
 import numpy
 from onnx import version, load as onnx_load
-from onnx.checker import check_model
 from onnx.backend.base import Backend, BackendRep
+from ..onnx_tools.model_checker import check_onnx
 from .onnx_inference import OnnxInference
 from .onnx_micro_runtime import OnnxMicroRuntime
 from .onnx_shape_inference import OnnxShapeInference
@@ -211,7 +211,7 @@ class OnnxInferenceBackend(Backend):
         bin_or_model = (
             model.SerializeToString() if onnx_supports_serialized_model_check
             else model)
-        check_model(bin_or_model)
+        check_onnx(bin_or_model)
         opset_supported, error_message = cls.is_opset_supported(model)
         if not opset_supported:
             raise unittest.SkipTest(error_message)  # pragma: no cover
