@@ -26,7 +26,7 @@ class RoiAlign(OpRun):
         self.rt32_ = None
         self.rt64_ = None
 
-    def _run(self, X, rois, batch_indices, verbose=0, fLOG=None):  # pylint: disable=W0221
+    def _run(self, X, rois, batch_indices, attributes=None, verbose=0, fLOG=None):  # pylint: disable=W0221
         if X.dtype == numpy.float32:
             if self.rt32_ is None:
                 self.rt32_ = RoiAlignFloat()

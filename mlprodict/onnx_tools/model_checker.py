@@ -2,9 +2,10 @@
 @file
 @brief Investigate issues happening with float32.
 """
+from io import BytesIO
 import numpy
 from numpy.random import randint
-from onnx import ModelProto, FunctionProto, GraphProto
+from onnx import ModelProto, FunctionProto, GraphProto, load
 from onnx.checker import check_model
 
 
@@ -106,6 +107,9 @@ def check_onnx(model, use_onnx=False, known_results=None,
     :param known_results: known results
     :param path: path to a node (through subgraphs)
     """
+    if isinstance(model, bytes):
+        model = load(BytesIO(model))
+
     def raise_missing(name, node, p, kn):
         raise MissingInputError(
             "Missing input %r in node type=%r and name=%r "

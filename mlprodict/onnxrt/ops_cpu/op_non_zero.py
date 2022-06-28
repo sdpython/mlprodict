@@ -14,7 +14,7 @@ class NonZero(OpRun):
     def __init__(self, onnx_node, desc=None, **options):
         OpRun.__init__(self, onnx_node, desc=desc, **options)
 
-    def _run(self, x, verbose=0, fLOG=None):  # pylint: disable=W0221
+    def _run(self, x, attributes=None, verbose=0, fLOG=None):  # pylint: disable=W0221
         res = numpy.vstack(numpy.nonzero(x))
         return (res, )
 

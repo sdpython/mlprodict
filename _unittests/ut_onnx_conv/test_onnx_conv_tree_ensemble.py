@@ -4,7 +4,6 @@
 """
 import unittest
 import numpy
-from onnx.checker import check_model
 from onnxruntime import __version__ as ort_version, InferenceSession
 from pyquickhelper.pycode import ExtTestCase, ignore_warnings
 from pyquickhelper.texthelper.version_helper import compare_module_version
@@ -20,6 +19,7 @@ from sklearn.ensemble import (
 from lightgbm import LGBMRegressor, LGBMClassifier
 from xgboost import XGBRegressor, XGBClassifier
 import skl2onnx
+from mlprodict.onnx_tools.model_checker import check_onnx
 from mlprodict.onnxrt import OnnxInference
 from mlprodict.onnx_conv import to_onnx
 from mlprodict.plotting.text_plot import onnx_simple_text_plot
@@ -80,7 +80,7 @@ class TestOnnxConvTreeEnsemble(ExtTestCase):
                                 raise AssertionError(
                                     "Issue with %s." % str(onx))
                         try:
-                            check_model(onx)
+                            check_onnx(onx)
                         except Exception as e:
                             raise AssertionError(
                                 "Issue with %s." % str(onx)) from e
@@ -136,7 +136,7 @@ class TestOnnxConvTreeEnsemble(ExtTestCase):
             if 'values' in att.name or 'target' in att.name:
                 set_names.add(att.name)
         self.assertIn("nodes_values_as_tensor", set_names)
-        check_model(onx)
+        check_onnx(onx)
         with open("debug.onnx", "wb") as f:
             f.write(onx.SerializeToString())
         # python

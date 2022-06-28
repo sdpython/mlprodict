@@ -502,7 +502,13 @@ def is_last_schema(sch):
     :param sch: schema
     :return: True
     """
-    last = onnx.defs.get_schema(sch.name, domain=sch.domain)
+    try:
+        last = onnx.defs.get_schema(sch.name, domain=sch.domain)
+    except SchemaError:
+        # raise RuntimeError(
+        #     "Unable to find schema for operator %r and domain %r."
+        #     "" % (sch.name, sch.domain))
+        return True
     return last.since_version == sch.since_version
 
 
@@ -521,8 +527,8 @@ def onnx_documentation_folder(folder, ops=None, title='ONNX operators',
     all_schemas = _get_all_schemas_with_history()
     if not os.path.exists(folder):
         os.makedirs(folder)
-    index = ['', title, '=' * len(title), '', '.. contents::', '    :local:',
-             '']
+    index = ['', title, '=' * len(title), '', '.. contents::',
+             '    :local:', '']
     pages = []
 
     if ops is not None:

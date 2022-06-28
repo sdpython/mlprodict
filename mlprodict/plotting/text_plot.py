@@ -1,4 +1,4 @@
-# pylint: disable=R0912,R0914
+# pylint: disable=R0912,R0914,C0302
 """
 @file
 @brief Text representations of graphs.
@@ -126,7 +126,8 @@ def onnx_text_plot_tree(node):
         "tree to string"
         rows = ['treeid=%r' % treeid]
         if 'base_values' in atts:
-            rows.append('base_value=%r' % atts['base_values'][treeid])
+            if treeid < len(atts['base_values']):
+                rows.append('base_value=%r' % atts['base_values'][treeid])
 
         short = {}
         for prefix in ['nodes', 'target', 'class']:
@@ -136,17 +137,21 @@ def onnx_text_plot_tree(node):
                    if atts['%s_treeids' % prefix][i] == treeid]
             for k, v in atts.items():
                 if k.startswith(prefix):
-                    short[k] = [v[i] for i in idx]
+                    if 'classlabels' in k:
+                        short[k] = list(v)
+                    else:
+                        short[k] = [v[i] for i in idx]
 
         nodes = OrderedDict()
         for i in range(len(short['nodes_treeids'])):
             nodes[i] = Node(i, short)
-        for i in range(len(short['target_treeids'])):
-            idn = short['target_nodeids'][i]
+        prefix = 'target' if 'target_treeids' in short else 'class'
+        for i in range(len(short['%s_treeids' % prefix])):
+            idn = short['%s_nodeids' % prefix][i]
             node = nodes[idn]
             node.target_nodeids = idn
-            node.target_ids = short['target_ids'][i]
-            node.target_weights = short['target_weights'][i]
+            node.target_ids = short['%s_ids' % prefix][i]
+            node.target_weights = short['%s_weights' % prefix][i]
 
         def iterate(nodes, node, depth=0, true_false=''):
             node.depth = depth
@@ -164,22 +169,27 @@ def onnx_text_plot_tree(node):
             rows.append(node.process_node())
         return rows
 
-    if node.op_type != "TreeEnsembleRegressor":
-        raise NotImplementedError(  # pragma: no cover
-            "Type %r cannot be displayed." % node.op_type)
-    d = {k: v['value'] for k, v in _var_as_dict(node)['atts'].items()}
-    atts = {}
-    for k, v in d.items():
-        atts[k] = v if isinstance(v, int) else list(v)
-    trees = list(sorted(set(atts['nodes_treeids'])))
-    rows = ['n_targets=%r' % atts['n_targets'],
-            'n_trees=%r' % len(trees)]
-    for tree in trees:
-        r = process_tree(atts, tree)
-        rows.append('----')
-        rows.extend(r)
+    if node.op_type in ("TreeEnsembleRegressor", "TreeEnsembleClassifier"):
+        d = {k: v['value'] for k, v in _var_as_dict(node)['atts'].items()}
+        atts = {}
+        for k, v in d.items():
+            atts[k] = v if isinstance(v, int) else list(v)
+        trees = list(sorted(set(atts['nodes_treeids'])))
+        if 'n_targets' in atts:
+            rows = ['n_targets=%r' % atts['n_targets']]
+        else:
+            rows = ['n_classes=%r' % len(
+                atts.get('classlabels_int64s',
+                         atts.get('classlabels_strings', [])))]
+        rows.append('n_trees=%r' % len(trees))
+        for tree in trees:
+            r = process_tree(atts, tree)
+            rows.append('----')
+            rows.extend(r)
+        return "\n".join(rows)
 
-    return "\n".join(rows)
+    raise NotImplementedError(  # pragma: no cover
+        "Type %r cannot be displayed." % node.op_type)
 
 
 def _append_succ_pred(subgraphs, successors, predecessors, node_map, node, prefix="",
@@ -486,7 +496,7 @@ def _get_shape(obj):
         "Unable to guess type from %r." % obj0)
 
 
-def onnx_simple_text_plot(model, verbose=False, att_display=None,
+def onnx_simple_text_plot(model, verbose=False, att_display=None,  # pylint: disable=R0915
                           add_links=False, recursive=False, functions=True,
                           raise_exc=True, sub_graphs_names=None,
                           level=1, indent=True):
@@ -684,6 +694,7 @@ def onnx_simple_text_plot(model, verbose=False, att_display=None,
         atts = []
         if hasattr(node, 'attribute'):
             for att in node.attribute:
+                done = True
                 if att.name in att_display:
                     if att.type == AttributeProto.INT:  # pylint: disable=E1101
                         atts.append("%s=%d" % (att.name, att.i))
@@ -692,10 +703,68 @@ def onnx_simple_text_plot(model, verbose=False, att_display=None,
                     elif att.type == AttributeProto.INTS:  # pylint: disable=E1101
                         atts.append("%s=%s" % (att.name, str(
                             list(att.ints)).replace(" ", "")))
+                    else:
+                        done = False
                 elif (att.type == AttributeProto.GRAPH and  # pylint: disable=E1101
                         hasattr(att, 'g') and att.g is not None):
                     atts.append("%s=%s" %
                                 (att.name, _get_subgraph_name(id(att.g))))
+                elif att.ref_attr_name:
+                    atts.append("%s=$%s" % (att.name, att.ref_attr_name))
+                else:
+                    done = False
+                if done:
+                    continue
+                if att.type in (AttributeProto.TENSOR,  # pylint: disable=E1101
+                                AttributeProto.TENSORS,  # pylint: disable=E1101
+                                AttributeProto.SPARSE_TENSOR,  # pylint: disable=E1101
+                                AttributeProto.SPARSE_TENSORS):  # pylint: disable=E1101
+                    try:
+                        val = str(to_array(att.t).tolist())
+                    except TypeError as e:
+                        raise TypeError(
+                            "Unable to display tensor type %r.\n%s" % (
+                                att.type, str(att))) from e
+                    if "\n" in val:
+                        val = val.split("\n", maxsplit=1) + "..."
+                    if len(val) > 10:
+                        val = val[:10] + "..."
+                elif att.type == AttributeProto.STRING:  # pylint: disable=E1101
+                    val = str(att.s)
+                elif att.type == AttributeProto.STRINGS:  # pylint: disable=E1101
+                    n_val = list(att.strings)
+                    if len(n_val) < 3:
+                        val = ",".join(map(str, n_val))
+                    else:
+                        val = "%d:%s...%s" % (
+                            len(n_val),
+                            ",".join(map(str, n_val[:3])),
+                            ",".join(map(str, n_val[-3:])))
+                elif att.type == AttributeProto.INT:  # pylint: disable=E1101
+                    val = str(att.i)
+                elif att.type == AttributeProto.FLOAT:  # pylint: disable=E1101
+                    val = str(att.f)
+                elif att.type == AttributeProto.INTS:  # pylint: disable=E1101
+                    n_val = list(att.ints)
+                    if len(n_val) < 5:
+                        val = ",".join(map(str, n_val))
+                    else:
+                        val = "%d:%s...%s" % (
+                            len(n_val),
+                            ",".join(map(str, n_val[:3])),
+                            ",".join(map(str, n_val[-3:])))
+                elif att.type == AttributeProto.FLOATS:  # pylint: disable=E1101
+                    n_val = list(att.floats)
+                    if len(n_val) < 3:
+                        val = ",".join(map(str, n_val))
+                    else:
+                        val = "%d:%s...%s" % (
+                            len(n_val),
+                            ",".join(map(str, n_val[:3])),
+                            ",".join(map(str, n_val[-3:])))
+                else:
+                    val = '.%d' % att.type
+                atts.append("%s=%s" % (att.name, val))
         inputs = list(node.input)
         if len(atts) > 0:
             inputs.extend(atts)
@@ -730,6 +799,14 @@ def onnx_simple_text_plot(model, verbose=False, att_display=None,
             line_name_new[inp.name] = len(rows)
             rows.append("input: name=%r type=%r shape=%r" % (
                 inp.name, _get_type(inp), _get_shape(inp)))
+    if hasattr(model, 'attribute'):
+        for att in model.attribute:
+            if isinstance(att, str):
+                rows.append("attribute: %r" % att)
+            else:
+                raise NotImplementedError(  # pragma: no cover
+                    "Not yet introduced in onnx.")
+
     # initializer
     if hasattr(model, 'initializer'):
         if len(model.initializer) and level == 0:

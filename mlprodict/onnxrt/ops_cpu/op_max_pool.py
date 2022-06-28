@@ -87,7 +87,7 @@ class MaxPool(OpRun):
                     numpy.array(self.pads, dtype=numpy.int64),
                     numpy.array(self.strides, dtype=numpy.int64))
 
-    def _run(self, X, verbose=0, fLOG=None):  # pylint: disable=W0221
+    def _run(self, X, attributes=None, verbose=0, fLOG=None):  # pylint: disable=W0221
         if X.dtype == numpy.float32:
             res = self.rt32_.compute(X)
         else:

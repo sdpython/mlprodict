@@ -81,7 +81,7 @@ class TestOnnxrtSimple(ExtTestCase):
         if not sys.platform.startswith('win'):
             # Crashes (onnx crashes).
             try:
-                oinf.check_model()
+                oinf.check_onnx()
             except ValidationError as e:
                 warnings.warn("Why? " + str(e))  # pylint: disable=E1101
 

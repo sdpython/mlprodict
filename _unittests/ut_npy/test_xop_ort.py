@@ -33,14 +33,14 @@ class TestXOpsOrt(ExtTestCase):
             data.append(sch.SerializeToString())
 
         temp = get_temp_folder(__file__, "temp_get_all_operator_schema")
-        ser = os.path.join(temp, "ort_get_all_operator_schema.txt")
+        ser = os.path.join(temp, "ort_get_all_operator_schema.tmpl")
         with open(ser, "w", encoding='utf-8') as f:
             f.write("%d\n" % len(data))
             for d in data:
                 f.write("%s\n" % d)
 
         current = os.path.join(os.path.dirname(xop_file),
-                               "ort_get_all_operator_schema.txt")
+                               "ort_get_all_operator_schema.tmpl")
         size1 = os.lstat(ser).st_size
         size2 = os.lstat(current).st_size
         self.assertEqual(size1, size2)

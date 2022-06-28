@@ -20,7 +20,7 @@ class Clip_6(OpRunUnaryNum):
                                expected_attributes=Clip_6.atts,
                                **options)
 
-    def _run(self, data, verbose=0, fLOG=None):  # pylint: disable=W0221
+    def _run(self, data, attributes=None, verbose=0, fLOG=None):  # pylint: disable=W0221
         if self.inplaces.get(0, False) and data.flags['WRITEABLE']:
             return self._run_inplace(data)
         res = numpy.clip(data, self.min, self.max)
@@ -47,19 +47,20 @@ class Clip_11(OpRunUnaryNum):
         OpRunUnaryNum.__init__(self, onnx_node, desc=desc,
                                **options)
 
-    def run(self, x, *minmax, verbose=0, fLOG=None):  # pylint: disable=E0202,W0221
+    def run(self, x, *minmax, attributes=None, verbose=0, fLOG=None):  # pylint: disable=E0202,W0221
         """
         Calls method ``_run``.
         """
         try:
-            res = self._run(x, *minmax, verbose=verbose, fLOG=fLOG)
+            res = self._run(x, *minmax, attributes=attributes,
+                            verbose=verbose, fLOG=fLOG)
         except TypeError as e:  # pragma: no cover
             raise TypeError("Issues with types {} (binary operator {}).".format(
                 ", ".join(str(type(_)) for _ in [x]),
                 self.__class__.__name__)) from e
         return res
 
-    def _run(self, data, *minmax, verbose=0, fLOG=None):  # pylint: disable=W0221
+    def _run(self, data, *minmax, attributes=None, verbose=0, fLOG=None):  # pylint: disable=W0221
         if self.inplaces.get(0, False) and data.flags['WRITEABLE']:
             return self._run_inplace(data, *minmax)
         le = len(minmax)

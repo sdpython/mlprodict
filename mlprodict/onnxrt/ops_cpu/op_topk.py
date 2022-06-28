@@ -165,7 +165,7 @@ class TopK_1(_CommonTopK):
                              expected_attributes=TopK_10.atts,
                              **options)
 
-    def _run(self, data, verbose=0, fLOG=None):  # pylint: disable=W0221
+    def _run(self, data, attributes=None, verbose=0, fLOG=None):  # pylint: disable=W0221
         """
         Runtime for operator *TopK*.
         The implementation is not the most efficient
@@ -201,7 +201,7 @@ class TopK_10(_CommonTopK):
                              expected_attributes=TopK_10.atts,
                              **options)
 
-    def _run(self, data, ink, verbose=0, fLOG=None):  # pylint: disable=W0221
+    def _run(self, data, ink, attributes=None, verbose=0, fLOG=None):  # pylint: disable=W0221
         """
         Runtime for operator *TopK*.
         The implementation is not the most efficient
@@ -233,7 +233,7 @@ class TopK_11(_CommonTopK):
             raise RuntimeError(  # pragma: no cover
                 "TopK does not implement anything for sorted=0.")
 
-    def _run(self, data, ink, verbose=0, fLOG=None):  # pylint: disable=W0221
+    def _run(self, data, ink, attributes=None, verbose=0, fLOG=None):  # pylint: disable=W0221
         """
         Runtime for operator *TopK*.
         The implementation is not the most efficient

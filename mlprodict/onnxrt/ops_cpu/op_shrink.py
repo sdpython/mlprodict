@@ -17,7 +17,7 @@ class Shrink(OpRunUnaryNum):
                                expected_attributes=Shrink.atts,
                                **options)
 
-    def _run(self, x, verbose=0, fLOG=None):  # pylint: disable=W0221
+    def _run(self, x, attributes=None, verbose=0, fLOG=None):  # pylint: disable=W0221
         return (numpy.where(x < -self.lambd, x + self.bias,
                             numpy.where(x > self.lambd, x - self.bias, 0)), )
 

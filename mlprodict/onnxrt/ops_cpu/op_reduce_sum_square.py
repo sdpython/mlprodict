@@ -17,6 +17,6 @@ class ReduceSumSquare(OpRunReduceNumpy):
                                   expected_attributes=ReduceSumSquare.atts,
                                   **options)
 
-    def _run(self, data, verbose=0, fLOG=None):  # pylint: disable=W0221
+    def _run(self, data, attributes=None, verbose=0, fLOG=None):  # pylint: disable=W0221
         return (numpy.sum(numpy.square(data), axis=self.axes,
                           keepdims=self.keepdims), )

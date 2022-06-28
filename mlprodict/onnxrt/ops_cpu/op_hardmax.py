@@ -17,7 +17,7 @@ class Hardmax(OpRunUnaryNum):
                                expected_attributes=Hardmax.atts,
                                **options)
 
-    def _run(self, x, verbose=0, fLOG=None):  # pylint: disable=W0221
+    def _run(self, x, attributes=None, verbose=0, fLOG=None):  # pylint: disable=W0221
         x_argmax = numpy.argmax(x, axis=self.axis)
         y = numpy.zeros_like(x)
         numpy.put_along_axis(y, numpy.expand_dims(x_argmax, axis=self.axis),

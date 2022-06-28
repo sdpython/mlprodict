@@ -18,7 +18,7 @@ class DepthToSpace(OpRun):
                        expected_attributes=DepthToSpace.atts,
                        **options)
 
-    def _run(self, data, verbose=0, fLOG=None):  # pylint: disable=W0221
+    def _run(self, data, attributes=None, verbose=0, fLOG=None):  # pylint: disable=W0221
         if len(data.shape) != 4:
             raise RuntimeError(  # pragma: no cover
                 "Unexpected shape %r." % (data.shape, ))
@@ -52,7 +52,7 @@ class SpaceToDepth(OpRun):
                        expected_attributes=SpaceToDepth.atts,
                        **options)
 
-    def _run(self, data, verbose=0, fLOG=None):  # pylint: disable=W0221
+    def _run(self, data, attributes=None, verbose=0, fLOG=None):  # pylint: disable=W0221
         if len(data.shape) != 4:
             raise RuntimeError(  # pragma: no cover
                 "Unexpected shape %r." % (data.shape, ))

@@ -63,6 +63,6 @@ class Normalizer(OpRunUnaryNum):
             return x
         return x / norm
 
-    def _run(self, x, verbose=0, fLOG=None):  # pylint: disable=W0221
+    def _run(self, x, attributes=None, verbose=0, fLOG=None):  # pylint: disable=W0221
         return (self._norm(
             x, inplace=self.inplaces.get(0, False) and x.flags['WRITEABLE']), )

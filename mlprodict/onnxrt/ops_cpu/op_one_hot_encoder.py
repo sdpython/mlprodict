@@ -33,7 +33,7 @@ class OneHotEncoder(OpRun):
         else:
             raise RuntimeError("No encoding was defined.")  # pragma: no cover
 
-    def _run(self, x, verbose=0, fLOG=None):  # pylint: disable=W0221
+    def _run(self, x, attributes=None, verbose=0, fLOG=None):  # pylint: disable=W0221
         shape = x.shape
         new_shape = shape + (len(self.classes_), )
         res = numpy.zeros(new_shape, dtype=numpy.float32)

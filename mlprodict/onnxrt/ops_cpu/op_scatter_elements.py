@@ -69,7 +69,7 @@ class ScatterElements(OpRun):
         OpRun.__init__(self, onnx_node, desc=desc,
                        **options)
 
-    def _run(self, data, indices, updates, verbose=0, fLOG=None):  # pylint: disable=W0221
+    def _run(self, data, indices, updates, attributes=None, verbose=0, fLOG=None):  # pylint: disable=W0221
         res = scatter_elements(data, indices, updates, axis=self.axis)
         return (res, )
 

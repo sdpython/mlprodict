@@ -19,7 +19,7 @@ class DequantizeLinear(OpRun):
                        expected_attributes=DequantizeLinear.atts,
                        **options)
 
-    def _run(self, *args, verbose=0, fLOG=None):  # pylint: disable=W0221
+    def _run(self, *args, attributes=None, verbose=0, fLOG=None):  # pylint: disable=W0221
         if len(args[1].shape) > 1:
             raise RuntimeError(  # pragma: no cover
                 "Input 2 must be a vector or a number.")

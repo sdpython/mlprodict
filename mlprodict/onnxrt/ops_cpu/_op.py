@@ -46,6 +46,22 @@ class DefaultNone:
     pass
 
 
+class RefAttrName:
+    """
+    Implements a link between a parameter of a function
+    and an attribute in node.
+
+    :param name: name of the input
+    """
+
+    def __init__(self, name):
+        self.name = name
+
+    def __repr__(self):
+        "usual"
+        return "%s(%r)" % (self.__class__.__name__, self.name)
+
+
 class OpRun:
     """
     Ancestor to all operators in this subfolder.
@@ -81,11 +97,15 @@ class OpRun:
         if desc is not None:
             if 'atts' in desc:
                 for a, b in desc['atts'].items():
-                    if not isinstance(b, dict) or 'value' not in b:
+                    if not isinstance(b, dict) or (
+                            'value' not in b and 'ref_attr_name' not in b):
                         raise ValueError(  # pragma: no cover
                             "Unexpected value {}.".format(b))
-                    options[a] = (b['value_rt'] if 'value_rt' in b
-                                  else b['value'])
+                    if 'ref_attr_name' in b:
+                        options[a] = RefAttrName(b['ref_attr_name'])
+                    else:
+                        options[a] = (b['value_rt'] if 'value_rt' in b
+                                      else b['value'])
         if expected_attributes is not None:
             if onnx_node.op_type in _at_least_one:
                 done = 0
@@ -429,12 +449,13 @@ class OpRunUnary(OpRun):
                        expected_attributes=expected_attributes,
                        **options)
 
-    def run(self, x, verbose=0, fLOG=None):  # pylint: disable=E0202,W0221
+    def run(self, x, attributes=None, verbose=0, fLOG=None):  # pylint: disable=E0202,W0221
         """
         Calls method ``_run``.
         """
         try:
-            res = self._run(x, verbose=verbose, fLOG=fLOG)
+            res = self._run(x, attributes=attributes,
+                            verbose=verbose, fLOG=fLOG)
         except TypeError as e:
             raise TypeError(  # pragma: no cover
                 "Issues with types {} (binary operator {}).".format(
@@ -495,11 +516,12 @@ class OpRunArg(OpRunUnary):
             raise AttributeError(  # pragma: no cover
                 "Attribute 'axis' is missing.")
 
-    def run(self, x, verbose=0, fLOG=None):  # pylint: disable=E0202
+    def run(self, x, attributes=None, verbose=0, fLOG=None):  # pylint: disable=E0202
         """
         Calls method ``_run``.
         """
-        res = OpRunUnary.run(self, x, verbose=verbose, fLOG=fLOG)
+        res = OpRunUnary.run(self, x, attributes=attributes,
+                             verbose=verbose, fLOG=fLOG)
         if res[0].dtype != numpy.int64:
             raise RuntimeTypeError(  # pragma: no cover
                 "Output type mismatch: should be '{}' != output '{}' "
@@ -515,8 +537,8 @@ class OpRunArg(OpRunUnary):
     def _infer_types(self, x):  # pylint: disable=W0221
         return (numpy.int64, )
 
-    def _run_no_checks_(self, x, verbose=0, fLOG=None):  # pylint: disable=W0221
-        return OpRunUnary.run(self, x, verbose=verbose, fLOG=fLOG)
+    def _run_no_checks_(self, x, attributes=None, verbose=0, fLOG=None):  # pylint: disable=W0221
+        return OpRunUnary.run(self, x, attributes=attributes, verbose=verbose, fLOG=fLOG)
 
 
 class OpRunUnaryNum(OpRunUnary):
@@ -532,11 +554,12 @@ class OpRunUnaryNum(OpRunUnary):
                             expected_attributes=expected_attributes,
                             **options)
 
-    def run(self, x, verbose=0, fLOG=None):  # pylint: disable=E0202
+    def run(self, x, attributes=None, verbose=0, fLOG=None):  # pylint: disable=E0202
         """
         Calls method ``_run``.
         """
-        res = OpRunUnary.run(self, x, verbose=verbose, fLOG=fLOG)
+        res = OpRunUnary.run(self, x, attributes=attributes,
+                             verbose=verbose, fLOG=fLOG)
         if len(res) == 0 or res[0] is None:
             return res
         if not isinstance(res[0], list) and res[0].dtype != x.dtype:
@@ -546,8 +569,8 @@ class OpRunUnaryNum(OpRunUnary):
                     x.dtype, res[0].dtype, self.__class__.__name__))
         return res
 
-    def _run_no_checks_(self, x, verbose=0, fLOG=None):  # pylint: disable=W0221
-        return OpRunUnary.run(self, x, verbose=verbose, fLOG=fLOG)
+    def _run_no_checks_(self, x, attributes=None, verbose=0, fLOG=None):  # pylint: disable=W0221
+        return OpRunUnary.run(self, x, attributes=attributes, verbose=verbose, fLOG=fLOG)
 
 
 class OpRunClassifierProb(OpRunUnary):
@@ -562,11 +585,12 @@ class OpRunClassifierProb(OpRunUnary):
                             expected_attributes=expected_attributes,
                             **options)
 
-    def run(self, x, verbose=0, fLOG=None):  # pylint: disable=E0202
+    def run(self, x, attributes=None, verbose=0, fLOG=None):  # pylint: disable=E0202
         """
         Calls method ``_run``.
         """
-        res = OpRunUnary.run(self, x, verbose=verbose, fLOG=fLOG)
+        res = OpRunUnary.run(self, x, attributes=attributes,
+                             verbose=verbose, fLOG=fLOG)
         if x.dtype in (numpy.float32, numpy.float64) and res[1].dtype != x.dtype:
             raise RuntimeTypeError(  # pragma: no cover
                 "Output type mismatch: {} != {} (operator '{}')".format(
@@ -582,8 +606,8 @@ class OpRunClassifierProb(OpRunUnary):
                    len(getattr(self, 'classlabels_int64s', [])),
                    len(self.classlabels_strings))  # pylint: disable=E1101
 
-    def _run_no_checks_(self, x, verbose=0, fLOG=None):  # pylint: disable=W0221
-        return OpRunUnary.run(self, x, verbose=verbose, fLOG=fLOG)
+    def _run_no_checks_(self, x, attributes=None, verbose=0, fLOG=None):  # pylint: disable=W0221
+        return OpRunUnary.run(self, x, attributes=attributes, verbose=verbose, fLOG=fLOG)
 
     def _infer_shapes(self, x):  # pylint: disable=W0221
         """
@@ -613,7 +637,7 @@ class OpRunBinary(OpRun):
                        expected_attributes=expected_attributes,
                        **options)
 
-    def run(self, x, y, verbose=0, fLOG=None):  # pylint: disable=E0202,W0221
+    def run(self, x, y, attributes=None, verbose=0, fLOG=None):  # pylint: disable=E0202,W0221
         """
         Calls method ``_run``.
         """
@@ -627,7 +651,8 @@ class OpRunBinary(OpRun):
                     x.dtype, y.dtype, self.__class__.__name__,
                     x.shape, y.shape))
         try:
-            res = self._run(x, y, verbose=verbose, fLOG=fLOG)
+            res = self._run(x, y, attributes=attributes,
+                            verbose=verbose, fLOG=fLOG)
         except (TypeError, ValueError) as e:  # pragma: no cover
             raise TypeError(
                 "Issues with types {} (binary operator {}).".format(
@@ -635,12 +660,13 @@ class OpRunBinary(OpRun):
                     self.__class__.__name__)) from e
         return res
 
-    def _run_no_checks_(self, x, y, verbose=0, fLOG=None):  # pylint: disable=W0221
+    def _run_no_checks_(self, x, y, attributes=None, verbose=0, fLOG=None):  # pylint: disable=W0221
         """
         Calls method ``_run``.
         """
         try:
-            res = self._run(x, y, verbose=verbose, fLOG=fLOG)
+            res = self._run(x, y, attributes=attributes,
+                            verbose=verbose, fLOG=fLOG)
         except TypeError as e:  # pragma: no cover
             raise TypeError(
                 "Issues with types {} (binary operator {}).".format(
@@ -709,11 +735,12 @@ class OpRunBinaryNum(OpRunBinary):
                              expected_attributes=expected_attributes,
                              **options)
 
-    def run(self, x, y, verbose=0, fLOG=None):  # pylint: disable=E0202
+    def run(self, x, y, attributes=None, verbose=0, fLOG=None):  # pylint: disable=E0202
         """
         Calls method ``_run``.
         """
-        res = OpRunBinary.run(self, x, y, verbose=verbose, fLOG=fLOG)
+        res = OpRunBinary.run(
+            self, x, y, attributes=attributes, verbose=verbose, fLOG=fLOG)
         if res[0].dtype != x.dtype:
             raise RuntimeTypeError(
                 "Output type mismatch: {} != {} or {} (operator '{}')"
@@ -722,12 +749,12 @@ class OpRunBinaryNum(OpRunBinary):
                     self.__class__.__name__, type(x), type(y)))
         return res
 
-    def _run_no_checks_(self, x, y, verbose=0, fLOG=None):  # pylint: disable=W0221
+    def _run_no_checks_(self, x, y, attributes=None, verbose=0, fLOG=None):  # pylint: disable=W0221
         """
         Calls method ``_run``.
         """
         return OpRunBinary._run_no_checks_(
-            self, x, y, verbose=verbose, fLOG=fLOG)
+            self, x, y, attributes=attributes, verbose=verbose, fLOG=fLOG)
 
 
 class OpRunBinaryNumpy(OpRunBinaryNum):
@@ -747,7 +774,7 @@ class OpRunBinaryNumpy(OpRunBinaryNum):
         self._cannot_inplace_int = self.numpy_fct in (
             numpy.divide, numpy.true_divide)
 
-    def _run(self, a, b, verbose=0, fLOG=None):  # pylint: disable=W0221
+    def _run(self, a, b, attributes=None, verbose=0, fLOG=None):  # pylint: disable=W0221
         if (self._cannot_inplace_int and
                 numpy.issubdtype(a.dtype, numpy.integer)):
             return (self.numpy_fct(a, b), )

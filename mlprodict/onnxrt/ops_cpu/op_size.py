@@ -14,7 +14,7 @@ class Size(OpRun):
     def __init__(self, onnx_node, desc=None, **options):
         OpRun.__init__(self, onnx_node, desc=desc, **options)
 
-    def _run(self, data, verbose=0, fLOG=None):  # pylint: disable=W0221
+    def _run(self, data, attributes=None, verbose=0, fLOG=None):  # pylint: disable=W0221
         return (numpy.array(data.size, dtype=numpy.int64), )
 
     def _infer_shapes(self, x):  # pylint: disable=W0221

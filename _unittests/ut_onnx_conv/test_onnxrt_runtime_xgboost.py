@@ -144,6 +144,36 @@ class TestOnnxrtRuntimeXGBoost(ExtTestCase):
         pred_xgboost = clr.predict_proba(predict_array)
         self.assertEqualArray(pred_xgboost, pred_onx)
 
+    @skipif_circleci('stuck')
+    @unittest.skipIf(sys.platform == 'darwin', reason='stuck')
+    @ignore_warnings(UserWarning)
+    def test_onnxrt_python_xgbclassifier(self):
+        from xgboost import XGBClassifier  # pylint: disable=C0411
+        x = numpy.random.randn(100, 10).astype(numpy.float32)
+        y = ((x.sum(axis=1) +
+             numpy.random.randn(x.shape[0]) / 50 + 0.5) >= 0).astype(numpy.int64)
+        x_train, x_test, y_train, y_test = train_test_split(x, y)
+        bmy = numpy.mean(y_train)
+
+        for bm, n_est in [(None, 1), (None, 3), (bmy, 1), (bmy, 3)]:
+            model_skl = XGBClassifier(n_estimators=n_est,
+                                      learning_rate=0.01,
+                                      subsample=0.5, objective="binary:logistic",
+                                      base_score=bm, max_depth=2)
+            model_skl.fit(x_train, y_train, eval_set=[
+                          (x_test, y_test)], verbose=0)
+
+            model_onnx_skl = to_onnx(model_skl, x_train, rewrite_ops=True,
+                                     target_opset={'': 15, 'ai.onnx.ml': 2},
+                                     options={'zipmap': False})
+            for rt in ['onnxruntime1', 'python']:
+                with self.subTest(base_score=bm, runtime=rt, n_estimators=n_est):
+                    oinf = OnnxInference(model_onnx_skl, runtime=rt)
+                    res2 = oinf.run({'X': x_test})
+                    self.assertEqualArray(model_skl.predict_proba(x_test),
+                                          res2['probabilities'])
+
 
 if __name__ == "__main__":
-    unittest.main()
+    # TestOnnxrtRuntimeXGBoost().test_onnxrt_python_xgbclassifier()
+    unittest.main(verbosity=2)

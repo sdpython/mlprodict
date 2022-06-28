@@ -17,7 +17,7 @@ class ReduceLogSum(OpRunReduceNumpy):
                                   expected_attributes=ReduceLogSum.atts,
                                   **options)
 
-    def _run(self, data, verbose=0, fLOG=None):  # pylint: disable=W0221
+    def _run(self, data, attributes=None, verbose=0, fLOG=None):  # pylint: disable=W0221
         tax = tuple(self.axes) if self.axes else None
         res = numpy.sum(data, axis=tax, keepdims=self.keepdims)
         if len(res.shape) > 0:

@@ -12,7 +12,7 @@ from onnx.helper import (
     make_graph, make_tensor_value_info, make_opsetid)
 from pyquickhelper.pycode import ExtTestCase, ignore_warnings
 from sklearn.datasets import load_iris
-from sklearn.tree import DecisionTreeRegressor
+from sklearn.tree import DecisionTreeRegressor, DecisionTreeClassifier
 from sklearn.cluster import KMeans
 from sklearn.neighbors import RadiusNeighborsRegressor
 from skl2onnx.common.data_types import FloatTensorType
@@ -41,7 +41,7 @@ class TestPlotTextPlotting(ExtTestCase):
         res = onnx_text_plot(onx)
         self.assertIn("Init", res)
 
-    def test_onnx_text_plot_tree(self):
+    def test_onnx_text_plot_tree_reg(self):
         iris = load_iris()
         X, y = iris.data.astype(numpy.float32), iris.target
         clr = DecisionTreeRegressor(max_depth=3)
@@ -50,6 +50,17 @@ class TestPlotTextPlotting(ExtTestCase):
         res = onnx_text_plot_tree(onx.graph.node[0])
         self.assertIn("treeid=0", res)
         self.assertIn("         T y=", res)
+
+    def test_onnx_text_plot_tree_cls(self):
+        iris = load_iris()
+        X, y = iris.data.astype(numpy.float32), iris.target
+        clr = DecisionTreeClassifier(max_depth=3)
+        clr.fit(X, y)
+        onx = to_onnx(clr, X)
+        res = onnx_text_plot_tree(onx.graph.node[0])
+        self.assertIn("treeid=0", res)
+        self.assertIn("         T y=", res)
+        self.assertIn("n_classes=3", res)
 
     @ignore_warnings(UserWarning)
     def test_onnx_simple_text_plot_kmeans(self):
@@ -310,7 +321,18 @@ class TestPlotTextPlotting(ExtTestCase):
                 "Unable to display a graph\n%s" % onnx_simple_text_plot(
                     onx, recursive=True, raise_exc=False)) from e
 
+    def test_onnx_text_plot_tree_simple(self):
+        iris = load_iris()
+        X, y = iris.data.astype(numpy.float32), iris.target
+        clr = DecisionTreeRegressor(max_depth=3)
+        clr.fit(X, y)
+        onx = to_onnx(clr, X)
+        res = onnx_simple_text_plot(onx)
+        self.assertIn("nodes_featureids=9:", res)
+        self.assertIn("nodes_modes=9:b'", res)
+        self.assertIn("target_weights=5:", res)
+
 
 if __name__ == "__main__":
-    # TestPlotTextPlotting().test_onnx_text_plot_fft()
+    # TestPlotTextPlotting().test_onnx_text_plot_tree_cls()
     unittest.main()
