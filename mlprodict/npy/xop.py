@@ -28,6 +28,7 @@ from .xop_variable import (
     DetectedVariable, InputDetectedVariable, OutputDetectedVariable,
     NodeResultName, guess_numpy_type, ExistingVariable)
 from .xop_auto import get_rst_doc
+from .xop_helper import _infer_node_output
 
 
 class _WrapperLogger:
@@ -1750,30 +1751,28 @@ class OnnxOperator(OnnxOperatorBase):
             return outputs_dtype
         if isinstance(outputs, Variable):
             if name is None:
-                return outputs.dtype or outputs_dtype
+                return (outputs.dtype or outputs_dtype, None)
             if isinstance(name, Variable):
-                return outputs.dtype or name.dtype or outputs_dtype
-            else:
-                raise RuntimeError(  # pragma: no cover
-                    "Unable to handle outputs=%r." % outputs)
+                return (outputs.dtype or name.dtype or outputs_dtype,
+                        None)
+            raise RuntimeError(  # pragma: no cover
+                "Unable to handle outputs=%r." % outputs)
         if isinstance(outputs, dict):
             if name is None:
-                raise RuntimeError(  # pragma: no cover
-                    "Unable to get type among %r, name=None." % (
-                        outputs, ))
+                return _infer_node_output(node, outputs)
             if isinstance(name, Variable):
                 n = name.name
             else:
                 n = name
             if n not in outputs:
                 return None
-            return outputs[n]
+            return outputs[n], None
         if isinstance(outputs, (list, OnnxOperator._InputContainer)):
             raise NotImplementedError(  # pragma: no cover
                 "Unexpected type for name=%r, outputs=%r." % (
                     name, outputs))
         if is_numpy_dtype(outputs):
-            return outputs
+            return outputs, None
         raise RuntimeError(  # pragma: no cover
             "Unable to handle outputs=%r." % outputs)
 
@@ -1957,13 +1956,13 @@ class OnnxOperator(OnnxOperatorBase):
             if node.output_names is None:
                 n = self.output_range[0]
                 for i in range(n):
-                    to = self._node_to_graph_get_type(
+                    to, shape = self._node_to_graph_get_type(
                         node, outputs=outputs_dict,
                         outputs_dtype=outputs_dtype)
                     if to is None:
                         run_shape = True
                     res = '???_%d' % i
-                    var = Variable(res, added_dtype=to)
+                    var = Variable(res, added_dtype=to, shape=shape)
                     if var.name in set_names:
                         raise RuntimeError(  # pragma: no cover
                             "Duplicated output name var=%r." % var)
@@ -1975,13 +1974,13 @@ class OnnxOperator(OnnxOperatorBase):
                         raise TypeError(  # pragma: no cover
                             "Output %d - %r (%r) not allowed in node %r." % (
                                 i, o, node.output_names, node))
-                    to = self._node_to_graph_get_type(
+                    to, shape = self._node_to_graph_get_type(
                         node, o, outputs=outputs_dict,
                         outputs_dtype=outputs_dtype)
                     if to is None:
                         run_shape = True
                     res = (o, to)
-                    var = o.copy_merge(to)
+                    var = o.copy_merge(to, shape=shape)
                     if var.name in set_names:
                         raise RuntimeError(  # pragma: no cover
                             "Duplicated output name o=%r var=%r." % (o, var))

@@ -553,8 +553,10 @@ def _to_onnx_function_pipeline(
         single_function=True):
 
     from ..npy.xop_variable import Variable
-    from ..npy.xop import OnnxOperatorFunction, OnnxIdentity
+    from ..npy.xop import OnnxOperatorFunction, loadop
     from ..onnx_tools.onnx_manipulations import onnx_model_to_function
+
+    OnnxIdentity = loadop('Identity')
 
     if len(model.steps) == 0:
         raise RuntimeError(  # pragma: no cover
@@ -783,10 +785,10 @@ def _to_onnx_function_column_transformer(
 
     from sklearn.preprocessing import OneHotEncoder
     from ..npy.xop_variable import Variable
-    from ..npy.xop import OnnxOperatorFunction, OnnxIdentity, loadop
+    from ..npy.xop import OnnxOperatorFunction, loadop
     from ..onnx_tools.onnx_manipulations import onnx_model_to_function
 
-    OnnxConcat, OnnxSlice = loadop('Concat', 'Slice')
+    OnnxConcat, OnnxSlice, OnnxIdentity = loadop('Concat', 'Slice', 'Identity')
 
     transformers = model.transformers_
     if len(transformers) == 0:

@@ -469,7 +469,7 @@ class TestSklearnPipeline(ExtTestCase):
         model = Pipeline([
             ("pipe1", ColumnTransformer([
                 ('sub1', StandardScaler(), [0]),
-                ('sub2', StandardScaler(), "passthrough")])),
+                ('sub2', "passthrough")])),
             ("scaler2", StandardScaler())])
         model.fit(data)
 
