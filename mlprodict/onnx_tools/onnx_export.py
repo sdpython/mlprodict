@@ -302,7 +302,7 @@ def export_template(model_onnx, templates, opset=None,  # pylint: disable=R0914
 
     # common context
     context['unique_operators'] = [dict(domain=o[0], name=o[1], classname=o[2])
-                                  for o in sorted(unique_operators)]
+                                   for o in sorted(unique_operators)]
     context['skip_inits'] = {}
     context['subgraphs'] = subgraphs
 
