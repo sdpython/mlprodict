@@ -808,7 +808,7 @@ def _to_onnx_function_column_transformer(
     ops = []
     protoms = []
     output_namess = []
-    for i_step, (name, op, column_indices) in enumerate(transformers):
+    for i_step, (name_step, op, column_indices) in enumerate(transformers):
         if op == 'drop':
             continue
         input_nodes = [OnnxIdentity(i[0], op_version=op_version)
@@ -827,7 +827,7 @@ def _to_onnx_function_column_transformer(
             if max(onnx_is) - min(onnx_is) != len(onnx_is) - 1:
                 raise RuntimeError(
                     "The converter only with contiguous columns indices not %r "
-                    "for step %r." % (column_indices, name))
+                    "for step %r." % (column_indices, name_step))
             tr_inputs = OnnxSlice(input_nodes[onnx_var],
                                   numpy.array([onnx_is[0]], dtype=numpy.int64),
                                   numpy.array([onnx_is[-1] + 1],
@@ -842,7 +842,7 @@ def _to_onnx_function_column_transformer(
                 if not isinstance(op.steps[0][1],
                                   (OneHotEncoder, ColumnTransformer)):
                     merged_cols = True
-            elif not isinstance(op, do_not_merge_columns):
+            elif not isinstance(op, (OneHotEncoder, ColumnTransformer)):
                 merged_cols = True
 
         if merged_cols:
@@ -852,17 +852,17 @@ def _to_onnx_function_column_transformer(
             concatenated = transform_inputs
         initial_types = _merge_initial_types(i_types, transform_inputs, merged_cols)
 
-        prefix = name + "__"
+        prefix = name_step + "__"
         step_options = _new_options(options, prefix)
         if prefix_name is not None:
             prefix = prefix_name + prefix
 
         if op == 'passthrough':
-            ops.extend(transform_inputs)
+            ops.extend(concatenated)
             continue
 
         protom = to_onnx(
-            op, name=name, X=X, initial_types=initial_types,
+            op, name=name_step, X=X, initial_types=initial_types,
             target_opset=target_opset,
             options=step_options, rewrite_ops=rewrite_ops,
             white_op=white_op, black_op=black_op, verbose=verbose,
@@ -882,14 +882,14 @@ def _to_onnx_function_column_transformer(
             protom, domain='sklearn',
             name="%s_%s_%s" % (prefix, op.__class__.__name__, id(op)),
             doc_string=jspar)
-        output_names = ["%s_%s" % (name, o) for o in protof.output]
+        output_names = ["%s_%s" % (name_step, o) for o in protof.output]
         output_namess.append(output_names)
 
         logger.debug("_to_onnx_function_column_transformer:%s:->%r:%r:%s",
                      op.__class__.__name__, output_names, len(protof.node), jspar)
 
         op = OnnxOperatorFunction(
-            protof, *transform_inputs, output_names=output_names,
+            protof, *concatenated, output_names=output_names,
             sub_functions=list(protom.functions))
         ops.append(op)
 

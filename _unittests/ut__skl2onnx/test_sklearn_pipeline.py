@@ -23,7 +23,7 @@ from pyquickhelper.pycode import ExtTestCase
 from skl2onnx.common.data_types import (
     FloatTensorType, Int64TensorType, StringTensorType)
 from mlprodict.testing.test_utils import (
-    dump_data_and_model, fit_classification_model, ort_version_higher)
+    dump_data_and_model, fit_classification_model, ort_version_greater)
 from mlprodict.tools.ort_wrapper import InferenceSession
 from mlprodict.onnx_conv import to_onnx
 
@@ -452,17 +452,13 @@ class TestSklearnPipeline(ExtTestCase):
                 ('sub2', StandardScaler(), [0, 1])])),
             ("scaler2", StandardScaler())])
         model.fit(data)
-        sc = model.steps[0][1]
-        st = sc.transformers_[0][1]
-        st = sc.transformers_[-1][1]
-
         model_onnx = to_onnx(
             model, initial_types=[("X", FloatTensorType([None, 2]))],
             as_function=True, target_opset=15)
         self.assertEqual(len(model_onnx.graph.node), 1)
         self.assertEqual(len(model_onnx.functions), 5)
         rts = ['python']
-        if ort_version_higher("1.13"):
+        if ort_version_greater("1.13"):
             rts.append('onnxruntime1')
         dump_data_and_model(
             data, model, model_onnx,
@@ -484,7 +480,7 @@ class TestSklearnPipeline(ExtTestCase):
             as_function=True, target_opset=15)
         self.assertEqual(len(model_onnx.graph.node), 1)
         rts = ['python']
-        if ort_version_higher("1.13"):
+        if ort_version_greater("1.13"):
             rts.append('onnxruntime1')
         dump_data_and_model(
             data, model, model_onnx,
@@ -506,7 +502,7 @@ class TestSklearnPipeline(ExtTestCase):
             as_function=True, target_opset=15)
         self.assertEqual(len(model_onnx.graph.node), 1)
         rts = ['python']
-        if ort_version_higher("1.13"):
+        if ort_version_greater("1.13"):
             rts.append('onnxruntime1')
         dump_data_and_model(
             data, model, model_onnx,
@@ -520,5 +516,5 @@ class TestSklearnPipeline(ExtTestCase):
 if __name__ == "__main__":
     # import logging
     # logging.basicConfig(level=logging.DEBUG)
-    # TestSklearnPipeline().test_pipeline_column_transformer_function_passthrough()
+    TestSklearnPipeline().test_pipeline_column_transformer_function()
     unittest.main(verbosity=2)

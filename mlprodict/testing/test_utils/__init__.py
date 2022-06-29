@@ -32,7 +32,13 @@ def create_tensor(N, C, H=None, W=None):
         'This function only produce 2-D or 4-D tensor.')
 
 
-def ort_version_higher(ver):
+def ort_version_greater(ver):
+    """
+    Tells if onnxruntime version is greater than *ver*.
+
+    :param ver: version as a string
+    :return: boolean
+    """
     from onnxruntime import __version__
     from pyquickhelper.texthelper.version_helper import compare_module_version
     return compare_module_version(__version__, ver) >= 0
