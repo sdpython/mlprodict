@@ -23,7 +23,7 @@ from pyquickhelper.pycode import ExtTestCase
 from skl2onnx.common.data_types import (
     FloatTensorType, Int64TensorType, StringTensorType)
 from mlprodict.testing.test_utils import (
-    dump_data_and_model, fit_classification_model)
+    dump_data_and_model, fit_classification_model, ort_version_higher)
 from mlprodict.tools.ort_wrapper import InferenceSession
 from mlprodict.onnx_conv import to_onnx
 
@@ -444,7 +444,7 @@ class TestSklearnPipeline(ExtTestCase):
                             backend=['python'])
 
     def test_pipeline_column_transformer_function(self):
-        data = numpy.array([[0, 0], [0, 0], [1, 1], [1, 1]],
+        data = numpy.array([[0, 0], [0, 0], [1, 1], [1, 1], [2, 2]],
                            dtype=numpy.float32)
         model = Pipeline([
             ("pipe1", ColumnTransformer([
@@ -452,16 +452,22 @@ class TestSklearnPipeline(ExtTestCase):
                 ('sub2', StandardScaler(), [0, 1])])),
             ("scaler2", StandardScaler())])
         model.fit(data)
+        sc = model.steps[0][1]
+        st = sc.transformers_[0][1]
+        st = sc.transformers_[-1][1]
 
         model_onnx = to_onnx(
             model, initial_types=[("X", FloatTensorType([None, 2]))],
             as_function=True, target_opset=15)
         self.assertEqual(len(model_onnx.graph.node), 1)
         self.assertEqual(len(model_onnx.functions), 5)
+        rts = ['python']
+        if ort_version_higher("1.13"):
+            rts.append('onnxruntime1')
         dump_data_and_model(
             data, model, model_onnx,
             basename="SklearnPipelineColumnTransformerScalerFunction",
-            backend=['python', 'onnxruntime'])
+            backend=rts)
 
     def test_pipeline_column_transformer_function_passthrough(self):
         data = numpy.array([[0, 0], [0, 0], [1, 1], [1, 1]],
@@ -469,7 +475,7 @@ class TestSklearnPipeline(ExtTestCase):
         model = Pipeline([
             ("pipe1", ColumnTransformer([
                 ('sub1', StandardScaler(), [0]),
-                ('sub2', "passthrough")])),
+                ('sub2', "passthrough", [1])])),
             ("scaler2", StandardScaler())])
         model.fit(data)
 
@@ -477,14 +483,39 @@ class TestSklearnPipeline(ExtTestCase):
             model, initial_types=[("X", FloatTensorType([None, 2]))],
             as_function=True, target_opset=15)
         self.assertEqual(len(model_onnx.graph.node), 1)
+        rts = ['python']
+        if ort_version_higher("1.13"):
+            rts.append('onnxruntime1')
         dump_data_and_model(
             data, model, model_onnx,
             basename="SklearnPipelineColumnTransformerScalerPassThroughFunction",
-            backend=['python', 'onnxruntime'])
+            backend=rts)
+
+    def test_pipeline_column_transformer_function_drop(self):
+        data = numpy.array([[0, 0], [0, 0], [1, 1], [1, 1]],
+                           dtype=numpy.float32)
+        model = Pipeline([
+            ("pipe1", ColumnTransformer([
+                ('sub1', StandardScaler(), [0]),
+                ('sub2', "drop", [1])])),
+            ("scaler2", StandardScaler())])
+        model.fit(data)
+
+        model_onnx = to_onnx(
+            model, initial_types=[("X", FloatTensorType([None, 2]))],
+            as_function=True, target_opset=15)
+        self.assertEqual(len(model_onnx.graph.node), 1)
+        rts = ['python']
+        if ort_version_higher("1.13"):
+            rts.append('onnxruntime1')
+        dump_data_and_model(
+            data, model, model_onnx,
+            basename="SklearnPipelineColumnTransformerScalerDropFunction",
+            backend=rts)
 
 
 if __name__ == "__main__":
     # import logging
     # logging.basicConfig(level=logging.DEBUG)
-    TestSklearnPipeline().test_pipeline_column_transformer_function()
+    # TestSklearnPipeline().test_pipeline_column_transformer_function_passthrough()
     unittest.main(verbosity=2)

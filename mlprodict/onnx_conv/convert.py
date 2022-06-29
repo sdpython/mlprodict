@@ -857,6 +857,10 @@ def _to_onnx_function_column_transformer(
         if prefix_name is not None:
             prefix = prefix_name + prefix
 
+        if op == 'passthrough':
+            ops.extend(transform_inputs)
+            continue
+
         protom = to_onnx(
             op, name=name, X=X, initial_types=initial_types,
             target_opset=target_opset,
@@ -885,7 +889,7 @@ def _to_onnx_function_column_transformer(
                      op.__class__.__name__, output_names, len(protof.node), jspar)
 
         op = OnnxOperatorFunction(
-            protof, *input_nodes, output_names=output_names,
+            protof, *transform_inputs, output_names=output_names,
             sub_functions=list(protom.functions))
         ops.append(op)
 

@@ -1748,7 +1748,7 @@ class OnnxOperator(OnnxOperatorBase):
     def _node_to_graph_get_type(node, name=None, outputs=None,
                                 outputs_dtype=None):
         if outputs is None:
-            return outputs_dtype
+            return outputs_dtype, None
         if isinstance(outputs, Variable):
             if name is None:
                 return (outputs.dtype or outputs_dtype, None)
@@ -1765,7 +1765,7 @@ class OnnxOperator(OnnxOperatorBase):
             else:
                 n = name
             if n not in outputs:
-                return None
+                return None, None
             return outputs[n], None
         if isinstance(outputs, (list, OnnxOperator._InputContainer)):
             raise NotImplementedError(  # pragma: no cover
