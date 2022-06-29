@@ -512,6 +512,9 @@ class TestSklearnPipeline(ExtTestCase):
             data, model, model_onnx,
             basename="SklearnPipelineColumnTransformerScalerDropFunction",
             backend=rts)
+        self.assertIn(
+            r'"HYPER:{\"StandardScaler\":{\"copy\": true, \"with_mean\": true, \"with_std\": true}}"',
+            str(model_onnx))
 
 
 if __name__ == "__main__":
