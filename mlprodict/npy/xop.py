@@ -28,6 +28,7 @@ from .xop_variable import (
     DetectedVariable, InputDetectedVariable, OutputDetectedVariable,
     NodeResultName, guess_numpy_type, ExistingVariable)
 from .xop_auto import get_rst_doc
+from .xop_helper import _infer_node_output
 
 
 class _WrapperLogger:
@@ -1658,6 +1659,8 @@ class OnnxOperator(OnnxOperatorBase):
                 # sklearn-onnx
                 new_inputs[el[0]] = Variable(
                     el[0], guess_numpy_type(el[1]), el[1].shape)
+            elif isinstance(el, ValueInfoProto):
+                new_inputs[el.name] = el
             else:
                 raise TypeError(  # pragma: no cover
                     "Unable to handle input type %r (%r)." % (type(el), el))
@@ -1745,33 +1748,31 @@ class OnnxOperator(OnnxOperatorBase):
     def _node_to_graph_get_type(node, name=None, outputs=None,
                                 outputs_dtype=None):
         if outputs is None:
-            return outputs_dtype
+            return outputs_dtype, None
         if isinstance(outputs, Variable):
             if name is None:
-                return outputs.dtype or outputs_dtype
+                return (outputs.dtype or outputs_dtype, None)
             if isinstance(name, Variable):
-                return outputs.dtype or name.dtype or outputs_dtype
-            else:
-                raise RuntimeError(  # pragma: no cover
-                    "Unable to handle outputs=%r." % outputs)
+                return (outputs.dtype or name.dtype or outputs_dtype,
+                        None)
+            raise RuntimeError(  # pragma: no cover
+                "Unable to handle outputs=%r." % outputs)
         if isinstance(outputs, dict):
             if name is None:
-                raise RuntimeError(  # pragma: no cover
-                    "Unable to get type among %r, name=None." % (
-                        outputs, ))
+                return _infer_node_output(node, outputs)
             if isinstance(name, Variable):
                 n = name.name
             else:
                 n = name
             if n not in outputs:
-                return None
-            return outputs[n]
+                return None, None
+            return outputs[n], None
         if isinstance(outputs, (list, OnnxOperator._InputContainer)):
             raise NotImplementedError(  # pragma: no cover
                 "Unexpected type for name=%r, outputs=%r." % (
                     name, outputs))
         if is_numpy_dtype(outputs):
-            return outputs
+            return outputs, None
         raise RuntimeError(  # pragma: no cover
             "Unable to handle outputs=%r." % outputs)
 
@@ -1955,13 +1956,13 @@ class OnnxOperator(OnnxOperatorBase):
             if node.output_names is None:
                 n = self.output_range[0]
                 for i in range(n):
-                    to = self._node_to_graph_get_type(
+                    to, shape = self._node_to_graph_get_type(
                         node, outputs=outputs_dict,
                         outputs_dtype=outputs_dtype)
                     if to is None:
                         run_shape = True
                     res = '???_%d' % i
-                    var = Variable(res, added_dtype=to)
+                    var = Variable(res, added_dtype=to, shape=shape)
                     if var.name in set_names:
                         raise RuntimeError(  # pragma: no cover
                             "Duplicated output name var=%r." % var)
@@ -1973,13 +1974,13 @@ class OnnxOperator(OnnxOperatorBase):
                         raise TypeError(  # pragma: no cover
                             "Output %d - %r (%r) not allowed in node %r." % (
                                 i, o, node.output_names, node))
-                    to = self._node_to_graph_get_type(
+                    to, shape = self._node_to_graph_get_type(
                         node, o, outputs=outputs_dict,
                         outputs_dtype=outputs_dtype)
                     if to is None:
                         run_shape = True
                     res = (o, to)
-                    var = o.copy_merge(to)
+                    var = o.copy_merge(to, shape=shape)
                     if var.name in set_names:
                         raise RuntimeError(  # pragma: no cover
                             "Duplicated output name o=%r var=%r." % (o, var))
@@ -2087,15 +2088,18 @@ class OnnxOperator(OnnxOperatorBase):
         logger.debug("op:%s-%d:SG-self:processed[%d]:SELF",
                      self.__class__.__name__, id(self), id(self))
         processed[id(self)] = self
+
         logger.indent()
         nodes, graph_inputs, graph_outputs, run_shape2 = self._node_to_graph(
             other_outputs, inputs, outputs, as_function=function_name is not None,
             processed=processed)
         logger.dedent()
+
         logger.debug("op:%s.to_onnx:graph_inputs=%r",
                      self.__class__.__name__, graph_inputs)
         logger.debug("op:%s.to_onnx:graph_outputs=%r",
                      self.__class__.__name__, graph_outputs)
+
         if len(nodes) == 0:
             raise RuntimeError(  # pragma: no cover
                 "Node list is empty.")
@@ -2677,6 +2681,11 @@ class OnnxOperatorFunction(OnnxOperator):
     """
     This operator is used to insert existing ONNX function into
     the ONNX graph being built.
+
+    :param function_proto: instance of type :epkg:`FunctionProto`
+    :param inputs: inputs
+    :param output_names: output names
+    :param sub_functions: functions called by this one
     """
 
     domain = 'mlprodict'
@@ -2720,7 +2729,8 @@ class OnnxOperatorFunction(OnnxOperator):
                     dtype, att))
         return value
 
-    def __init__(self, function_proto, *inputs, output_names=None):
+    def __init__(self, function_proto, *inputs, output_names=None,
+                 sub_functions=None):
         logger.debug("op:Function(ONNX, %d in, output_names=%r)",
                      len(inputs), output_names)
         if function_proto is None:
@@ -2741,6 +2751,7 @@ class OnnxOperatorFunction(OnnxOperator):
                     len(output_names), len(function_proto.output)))
         OnnxOperator.__init__(self, *inputs, output_names=output_names)
         self.model = function_proto
+        self.sub_functions = sub_functions
 
     def __repr__(self):
         "usual"
@@ -2750,6 +2761,8 @@ class OnnxOperatorFunction(OnnxOperator):
             if value is not None:
                 atts[att] = value
         atts.update(self.kwargs)
+        if self.sub_functions is not None and len(self.sub_functions) > 0:
+            atts["sub_functions"] = list(range(len(self.sub_functions)))
         msg = ", ".join("%s=%r" % (k, v) for k, v in atts.items())
         if len(atts) > 0:
             msg = ", " + msg
@@ -2771,6 +2784,9 @@ class OnnxOperatorFunction(OnnxOperator):
 
         # linking inputs
         logger.indent()
+        if self.sub_functions is not None:
+            for sub in self.sub_functions:
+                builder.add_function(sub)
         builder.add_function(self.model)
         builder.add_node(
             self.model.name, builder.get_unique_name(
@@ -2815,6 +2831,12 @@ class _GraphBuilder:
         self.functions = {}
         self.function_hashes = {}
         logger.debug('_GraphBuilder-%d:new', id(self))
+
+    def _add_domain(self, domain, version):
+        if domain not in self.opsets:
+            self.opsets[domain] = version
+        else:
+            self.opsets[domain] = max(version, self.opsets[domain])
 
     def _add_name(self, name):
         self.names.add(name)
@@ -3088,12 +3110,7 @@ class _GraphBuilder:
                 return
         self.functions[key] = function_proto
         self.function_hashes[key] = _hash(function_proto)
-
-        if function_proto.domain not in self.opsets:
-            self.opsets[function_proto.domain] = opset
-        else:
-            self.opsets[function_proto.domain] = max(
-                opset, self.opsets[function_proto.domain])
+        self._add_domain(function_proto.domain, opset)
 
     def add_node(self, op_type, name, inputs, outputs, domain='',
                  opset=None, **attributes):
@@ -3126,10 +3143,7 @@ class _GraphBuilder:
             raise TypeError(  # pragma: no cover
                 "outputs must be all strings not %r." % outputs)
         if opset is not None:
-            if domain not in self.opsets:
-                self.opsets[domain] = opset
-            else:
-                self.opsets[domain] = max(opset, self.opsets[domain])
+            self._add_domain(domain, opset)
         node = make_node(op_type, inputs, outputs, name=name,
                          domain=domain, **attributes)
         self.node.append(node)
@@ -3409,6 +3423,8 @@ class _GraphBuilder:
                 from ..onnx_tools.optim import onnx_optimisations
                 onnx_model = onnx_optimisations(onnx_model)
                 if check_model:
+                    logger.debug(
+                        "_GraphBuilder-%d.to_onnx:check_onnx", id(self))
                     check_onnx(onnx_model)
 
             logger.debug("_GraphBuilder-%d.to_onnx:optim:n_inputs=%r n_inits=%r "
@@ -3419,6 +3435,7 @@ class _GraphBuilder:
                          len(onnx_model.graph.output))
 
             if run_shape:
+                logger.debug("_GraphBuilder-%d.to_onnx:infer_shapes", id(self))
                 with_shape = infer_shapes(onnx_model)
                 logger.debug("_GraphBuilder-%d.to_onnx:shape:n_inputs=%r "
                              "n_inits=%r n_nodes=%r n_outputs=%r",

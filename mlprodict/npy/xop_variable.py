@@ -184,10 +184,19 @@ class Variable:
     @staticmethod
     def from_skl2onnx(var):
         """
-        Converts var from :epkg:`sklearn-onnx` into this class.
+        Converts variable from :epkg:`sklearn-onnx` into this class.
         """
         return Variable(var.onnx_name, guess_numpy_type(var.type),
                         shape=var.type.shape)
+
+    @staticmethod
+    def from_skl2onnx_tuple(var):
+        """
+        Converts variable from :epkg:`sklearn-onnx` into this class
+        defined as a tuple.
+        """
+        return Variable(var[0], guess_numpy_type(var[1]),
+                        shape=var[1].shape)
 
     @property
     def name(self):
@@ -268,14 +277,17 @@ class Variable:
             shape = None
         return Variable(self.name_, self.dtype_, self.shape_, dtype, shape)
 
-    def copy_merge(self, var):
+    def copy_merge(self, var, shape=None):
         """
         Merges information from both Variable.
         """
         if not isinstance(var, Variable):
+            if shape is not None:
+                raise RuntimeError(  # pragma: no cover
+                    "shape must be None if var is a Variable.")
             return self.copy_add(var)
         res = Variable(self.name_, self.dtype_,
-                       self.shape_, self.added_dtype_,
+                       shape or self.shape_, self.added_dtype_,
                        self.added_shape_)
         if self.added_dtype_ is None and var.dtype_ is not None:
             res.added_dtype_ = var.dtype_

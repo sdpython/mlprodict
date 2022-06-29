@@ -733,35 +733,35 @@ def onnx_simple_text_plot(model, verbose=False, att_display=None,  # pylint: dis
                     val = str(att.s)
                 elif att.type == AttributeProto.STRINGS:  # pylint: disable=E1101
                     n_val = list(att.strings)
-                    if len(n_val) < 3:
+                    if len(n_val) < 5:
                         val = ",".join(map(str, n_val))
                     else:
-                        val = "%d:%s...%s" % (
+                        val = "%d:[%s...%s]" % (
                             len(n_val),
-                            ",".join(map(str, n_val[:3])),
-                            ",".join(map(str, n_val[-3:])))
+                            ",".join(map(str, n_val[:2])),
+                            ",".join(map(str, n_val[-2:])))
                 elif att.type == AttributeProto.INT:  # pylint: disable=E1101
                     val = str(att.i)
                 elif att.type == AttributeProto.FLOAT:  # pylint: disable=E1101
                     val = str(att.f)
                 elif att.type == AttributeProto.INTS:  # pylint: disable=E1101
                     n_val = list(att.ints)
-                    if len(n_val) < 5:
-                        val = ",".join(map(str, n_val))
+                    if len(n_val) < 6:
+                        val = "[%s]" % ",".join(map(str, n_val))
                     else:
-                        val = "%d:%s...%s" % (
+                        val = "%d:[%s...%s]" % (
                             len(n_val),
                             ",".join(map(str, n_val[:3])),
                             ",".join(map(str, n_val[-3:])))
                 elif att.type == AttributeProto.FLOATS:  # pylint: disable=E1101
                     n_val = list(att.floats)
-                    if len(n_val) < 3:
-                        val = ",".join(map(str, n_val))
+                    if len(n_val) < 5:
+                        val = "[%s]" % ",".join(map(str, n_val))
                     else:
-                        val = "%d:%s...%s" % (
+                        val = "%d:[%s...%s]" % (
                             len(n_val),
-                            ",".join(map(str, n_val[:3])),
-                            ",".join(map(str, n_val[-3:])))
+                            ",".join(map(str, n_val[:2])),
+                            ",".join(map(str, n_val[-2:])))
                 else:
                     val = '.%d' % att.type
                 atts.append("%s=%s" % (att.name, val))

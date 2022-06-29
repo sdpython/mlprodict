@@ -224,8 +224,10 @@ def compare_runtime_session(  # pylint: disable=R0912
                 format(onx, cls_session))
         else:
             if verbose:  # pragma no cover
+                from ...plotting.text_plot import onnx_simple_text_plot
                 model = onnx.load(onx)
-                smodel = "\nJSON ONNX\n" + str(model)
+                smodel = "\nJSON ONNX\n" + onnx_simple_text_plot(
+                    model, recursive=True, raise_exc=False)
             else:
                 smodel = ""
             import pprint

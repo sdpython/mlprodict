@@ -16,11 +16,11 @@ def iris_data():
     """
     from sklearn.datasets import load_iris
     iris = load_iris()
-    X = iris.data[:, :2]
+    X = iris.data[:, :2]  # pylint: disable=E1101
     state = numpy.random.RandomState(seed=34)  # pylint: disable=E1101
     rnd = state.randn(*X.shape) / 3
     X += rnd
-    y = iris.target
+    y = iris.target  # pylint: disable=E1101
     return X, y
 
 

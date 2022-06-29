@@ -328,9 +328,9 @@ class TestPlotTextPlotting(ExtTestCase):
         clr.fit(X, y)
         onx = to_onnx(clr, X)
         res = onnx_simple_text_plot(onx)
-        self.assertIn("nodes_featureids=9:", res)
-        self.assertIn("nodes_modes=9:b'", res)
-        self.assertIn("target_weights=5:", res)
+        self.assertIn("nodes_featureids=9:[", res)
+        self.assertIn("nodes_modes=9:[b'", res)
+        self.assertIn("target_weights=5:[", res)
 
 
 if __name__ == "__main__":
