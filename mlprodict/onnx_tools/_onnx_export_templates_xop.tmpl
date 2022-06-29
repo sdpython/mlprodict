@@ -32,16 +32,16 @@ def {{ function_name }}():
     {{ name }} = '{{ name }}'
     {%- endfor %}
     {% for node in fct['nodes']: -%}
-    {{ ', '.join(node['outputs']) }} = Onnx{{ node['op_type'] }}({{ ', '.join(node['inputs']) }}{% if len(node['inputs']) > 0 %},{% endif %}
+    {{ ', '.join(node['outputs']) }} = {{ xop_make_node_name(node['domain'], node['op_type']) }}({{ ', '.join(node['inputs']) }}{% if len(node['inputs']) > 0 %},{% endif %}
         {%- for name, value in node['attributes']: -%}
         {{ name }}={{ value }},
         {%- endfor -%}{%- if len(node['output_names']) > 0 -%}
         output_names={{ repr(node['output_names']) }},
         {%- endif -%}
-        {% if node['domain'] != '' %}domain='{{ node['domain'] }}', {% endif %}op_version={{ opsets[node['domain']] }})
+        {% if node['domain'] != '' %}domain='{{ node['domain'] }}', {% endif %}op_version={{ fct['opsets'][node['domain']] }})
     {% endfor -%}
     onnx_{{ name }} = {{ fct['proto'].output[0] }}.to_onnx(function_name='{{ name }}', function_domain='{{ domain }}')
-    Onnx{{ fct['proto'].name }} = (
+    {{ xop_make_node_name(fct['proto'].domain, fct['proto'].name) }} = (
         lambda *args, domain=None, op_version=None, **kwargs:
             OnnxOperatorFunction(onnx_{{ name }}, *args, **kwargs))
     {% endfor %}
@@ -96,7 +96,7 @@ def {{ function_name }}():
     # nodes
     print('[nodes]')   # verbose
     {% for node in nodes: -%}
-    {{ ', '.join(node['outputs']) }} = Onnx{{ node['op_type'] }}({{ ', '.join(node['inputs']) }}{% if len(node['inputs']) > 0 %},{% endif %}
+    {{ ', '.join(node['outputs']) }} = {{ xop_make_node_name(node['domain'], node['op_type']) }}({{ ', '.join(node['inputs']) }}{% if len(node['inputs']) > 0 %},{% endif %}
         {%- for name, value in node['attributes']: -%}
         {{ name }}={{ value }},
         {%- endfor -%}{%- if len(node['output_names']) > 0 -%}

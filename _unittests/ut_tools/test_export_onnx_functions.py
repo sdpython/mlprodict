@@ -17,12 +17,14 @@ from pyquickhelper.pycode import ExtTestCase
 from sklearn.pipeline import Pipeline
 from sklearn.preprocessing import StandardScaler
 from skl2onnx.common.data_types import FloatTensorType
+from mlprodict.tools.code_helper import print_code
 from mlprodict.onnx_tools.onnx_export import (
-    export2onnx)
+    export2onnx, export2xop)
 from mlprodict.testing.verify_code import verify_code
 from mlprodict.onnxrt import OnnxInference
 from mlprodict.onnx_conv import to_onnx
 from mlprodict.npy.xop import loadop, OnnxOperatorFunction
+from mlprodict.npy.xop_variable import Variable
 
 
 class TestExportOnnxFunction(ExtTestCase):
@@ -55,6 +57,7 @@ class TestExportOnnxFunction(ExtTestCase):
                'make_tensor_value_info': make_tensor_value_info,
                'print': print, 'sorted': sorted,
                'make_opsetid': make_opsetid,
+               'Variable': Variable,
                'collections': collections, 'inspect': inspect}
         out, err = StringIO(), StringIO()
         if len(left) >= 10:
@@ -88,12 +91,22 @@ class TestExportOnnxFunction(ExtTestCase):
         self.assertGreater(len(model_onnx.functions), 1)
         rt = 'python'
         oinf0 = OnnxInference(model_onnx, runtime=rt)
+        y0 = oinf0.run({'X': x})
+
         new_onnx = export2onnx(model_onnx, name="function")
         self.assertIn('make_function', new_onnx)
         _, loc = self.verify(new_onnx)
         model = loc['onnx_model']
         oinf1 = OnnxInference(model, runtime=rt)
-        y0 = oinf0.run({'X': x})
+        y1 = oinf1.run({'X': x})
+        self.assertEqualArray(y0['main_scaler2_variable'],
+                              y1['main_scaler2_variable'])
+
+        new_onnx = export2xop(model_onnx, name="function")
+        _, loc = self.verify(new_onnx)
+        model = loc['onnx_model']
+        self.assertEqual(len(model_onnx.functions), len(model.functions))
+        oinf1 = OnnxInference(model, runtime=rt)
         y1 = oinf1.run({'X': x})
         self.assertEqualArray(y0['main_scaler2_variable'],
                               y1['main_scaler2_variable'])
