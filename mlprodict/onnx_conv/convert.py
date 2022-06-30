@@ -333,7 +333,8 @@ def to_onnx(model, X=None, name=None, initial_types=None,
         names, see @see fn onnx_rename_names
     :param verbose: display information while converting the model
     :param as_function: exposes every model in a pipeline as a function,
-        the main graph contains the pipeline structure
+        the main graph contains the pipeline structure,
+        see :ref:`onnxsklearnfunctionsrst` for an example
     :param prefix_name: used if *as_function* is True, to give
         a prefix to variable in a pipeline
     :param run_shape: run shape inference
