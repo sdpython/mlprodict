@@ -320,3 +320,8 @@ onnxruntime*.json
 *net*.tar*
 _unittests/unittests.out
 mlprodict/npy/_cache/*.rst
+
+# Compiled Dynamic libraries
+*.so
+*.dylib
+*.dll
