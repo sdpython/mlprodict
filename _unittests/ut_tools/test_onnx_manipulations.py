@@ -489,7 +489,7 @@ class TestOptimOnnxManipulations(ExtTestCase):
         y = oinf.run({'x': x})['y']
 
         opsets1 = get_opsets(onx)
-        fct = onnx_model_to_function(onx, name="fft2d")
+        fct, _ = onnx_model_to_function(onx, name="fft2d")
         opsets2 = get_opsets(fct)
         self.assertEqual(opsets1, opsets2)
         self.assertIsInstance(fct, FunctionProto)
@@ -507,7 +507,7 @@ class TestOptimOnnxManipulations(ExtTestCase):
         data = os.path.join(os.path.dirname(__file__), "data")
         fft2d = os.path.join(data, "fft2d.onnx")
         onx = load(fft2d)
-        fct = onnx_model_to_function(onx, name="fft2d")
+        fct, _ = onnx_model_to_function(onx, name="fft2d")
         op = OnnxOperatorFunction(fct, 'X', output_names=['Y'])
         onx2 = op.to_onnx(numpy.float32, numpy.float32)
         inlined, m = onnx_inline_function(onx2)
@@ -527,11 +527,11 @@ class TestOptimOnnxManipulations(ExtTestCase):
         data = os.path.join(os.path.dirname(__file__), "data")
         fft2d = os.path.join(data, "fft2d.onnx")
         onx = load(fft2d)
-        fct = onnx_model_to_function(onx, name="fft2d")
+        fct, _ = onnx_model_to_function(onx, name="fft2d")
         op = OnnxOperatorFunction(fct, 'X', output_names=['Y'])
         onx2 = op.to_onnx(numpy.float32, numpy.float32)
 
-        fct = onnx_model_to_function(onx2, name="fft2d")
+        fct, _ = onnx_model_to_function(onx2, name="fft2d")
         inlined, m = onnx_inline_function(fct, list(onx2.functions))
         self.assertEqual(len(m), 1)
         self.assertEqual(m[0].op_type, "fft2d")
@@ -1287,6 +1287,7 @@ class TestOptimOnnxManipulations(ExtTestCase):
                     print("STEP1 begin", fct)
                 onx = load(os.path.join(data, fct + ".onnx"))
                 onx = _repare(fct, onx)
+                self.assertFalse(isinstance(onx, tuple))
                 if run_validation and fct not in {'stft', 'istft'}:
                     _validate(fct, onx, path_error=os.path.join(
                         temp, fct + '.error.check.onnx'))
@@ -1297,7 +1298,7 @@ class TestOptimOnnxManipulations(ExtTestCase):
                     # The model misses a function.
                     use_fct = True
                 if use_fct:
-                    fpr = onnx_model_to_function(onx)
+                    fpr, _ = onnx_model_to_function(onx)
                     if run_validation:
                         _validate(fct, fpr)
                     onx = onnx_function_to_model(
@@ -1313,7 +1314,7 @@ class TestOptimOnnxManipulations(ExtTestCase):
                         "Unable to run fct %r\n---\n%s" % (
                             fct, onnx_simple_text_plot(
                                 onx, recursive=True))) from e
-                proto = onnx_model_to_function(onx)
+                proto, _ = onnx_model_to_function(onx)
                 _validate(fct, proto)
                 proto.domain = 'this'
                 protos[proto.domain, proto.name] = proto
@@ -1351,11 +1352,11 @@ class TestOptimOnnxManipulations(ExtTestCase):
                 f.write(helper.printable_graph(onx.graph))
             with open(os.path.join(temp, fct + ".fct.onnx"), "wb") as f:
                 f.write(_validate(fct, onnx_model_to_function(
-                    onx)).SerializeToString())
+                    onx)[0]).SerializeToString())
             with open(os.path.join(temp, fct + ".fct.att.onnx"), "wb") as f:
                 f.write(_validate(
                     fct, onnx_model_to_function(
-                        onx, inputs2par=atts_def)).SerializeToString())
+                        onx, inputs2par=atts_def)[0]).SerializeToString())
             verbose = 4
             if log:
                 ti = time.perf_counter()
@@ -1400,7 +1401,7 @@ class TestOptimOnnxManipulations(ExtTestCase):
                 inlined = onnx_replace_functions(
                     inlined,
                     {n: onnx_model_to_function(inlined_models[n[1]],
-                                               domain='this')
+                                               domain='this')[0]
                      for n in skip_inline[fct]})
                 _validate(fct, inlined)
 
@@ -1429,7 +1430,7 @@ class TestOptimOnnxManipulations(ExtTestCase):
                          for i in inlined.graph.input}
             type_info.update({i.name: i.type.tensor_type.elem_type
                              for i in inlined.graph.output})
-            fct_whole = _validate(fct, onnx_model_to_function(inlined))
+            fct_whole = _validate(fct, onnx_model_to_function(inlined)[0])
             simple_graph = onnx_function_to_model(
                 fct_whole, type_info=type_info, as_function=True,
                 shape_fct=_m2f_shape_fct)

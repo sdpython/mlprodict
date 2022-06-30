@@ -994,7 +994,7 @@ def onnx_model_to_function(onx, name=None, domain="custom",
     :param doc_string: doc string
     :param inputs2par: dictionary to move some inputs as attributes
         `{ name: None or default value }`
-    :return: function
+    :return: function, other functions
 
     .. warning::
         :epkg:`FunctionProto` does not support default values yet.
@@ -1008,10 +1008,11 @@ def onnx_model_to_function(onx, name=None, domain="custom",
             opset_imports = domains
         if doc_string is None:
             doc_string = onx.doc_string
-        return onnx_model_to_function(
+        fp, lf = onnx_model_to_function(
             onx.graph, name=name, domain=domain,
             opset_imports=opset_imports, doc_string=doc_string,
             inputs2par=inputs2par)
+        return fp, lf + list(onx.functions)
 
     if not isinstance(onx, GraphProto):
         raise TypeError(  # pragma: no cover
@@ -1056,7 +1057,7 @@ def onnx_model_to_function(onx, name=None, domain="custom",
     return make_function(
         domain, name, inputs, outputs, nodes,
         opset_imports=opset_imports, doc_string=doc_string or '',
-        attributes=attributes)
+        attributes=attributes), []
 
 
 def _onnx_function_to_model_convert_io(ens, type_info, shape_fct):

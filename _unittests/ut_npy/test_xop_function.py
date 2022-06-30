@@ -125,7 +125,7 @@ class TestXOpsFunction(ExtTestCase):
         got = oinf.run({'XX': x})
         self.assertEqualArray((x + numpy.abs(x)) / 2, got['YY'])
 
-        fonx = onnx_model_to_function(onx, domain='sklearn')
+        fonx, _ = onnx_model_to_function(onx, domain='sklearn')
         fct = OnnxOperatorFunction(fonx, 'X', output_names=['Y'])
         onx2 = fct.to_onnx(numpy.float32, numpy.float32)
         oinf = OnnxInference(onx2)
@@ -145,7 +145,7 @@ class TestXOpsFunction(ExtTestCase):
         got = oinf.run({'XX': x})
         self.assertEqualArray(x + numpy.abs(x), got['YY'])
 
-        fonx = onnx_model_to_function(onx, domain='sklearn')
+        fonx, _ = onnx_model_to_function(onx, domain='sklearn')
         fct1 = OnnxOperatorFunction(fonx, 'X')
         fct = OnnxOperatorFunction(fonx, fct1, output_names=['Y'])
         onx2 = fct.to_onnx(numpy.float32, numpy.float32)
@@ -241,6 +241,31 @@ class TestXOpsFunction(ExtTestCase):
         exe = oinf.run({'X': x, 'A': a}, verbose=2, fLOG=my_print)
         self.assertEqualArray(exe['Y'], exe2['Y'])
         self.assertEqualArray(exe['Y'], x @ a + 0.67)
+
+    def test_onnx_function_inside_function(self):
+        OnnxAbs, OnnxAdd, OnnxDiv = loadop(
+            "Abs", "Add", "Div")
+        ov = OnnxAbs('XX')
+        ad = OnnxAdd('XX', ov)
+        op = OnnxDiv(ad, numpy.array([2], dtype=numpy.float32),
+                     output_names=['YY'])
+        onx = op.to_onnx(numpy.float32, numpy.float32)
+        fonx, _ = onnx_model_to_function(onx, domain='sklearn', name='f1')
+        fct = OnnxOperatorFunction(fonx, 'X', output_names=['Y'])
+
+        onx2 = fct.to_onnx(numpy.float32, numpy.float32)
+        fonx2, fps2 = onnx_model_to_function(onx2, domain='sklearn', name='f2')
+        self.assertEqual(len(fps2), 1)
+        fct2 = OnnxAdd(
+            OnnxOperatorFunction(fonx2, 'X', sub_functions=fps2),
+            numpy.array([1], dtype=numpy.float32),
+            output_names=['Y'])
+        onx3 = fct2.to_onnx(numpy.float32, numpy.float32)
+        self.assertEqual(len(onx3.functions), 2)
+        oinf = OnnxInference(onx3)
+        x = numpy.array([-2, 2], dtype=numpy.float32)
+        got = oinf.run({'X': x})
+        self.assertEqualArray((x + numpy.abs(x)) / 2 + 1, got['Y'])
 
 
 if __name__ == "__main__":

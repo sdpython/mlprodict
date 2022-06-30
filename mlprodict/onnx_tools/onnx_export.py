@@ -123,6 +123,12 @@ def _nodes(graph, rename_name, used, output_names, use_onnx_tensor,
     return nodes
 
 
+def _xop_make_node_name(domain, name):
+    from ..npy.xop import _domain_to_class_name
+    class_name = "Onnx" + _domain_to_class_name(domain) + name
+    return class_name
+
+
 def export_template(model_onnx, templates, opset=None,  # pylint: disable=R0914
                     verbose=True, name=None,
                     rename=False, use_onnx_tensor=False,
@@ -181,7 +187,8 @@ def export_template(model_onnx, templates, opset=None,  # pylint: disable=R0914
 
     # containers
     context = {'main_model': model_onnx,
-               'printable_graph': printable_graph}
+               'printable_graph': printable_graph,
+               'xop_make_node_name': _xop_make_node_name}
     used = {}
 
     # opset
@@ -224,9 +231,16 @@ def export_template(model_onnx, templates, opset=None,  # pylint: disable=R0914
         from ..npy.xop import OnnxOperatorFunction
         for fct in model_onnx.functions:
             used = {}
+            opsets_fct = {}
+            for oimp in fct.opset_import:
+                if oimp.domain == '' and opset is None:
+                    opsets_fct[oimp.domain] = oimp.version
+                else:
+                    opsets_fct[oimp.domain] = opset
             functions.append(
                 (fct.domain, fct.name,
                  {'proto': fct,
+                  'opsets': opsets_fct,
                   'nodes': _nodes(fct, rename_name, used, fct.output,
                                   use_onnx_tensor, templates, verbose,
                                   opset, rename, autopep_options,
