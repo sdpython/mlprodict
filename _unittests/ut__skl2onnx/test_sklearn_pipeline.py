@@ -16,6 +16,7 @@ from sklearn.impute import SimpleImputer
 from sklearn.linear_model import LogisticRegression
 from sklearn.model_selection import train_test_split
 from sklearn.pipeline import Pipeline, FeatureUnion
+from sklearn.datasets import load_iris
 from sklearn.preprocessing import (
     OneHotEncoder, StandardScaler, MinMaxScaler)
 from sklearn.utils._testing import ignore_warnings
@@ -26,6 +27,7 @@ from mlprodict.testing.test_utils import (
     dump_data_and_model, fit_classification_model, ort_version_greater)
 from mlprodict.tools.ort_wrapper import InferenceSession
 from mlprodict.onnx_conv import to_onnx
+from mlprodict.plotting.text_plot import onnx_simple_text_plot
 
 
 class PipeConcatenateInput:
@@ -512,9 +514,38 @@ class TestSklearnPipeline(ExtTestCase):
             r'"HYPER:{\"StandardScaler\":{\"copy\": true, \"with_mean\": true, \"with_std\": true}}"',
             str(model_onnx))
 
+    def test_convert_as_function(self):
+        data = load_iris()
+        X, y = data.data, data.target
+        steps = [
+            ("preprocessing", StandardScaler()),
+            ("classifier", LogisticRegression(
+                penalty='l1', solver="liblinear"))]
+        pipe = Pipeline(steps)
+        pipe.fit(X, y)
+        onxf = to_onnx(pipe, X, as_function=True, options={'zipmap': False})
+        text = onnx_simple_text_plot(onxf)
+        self.assertIn('----- doc_string: HYPER:{"LogisticRegression":', text)
+        self.assertIn('"penalty": "l1"', text)
+
+    def test_convert_as_function2(self):
+        data = load_iris()
+        X, y = data.data, data.target
+        steps = [
+            ("preprocessing", ColumnTransformer([
+                ('A', StandardScaler(), [0, 1]),
+                ('B', MinMaxScaler(), [2, 3])])),
+            ("classifier", LogisticRegression(penalty='l1', solver="liblinear"))]
+        pipe = Pipeline(steps)
+        pipe.fit(X, y)
+        onxf = to_onnx(pipe, X, as_function=True, options={'zipmap': False})
+        text = onnx_simple_text_plot(onxf)
+        self.assertIn('----- doc_string: HYPER:{"LogisticRegression":', text)
+        self.assertIn('"penalty": "l1"', text)
+
 
 if __name__ == "__main__":
     # import logging
     # logging.basicConfig(level=logging.DEBUG)
-    TestSklearnPipeline().test_pipeline_column_transformer_function()
+    # TestSklearnPipeline().test_convert_as_function2()
     unittest.main(verbosity=2)

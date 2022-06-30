@@ -782,6 +782,8 @@ def onnx_simple_text_plot(model, verbose=False, att_display=None,  # pylint: dis
             rows.append("opset: domain=%r version=%r" % (
                 opset.domain, opset.version))
     if hasattr(model, 'graph'):
+        if model.doc_string:
+            rows.append('doc_string: %s' % model.doc_string)
         main_model = model
         model = model.graph
     else:
@@ -987,6 +989,8 @@ def onnx_simple_text_plot(model, verbose=False, att_display=None,  # pylint: dis
         for fct in main_model.functions:
             rows.append('----- function name=%s domain=%s' % (
                 fct.name, fct.domain))
+            if fct.doc_string:
+                rows.append('----- doc_string: %s' % fct.doc_string)
             res = onnx_simple_text_plot(
                 fct, verbose=verbose, att_display=att_display,
                 add_links=add_links, recursive=recursive,

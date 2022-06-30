@@ -43,6 +43,9 @@ def get_tensor_elem_type(obj):
     elif not isinstance(obj, TypeProto):
         raise TypeError(  # pragma: no cover
             "Unexpected type %r." % type(obj))
+    if obj.tensor_type.ByteSize() == 0:
+        raise NotImplementedError(  # pragma: no cover
+            "Unable to guess element type for %r." % obj)
     return obj.tensor_type.elem_type
 
 

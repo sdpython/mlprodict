@@ -33,6 +33,7 @@ def plot_onnx(onx, ax=None, dpi=300, temp_dot=None, temp_img=None,
     else:
         oinf = onx  # pragma: no cover
     dot = oinf.to_dot()
+    print(dot)
     plot_graphviz(dot, dpi=dpi, ax=ax, temp_dot=temp_dot, temp_img=temp_img)
     if show:
         plt.show()  # pragma: no cover
