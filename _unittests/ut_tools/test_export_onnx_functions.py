@@ -93,17 +93,17 @@ class TestExportOnnxFunction(ExtTestCase):
         oinf0 = OnnxInference(model_onnx, runtime=rt)
         y0 = oinf0.run({'X': x})
 
-        new_onnx = export2onnx(model_onnx, name="function")
-        self.assertIn('make_function', new_onnx)
-        _, loc = self.verify(new_onnx)
+        new_onnx_code = export2onnx(model_onnx, name="function")
+        self.assertIn('make_function', new_onnx_code)
+        _, loc = self.verify(new_onnx_code)
         model = loc['onnx_model']
         oinf1 = OnnxInference(model, runtime=rt)
         y1 = oinf1.run({'X': x})
         self.assertEqualArray(y0['main_scaler2_variable'],
                               y1['main_scaler2_variable'])
 
-        new_onnx = export2xop(model_onnx, name="function")
-        _, loc = self.verify(new_onnx)
+        new_onnx_code = export2xop(model_onnx, name="function")
+        _, loc = self.verify(new_onnx_code)
         model = loc['onnx_model']
         self.assertEqual(len(model_onnx.functions), len(model.functions))
         oinf1 = OnnxInference(model, runtime=rt)

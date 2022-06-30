@@ -25,6 +25,7 @@ def {{ function_name }}():
     {% else -%}{{ op['classname'] }} = loadop(('{{ op['domain'] }}', '{{ op['name'] }}'))
     {% endif %}{% endif %}{% endfor %}
 
+    sub_functions = []
     {% for domain, name, fct in functions: %}
     # function: '{{ domain }}', '{{ name }}'
     print("[functions] domain='{{ domain }}', name='{{ name }}")  # verbose
@@ -40,10 +41,11 @@ def {{ function_name }}():
         {%- endif -%}
         {% if node['domain'] != '' %}domain='{{ node['domain'] }}', {% endif %}op_version={{ fct['opsets'][node['domain']] }})
     {% endfor -%}
-    onnx_{{ name }} = {{ fct['proto'].output[0] }}.to_onnx(function_name='{{ name }}', function_domain='{{ domain }}')
+    fp_{{ name }} = {{ fct['proto'].output[0] }}.to_onnx(function_name='{{ name }}', function_domain='{{ domain }}')
     {{ xop_make_node_name(fct['proto'].domain, fct['proto'].name) }} = (
-        lambda *args, domain=None, op_version=None, **kwargs:
-            OnnxOperatorFunction(onnx_{{ name }}, *args, **kwargs))
+        lambda *args, domain=None, op_version=None, sub_functions=sub_functions.copy(), **kwargs:
+            OnnxOperatorFunction(fp_{{ name }}, *args, sub_functions=sub_functions, **kwargs))
+    sub_functions.append(fp_{{ name }})
     {% endfor %}
 
     # inputs

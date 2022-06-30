@@ -1166,8 +1166,8 @@ class OnnxOperator(OnnxOperatorBase):
 
         OnnxOperatorBase.__init__(self)
         logger.debug("op:%s-%d(%d in, op_version=%r, output_names=%r)",
-                     self.__class__.__name__, id(
-                         self), len(inputs), op_version,
+                     self.__class__.__name__, id(self),
+                     len(inputs), op_version,
                      output_names)
         if (output_names is None and
                 self.__class__.__name__.startswith("OnnxScan")):
