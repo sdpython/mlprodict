@@ -7,9 +7,7 @@ import unittest
 from io import StringIO
 from contextlib import redirect_stdout, redirect_stderr
 import numpy
-from onnx import (
-    helper, numpy_helper, load as onnx_load, TensorProto,
-    ModelProto)
+from onnx import numpy_helper
 from onnx.helper import (
     make_model, make_node, set_model_props, make_tensor, make_graph,
     make_tensor_value_info, make_opsetid, make_function)
@@ -23,7 +21,6 @@ from mlprodict.onnx_tools.onnx_export import (
 from mlprodict.testing.verify_code import verify_code
 from mlprodict.onnxrt import OnnxInference
 from mlprodict.onnx_conv import to_onnx
-from mlprodict.npy.xop import loadop, OnnxOperatorFunction
 from mlprodict.npy.xop_variable import Variable
 
 
@@ -81,8 +78,7 @@ class TestExportOnnxFunction(ExtTestCase):
         x = numpy.array([[0, 0], [0, 0], [1, 1], [1, 1]],
                            dtype=numpy.float32)
         model = Pipeline([
-            ("pipe1", Pipeline([('sub1', StandardScaler()),
-                                ('sub2', StandardScaler())])),
+            ("pipe1", Pipeline([('sub1', StandardScaler()), ('sub2', StandardScaler())])),
             ("scaler2", StandardScaler())])
         model.fit(x)
         model_onnx = to_onnx(

@@ -252,7 +252,7 @@ class TestXOpsFunction(ExtTestCase):
         onx = op.to_onnx(numpy.float32, numpy.float32)
         fonx, _ = onnx_model_to_function(onx, domain='sklearn', name='f1')
         fct = OnnxOperatorFunction(fonx, 'X', output_names=['Y'])
-        
+
         onx2 = fct.to_onnx(numpy.float32, numpy.float32)
         fonx2, fps2 = onnx_model_to_function(onx2, domain='sklearn', name='f2')
         self.assertEqual(len(fps2), 1)
@@ -266,7 +266,6 @@ class TestXOpsFunction(ExtTestCase):
         x = numpy.array([-2, 2], dtype=numpy.float32)
         got = oinf.run({'X': x})
         self.assertEqualArray((x + numpy.abs(x)) / 2 + 1, got['Y'])
-
 
 
 if __name__ == "__main__":
