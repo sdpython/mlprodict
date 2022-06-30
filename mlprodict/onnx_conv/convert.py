@@ -597,10 +597,9 @@ def _to_onnx_function_pipeline(
                         protom.graph.output, i_step, step[1]))
         jspar = 'HYPER:{"%s":%s}' % (
             step[1].__class__.__name__, get_sklearn_json_params(step[1]))
-        protof = onnx_model_to_function(
+        protof, subf = onnx_model_to_function(
             protom, domain='sklearn',
-            name="%s_%s_%s" % (prefix, step[1].__class__.__name__,
-                               id(step[1])),
+            name="%s_%s_%s" % (prefix, step[1].__class__.__name__, i_step),
             doc_string=jspar)
         input_names = ["%s_%s" % (step[0], o) for o in protof.input]
         if last_op is not None:
@@ -621,7 +620,7 @@ def _to_onnx_function_pipeline(
 
         op = OnnxOperatorFunction(
             protof, *input_nodes, output_names=output_names,
-            sub_functions=list(protom.functions))
+            sub_functions=subf)
         last_op = op
         inputs = [
             ('X%d' % i, _guess_s2o_type(o))
@@ -631,8 +630,8 @@ def _to_onnx_function_pipeline(
                  "initial_types=%r, target_opset=%r, "
                  "options=%r, rewrite_ops=%r, white_op=%r, black_op=%r, "
                  "final_types=%r, outputs=%r)",
-                 model.__class__.__name__, id(
-                     model), type(X), initial_types,
+                 model.__class__.__name__, id(model),
+                 type(X), initial_types,
                  target_opset, options, rewrite_ops, white_op, black_op,
                  final_types, inputs)
 
@@ -878,7 +877,7 @@ def _to_onnx_function_column_transformer(
                         protom.graph.output, i_step, op))
         jspar = 'HYPER:{"%s":%s}' % (
             op.__class__.__name__, get_sklearn_json_params(op))
-        protof = onnx_model_to_function(
+        protof, fcts = onnx_model_to_function(
             protom, domain='sklearn',
             name="%s_%s_%s" % (prefix, op.__class__.__name__, id(op)),
             doc_string=jspar)
@@ -890,7 +889,7 @@ def _to_onnx_function_column_transformer(
 
         op = OnnxOperatorFunction(
             protof, *concatenated, output_names=output_names,
-            sub_functions=list(protom.functions))
+            sub_functions=list(fcts))
         ops.append(op)
 
     logger.debug("_to_onnx_function_column_transformer:end:(%s-%d, X=%r, "
