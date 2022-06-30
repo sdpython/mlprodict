@@ -1131,7 +1131,10 @@ class OnnxInference:
                     rows.append("Result %r cannot be found in %r." % (
                         k, set(outputs)))
                     continue
-                expected = get_tensor_elem_type(outputs[k])
+                try:
+                    expected = get_tensor_elem_type(outputs[k])
+                except TypeError:
+                    expected = None
                 shape = get_tensor_shape(outputs[k])
                 if v is None:
                     rows.append(

@@ -257,7 +257,12 @@ def export_template(model_onnx, templates, opset=None,  # pylint: disable=R0914
     # inputs
     inputs = []
     for inp in graph.input:
-        elem_type = get_tensor_elem_type(inp)
+        try:
+            elem_type = get_tensor_elem_type(inp)
+        except TypeError:
+            # not a tensor
+            inputs.append((inp.name, None, None))
+            continue
         shape = get_tensor_shape(inp)
         inputs.append((inp.name, elem_type, shape))
     context['inputs'] = inputs

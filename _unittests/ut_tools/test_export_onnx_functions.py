@@ -21,6 +21,7 @@ from mlprodict.onnx_tools.onnx_export import (
 from mlprodict.testing.verify_code import verify_code
 from mlprodict.onnxrt import OnnxInference
 from mlprodict.onnx_conv import to_onnx
+from mlprodict.npy.xop import loadop, OnnxOperatorFunction
 from mlprodict.npy.xop_variable import Variable
 
 
