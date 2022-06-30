@@ -877,7 +877,7 @@ def _to_onnx_function_column_transformer(
                         protom.graph.output, i_step, op))
         jspar = 'HYPER:{"%s":%s}' % (
             op.__class__.__name__, get_sklearn_json_params(op))
-        protof = onnx_model_to_function(
+        protof, fcts = onnx_model_to_function(
             protom, domain='sklearn',
             name="%s_%s_%s" % (prefix, op.__class__.__name__, id(op)),
             doc_string=jspar)
@@ -889,7 +889,7 @@ def _to_onnx_function_column_transformer(
 
         op = OnnxOperatorFunction(
             protof, *concatenated, output_names=output_names,
-            sub_functions=list(protom.functions))
+            sub_functions=list(fcts))
         ops.append(op)
 
     logger.debug("_to_onnx_function_column_transformer:end:(%s-%d, X=%r, "
