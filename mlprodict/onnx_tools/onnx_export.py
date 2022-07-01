@@ -16,7 +16,7 @@ from .onnx2py_helper import (
     get_tensor_shape, get_tensor_elem_type)
 from .onnx_export_templates import (
     get_onnx_template, get_tf2onnx_template, get_numpy_template,
-    get_xop_template, get_cpp_template)
+    get_xop_template, get_cpp_template, get_python_template)
 from .exports.numpy_helper import make_numpy_code
 from .exports.tf2onnx_helper import make_tf2onnx_code
 
@@ -129,6 +129,20 @@ def _xop_make_node_name(domain, name):
     return class_name
 
 
+def _python_make_node_name(domain, version, name, node=False):
+    if node:
+        if version is None:
+            version = 1
+        if not isinstance(version, int):
+            raise TypeError(  # pragma: no cover
+                "version must be an integer not %r for domain=%r and name=%r." % (
+                    version, domain, name))
+        if domain == '':
+            return "opset%d.%s" % (version, name)
+        return "%s%d.%s" % (domain.replace(".", "_"), version, name)
+    return name
+
+
 def export_template(model_onnx, templates, opset=None,  # pylint: disable=R0914
                     verbose=True, name=None,
                     rename=False, use_onnx_tensor=False,
@@ -188,7 +202,8 @@ def export_template(model_onnx, templates, opset=None,  # pylint: disable=R0914
     # containers
     context = {'main_model': model_onnx,
                'printable_graph': printable_graph,
-               'xop_make_node_name': _xop_make_node_name}
+               'xop_make_node_name': _xop_make_node_name,
+               'python_make_node_name': _python_make_node_name}
     used = {}
 
     # opset
@@ -616,6 +631,104 @@ def export2cpp(model_onnx, opset=None, verbose=True, name=None, rename=False,
         raise TypeError(  # pragma: no cover
             "The function expects a ModelProto not %r." % type(model_onnx))
     code = export_template(model_onnx, templates=get_cpp_template(),
+                           opset=opset, verbose=verbose, name=name,
+                           rename=rename, use_onnx_tensor=True,
+                           autopep_options=autopep_options,
+                           raise_subgraph=False,
+                           clean_code=False)
+    return code
+
+
+def export2xop(model_onnx, opset=None, verbose=True, name=None, rename=False,
+               autopep_options=None):
+    """
+    Exports an ONNX model to the XOP syntax.
+
+    :param model_onnx: string or ONNX graph
+    :param opset: opset to export to
+        (None to select the one from the graph)
+    :param verbose: inserts prints
+    :param name: to overwrite onnx name
+    :param rename: rename the names to get shorter names
+    :param autopep_options: :epkg:`autopep8` options
+    :return: python code
+
+    The following example shows what a python code creating a graph
+    implementing the KMeans would look like.
+
+    .. runpython::
+        :showcode:
+        :process:
+
+        import numpy
+        from sklearn.cluster import KMeans
+        from mlprodict.onnx_conv import to_onnx
+        from mlprodict.onnx_tools.onnx_export import export2xop
+
+        X = numpy.arange(20).reshape(10, 2).astype(numpy.float32)
+        tr = KMeans(n_clusters=2)
+        tr.fit(X)
+
+        onx = to_onnx(tr, X, target_opset=14)
+        code = export2xop(onx)
+
+        print(code)
+    """
+    if isinstance(model_onnx, str):
+        model_onnx = onnx.load(model_onnx)
+
+    if not isinstance(model_onnx, ModelProto):
+        raise TypeError(  # pragma: no cover
+            "The function expects a ModelProto not %r." % type(model_onnx))
+    code = export_template(model_onnx, templates=get_xop_template(),
+                           opset=opset, verbose=verbose, name=name,
+                           rename=rename, use_onnx_tensor=True,
+                           autopep_options=autopep_options)
+    return code
+
+
+def export2python(model_onnx, opset=None, verbose=True, name=None, rename=False,
+                  autopep_options=None):
+    """
+    Exports an ONNX model to the *python* syntax.
+
+    :param model_onnx: string or ONNX graph
+    :param opset: opset to export to
+        (None to select the one from the graph)
+    :param verbose: inserts prints
+    :param name: to overwrite onnx name
+    :param rename: rename the names to get shorter names
+    :param autopep_options: :epkg:`autopep8` options
+    :return: python code
+
+    The following example shows what a python code creating a graph
+    implementing the KMeans would look like.
+
+    .. runpython::
+        :showcode:
+        :process:
+
+        import numpy
+        from sklearn.cluster import KMeans
+        from mlprodict.onnx_conv import to_onnx
+        from mlprodict.onnx_tools.onnx_export import export2python
+
+        X = numpy.arange(20).reshape(10, 2).astype(numpy.float32)
+        tr = KMeans(n_clusters=2)
+        tr.fit(X)
+
+        onx = to_onnx(tr, X, target_opset=14)
+        code = export2python(onx)
+
+        print(code)
+    """
+    if isinstance(model_onnx, str):
+        model_onnx = onnx.load(model_onnx)
+
+    if not isinstance(model_onnx, ModelProto):
+        raise TypeError(  # pragma: no cover
+            "The function expects a ModelProto not %r." % type(model_onnx))
+    code = export_template(model_onnx, templates=get_python_template(),
                            opset=opset, verbose=verbose, name=name,
                            rename=rename, use_onnx_tensor=True,
                            autopep_options=autopep_options,

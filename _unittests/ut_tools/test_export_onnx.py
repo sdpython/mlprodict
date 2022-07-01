@@ -27,7 +27,7 @@ from skl2onnx.common._topology import Variable as SklVariable
 from skl2onnx.common.data_types import FloatTensorType
 from mlprodict.onnx_tools.onnx_export import (
     export2onnx, export2tf2onnx, export2numpy, export2xop,
-    export2cpp, select_attribute)
+    export2cpp, select_attribute, export2python)
 from mlprodict.testing.verify_code import verify_code
 from mlprodict.onnxrt import OnnxInference
 from mlprodict.onnx_tools.exports.tf2onnx_helper import (
@@ -1546,7 +1546,46 @@ class TestExportOnnx(ExtTestCase):
         code = export2cpp(model)
         self.assertIn('model.graph.ParseFromString(R"(', code)
 
+    def test_export_function_python(self):
+        # ONNX
+        OnnxAbs, OnnxAdd, OnnxDiv = loadop(  # pylint: disable=W0621
+            "Abs", "Add", "Div")
+        ov = OnnxAbs('X')
+        ad = OnnxAdd(ov, numpy.array([1], dtype=numpy.float32),
+                     output_names=['Y'])
+        op = OnnxDiv(ad('X'), numpy.array([2], dtype=numpy.float32),
+                     output_names=['Y'])
+        onx = op.to_onnx(numpy.float32, numpy.float32)
+
+        for rt in ['onnxruntime1', 'python']:
+            with self.subTest(rt=rt):
+                oinf0 = OnnxInference(onx, runtime=rt)
+                x = numpy.random.randn(3, 1, 4).astype(numpy.float32)
+                new_onnx = export2python(onx, name="TEST")
+                print(new_onnx)
+                _, loc = self.verify(new_onnx)
+                model = loc['onnx_model']
+
+                try:
+                    oinf = OnnxInference(model, runtime=rt)
+                except RuntimeError as e:
+                    raise AssertionError(
+                        "Issue with\n-----\n%s\n--CODE--\n%s\n--GOT--\n%s" % (
+                            onnx_simple_text_plot(onx), new_onnx,
+                            onnx_simple_text_plot(model))) from e
+                y = oinf0.run({'X': x})
+                y1 = oinf.run({'X': x})
+
+                new_onnx = export2python(onx, name="TEST")
+                _, loc = self.verify_xop(new_onnx, onx)
+                model = loc['onnx_model']
+                oinf = OnnxInference(model, runtime=rt)
+                y2 = oinf.run({'X': x})
+                self.assertEqual(y['Y'], y1['Y'])
+                self.assertEqual(y['Y'], y2['Y'])
+
+
 
 if __name__ == "__main__":
-    # TestExportOnnx().test_export_function_onnx()
+    TestExportOnnx().test_export_function_python()
     unittest.main(verbosity=2)

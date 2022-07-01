@@ -76,3 +76,10 @@ def get_cpp_template():
     Template to export :epkg:`ONNX` into a C++ code.
     """
     return _get_file('cpp')
+
+
+def get_python_template():
+    """
+    Template to export :epkg:`ONNX` into a python code.
+    """
+    return _get_file('python')
