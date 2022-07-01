@@ -7,7 +7,7 @@ from .shape_excs import ShapeInferenceException
 from .shape_result import ShapeResult, OnnxKind
 
 
-def _element_wise(known_shapes, node, return_bool=False):
+def _element_wise(known_shapes, node, return_bool=False, same_type=True):
     """
     Infers shape for an element wise operator.
     The function returns but updates *known_shapes*.
@@ -15,6 +15,7 @@ def _element_wise(known_shapes, node, return_bool=False):
     :param known_shapes: known shapes
     :param node: Onnx node
     :param return_bool: return boolean
+    :param same_type: check the type are the same
     :return: updated or not
     """
     x = known_shapes[node.input[0]]
@@ -28,9 +29,13 @@ def _element_wise(known_shapes, node, return_bool=False):
     if return_bool:
         return known_shapes.update(
             node.output[0],
-            ShapeResult.broadcast(x, y, name=node.output[0], dtype=numpy.bool_))
+            ShapeResult.broadcast(
+                x, y, name=node.output[0], dtype=numpy.bool_,
+                same_type=same_type))
     return known_shapes.update(
-        node.output[0], ShapeResult.broadcast(x, y, name=node.output[0]))
+        node.output[0],
+        ShapeResult.broadcast(
+            x, y, name=node.output[0], same_type=same_type))
 
 
 def shape_add(known_shapes, node):
@@ -100,7 +105,7 @@ def shape_or(known_shapes, node):
 
 def shape_pow(known_shapes, node):
     "Infers shape for operator Pow."
-    return _element_wise(known_shapes, node)
+    return _element_wise(known_shapes, node, same_type=False)
 
 
 def shape_sub(known_shapes, node):

@@ -20,7 +20,7 @@ from onnx.helper import make_model
 from ..tools.code_helper import make_callable, print_code
 from ..onnx_tools.model_checker import check_onnx
 from ..onnx_tools.onnx2py_helper import (
-    _var_as_dict, numpy_min, numpy_max, guess_numpy_type_from_string)
+    _var_as_dict, numpy_min, numpy_max)
 from ..onnx_tools.onnx_manipulations import (
     select_model_inputs_outputs, enumerate_model_node_outputs,
     overwrite_opset, insert_results_into_onnx)

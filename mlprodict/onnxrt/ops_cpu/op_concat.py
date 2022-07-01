@@ -5,7 +5,6 @@
 @brief Runtime operator.
 """
 import numpy
-from ...onnx_tools.onnx2py_helper import guess_numpy_type_from_dtype
 from ._op import OpRun
 
 

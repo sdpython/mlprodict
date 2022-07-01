@@ -4,7 +4,6 @@
 @file
 @brief Runtime operator.
 """
-import numpy
 from ...onnx_tools.onnx2py_helper import guess_dtype
 from ._op import OpRun
 

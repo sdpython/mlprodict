@@ -133,7 +133,6 @@ from mlprodict.testing.test_utils.quantized_tensor import (
 from mlprodict.onnxrt.ops_cpu.op_qlinear_conv_ import (  # pylint: disable=W0611,E0611,E0401
     test_qgemm0, test_qgemm1)
 from mlprodict.onnxrt.ops_cpu.op_constant import Constant_12, Constant_11, Constant_9
-from mlprodict.onnxrt.ops_shape.shape_excs import ShapeInferenceException
 from mlprodict.plotting.text_plot import onnx_simple_text_plot
 from mlprodict import __max_supported_opset__ as TARGET_OPSET, get_ir_version
 from mlprodict.onnxrt.ops_cpu.op_negative_log_likelihood_loss import (

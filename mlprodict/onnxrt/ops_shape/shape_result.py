@@ -278,7 +278,7 @@ class ShapeResult:
         return res
 
     @staticmethod
-    def broadcast(sh1, sh2, name=None, dtype=None):
+    def broadcast(sh1, sh2, name=None, dtype=None, same_type=True):
         """
         Broadcasts dimensions for an element wise operator.
 
@@ -287,6 +287,7 @@ class ShapeResult:
         :param name: name of the output ShapeResult
         :param dtype: type of the result or the same as the first
             element if None
+        :param same_type: check the type are the same
         :return: ShapeResult
         """
         if not isinstance(sh1, ShapeResult):
@@ -301,7 +302,7 @@ class ShapeResult:
         if sh2.mtype != OnnxKind.Tensor:
             raise TypeError(  # pragma: no cover
                 "sh2 must be a tensor not %r." % sh2.mtype)
-        if sh1.dtype != sh2.dtype:
+        if same_type and sh1.dtype != sh2.dtype:
             raise ShapeInferenceException(  # pragma: no cover
                 "Cannot broadcast shapes %r and %r (dtypes)."
                 "" % (sh1, sh2))

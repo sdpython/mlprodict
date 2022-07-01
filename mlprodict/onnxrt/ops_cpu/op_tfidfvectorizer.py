@@ -5,7 +5,7 @@
 @brief Runtime operator.
 """
 import numpy
-from ._op import OpRunUnary, RuntimeTypeError
+from ._op import OpRunUnary
 from .op_tfidfvectorizer_ import RuntimeTfIdfVectorizer  # pylint: disable=E0611,E0401
 
 
