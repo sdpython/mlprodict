@@ -155,7 +155,8 @@ class TestOnnxrtPythonRuntimeControlFunction(ExtTestCase):
                         continue
                     raise e
 
-                x = numpy.array([0, 1, 3], dtype=numpy.uint8).reshape((1, 1, 3))
+                x = numpy.array(
+                    [0, 1, 3], dtype=numpy.uint8).reshape((1, 1, 3))
                 result = oinf.run({'x': x})
                 expected = x
                 self.assertEqualArray(expected, result['x_processed'])

@@ -514,7 +514,6 @@ class OpRunBinary(OpRun):
         return res
 
 
-
 class OpRunBinaryComparison(OpRunBinary):
     """
     Ancestor to all binary operators in this subfolder
