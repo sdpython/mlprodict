@@ -301,6 +301,12 @@ class ShapeResult:
         if sh2.mtype != OnnxKind.Tensor:
             raise TypeError(  # pragma: no cover
                 "sh2 must be a tensor not %r." % sh2.mtype)
+        if sh1.dtype != sh2.dtype:
+            raise ShapeInferenceException(  # pragma: no cover
+                "Cannot broadcast shapes %r and %r (dtypes)."
+                "" % (sh1, sh2))
+
+        # Specific cases.
         if sh1.n_dims() != sh2.n_dims():
             if sh1.n_dims() == 1 and sh1.shape[0] == 1:
                 return ShapeResult(
@@ -314,11 +320,8 @@ class ShapeResult:
             raise NotImplementedShapeInferenceError(  # pragma: no cover
                 "Broadcasting is only implemented for shape of the same "
                 "size, shapes are %r and %r." % (sh1, sh2))
-        if sh1.dtype != sh2.dtype:
-            raise ShapeInferenceException(  # pragma: no cover
-                "Cannot broadcast shapes %r and %r (dtypes)."
-                "" % (sh1, sh2))
 
+        # Other cases.
         constraints = ShapeConstraintList()
         shape = []
         for a, b in zip(sh1.shape, sh2.shape):
@@ -345,6 +348,12 @@ class ShapeResult:
                 else:
                     d = a
             elif a == b:
+                d = a
+            elif isinstance(a, str) and isinstance(b, str):
+                if a != b:
+                    # Both dimensions are variables.
+                    constraints.append(ShapeConstraint(a, {1, b}))
+                    constraints.append(ShapeConstraint(b, {1, a}))
                 d = a
             else:
                 raise ShapeInferenceException(  # pragma: no cover
