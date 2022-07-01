@@ -22,6 +22,7 @@ from mlprodict.testing.verify_code import verify_code
 from mlprodict.onnxrt import OnnxInference
 from mlprodict.onnx_conv import to_onnx
 from mlprodict.npy.xop_variable import Variable
+from mlprodict.npy.xop import loadop, OnnxOperatorFunction
 
 
 class TestExportOnnxFunction(ExtTestCase):
@@ -54,7 +55,8 @@ class TestExportOnnxFunction(ExtTestCase):
                'make_tensor_value_info': make_tensor_value_info,
                'print': print, 'sorted': sorted,
                'make_opsetid': make_opsetid,
-               'Variable': Variable,
+               'Variable': Variable, 'loadop': loadop,
+               'OnnxOperatorFunction': OnnxOperatorFunction,
                'collections': collections, 'inspect': inspect}
         out, err = StringIO(), StringIO()
         if len(left) >= 10:
