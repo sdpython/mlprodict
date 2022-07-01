@@ -30,7 +30,7 @@ from .onnx_inference_exports import OnnxInferenceExport
 from .onnx_shape_inference import OnnxShapeInference
 from .ops_shape.shape_excs import (
     ShapeInferenceMissing, NotImplementedShapeInferenceError,
-    ShapeInferenceException)
+    ShapeInferenceException, ShapeInferenceDimensionError)
 
 
 class OnnxInference:
@@ -1434,10 +1434,19 @@ class OnnxInference:
         """
         try:
             rt = OnnxShapeInference(self.obj)
-        except (ShapeInferenceMissing, NotImplementedShapeInferenceError):
+        except (ShapeInferenceMissing, NotImplementedShapeInferenceError,
+                ShapeInferenceDimensionError, NotImplementedError):
             # an operator is missing, shape cannot be computed.
             return {name: None for name in self.output_names}
-        except ShapeInferenceException as e:
+        except KeyError:
+            # subgraphs or functions are not yet handled.
+            # it should be removed later.
+            return {name: None for name in self.output_names}
+        except NameError:
+            # loop subgraphs or function are not yet handled.
+            # they may overwrite results.
+            return {name: None for name in self.output_names}
+        except (ShapeInferenceException, RuntimeError, IndexError) as e:
             raise ShapeInferenceException(  # pragma: no cover
                 "Unable to run ShapeInference for\n%s" % str(self.obj)) from e
         out = rt.run()

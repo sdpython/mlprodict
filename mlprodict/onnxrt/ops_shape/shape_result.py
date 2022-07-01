@@ -4,7 +4,9 @@
 """
 from enum import Enum
 import numpy
-from .shape_excs import ShapeInferenceException, NotImplementedShapeInferenceError
+from .shape_excs import (
+    ShapeInferenceException, NotImplementedShapeInferenceError,
+    ShapeInferenceDimensionError)
 
 
 class OnnxKind(Enum):
@@ -211,7 +213,7 @@ class ShapeResult:
                 "Unable to merge %r and %r." % (self, other_result))
         if (len(self.shape) != 0 and len(other_result.shape) != 0 and
                 len(self.shape) != len(other_result.shape)):
-            raise RuntimeError(  # pragma: no cover
+            raise ShapeInferenceDimensionError(  # pragma: no cover
                 "Length mismatch, unable to merge %r and %r." % (
                     self, other_result))
         updated = False

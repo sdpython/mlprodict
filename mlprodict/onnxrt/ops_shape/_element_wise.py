@@ -7,7 +7,8 @@ from .shape_excs import ShapeInferenceException
 from .shape_result import ShapeResult, OnnxKind
 
 
-def _element_wise(known_shapes, node, return_bool=False, same_type=True):
+def _element_wise(known_shapes, node, return_bool=False, same_type=True,
+                  one_input=False):
     """
     Infers shape for an element wise operator.
     The function returns but updates *known_shapes*.
@@ -16,8 +17,17 @@ def _element_wise(known_shapes, node, return_bool=False, same_type=True):
     :param node: Onnx node
     :param return_bool: return boolean
     :param same_type: check the type are the same
+    :param one_input: allow one input
     :return: updated or not
     """
+    if one_input:
+        if len(node.input) == 1:
+            x = known_shapes[node.input[0]]
+            return known_shapes.update(node.output[0], x.copy())
+    elif len(node.input) != 2:
+        raise ShapeInferenceException(  # pragma: no cover
+            "Node %r must have two inputs not %d." % (
+                node.name, len(node.input)))
     x = known_shapes[node.input[0]]
     y = known_shapes[node.input[1]]
     if x.mtype != OnnxKind.Tensor:
@@ -80,12 +90,12 @@ def shape_lessorequal(known_shapes, node):
 
 def shape_max(known_shapes, node):
     "Infers shape for operator Max."
-    return _element_wise(known_shapes, node)
+    return _element_wise(known_shapes, node, one_input=True)
 
 
 def shape_min(known_shapes, node):
     "Infers shape for operator Min."
-    return _element_wise(known_shapes, node)
+    return _element_wise(known_shapes, node, one_input=True)
 
 
 def shape_mod(known_shapes, node):

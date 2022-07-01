@@ -2,7 +2,7 @@
 @file
 @brief Computes shape inference for onnx operators.
 """
-from .shape_excs import ShapeInferenceException
+from .shape_excs import ShapeInferenceException, ShapeInferenceDimensionError
 from .shape_result import (
     ShapeResult, OnnxKind, ShapeConstraintList, ShapeConstraint)
 
@@ -14,7 +14,10 @@ def shape_det(known_shapes, node):
         raise ShapeInferenceException(  # pragma: no cover
             "Result %r must be a tensor." % x)
     if x.n_dims() < 2:
-        raise ShapeInferenceException(  # pragma: no cover
+        if x.n_dims() > 0:
+            raise ShapeInferenceException(  # pragma: no cover
+                "Operator Det requires at least two dimensions not %r." % x.n_dims())
+        raise ShapeInferenceDimensionError(  # pragma: no cover
             "Operator Det requires at least two dimensions not %r." % x.n_dims())
     name = node.output[0]
 

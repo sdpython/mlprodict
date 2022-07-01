@@ -23,3 +23,11 @@ class NotImplementedShapeInferenceError(NotImplementedError):
     Shape Inference can be implemented but is currently not.
     """
     pass
+
+
+class ShapeInferenceDimensionError(RuntimeError):
+    """
+    Raised when the shape cannot continue
+    due to unknown dimension.
+    """
+    pass
