@@ -278,13 +278,15 @@ class ShapeResult:
         return res
 
     @staticmethod
-    def broadcast(sh1, sh2, name=None):
+    def broadcast(sh1, sh2, name=None, dtype=None):
         """
         Broadcasts dimensions for an element wise operator.
 
         :param sh1: ShapeResult
         :param sh2: ShapeResult
         :param name: name of the output ShapeResult
+        :param dtype: type of the result or the same as the first
+            element if None
         :return: ShapeResult
         """
         if not isinstance(sh1, ShapeResult):
@@ -302,13 +304,13 @@ class ShapeResult:
         if sh1.n_dims() != sh2.n_dims():
             if sh1.n_dims() == 1 and sh1.shape[0] == 1:
                 return ShapeResult(
-                    name, sh2.shape, sh2.dtype, sh2.sparse, sh2.mtype)
+                    name, sh2.shape, dtype or sh2.dtype, sh2.sparse, sh2.mtype)
             if sh2.n_dims() == 1 and sh2.shape[0] == 1:
                 return ShapeResult(
-                    name, sh1.shape, sh1.dtype, sh1.sparse, sh1.mtype)
+                    name, sh1.shape, dtype or sh1.dtype, sh1.sparse, sh1.mtype)
             if sh2.n_dims() < sh1.n_dims() and sh1.shape[-sh2.n_dims():] == sh2.shape:
                 return ShapeResult(
-                    name, sh1.shape, sh1.dtype, sh1.sparse, sh1.mtype)
+                    name, sh1.shape, dtype or sh1.dtype, sh1.sparse, sh1.mtype)
             raise NotImplementedShapeInferenceError(  # pragma: no cover
                 "Broadcasting is only implemented for shape of the same "
                 "size, shapes are %r and %r." % (sh1, sh2))
@@ -351,6 +353,6 @@ class ShapeResult:
         if name in (None, ''):
             raise ValueError(  # pragma: no cover
                 "name cannot be empty.")
-        res = ShapeResult(name, shape, sh1.dtype, sh1.sparse or sh2.sparse,
+        res = ShapeResult(name, shape, dtype or sh1.dtype, sh1.sparse or sh2.sparse,
                           sh1.mtype, constraints)
         return res

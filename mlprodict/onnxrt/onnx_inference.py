@@ -29,7 +29,8 @@ from .onnx_inference_node import OnnxInferenceNode
 from .onnx_inference_exports import OnnxInferenceExport
 from .onnx_shape_inference import OnnxShapeInference
 from .ops_shape.shape_excs import (
-    ShapeInferenceMissing, NotImplementedShapeInferenceError)
+    ShapeInferenceMissing, NotImplementedShapeInferenceError,
+    ShapeInferenceException)
 
 
 class OnnxInference:
@@ -1436,6 +1437,9 @@ class OnnxInference:
         except (ShapeInferenceMissing, NotImplementedShapeInferenceError):
             # an operator is missing, shape cannot be computed.
             return {name: None for name in self.output_names}
+        except ShapeInferenceException as e:
+            raise ShapeInferenceException(  # pragma: no cover
+                "Unable to run ShapeInference for\n%s" % str(self.obj)) from e
         out = rt.run()
         values = out.get()
         return values
