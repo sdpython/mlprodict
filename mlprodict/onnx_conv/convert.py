@@ -527,8 +527,7 @@ def _new_options(options, prefix, sklop):
             if isinstance(sklop, _BaseComposition):
                 step_options[k] = v
             else:
-                from skl2onnx._supported_operators import (
-                    _get_sklearn_operator_name, sklearn_operator_name_map)
+                from skl2onnx._supported_operators import _get_sklearn_operator_name
                 from skl2onnx.common._registration import get_converter
                 alias = _get_sklearn_operator_name(type(sklop))
                 if alias is None:
