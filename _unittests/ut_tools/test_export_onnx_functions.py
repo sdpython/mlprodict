@@ -21,7 +21,6 @@ from mlprodict.onnx_tools.onnx_export import (
 from mlprodict.testing.verify_code import verify_code
 from mlprodict.onnxrt import OnnxInference
 from mlprodict.onnx_conv import to_onnx
-from mlprodict.npy.xop import loadop, OnnxOperatorFunction
 from mlprodict.npy.xop_variable import Variable
 
 
@@ -76,8 +75,7 @@ class TestExportOnnxFunction(ExtTestCase):
         return glo, loc
 
     def test_pipeline_pipeline_function(self):
-        x = numpy.array([[0, 0], [0, 0], [1, 1], [1, 1]],
-                           dtype=numpy.float32)
+        x = numpy.array([[0, 0], [0, 0], [1, 1], [1, 1]], dtype=numpy.float32)
         model = Pipeline([
             ("pipe1", Pipeline([('sub1', StandardScaler()), ('sub2', StandardScaler())])),
             ("scaler2", StandardScaler())])
