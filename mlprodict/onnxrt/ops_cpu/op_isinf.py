@@ -27,11 +27,5 @@ class IsInf(OpRunUnary):
         res = numpy.full(data.shape, dtype=numpy.bool_, fill_value=False)
         return (res, )
 
-    def _infer_shapes(self, x):  # pylint: disable=W0221
-        return (x.copy(dtype=numpy.bool_), )
-
-    def _infer_types(self, x):  # pylint: disable=W0221
-        return (numpy.bool_, )
-
     def to_python(self, inputs):
         return self._to_python_numpy(inputs, 'isnan')

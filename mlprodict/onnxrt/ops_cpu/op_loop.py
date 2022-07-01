@@ -8,7 +8,6 @@
 """
 import numpy
 from ._op import OpRun
-from ..shape_object import ShapeObject
 
 
 class Loop(OpRun):
@@ -92,48 +91,3 @@ class Loop(OpRun):
             raise TypeError(  # pragma: no cover
                 "Operator Loop produces a None value.")
         return res
-
-    def _infer_shapes(self, M, cond, v_initial, *args):  # pylint: disable=W0221
-        res = self.body._set_shape_inference_runtime()
-        outputs = {k[0]: k[1:] for k in self.body.output_names_shapes_types}
-        ret = []
-        for name in self.body.output_names[1:]:
-            if name in res:
-                if res[name] is None:
-                    shape = ShapeObject(None, dtype=numpy.float32)
-                    shape._dtype = None
-                else:
-                    ret.append(res[name])
-            else:
-                find = outputs[name]
-                try:
-                    shape = ShapeObject(find[0], dtype=find[1])
-                except TypeError as e:
-                    if find[0] == ('?',):
-                        shape = ShapeObject(None, dtype=numpy.float32)
-                        shape._dtype = None
-                    else:
-                        raise TypeError(
-                            "Unable to create shape for %r." % (find, )) from e
-                ret.append(shape)
-        return tuple(ret)
-
-    def _infer_types(self, M, cond, v_initial, *args):  # pylint: disable=W0221
-        res = self.body._set_type_inference_runtime()
-        return tuple([res[name] for name in self.body.output_names[1:]])
-
-    def _infer_sizes(self, M, cond, v_initial, *args, context=None):  # pylint: disable=W0221
-        store = []
-
-        def callback_(inputs, context=None):
-            res = self.body.infer_sizes(inputs, context=context)
-            store.append(res)
-
-        res = self._run(M, cond, v_initial, *args, callback=callback_,
-                        context=context)
-
-        temp = 0
-        for v in store:
-            for vv in v.values():
-                temp += sum(vv.values())
-        return (dict(temp=temp), ) + res

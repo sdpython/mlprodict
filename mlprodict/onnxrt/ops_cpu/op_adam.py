@@ -5,7 +5,6 @@
 @brief Runtime operator.
 """
 import numpy
-from ..shape_object import ShapeObject
 from ._op import OpRun
 
 
@@ -69,8 +68,3 @@ class Adam(OpRun):
             r, t, x, g, v, h, self.norm_coefficient,
             self.norm_coefficient_post, self.alpha, self.beta, self.epsilon)
         return x_new, v_new, h_new
-
-    def _infer_shapes(self, i, *data):  # pylint: disable=W0221
-        n = (len(data) - 1) // 4
-        return (ShapeObject(None, i.dtype), ShapeObject(None, i.dtype),
-                ShapeObject(None, i.dtype)) * n

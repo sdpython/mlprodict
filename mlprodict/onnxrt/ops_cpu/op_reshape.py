@@ -7,7 +7,6 @@
 import numpy
 from onnx.defs import onnx_opset_version
 from ._op import OpRun
-from ..shape_object import ShapeObject
 
 
 def reshape_reference_implementation(data, shape):
@@ -35,16 +34,6 @@ class CommonReshape(OpRun):
 
     def _run(self, data, shape, attributes=None, verbose=0, fLOG=None):  # pylint: disable=W0221
         return (reshape_reference_implementation(data, shape), )
-
-    def _infer_shapes(self, data, shape):  # pylint: disable=W0221
-        return (ShapeObject(None, dtype=data.dtype), )
-
-    def _infer_types(self, data, shape):  # pylint: disable=W0221
-        return (data, )
-
-    def _infer_sizes(self, *args, **kwargs):
-        res = self.run(*args, **kwargs)
-        return (dict(temp=0), ) + res
 
 
 class Reshape_5(CommonReshape):

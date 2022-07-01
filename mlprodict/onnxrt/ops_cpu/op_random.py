@@ -7,7 +7,6 @@
 import numpy
 from onnx.mapping import TENSOR_TYPE_TO_NP_TYPE
 from ._op import OpRun
-from ..shape_object import ShapeObject
 
 
 class _CommonRandom(OpRun):
@@ -43,16 +42,6 @@ class _CommonRandom(OpRun):
                 "" % (self.__class__.__name__,
                       self.numpy_type, type(data[0])))
         return res
-
-    def _infer_shapes(self, *data):  # pylint: disable=W0221
-        return (ShapeObject(None, self._dtype(*data)), )
-
-    def _infer_types(self, *data):  # pylint: disable=W0221
-        return (self._dtype(*data), )
-
-    def _infer_sizes(self, *args, **kwargs):
-        res = self.run(*args, **kwargs)
-        return (dict(temp=0), ) + res
 
     def _get_state(self, seed):
         if numpy.isnan(self.seed):

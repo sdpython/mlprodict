@@ -27,9 +27,6 @@ class Transpose(OpRunUnaryNum):
                     self.perm_, data.shape))
         return (numpy.transpose(data, axes=self.perm_), )
 
-    def _infer_shapes(self, x):  # pylint: disable=W0221
-        return (x.transpose(perm=self.perm), )
-
     def to_python(self, inputs):
         """
         Returns a python code equivalent to this operator.

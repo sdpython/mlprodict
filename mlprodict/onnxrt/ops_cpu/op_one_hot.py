@@ -5,7 +5,6 @@
 @brief Runtime operator.
 """
 import numpy
-from ..shape_object import ShapeObject
 from ._op import OpRun
 
 
@@ -37,6 +36,3 @@ class OneHot(OpRun):
         y = _one_hot(indices, depth, dtype=values.dtype)
         y = y * (on_value - off_value) + off_value
         return (y, )
-
-    def _infer_shapes(self, indices, depth, values):  # pylint: disable=W0221
-        return (ShapeObject(None, dtype=values.dtype), )

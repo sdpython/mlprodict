@@ -7,7 +7,6 @@
 import numpy
 from ...onnx_tools.onnx2py_helper import guess_numpy_type_from_dtype
 from ._op import OpRun
-from ..shape_object import ShapeObject
 
 
 class _CommonQuantizeLinear(OpRun):
@@ -51,10 +50,6 @@ class _CommonQuantizeLinear(OpRun):
         numpy.clip(x, 0, 255, out=x)
         return (x.astype(dtype), )
 
-    def _infer_sizes(self, *args):  # pylint: disable=W0221
-        res = self.run(*args)
-        return (dict(temp=0), ) + res
-
 
 class QuantizeLinear(_CommonQuantizeLinear):
 
@@ -70,22 +65,6 @@ class QuantizeLinear(_CommonQuantizeLinear):
     def _run(self, *args, attributes=None, verbose=0, fLOG=None):  # pylint: disable=W0221
         # args: x, y_scale, zero_point
         return self.common_run(*args, axis=self.axis)
-
-    def _infer_shapes(self, *args):  # pylint: disable=W0221
-        if len(args) > 2:
-            dtype = args[2].dtype
-        else:
-            dtype = numpy.uint8
-        return (ShapeObject(args[0].shape, dtype=dtype), )
-
-    def _infer_types(self, *args):  # pylint: disable=W0221
-        if len(args) > 2:
-            if isinstance(args[2], numpy.ndarray):
-                dtype = args[2].dtype
-            dtype = guess_numpy_type_from_dtype(args[2])
-        else:
-            dtype = numpy.uint8
-        return (dtype, )
 
 
 class DynamicQuantizeLinear(OpRun):
@@ -107,11 +86,3 @@ class DynamicQuantizeLinear(OpRun):
         return (y.astype(self.dtype),
                 y_scale.astype(x.dtype),
                 y_zero_point.astype(self.dtype))
-
-    def _infer_shapes(self, *args):  # pylint: disable=W0221
-        return (ShapeObject(args[0].shape, dtype=self.dtype),
-                ShapeObject(None, dtype=args[0].dtype),
-                ShapeObject(None, dtype=self.dtype))
-
-    def _infer_types(self, *args):  # pylint: disable=W0221
-        return (self.dtype, args[0], self.dtype)

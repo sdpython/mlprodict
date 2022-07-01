@@ -5,7 +5,6 @@
 @brief Runtime operator.
 """
 import numpy
-from ..shape_object import ShapeObject
 from ._op import OpRun
 
 
@@ -90,11 +89,3 @@ class LabelEncoder(OpRun):
         for i in range(0, res.shape[0]):
             res[i] = self.classes_.get(x[i], self.default_)
         return (res, )
-
-    def _infer_shapes(self, x):  # pylint: disable=W0221
-        nb = len(self.classes_.values())
-        return (ShapeObject((x[0], nb), dtype=self.dtype_,
-                            name="{}-1".format(self.__class__.__name__)), )
-
-    def _infer_types(self, x):  # pylint: disable=W0221
-        return (self.dtype_, )

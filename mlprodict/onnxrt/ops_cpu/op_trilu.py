@@ -32,13 +32,3 @@ class Trilu(OpRun):
             "import numpy",
             "return numpy.%s(%s, int(%s))" % (
                 name, inputs[0], 0 if len(inputs) == 1 else inputs[1]))
-
-    def _infer_shapes(self, *inputs):  # pylint: disable=W0221
-        return (inputs[0], )
-
-    def _infer_types(self, *inputs):  # pylint: disable=W0221
-        return (inputs[0], )
-
-    def _infer_sizes(self, *args, **kwargs):
-        res = self.run(*args, **kwargs)
-        return (dict(temp=0), ) + res

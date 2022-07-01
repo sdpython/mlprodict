@@ -6,7 +6,6 @@
 """
 import numpy
 from ._op import OpRun
-from ..shape_object import ShapeObject
 
 
 class ConstantOfShape(OpRun):
@@ -38,20 +37,6 @@ class ConstantOfShape(OpRun):
                 "Unable to create a constant of shape %r with value %r "
                 "(raw value=%r)." % (data, self.cst, self.value)) from e
         return (res, )
-
-    def _infer_shapes(self, data):  # pylint: disable=W0221
-        # pref = str(hex(id(self))[2:])
-        return (ShapeObject(None, self.cst.dtype), )
-
-    def _infer_types(self, data):  # pylint: disable=W0221
-        # pref = str(hex(id(self))[2:])
-        if isinstance(self.cst, numpy.ndarray):
-            return (self.cst.dtype, )
-        return (type(self.cst), )
-
-    def _infer_sizes(self, *args, **kwargs):
-        res = self.run(*args, **kwargs)
-        return (dict(temp=0), ) + res
 
     def to_python(self, inputs):
         lines = ['cst = value[0] if isinstance(value, numpy.ndarray) else value',

@@ -8,8 +8,6 @@ import numpy
 import onnx
 import onnx.defs
 from onnx import GraphProto
-from ..shape_object import ShapeObject
-from ..type_object import SequenceType
 from ._new_ops import OperatorSchema
 
 
@@ -246,110 +244,6 @@ class OpRun:
             self.run = self._run_no_checks_  # pylint: disable=E0202,E1101
         return done
 
-    def infer_shapes(self, *args, **kwargs):
-        """
-        Infer shapes of the outputs given the shapes
-        of the inputs. It works the same way as method *run*.
-        """
-        try:
-            res = self._infer_shapes(*args, **kwargs)
-        except TypeError as e:
-            raise TypeError(  # pragma: no cover
-                "Issues with (operator '{}') and shapes\n{}"
-                "\n----args\n{}\n------kwargs\n{}".format(
-                    self.__class__.__name__,
-                    "\n".join(str(_) for _ in args),
-                    pprint.pformat(args),
-                    pprint.pformat(kwargs))) from e
-        if res is None:
-            return res
-        if not isinstance(res, tuple):
-            raise TypeError(  # pragma: no cover
-                "res must be tuple not {} (operator '{}')".format(
-                    type(res), self.__class__.__name__))
-        for a in res:
-            if not isinstance(a, ShapeObject):
-                raise TypeError(  # pragma: no cover
-                    "One shape is not a ShapeObject but {} (operator '{}')"
-                    "".format(type(a), self.__class__.__name__))
-        return res
-
-    def _infer_shapes(self, *args, **kwargs):
-        """
-        Should be overwritten.
-        """
-        raise NotImplementedError(
-            "This method should be overwritten for operator '{}'.".format(
-                self.__class__.__name__))  # pragma: no cover
-
-    def infer_types(self, *args, **kwargs):
-        """
-        Infer types of the outputs given the types
-        of the inputs. It works the same way as method *run*.
-        """
-        try:
-            res = self._infer_types(*args, **kwargs)
-        except TypeError as e:  # pragma: no cover
-            raise TypeError(
-                "Issues with (operator '{}') and types\n{}"
-                "\n----args\n{}\n------kwargs\n{}".format(
-                    self.__class__.__name__,
-                    "\n".join(str(_) for _ in args),
-                    pprint.pformat(args),
-                    pprint.pformat(kwargs))) from e
-        if not isinstance(res, tuple):
-            raise TypeError(  # pragma: no cover
-                "res must be tuple not {} (operator '{}')".format(
-                    type(res), self.__class__.__name__))
-        for a in res:
-            if not isinstance(a, (numpy.dtype, SequenceType)) and a not in {
-                    numpy.int8, numpy.uint8, numpy.float16, numpy.float32,
-                    numpy.float64, numpy.int32, numpy.int64, numpy.int16,
-                    numpy.uint16, numpy.uint32, numpy.bool_, numpy.str_,
-                    numpy.uint64, bool, str}:
-                raise TypeError(  # pragma: no cover
-                    "Type ({}, {}) is not a numpy type or a sequence type "
-                    "(operator '{}')".format(
-                        a, type(a), self.__class__.__name__))
-        return res
-
-    def _infer_types(self, *args, **kwargs):
-        """
-        Should be overwritten.
-        """
-        raise NotImplementedError(
-            "This method should be overwritten for operator '{}'.".format(
-                self.__class__.__name__))  # pragma: no cover
-
-    def infer_sizes(self, *args, **kwargs):
-        """
-        Infer sizes required for computation.
-        It works the same way as method *run*.
-        """
-        try:
-            res = self._infer_sizes(*args, **kwargs)
-        except TypeError as e:  # pragma: no cover
-            raise TypeError(
-                "Issues with (operator '{}') and types\n{}"
-                "\n----args\n{}\n------kwargs\n{}".format(
-                    self.__class__.__name__,
-                    "\n".join(str(_) for _ in args),
-                    pprint.pformat(args),
-                    pprint.pformat(kwargs))) from e
-        if not isinstance(res, tuple):
-            raise TypeError(  # pragma: no cover
-                "res must be dict not {} (operator '{}')".format(
-                    type(res), self.__class__.__name__))
-        return res
-
-    def _infer_sizes(self, *args, **kwargs):
-        """
-        Should be overwritten.
-        """
-        raise NotImplementedError(
-            "This method should be overwritten for operator '{}'.".format(
-                self.__class__.__name__))  # pragma: no cover
-
     def enable_inplace_compute(self, index):
         """
         Tells the node that one input can be overwritten.
@@ -463,38 +357,6 @@ class OpRunUnary(OpRun):
                     self.__class__.__name__)) from e
         return res
 
-    def infer_shapes(self, x):  # pylint: disable=E0202,W0221
-        try:
-            return self._infer_shapes(x)
-        except TypeError as e:  # pragma: no cover
-            raise TypeError(
-                "Issues with types {} (operator {}).".format(
-                    x.dtype, self.__class__.__name__)) from e
-
-    def _infer_shapes(self, x):  # pylint: disable=E0202,W0221
-        """
-        Returns the same shape by default.
-        """
-        return (x, )
-
-    def infer_types(self, x):  # pylint: disable=E0202,W0221
-        try:
-            return self._infer_types(x)
-        except TypeError as e:  # pragma: no cover
-            raise TypeError(
-                "Issues with types {} (operator {}).".format(
-                    x, self.__class__.__name__)) from e
-
-    def _infer_types(self, x):  # pylint: disable=E0202,W0221
-        """
-        Returns the same type by default.
-        """
-        return (x, )
-
-    def _infer_sizes(self, *args, **kwargs):
-        res = self.run(*args, **kwargs)
-        return (dict(temp=0), ) + res
-
 
 class OpRunArg(OpRunUnary):
     """
@@ -528,14 +390,6 @@ class OpRunArg(OpRunUnary):
                 "(operator '{}')".format(
                     numpy.int64, res[0].dtype, self.__class__.__name__))
         return res
-
-    def _infer_shapes(self, x):  # pylint: disable=W0221
-        sh = x.reduce(self.axis, self.keepdims,  # pylint: disable=E1101
-                      dtype=numpy.int64)  # pylint: disable=E1101
-        return (sh, )
-
-    def _infer_types(self, x):  # pylint: disable=W0221
-        return (numpy.int64, )
 
     def _run_no_checks_(self, x, attributes=None, verbose=0, fLOG=None):  # pylint: disable=W0221
         return OpRunUnary.run(self, x, attributes=attributes, verbose=verbose, fLOG=fLOG)
@@ -609,21 +463,6 @@ class OpRunClassifierProb(OpRunUnary):
     def _run_no_checks_(self, x, attributes=None, verbose=0, fLOG=None):  # pylint: disable=W0221
         return OpRunUnary.run(self, x, attributes=attributes, verbose=verbose, fLOG=fLOG)
 
-    def _infer_shapes(self, x):  # pylint: disable=W0221
-        """
-        Returns the same for the labels and the probabilities.
-        """
-        return (ShapeObject((x[0], ), dtype=numpy.int64,
-                            name="{}-0".format(self.__class__.__name__)),
-                ShapeObject((x[0], self.nb_classes), dtype=x.dtype,
-                            name="{}-1".format(self.__class__.__name__)))
-
-    def _infer_types(self, x):  # pylint: disable=W0221
-        """
-        Returns the type of the labels and the probabilities.
-        """
-        return (numpy.int64, x.dtype)
-
 
 class OpRunBinary(OpRun):
     """
@@ -674,37 +513,6 @@ class OpRunBinary(OpRun):
                     self.__class__.__name__)) from e
         return res
 
-    def _infer_shapes(self, x, y):  # pylint: disable=W0221
-        """
-        Returns the same shape by default.
-        We assume the operator returns the biggest
-        shapes as the operator could be using broacasting.
-        """
-        if x is None or y is None:
-            return None
-        try:
-            res = x.broadcast(y)
-            add = "broadcast"
-        except RuntimeError:  # pragma: no cover
-            # We know x and y and the same number of dimensions.
-            # We pick the first one even if it might be wrong.
-            res = x
-            add = "1"
-        if res.name is None:
-            return (res.copy(name="{}{}".format(
-                self.__class__.__name__, add)), )
-        return (res.copy(name="{}-{}{}".format(
-            res.name, self.__class__.__name__, add)), )
-
-    def _infer_types(self, x, y):  # pylint: disable=W0221
-        """
-        Returns the boolean type.
-        """
-        return (x, )
-
-    def _infer_sizes(self, *args, **kwargs):
-        res = self.run(*args, **kwargs)
-        return (dict(temp=0), ) + res
 
 
 class OpRunBinaryComparison(OpRunBinary):
@@ -718,9 +526,6 @@ class OpRunBinaryComparison(OpRunBinary):
         OpRunBinary.__init__(self, onnx_node, desc=desc,
                              expected_attributes=expected_attributes,
                              **options)
-
-    def _infer_types(self, x, y):  # pylint: disable=W0221
-        return (numpy.bool_, )
 
 
 class OpRunBinaryNum(OpRunBinary):

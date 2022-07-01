@@ -4,7 +4,7 @@
 """
 from enum import Enum
 import numpy
-from .shape_excs import ShapeInferenceException
+from .shape_excs import ShapeInferenceException, NotImplementedShapeInferenceError
 
 
 class OnnxKind(Enum):
@@ -306,7 +306,10 @@ class ShapeResult:
             if sh2.n_dims() == 1 and sh2.shape[0] == 1:
                 return ShapeResult(
                     name, sh1.shape, sh1.dtype, sh1.sparse, sh1.mtype)
-            raise ShapeInferenceException(  # pragma: no cover
+            if sh2.n_dims() < sh1.n_dims() and sh1.shape[-sh2.n_dims():] == sh2.shape:
+                return ShapeResult(
+                    name, sh1.shape, sh1.dtype, sh1.sparse, sh1.mtype)
+            raise NotImplementedShapeInferenceError(  # pragma: no cover
                 "Broadcasting is only implemented for shape of the same "
                 "size, shapes are %r and %r." % (sh1, sh2))
         if sh1.dtype != sh2.dtype:

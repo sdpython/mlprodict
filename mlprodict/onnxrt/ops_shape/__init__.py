@@ -5,6 +5,7 @@
 import textwrap
 from onnx.onnx_cpp2py_export.defs import SchemaError  # pylint: disable=E0401,E0611
 from ...onnx_tools.onnx2py_helper import get_onnx_schema
+from .shape_excs import ShapeInferenceMissing
 from ._element_unary import (
     shape_abs, shape_acos, shape_acosh,
     shape_asin, shape_asinh, shape_atan, shape_atanh,
@@ -99,7 +100,7 @@ def shape_dispatch(cache, known_shape, node, rt_class=None):
     if fct_shape is not None:
         return fct_shape(known_shape, node)
 
-    raise RuntimeError(  # pragma: no cover
+    raise ShapeInferenceMissing(  # pragma: no cover
         "Unable to find a corresponding function for operator type %r "
         "domain=%r, looking for %r among\n%s" % (
             node.op_type, node.domain, "shape_" + node.op_type.lower(),

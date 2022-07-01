@@ -5,7 +5,6 @@
 @brief Runtime operator.
 """
 import numpy
-from ..shape_object import ShapeObject
 from ._op import OpRun
 from .op_grid_sample_ import GridSampleFloat, GridSampleDouble  # pylint: disable=E0611
 
@@ -45,9 +44,3 @@ class GridSample(OpRun):
 
         res = rt.compute(X, grid)
         return (res, )
-
-    def _infer_shapes(self, X, grid):  # pylint: disable=W0221,W0237
-        return (ShapeObject(None, dtype=X.dtype), )
-
-    def _infer_types(self, X, grid):  # pylint: disable=W0221,W0237
-        return (X.dtype, )

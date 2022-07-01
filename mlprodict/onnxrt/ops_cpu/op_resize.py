@@ -5,7 +5,6 @@
 @brief Runtime operator.
 """
 import numpy
-from ..shape_object import ShapeObject
 from ._op import OpRun
 
 
@@ -232,6 +231,3 @@ class Resize(OpRun):
             coordinate_transformation_mode=self.coordinate_transformation_mode,
             extrapolation_value=self.extrapolation_value).astype(X.dtype)
         return (output, )
-
-    def infer_shapes(self, X, roi, scales=None, sizes=None):  # pylint: disable=W0221
-        return (ShapeObject(None, dtype=X.dtype), )

@@ -6,7 +6,6 @@
 """
 import numpy
 from ...onnx_tools.onnx2py_helper import guess_dtype
-from ..shape_object import ShapeObject
 from ._op import OpRun
 
 
@@ -147,25 +146,6 @@ class If(OpRun):
                         i, branch, names[i], list(sorted(ni)), inits))
         return final
 
-    def _pick_shape(self, res, name):
-        if name in res and res[name] is not None:
-            return res[name]
-        out = {o.name: o for o in self.then_branch.obj.graph.output}
-        if name not in out:
-            raise ValueError(  # pragma: no cover
-                "Unable to find name=%r in %r or %r." % (
-                    name, list(sorted(res)), list(sorted(out))))
-        dt = out[name].type.tensor_type.elem_type
-        if dt == 0:
-            # This part should disappear.
-            return ShapeObject(None, numpy.float32)
-        return ShapeObject(None, guess_dtype(dt))
-
-    def _infer_shapes(self, cond, named_inputs=None):  # pylint: disable=W0221
-        res = self.then_branch._set_shape_inference_runtime()
-        return tuple([self._pick_shape(res, name)
-                     for name in self.then_branch.output_names])
-
     def _pick_type(self, res, name):
         if name in res:
             return res[name]
@@ -176,8 +156,3 @@ class If(OpRun):
                     name, list(sorted(res)), list(sorted(out))))
         dt = out[name].type.tensor_type.elem_type
         return guess_dtype(dt)
-
-    def _infer_types(self, cond, named_inputs=None):  # pylint: disable=W0221
-        res = self.then_branch._set_type_inference_runtime()
-        return tuple([self._pick_type(res, name)
-                     for name in self.then_branch.output_names])

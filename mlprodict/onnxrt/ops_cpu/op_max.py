@@ -27,15 +27,3 @@ class Max(OpRunBinaryNumpy):
                 a = numpy.maximum(a, data[i])
             return (a, )
         raise RuntimeError("Unexpected turn of events.")
-
-    def _infer_shapes(self, x, *y):  # pylint: disable=W0221
-        res = x
-        for i in range(len(y)):  # pylint: disable=C0200
-            res = OpRunBinaryNumpy._infer_shapes(self, res, y[i])[0]
-        return (res, )
-
-    def _infer_types(self, x, *y):  # pylint: disable=W0221
-        """
-        Returns the boolean type.
-        """
-        return (x, )

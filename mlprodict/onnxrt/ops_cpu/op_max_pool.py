@@ -6,7 +6,6 @@
 """
 import itertools
 import numpy
-from ..shape_object import ShapeObjectFct
 from ._op import OpRun
 from .op_max_pool_ import MaxPoolFloat, MaxPoolDouble  # pylint: disable=E0611,E0401
 
@@ -95,29 +94,3 @@ class MaxPool(OpRun):
         if self.nb_outputs == 1:
             return res[:1]
         return res
-
-    def _infer_shapes(self, X):  # pylint: disable=W0221
-
-        def compute_shape1(xshape):
-            xs = numpy.ones(xshape, dtype=numpy.float32)
-            res, _ = self.rt32_.compute(xs)
-            return res.shape
-
-        def compute_shape2(xshape):
-            xs = numpy.ones(xshape, dtype=numpy.float32)
-            _, res2 = self.rt32_.compute(xs)
-            return res2.shape
-
-        if self.nb_outputs == 1:
-            return (ShapeObjectFct(compute_shape1, X, name="MaxPool", dtype=X.dtype), )
-        return (ShapeObjectFct(compute_shape1, X, name="MaxPool", dtype=X.dtype),
-                ShapeObjectFct(compute_shape2, X, name="MaxPool", dtype=X.dtype))
-
-    def _infer_types(self, X):  # pylint: disable=W0221
-        if self.nb_outputs == 1:
-            return (X, )
-        return (X, X)
-
-    def _infer_sizes(self, *args):  # pylint: disable=W0221
-        res = self.run(*args)
-        return (dict(temp=0), ) + res

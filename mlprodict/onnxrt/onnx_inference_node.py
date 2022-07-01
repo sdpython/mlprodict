@@ -90,22 +90,6 @@ class OnnxInferenceNode:
             "Needs context?"
             return False
 
-        def infer_types(self, *args):
-            "Calls infer_types."
-            res = self.oinf.infer_types(args)
-            names = self.oinf.obj.output
-            dtypes = [res[n] for n in names]
-            return tuple(dtypes)
-
-        def infer_sizes(self, *args):
-            "Calls infer_sizes."
-            values = {name: value
-                      for name, value in zip(self.oinf.input_names, args)}
-            res = self.oinf.infer_sizes(values)
-            names = self.oinf.obj.output
-            sizes = [res.get(n, 0) for n in names]
-            return (res['#'], ) + tuple(sizes)
-
         def enable_inplace_compute(self, index):
             "Not implemented."
             pass
@@ -506,114 +490,6 @@ class OnnxInferenceNode:
             for r in res:
                 done.append(("ops_", ) + r)
         return done
-
-    def _set_shape_inference_runtime(self, values):
-        """
-        Updates *values* which shapes of the outputs.
-
-        :param values: container for shapes
-        """
-        if self.ops_ is None:
-            # A function, unknown types.
-            for name in self.outputs:
-                values[name] = None
-            return values
-        args = [values[k] for k in self.inputs if k != '']
-        try:
-            res = self.ops_.infer_shapes(*args)
-        except (TypeError, ValueError, AttributeError) as e:  # pragma: no cover
-            raise TypeError(
-                "Unable to call infer_shapes with {} arguments for class"
-                " '{}' ({})".format(
-                    len(args), self.ops_.__class__.__name__,
-                    self.ops_.infer_shapes)) from e
-        if res is not None:
-            if not isinstance(res, tuple):
-                raise RuntimeError(  # pragma: no cover
-                    "Results of an operator should be a tuple for operator "
-                    "'{}'.".format(type(self.ops_)))
-            if (len(self.outputs) != len(res) and
-                    self.ops_.__class__.__name__ not in {'Loop'}):
-                raise RuntimeError(  # pragma: no cover
-                    "Mismatch number of outputs got {} != {} for names {} "
-                    "(node='{}').\n{}".format(
-                        len(res), len(self.outputs), list(self.outputs),
-                        self.ops_.__class__.__name__,
-                        pprint.pformat(self.desc, depth=2)))
-            for name, value in zip(self.outputs, res):
-                values[name] = value
-        return values
-
-    def _set_type_inference_runtime(self, values):
-        """
-        Updates *values* which types of the outputs.
-
-        :param values: container for types
-        """
-        args = [values[k] for k in self.inputs]
-        if self.ops_ is None:
-            res = self.function_.infer_types(*args)
-        else:
-            res = self.ops_.infer_types(*args)
-        try:
-            if self.ops_ is None:
-                res = self.function_.infer_types(*args)
-            else:
-                res = self.ops_.infer_types(*args)
-        except (TypeError, ValueError) as e:  # pragma: no cover
-            raise TypeError(
-                "Unable to call infer_types with {} arguments for class"
-                " '{}'".format(
-                    len(args), self.ops_.__class__.__name__)) from e
-        if not isinstance(res, tuple):
-            raise RuntimeError(  # pragma: no cover
-                "Results of an operator should be a tuple for operator '{}'"
-                ".".format(type(self.ops_)))
-        if len(self.outputs) != len(res):
-            raise RuntimeError(  # pragma: no cover
-                "Mismatch number of outputs got {} != {} for names {} (node='{}')."
-                "\n{}".format(
-                    len(res), len(self.outputs), list(self.outputs),
-                    self.ops_.__class__.__name__,
-                    pprint.pformat(self.desc, depth=2)))
-        for name, value in zip(self.outputs, res):
-            values[name] = value
-        return values
-
-    def _set_size_inference_runtime(self, values):
-        """
-        Updates *values* which types of the outputs.
-
-        :param values: container for sizes
-        """
-        args = [values[k] for k in self.inputs]
-        try:
-            if (self.ops_ or self.function_).need_context():
-                context = {n: values[n]
-                           for n in self.ops_.additional_inputs}
-                res = self.ops_.infer_sizes(*args, context=context)
-            else:
-                res = (self.ops_ or self.function_).infer_sizes(*args)
-        except (TypeError, ValueError) as e:  # pragma: no cover
-            raise TypeError(
-                "Unable to call infer_sizes with {} arguments for class"
-                " '{}' ({})".format(len(args), self.ops_.__class__.__name__,
-                                    self.ops_.infer_sizes)) from e
-        if not isinstance(res, tuple):
-            raise RuntimeError(  # pragma: no cover
-                "Results of an operator should be a tuple for operator '{}'"
-                ".".format(type(self.ops_)))
-        if len(self.outputs) + 1 != len(res):
-            raise RuntimeError(  # pragma: no cover
-                "Mismatch number of outputs got {} != {} + 1 for names {} "
-                "(node='{}').\n{}".format(
-                    len(res), len(self.outputs), list(self.outputs),
-                    self.ops_.__class__.__name__,
-                    pprint.pformat(self.desc, depth=2)))
-        for name, value in zip(self.outputs, res[1:]):
-            values[name] = value
-        values['#' + self.onnx_node.name] = res[0]
-        return values
 
     def enable_inplace_compute(self, name):
         """

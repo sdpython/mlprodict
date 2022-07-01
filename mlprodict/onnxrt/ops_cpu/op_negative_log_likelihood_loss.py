@@ -3,7 +3,6 @@
 @brief Runtime operator.
 """
 import numpy
-from ..shape_object import ShapeObject
 from ._op import OpRun
 
 
@@ -94,20 +93,3 @@ class NegativeLogLikelihoodLoss(OpRun):
         return _compute_negative_log_likelihood_loss(
             x, target, weight=weight, reduction=self.reduction,  # pylint: disable=E1101
             ignore_index=self.ignore_index)  # pylint: disable=E1101
-
-    def _infer_shapes(self, x, target, weight=None):  # pylint: disable=W0221
-        n_outputs = len(self.onnx_node.output)
-        if n_outputs == 1:
-            return (ShapeObject(None, dtype=x.dtype), )
-        return (ShapeObject(None, dtype=x.dtype),
-                ShapeObject(None, dtype=x.dtype))
-
-    def _infer_types(self, x, target, weight=None):  # pylint: disable=W0221
-        n_outputs = len(self.onnx_node.output)
-        if n_outputs == 1:
-            return (x.dtype, )
-        return (x.dtype, x.dtype)
-
-    def _infer_sizes(self, *args):  # pylint: disable=W0221
-        res = self.run(*args)
-        return (dict(temp=0), ) + res
