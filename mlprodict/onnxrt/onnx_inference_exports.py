@@ -28,7 +28,8 @@ class OnnxInferenceExport:
         self.oinf = oinf
 
     def to_dot(self, recursive=False, prefix='',  # pylint: disable=R0914
-               add_rt_shapes=False, use_onnx=False, **params):
+               add_rt_shapes=False, use_onnx=False,
+               add_functions=True, **params):
         """
         Produces a :epkg:`DOT` language string for the graph.
 
@@ -38,6 +39,7 @@ class OnnxInferenceExport:
         :param prefix: prefix for every node name
         :param add_rt_shapes: adds shapes infered from the python runtime
         :param use_onnx: use :epkg:`onnx` dot format instead of this one
+        :param add_functions: add functions to the graph
         :return: string
 
         Default options for the graph are:
@@ -142,55 +144,82 @@ class OnnxInferenceExport:
 
         # inputs
         exp.append("")
-        for obj in self.oinf.obj.graph.input:
-            dobj = _var_as_dict(obj)
-            sh = shapes.get(dobj['name'], '')
-            if sh:
-                sh = "\\nshape={}".format(sh)
-            exp.append(
-                '  {3}{0} [shape=box color=red label="{0}\\n{1}{4}" fontsize={2}];'.format(
-                    dot_name(dobj['name']), _type_to_string(dobj['type']),
-                    fontsize, prefix, dot_label(sh)))
-            inter_vars[obj.name] = obj
+        graph = (
+            self.oinf.obj.graph if hasattr(self.oinf.obj, 'graph')
+            else self.oinf.obj)
+        for obj in graph.input:
+            if isinstance(obj, str):
+                exp.append(
+                    '  {2}{0} [shape=box color=red label="{0}" fontsize={1}];'.format(
+                        obj, fontsize, prefix))
+                inter_vars[obj] = obj
+            else:
+                dobj = _var_as_dict(obj)
+                sh = shapes.get(dobj['name'], '')
+                if sh:
+                    sh = "\\nshape={}".format(sh)
+                exp.append(
+                    '  {3}{0} [shape=box color=red label="{0}\\n{1}{4}" fontsize={2}];'.format(
+                        dot_name(dobj['name']), _type_to_string(dobj['type']),
+                        fontsize, prefix, dot_label(sh)))
+                inter_vars[obj.name] = obj
 
         # outputs
         exp.append("")
-        for obj in self.oinf.obj.graph.output:
-            dobj = _var_as_dict(obj)
-            sh = shapes.get(dobj['name'], '')
-            if sh:
-                sh = "\\nshape={}".format(sh)
-            exp.append(
-                '  {3}{0} [shape=box color=green label="{0}\\n{1}{4}" fontsize={2}];'.format(
-                    dot_name(dobj['name']), _type_to_string(dobj['type']),
-                    fontsize, prefix, dot_label(sh)))
-            inter_vars[obj.name] = obj
+        for obj in graph.output:
+            if isinstance(obj, str):
+                exp.append(
+                    '  {2}{0} [shape=box color=green label="{0}" fontsize={1}];'.format(
+                        obj, fontsize, prefix))
+                inter_vars[obj] = obj
+            else:
+                dobj = _var_as_dict(obj)
+                sh = shapes.get(dobj['name'], '')
+                if sh:
+                    sh = "\\nshape={}".format(sh)
+                exp.append(
+                    '  {3}{0} [shape=box color=green label="{0}\\n{1}{4}" fontsize={2}];'.format(
+                        dot_name(dobj['name']), _type_to_string(dobj['type']),
+                        fontsize, prefix, dot_label(sh)))
+                inter_vars[obj.name] = obj
 
         # initializer
         exp.append("")
-        for obj in self.oinf.obj.graph.initializer:
-            dobj = _var_as_dict(obj)
-            val = dobj['value']
-            flat = val.flatten()
-            if flat.shape[0] < 9:
-                st = str(val)
-            else:
-                st = str(val)
-                if len(st) > 50:
-                    st = st[:50] + '...'
-            st = st.replace('\n', '\\n')
-            kind = ""
-            exp.append(
-                '  {6}{0} [shape=box label="{0}\\n{4}{1}({2})\\n{3}" fontsize={5}];'.format(
-                    dot_name(dobj['name']), dobj['value'].dtype,
-                    dobj['value'].shape, dot_label(st), kind, fontsize, prefix))
-            inter_vars[obj.name] = obj
+        if hasattr(self.oinf.obj, 'graph'):
+            inits = (
+                list(self.oinf.obj.graph.initializer) +
+                list(self.oinf.obj.graph.sparse_initializer))
+            for obj in inits:
+                dobj = _var_as_dict(obj)
+                val = dobj['value']
+                flat = val.flatten()
+                if flat.shape[0] < 9:
+                    st = str(val)
+                else:
+                    st = str(val)
+                    if len(st) > 50:
+                        st = st[:50] + '...'
+                st = st.replace('\n', '\\n')
+                kind = ""
+                exp.append(
+                    '  {6}{0} [shape=box label="{0}\\n{4}{1}({2})\\n{3}" fontsize={5}];'.format(
+                        dot_name(dobj['name']), dobj['value'].dtype,
+                        dobj['value'].shape, dot_label(st), kind, fontsize, prefix))
+                inter_vars[obj.name] = obj
 
         # nodes
         fill_names = {}
-        static_inputs = [n.name for n in self.oinf.obj.graph.input]
-        static_inputs.extend(n.name for n in self.oinf.obj.graph.initializer)
-        for node in self.oinf.obj.graph.node:
+        if hasattr(self.oinf.obj, 'graph'):
+            static_inputs = [n.name for n in self.oinf.obj.graph.input]
+            static_inputs.extend(
+                n.name for n in self.oinf.obj.graph.initializer)
+            static_inputs.extend(
+                n.name for n in self.oinf.obj.graph.sparse_initializer)
+            nodes = self.oinf.obj.graph.node
+        else:
+            static_inputs = list(self.oinf.obj.input)
+            nodes = self.oinf.obj.node
+        for node in nodes:
             exp.append("")
             for out in node.output:
                 if len(out) > 0 and out not in inter_vars:
@@ -283,9 +312,11 @@ class OnnxInferenceExport:
                                 dot_name(subprefix), dot_name(out1.name),
                                 dot_name(prefix), dot_name(out2)))
             else:
-                exp.append('  {4}{1} [shape=box style="filled,rounded" color=orange label="{0}\\n({1}){2}" fontsize={3}];'.format(
-                    dobj['op_type'], dot_name(dobj['name']), satts, fontsize,
-                    dot_name(prefix)))
+                exp.append('  {4}{1} [shape=box style="filled,rounded" color=orange '
+                           'label="{0}\\n({1}){2}" fontsize={3}];'.format(
+                               dobj['op_type'], dot_name(
+                                   dobj['name']), satts, fontsize,
+                               dot_name(prefix)))
 
             if connects is not None and len(connects) > 0:
                 for name, cluster in connects:
@@ -305,6 +336,20 @@ class OnnxInferenceExport:
                 exp.append(
                     "  {0}{1} -> {0}{2};".format(
                         dot_name(prefix), dot_name(node.name), dot_name(out)))
+
+        if add_functions and len(self.oinf.functions_) > 0:
+            for i, (k, v) in enumerate(self.oinf.functions_.items()):
+                dot = v.to_dot(recursive=recursive, prefix=prefix + v.obj.name,
+                               add_rt_shapes=add_rt_shapes,
+                               use_onnx=use_onnx, add_functions=False,
+                               **params)
+                spl = dot.split('\n')[1:]
+                exp.append('')
+                exp.append('  subgraph cluster_%d {' % i)
+                exp.append('    label="%s";' % v.obj.name)
+                exp.append('    color=blue;')
+                #exp.append('    style=filled;')
+                exp.extend(('  ' + line) for line in spl)
 
         exp.append('}')
         return "\n".join(exp)

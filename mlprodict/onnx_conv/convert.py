@@ -19,6 +19,7 @@ except ImportError:  # pragma: no cover
 from sklearn import __all__ as sklearn__all__, __version__ as sklearn_version
 from sklearn.pipeline import Pipeline, FeatureUnion
 from sklearn.compose import ColumnTransformer
+from sklearn.utils.metaestimators import _BaseComposition
 from skl2onnx.common.data_types import (
     FloatTensorType, DoubleTensorType, DataType, guess_numpy_type,
     StringTensorType, Int64TensorType, _guess_type_proto)
@@ -332,7 +333,8 @@ def to_onnx(model, X=None, name=None, initial_types=None,
         names, see @see fn onnx_rename_names
     :param verbose: display information while converting the model
     :param as_function: exposes every model in a pipeline as a function,
-        the main graph contains the pipeline structure
+        the main graph contains the pipeline structure,
+        see :ref:`onnxsklearnfunctionsrst` for an example
     :param prefix_name: used if *as_function* is True, to give
         a prefix to variable in a pipeline
     :param run_shape: run shape inference
@@ -507,7 +509,12 @@ def _guess_s2o_type(vtype: ValueInfoProto):
         get_tensor_elem_type(vtype), get_tensor_shape(vtype))
 
 
-def _new_options(options, prefix):
+def _new_options(options, prefix, sklop):
+    if sklop is None:
+        raise RuntimeError(  # pragma: no cover
+            "sklop cannot be None.")
+    if isinstance(sklop, str):
+        return None  # pragma: no cover
     if options is None:
         step_options = None
     else:
@@ -517,8 +524,19 @@ def _new_options(options, prefix):
                 step_options[k[len(prefix):]] = v
             elif '__' in k:
                 step_options[k.split('__', maxsplit=1)[1]] = v
-            else:
+            if isinstance(sklop, _BaseComposition):
                 step_options[k] = v
+            else:
+                from skl2onnx._supported_operators import _get_sklearn_operator_name
+                from skl2onnx.common._registration import get_converter
+                alias = _get_sklearn_operator_name(type(sklop))
+                if alias is None:
+                    step_options[k] = v
+                else:
+                    conv = get_converter(alias)
+                    allowed = conv.get_allowed_options()
+                    if allowed is not None and k in allowed:
+                        step_options[k] = v
     return step_options
 
 
@@ -536,7 +554,7 @@ def get_sklearn_json_params(model):
     """
     Retrieves all the parameters of a :epkg:`scikit-learn` model.
     """
-    pars = model.get_params()
+    pars = model.get_params(deep=False)
     try:
         return json.dumps(pars, cls=_ParamEncoder)
     except TypeError as e:
@@ -573,13 +591,13 @@ def _to_onnx_function_pipeline(
 
     i_types = guess_initial_types(X, initial_types)
     input_nodes = [OnnxIdentity(i[0], op_version=op_version)
-                   for i in initial_types]
+                   for i in i_types]
 
     inputs = i_types
     last_op = None
     for i_step, step in enumerate(model.steps):
         prefix = step[0] + "__"
-        step_options = _new_options(options, prefix)
+        step_options = _new_options(options, prefix, step[1])
         if prefix_name is not None:
             prefix = prefix_name + prefix
         protom = to_onnx(
@@ -593,8 +611,8 @@ def _to_onnx_function_pipeline(
             if get_tensor_elem_type(o) == 0:
                 raise RuntimeError(
                     "Unabble to guess output type of output %r "
-                    "from model step %d: %r." % (
-                        protom.graph.output, i_step, step[1]))
+                    "from model step %d: %r, output=%r." % (
+                        protom.graph.output, i_step, step[1], o))
         jspar = 'HYPER:{"%s":%s}' % (
             step[1].__class__.__name__, get_sklearn_json_params(step[1]))
         protof, subf = onnx_model_to_function(
@@ -849,10 +867,11 @@ def _to_onnx_function_column_transformer(
                 *transform_inputs, op_version=op_version, axis=1)
         else:
             concatenated = transform_inputs
-        initial_types = _merge_initial_types(i_types, transform_inputs, merged_cols)
+        initial_types = _merge_initial_types(
+            i_types, transform_inputs, merged_cols)
 
         prefix = name_step + "__"
-        step_options = _new_options(options, prefix)
+        step_options = _new_options(options, prefix, op)
         if prefix_name is not None:
             prefix = prefix_name + prefix
 
