@@ -1576,6 +1576,8 @@ class TestExportOnnx(ExtTestCase):
                 oinf0 = OnnxInference(onx, runtime=rt)
                 new_onnx = export2python(onx, name="TEST")
                 self.assertIn('def main', new_onnx)
+                self.assertIn(' + ', new_onnx)
+                self.assertIn(' / ', new_onnx)
                 _, loc = self.verify(
                     new_onnx, more_context={
                         'mlprodict1': mlprodict1,
