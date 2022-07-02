@@ -7,7 +7,6 @@
 import numpy
 from onnx.defs import onnx_opset_version
 from ._op import OpRun
-from ..shape_object import ShapeObject
 
 
 class Shape_1(OpRun):
@@ -17,16 +16,6 @@ class Shape_1(OpRun):
 
     def _run(self, data, attributes=None, verbose=0, fLOG=None):  # pylint: disable=W0221
         return (numpy.array(data.shape, dtype=numpy.int64), )
-
-    def _infer_shapes(self, x):  # pylint: disable=W0221
-        return (ShapeObject((len(x), ), dtype=numpy.int64), )
-
-    def _infer_types(self, x):  # pylint: disable=W0221
-        return (numpy.int64, )
-
-    def _infer_sizes(self, *args, **kwargs):
-        res = self.run(*args, **kwargs)
-        return (dict(temp=0), ) + res
 
 
 class Shape_15(Shape_1):
@@ -55,19 +44,6 @@ class Shape_15(Shape_1):
         if ab is None:
             return (numpy.array(data.shape, dtype=numpy.int64), )
         return (numpy.array(data.shape[ab[0]: ab[1]], dtype=numpy.int64), )
-
-    def _infer_shapes(self, x):  # pylint: disable=W0221
-        ab = self._interval(len(x))
-        if ab is None:
-            return (ShapeObject((len(x), ), dtype=numpy.int64), )
-        return (ShapeObject((ab[1] - ab[0], ), dtype=numpy.int64), )
-
-    def _infer_types(self, x):  # pylint: disable=W0221
-        return (numpy.int64, )
-
-    def _infer_sizes(self, *args, **kwargs):
-        res = self.run(*args, **kwargs)
-        return (dict(temp=0), ) + res
 
 
 if onnx_opset_version() >= 15:

@@ -5,8 +5,7 @@
 @brief Runtime operator.
 """
 import numpy
-from ._op import OpRunUnary, RuntimeTypeError
-from ..shape_object import ShapeObject
+from ._op import OpRunUnary
 from .op_tfidfvectorizer_ import RuntimeTfIdfVectorizer  # pylint: disable=E0611,E0401
 
 
@@ -60,18 +59,3 @@ class TfIdfVectorizer(OpRunUnary):
                         xi[i, j] = -1
             res = self.rt_.compute(xi)
             return (res.reshape((x.shape[0], -1)), )
-
-    def _infer_shapes(self, x):  # pylint: disable=E0202,W0221
-        if x.shape is None:
-            return (ShapeObject(None, dtype=numpy.float32), )
-        if len(x) == 1:
-            return (ShapeObject((x[0], None), dtype=numpy.float32,
-                                name=self.__class__.__name__), )
-        if len(x) == 2:
-            return (ShapeObject((x[0], x[1], None), dtype=numpy.float32,
-                                name=self.__class__.__name__), )
-        raise RuntimeTypeError(  # pragma: no cover
-            "Only two dimension are allowed, got {}.".format(x))
-
-    def _infer_types(self, x):  # pylint: disable=E0202,W0221
-        return (x, )

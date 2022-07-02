@@ -4,7 +4,9 @@
 """
 from enum import Enum
 import numpy
-from .shape_excs import ShapeInferenceException
+from .shape_excs import (
+    ShapeInferenceException, NotImplementedShapeInferenceError,
+    ShapeInferenceDimensionError)
 
 
 class OnnxKind(Enum):
@@ -211,7 +213,7 @@ class ShapeResult:
                 "Unable to merge %r and %r." % (self, other_result))
         if (len(self.shape) != 0 and len(other_result.shape) != 0 and
                 len(self.shape) != len(other_result.shape)):
-            raise RuntimeError(  # pragma: no cover
+            raise ShapeInferenceDimensionError(  # pragma: no cover
                 "Length mismatch, unable to merge %r and %r." % (
                     self, other_result))
         updated = False
@@ -278,13 +280,16 @@ class ShapeResult:
         return res
 
     @staticmethod
-    def broadcast(sh1, sh2, name=None):
+    def broadcast(sh1, sh2, name=None, dtype=None, same_type=True):
         """
         Broadcasts dimensions for an element wise operator.
 
         :param sh1: ShapeResult
         :param sh2: ShapeResult
         :param name: name of the output ShapeResult
+        :param dtype: type of the result or the same as the first
+            element if None
+        :param same_type: check the type are the same
         :return: ShapeResult
         """
         if not isinstance(sh1, ShapeResult):
@@ -299,21 +304,27 @@ class ShapeResult:
         if sh2.mtype != OnnxKind.Tensor:
             raise TypeError(  # pragma: no cover
                 "sh2 must be a tensor not %r." % sh2.mtype)
-        if sh1.n_dims() != sh2.n_dims():
-            if sh1.n_dims() == 1 and sh1.shape[0] == 1:
-                return ShapeResult(
-                    name, sh2.shape, sh2.dtype, sh2.sparse, sh2.mtype)
-            if sh2.n_dims() == 1 and sh2.shape[0] == 1:
-                return ShapeResult(
-                    name, sh1.shape, sh1.dtype, sh1.sparse, sh1.mtype)
-            raise ShapeInferenceException(  # pragma: no cover
-                "Broadcasting is only implemented for shape of the same "
-                "size, shapes are %r and %r." % (sh1, sh2))
-        if sh1.dtype != sh2.dtype:
+        if same_type and sh1.dtype != sh2.dtype:
             raise ShapeInferenceException(  # pragma: no cover
                 "Cannot broadcast shapes %r and %r (dtypes)."
                 "" % (sh1, sh2))
 
+        # Specific cases.
+        if sh1.n_dims() != sh2.n_dims():
+            if sh1.n_dims() == 1 and sh1.shape[0] == 1:
+                return ShapeResult(
+                    name, sh2.shape, dtype or sh2.dtype, sh2.sparse, sh2.mtype)
+            if sh2.n_dims() == 1 and sh2.shape[0] == 1:
+                return ShapeResult(
+                    name, sh1.shape, dtype or sh1.dtype, sh1.sparse, sh1.mtype)
+            if sh2.n_dims() < sh1.n_dims() and sh1.shape[-sh2.n_dims():] == sh2.shape:
+                return ShapeResult(
+                    name, sh1.shape, dtype or sh1.dtype, sh1.sparse, sh1.mtype)
+            raise NotImplementedShapeInferenceError(  # pragma: no cover
+                "Broadcasting is only implemented for shape of the same "
+                "size, shapes are %r and %r." % (sh1, sh2))
+
+        # Other cases.
         constraints = ShapeConstraintList()
         shape = []
         for a, b in zip(sh1.shape, sh2.shape):
@@ -341,6 +352,12 @@ class ShapeResult:
                     d = a
             elif a == b:
                 d = a
+            elif isinstance(a, str) and isinstance(b, str):
+                if a != b:
+                    # Both dimensions are variables.
+                    constraints.append(ShapeConstraint(a, {1, b}))
+                    constraints.append(ShapeConstraint(b, {1, a}))
+                d = a
             else:
                 raise ShapeInferenceException(  # pragma: no cover
                     "Cannot broadcast shapes %r and %r." % (sh1, sh2))
@@ -348,6 +365,6 @@ class ShapeResult:
         if name in (None, ''):
             raise ValueError(  # pragma: no cover
                 "name cannot be empty.")
-        res = ShapeResult(name, shape, sh1.dtype, sh1.sparse or sh2.sparse,
+        res = ShapeResult(name, shape, dtype or sh1.dtype, sh1.sparse or sh2.sparse,
                           sh1.mtype, constraints)
         return res

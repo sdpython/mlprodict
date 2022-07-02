@@ -6,7 +6,6 @@
 """
 import numpy
 from ._op import OpRun
-from ..shape_object import ShapeObject
 
 
 class DepthToSpace(OpRun):
@@ -39,9 +38,6 @@ class DepthToSpace(OpRun):
         y = numpy.reshape(transposed, finalshape)
         return (y, )
 
-    def _infer_shapes(self, data):  # pylint: disable=W0221
-        return (ShapeObject(None, dtype=data.dtype), )
-
 
 class SpaceToDepth(OpRun):
 
@@ -65,6 +61,3 @@ class SpaceToDepth(OpRun):
                       H // self.blocksize, W // self.blocksize)
         y = numpy.reshape(transposed, finalshape)
         return (y, )
-
-    def _infer_shapes(self, data):  # pylint: disable=W0221
-        return (ShapeObject(None, dtype=data.dtype), )

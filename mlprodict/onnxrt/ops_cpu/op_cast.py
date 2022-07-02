@@ -34,16 +34,6 @@ class Cast(OpRun):
             return (x, )
         return (self._cast(x), )
 
-    def _infer_shapes(self, x):  # pylint: disable=W0221
-        return (x.copy(dtype=self._dtype), )
-
-    def _infer_types(self, x):  # pylint: disable=W0221
-        return (self._dtype, )
-
-    def _infer_sizes(self, *args, **kwargs):
-        res = self.run(*args, **kwargs)
-        return (dict(temp=0), ) + res
-
 
 class CastLike(OpRun):
 
@@ -59,13 +49,3 @@ class CastLike(OpRun):
         if x.dtype == y.dtype:
             return (x, )
         return (x.astype(y.dtype), )
-
-    def _infer_shapes(self, x, y):  # pylint: disable=W0221
-        return (x.copy(dtype=y.dtype), )
-
-    def _infer_types(self, x, y):  # pylint: disable=W0221
-        return (y._dtype, )
-
-    def _infer_sizes(self, *args, **kwargs):
-        res = self.run(*args, **kwargs)
-        return (dict(temp=0), ) + res

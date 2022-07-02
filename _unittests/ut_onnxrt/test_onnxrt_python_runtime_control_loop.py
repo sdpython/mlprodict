@@ -12,7 +12,6 @@ from onnx.helper import (
 from onnx import TensorProto
 from pyquickhelper.pycode import ExtTestCase, ignore_warnings
 from mlprodict.onnxrt import OnnxInference
-from mlprodict.onnxrt.type_object import SequenceType
 from mlprodict import __max_supported_opset__ as TARGET_OPSET
 
 
@@ -213,17 +212,6 @@ class TestOnnxrtPythonRuntimeControlLoop(ExtTestCase):
                     'seq_empty': seq_empty}
                 got = oinf.run(inputs)
                 self.assertEqualArray(expected, got['res'])
-                if rt == 'python':
-                    siz = oinf.infer_sizes(inputs)
-                    self.assertIsInstance(siz, dict)
-                    typ = oinf.infer_types()
-                    self.assertEqual(typ["trip_count"], numpy.int64)
-                    if 'cond' in typ:
-                        self.assertEqual(typ["cond"], numpy.bool_)
-                    for k, v in typ.items():
-                        if k in {'trip_count', 'cond'}:
-                            continue
-                        self.assertIsInstance(v, SequenceType)
 
     @ignore_warnings(DeprecationWarning)
     def test_loop_additional_input(self):
@@ -335,17 +323,6 @@ class TestOnnxrtPythonRuntimeControlLoop(ExtTestCase):
                 got = oinf.run(inputs)
                 self.assertEqualArray(-X, got['Y'])
                 self.assertEqualArray(expected, got['res'])
-                if rt == 'python':
-                    siz = oinf.infer_sizes(inputs)
-                    self.assertIsInstance(siz, dict)
-                    typ = oinf.infer_types()
-                    self.assertEqual(typ["trip_count"], numpy.int64)
-                    if 'cond' in typ:
-                        self.assertEqual(typ["cond"], numpy.bool_)
-                    for k, v in typ.items():
-                        if k in {'trip_count', 'cond', 'Y', 'XI'}:
-                            continue
-                        self.assertIsInstance(v, SequenceType)
 
     def sequence_insert_reference_implementation(
             self, sequence, tensor, position=None):

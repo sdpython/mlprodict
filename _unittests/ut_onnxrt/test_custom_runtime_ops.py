@@ -29,7 +29,6 @@ from skl2onnx.algebra.onnx_ops import (  # pylint: disable=E0611
 )
 from mlprodict.onnxrt import OnnxInference
 from mlprodict.onnxrt.ops_cpu import OpRunCustom, register_operator
-from mlprodict.onnxrt.shape_object import ShapeObject
 
 
 class LiveDecorrelateTransformer(TransformerMixin, BaseEstimator):
@@ -178,21 +177,6 @@ class OpEig(OpRunCustom):  # pylint: disable=W0223
         if self.eigv:  # pylint: disable=E1101
             return eig(x)
         return (eigvals(x), )
-
-    def _infer_shapes(self, x):  # pylint: disable=W0221
-        if self.eigv:  # pylint: disable=E1101
-            return (
-                ShapeObject(
-                    x.shape, dtype=x.dtype,
-                    name=self.__class__.__name__ + 'Values'),
-                ShapeObject(
-                    x.shape, dtype=x.dtype,
-                    name=self.__class__.__name__ + 'Vectors'))
-        return (ShapeObject(x.shape, dtype=x.dtype,
-                            name=self.__class__.__name__), )
-
-    def _infer_types(self, x):  # pylint: disable=W0221
-        return (x, x)
 
 
 class TestCustomRuntimeOps(ExtTestCase):

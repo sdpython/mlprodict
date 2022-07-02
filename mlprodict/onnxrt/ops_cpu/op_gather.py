@@ -6,7 +6,6 @@
 """
 import numpy
 from ._op import OpRun
-from ..shape_object import ShapeObject
 from .op_gather_ import (  # pylint: disable=E0611,E0401
     GatherFloat, GatherDouble, GatherInt64)
 
@@ -35,9 +34,3 @@ class Gather(OpRun):
             return (self.rt_[str(x.dtype)].compute(x, indices), )
         except (KeyError, ValueError):
             return (numpy.take(x, indices, axis=self.axis), )
-
-    def _infer_shapes(self, x, indices):  # pylint: disable=E0202,W0221
-        return (ShapeObject.gather_shape(x, indices, self.axis), )
-
-    def _infer_types(self, data, indices):  # pylint: disable=W0221
-        return (data, )

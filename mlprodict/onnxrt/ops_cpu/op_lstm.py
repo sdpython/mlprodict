@@ -6,7 +6,6 @@
 """
 import numpy
 from ._op import OpRun
-from ..shape_object import ShapeObject
 
 
 class CommonLSTM(OpRun):
@@ -113,26 +112,6 @@ class CommonLSTM(OpRun):
         Y, Y_h = self._step(X, R, B, W, initial_h, initial_c, P)
 
         return (Y, ) if self.nb_outputs == 1 else (Y, Y_h)
-
-    def _infer_shapes(self, X, W, R, B=None, sequence_lens=None,  # pylint: disable=W0221
-                      initial_h=None, initial_c=None, P=None):
-        num_directions = W.shape[0]
-        hidden_size = R[-1]
-        batch_size = X[1]
-        if num_directions == 1:
-            y_shape = ShapeObject(
-                (X[0], num_directions, batch_size, hidden_size), dtype=X.dtype)
-        else:
-            y_shape = ShapeObject(None, dtype=X.dtype)
-        if self.nb_outputs == 1:
-            return (y_shape, )
-        y_h_shape = ShapeObject(
-            (num_directions, batch_size, hidden_size), dtype=X.dtype)
-        return (y_shape, y_h_shape)
-
-    def _infer_types(self, X, W, R, B=None, sequence_lens=None,  # pylint: disable=W0221
-                     initial_h=None, initial_c=None, P=None):
-        return (X, X)
 
 
 class LSTM(CommonLSTM):

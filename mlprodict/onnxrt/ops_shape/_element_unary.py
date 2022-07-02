@@ -7,7 +7,7 @@ from .shape_excs import ShapeInferenceException
 from .shape_result import OnnxKind
 
 
-def _element_unary(known_shapes, node, dtype=None):
+def _element_unary(known_shapes, node, dtype=None, one_input=True):
     """
     Infers shape for an element wise operator.
     The function returns but updates *known_shapes*.
@@ -16,8 +16,13 @@ def _element_unary(known_shapes, node, dtype=None):
     :param node: Onnx node
     :param dtype: None to keep the same type as input,
         not None to change it
+    :param one_input: check there is only one input
     :return: updated or not
     """
+    if one_input and len(node.input) != 1:
+        raise ShapeInferenceException(  # pragma: no cover
+            "Node %r must have one input not %d." % (
+                node.name, len(node.input)))
     x = known_shapes[node.input[0]]
     if x.mtype != OnnxKind.Tensor:
         raise ShapeInferenceException(  # pragma: no cover
@@ -91,7 +96,7 @@ def shape_celu(known_shapes, node):
 
 def shape_clip(known_shapes, node):
     "Infers shape for operator Clip."
-    return _element_unary(known_shapes, node)
+    return _element_unary(known_shapes, node, one_input=False)
 
 
 def shape_cos(known_shapes, node):

@@ -5,7 +5,6 @@
 @brief Runtime operator.
 """
 import numpy
-from ..shape_object import ShapeObject
 from ._op import OpRun
 from .op_roi_align_ import RoiAlignFloat, RoiAlignDouble  # pylint: disable=E0611
 
@@ -49,6 +48,3 @@ class RoiAlign(OpRun):
 
         res = rt.compute(X, rois, batch_indices)
         return (res, )
-
-    def _infer_shapes(self, X, rois, batch_indices):  # pylint: disable=W0221
-        return (ShapeObject(None, dtype=X.dtype), )

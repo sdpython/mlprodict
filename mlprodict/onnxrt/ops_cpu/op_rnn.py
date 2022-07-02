@@ -7,7 +7,6 @@
 import numpy
 from onnx.defs import onnx_opset_version
 from ._op import OpRun
-from ..shape_object import ShapeObject
 
 
 class CommonRNN(OpRun):
@@ -107,24 +106,6 @@ class CommonRNN(OpRun):
         #    Y_h = Y[:, :, -1, :]
 
         return (Y, ) if self.nb_outputs == 1 else (Y, Y_h)
-
-    def _infer_shapes(self, X, W, R, B=None, sequence_lens=None, initial_h=None):  # pylint: disable=W0221
-        num_directions = W.shape[0]
-        hidden_size = R[-1]
-        batch_size = X[1]
-        if num_directions == 1:
-            y_shape = ShapeObject(
-                (X[0], num_directions, batch_size, hidden_size), dtype=X.dtype)
-        else:
-            y_shape = ShapeObject(None, dtype=X.dtype)
-        if self.nb_outputs == 1:
-            return (y_shape, )
-        y_h_shape = ShapeObject(
-            (num_directions, batch_size, hidden_size), dtype=X.dtype)
-        return (y_shape, y_h_shape)
-
-    def _infer_types(self, X, W, R, B=None, sequence_lens=None, initial_h=None):  # pylint: disable=W0221
-        return (X, X)
 
 
 class RNN_7(CommonRNN):

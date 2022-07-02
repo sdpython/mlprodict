@@ -79,7 +79,8 @@ class TestExportOnnxFunction(ExtTestCase):
     def test_pipeline_pipeline_function(self):
         x = numpy.array([[0, 0], [0, 0], [1, 1], [1, 1]], dtype=numpy.float32)
         model = Pipeline([
-            ("pipe1", Pipeline([('sub1', StandardScaler()), ('sub2', StandardScaler())])),
+            ("pipe1", Pipeline(
+                [('sub1', StandardScaler()), ('sub2', StandardScaler())])),
             ("scaler2", StandardScaler())])
         model.fit(x)
         model_onnx = to_onnx(

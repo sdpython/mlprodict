@@ -16,15 +16,5 @@ class Pow(OpRun):
     def _run(self, a, b, attributes=None, verbose=0, fLOG=None):  # pylint: disable=W0221
         return (numpy.power(a, b).astype(a.dtype), )
 
-    def _infer_shapes(self, x, b):  # pylint: disable=W0221
-        return (x, )
-
-    def _infer_types(self, x, b):  # pylint: disable=W0221
-        return (x, )
-
-    def _infer_sizes(self, *args, **kwargs):
-        res = self.run(*args, **kwargs)
-        return (dict(temp=0), ) + res
-
     def to_python(self, inputs):
         return self._to_python_numpy(inputs, 'power')

@@ -30,22 +30,6 @@ class DEBUG(OpRun):
         raise RuntimeError(  # pragma: no cover
             "Unable to find a schema for operator '{}'.".format(op_name))
 
-    def _infer_shapes(self, x, *args):  # pylint: disable=E0202,W0221
-        """
-        Returns the same shape by default.
-        """
-        return (x, )
-
-    def _infer_types(self, x, *args):  # pylint: disable=E0202,W0221
-        """
-        Returns the same type by default.
-        """
-        return (x, )
-
-    def _infer_sizes(self, *args, **kwargs):
-        res = self.run(*args, **kwargs)
-        return (dict(temp=0), ) + res
-
 
 class DEBUGSchema(OperatorSchema):
     """

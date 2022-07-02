@@ -133,7 +133,6 @@ from mlprodict.testing.test_utils.quantized_tensor import (
 from mlprodict.onnxrt.ops_cpu.op_qlinear_conv_ import (  # pylint: disable=W0611,E0611,E0401
     test_qgemm0, test_qgemm1)
 from mlprodict.onnxrt.ops_cpu.op_constant import Constant_12, Constant_11, Constant_9
-from mlprodict.onnxrt.ops_shape.shape_excs import ShapeInferenceException
 from mlprodict.plotting.text_plot import onnx_simple_text_plot
 from mlprodict import __max_supported_opset__ as TARGET_OPSET, get_ir_version
 from mlprodict.onnxrt.ops_cpu.op_negative_log_likelihood_loss import (
@@ -613,19 +612,6 @@ class TestOnnxrtPythonRuntime(ExtTestCase):  # pylint: disable=R0904
 
     def common_expected_shapes_types(self, oinf, inputs, got, onnx_cl, model_def,
                                      raise_shape=False):
-        expected_types = oinf.infer_types()
-        self.assertEqual(set(got) & set(expected_types), set(got))
-        for k, v in got.items():
-            if expected_types[k] in (str, numpy.str_):
-                # Type mismatch: dtype('<U32') != <class 'str'>
-                continue
-            if v.dtype != expected_types[k]:
-                raise AssertionError(
-                    "Type mismatch: %r != %r\nexpected_types=%r\ngot=%r"
-                    "\n----\n%r" % (
-                        v.dtype, expected_types[k], expected_types, got,
-                        model_def))
-
         try:
             expected_shapes = oinf.infer_shapes()
             self.assertEqual(set(got) & set(expected_shapes), set(got))
@@ -634,15 +620,13 @@ class TestOnnxrtPythonRuntime(ExtTestCase):  # pylint: disable=R0904
                 raise e
             warnings.warn("infer_shapes fails for operator %r." % onnx_cl)
 
-        res = oinf.infer_sizes(inputs)
-        self.assertIsInstance(res, dict)
-
     @ignore_warnings(category=(RuntimeWarning, DeprecationWarning,
                                SparseEfficiencyWarning, PendingDeprecationWarning))
     def common_test_onnxt_runtime_unary(self, onnx_cl, np_fct,
                                         op_version=None,
                                         outputs=None, debug=False,
-                                        do_sparse=True, raise_shape=False):
+                                        do_sparse=True, raise_shape=False,
+                                        bool_type=False):
         if op_version is None:
             op_version = TARGET_OPSET
         try:
@@ -650,9 +634,13 @@ class TestOnnxrtPythonRuntime(ExtTestCase):  # pylint: disable=R0904
         except RuntimeError as e:
             raise RuntimeError('onnx.opset={} op_version={}'.format(
                 TARGET_OPSET, op_version)) from e
-        X = numpy.array([[1, 2], [3, -4]], dtype=numpy.float64)
+        X = numpy.array([[1, 2], [0, -4]], dtype=numpy.float64)
+        dtype = numpy.float32
+        if bool_type:
+            X = X.astype(numpy.bool_)
+            dtype = numpy.bool_
         model_def = onx.to_onnx(
-            {'X': X.astype(numpy.float32)}, target_opset=op_version,
+            {'X': X.astype(dtype)}, target_opset=op_version,
             outputs=outputs)
         if debug:
             print(model_def)
@@ -660,7 +648,7 @@ class TestOnnxrtPythonRuntime(ExtTestCase):  # pylint: disable=R0904
 
         # python code
         oinfpy = OnnxInference(model_def, runtime="python", inplace=True)
-        validate_python_inference(oinfpy, {'X': X.astype(numpy.float32)})
+        validate_python_inference(oinfpy, {'X': X.astype(dtype)})
 
         # no inplace
         oinf = OnnxInference(model_def, inplace=False)
@@ -670,10 +658,10 @@ class TestOnnxrtPythonRuntime(ExtTestCase):  # pylint: disable=R0904
                          if op.ops_ is not None else 1)  # pylint: disable=W0212
             for op in oinf.sequence_)
         if debug:
-            got = oinf.run({'X': X.astype(numpy.float32)},
+            got = oinf.run({'X': X.astype(dtype)},
                            verbose=1, fLOG=print)
         else:
-            got = oinf.run({'X': X.astype(numpy.float32)})
+            got = oinf.run({'X': X.astype(dtype)})
         self.assertEqual(list(sorted(got)), ['Y'])
         self.common_expected_shapes_types(
             oinf, {'X': X.astype(numpy.float32)}, got, onnx_cl,
@@ -698,7 +686,7 @@ class TestOnnxrtPythonRuntime(ExtTestCase):  # pylint: disable=R0904
             onnx_cl('X', op_version=op_version),
             output_names=['Y'], op_version=op_version)
         model_def2 = onx2.to_onnx(
-            {'X': X.astype(numpy.float32)}, target_opset=op_version,
+            {'X': X.astype(dtype)}, target_opset=op_version,
             outputs=outputs)
         oinf = OnnxInference(model_def2, input_inplace=False, inplace=True)
         got = oinf.run({'X': X})
@@ -713,29 +701,25 @@ class TestOnnxrtPythonRuntime(ExtTestCase):  # pylint: disable=R0904
         self.assertEqualArray(expe, got['Y'], decimal=5)
 
         # shape
-        if onnx_cl == OnnxNot:
-            self.assertRaise(lambda: OnnxShapeInference(model_def),
-                             ShapeInferenceException)
+        shapeinf = OnnxShapeInference(model_def)
+        try:
+            shape_results = shapeinf.run()
+        except Exception as e:
+            raise AssertionError(
+                "Unable to infer shape %r in\n%r\n." % (
+                    e, model_def)) from e
+        shape = shape_results.get()
+        self.assertIn('X', shape)
+        self.assertIn('Y', shape)
+        if onnx_cl == OnnxDet:
+            self.assertEqual(shape['X'].dtype, shape['Y'].dtype)
+            self.assertEqual(shape['Y'].shape, [])
+        elif onnx_cl in (OnnxIsNaN, OnnxIsInf):
+            self.assertEqual(shape['X'].shape, shape['Y'].shape)
+            self.assertEqual(shape['Y'].dtype, numpy.bool_)
         else:
-            shapeinf = OnnxShapeInference(model_def)
-            try:
-                shape_results = shapeinf.run()
-            except Exception as e:
-                raise AssertionError(
-                    "Unable to infer shape %r in\n%r\n." % (
-                        e, model_def)) from e
-            shape = shape_results.get()
-            self.assertIn('X', shape)
-            self.assertIn('Y', shape)
-            if onnx_cl == OnnxDet:
-                self.assertEqual(shape['X'].dtype, shape['Y'].dtype)
-                self.assertEqual(shape['Y'].shape, [])
-            elif onnx_cl in (OnnxIsNaN, OnnxIsInf):
-                self.assertEqual(shape['X'].shape, shape['Y'].shape)
-                self.assertEqual(shape['Y'].dtype, numpy.bool_)
-            else:
-                self.assertEqual(shape['X'].shape, shape['Y'].shape)
-                self.assertEqual(shape['X'].dtype, shape['Y'].dtype)
+            self.assertEqual(shape['X'].shape, shape['Y'].shape)
+            self.assertEqual(shape['X'].dtype, shape['Y'].dtype)
 
         # sparse
         if do_sparse:
@@ -903,8 +887,8 @@ class TestOnnxrtPythonRuntime(ExtTestCase):  # pylint: disable=R0904
                 self._check_shape_inference(OnnxArgMax, model_def)
                 got = oinf.run({'X': X})
                 self.assertEqual(list(sorted(got)), ['Y'])
-                self.assertEqualArray(numpy.argmax(
-                    X, axis=0), got['Y'], decimal=5)
+                self.assertEqualArray(
+                    numpy.argmax(X, axis=0), got['Y'], decimal=5)
                 self.common_expected_shapes_types(
                     oinf, {'X': X}, got, clarg, model_def)
 
@@ -1813,14 +1797,8 @@ class TestOnnxrtPythonRuntime(ExtTestCase):  # pylint: disable=R0904
                 got = oinf.run({'X': x})
                 self.assertEqual(list(sorted(got)), ['Y'])
                 self.assertEqualArray(y_without_padding, got['Y'])
-                if rt == 'python':
-                    self.common_expected_shapes_types(
-                        oinf, {'X': x}, got, OnnxConv, model_def)
-                else:
-                    self.assertRaise(
-                        lambda: self.common_expected_shapes_types(
-                            oinf, {'X': x}, got, OnnxConv, model_def),
-                        RuntimeError)
+                self.common_expected_shapes_types(
+                    oinf, {'X': x}, got, OnnxConv, model_def)
 
         # test 3
         y = numpy.array([[[[12., 27., 24.],
@@ -3532,7 +3510,7 @@ class TestOnnxrtPythonRuntime(ExtTestCase):  # pylint: disable=R0904
 
     @wraplog()
     def test_onnxt_runtime_not(self):
-        self.common_test_onnxt_runtime_unary(OnnxNot, numpy.logical_not)
+        self.common_test_onnxt_runtime_unary(OnnxNot, numpy.logical_not, bool_type=True)
 
     @wraplog()
     def test_onnxt_runtime_one_hot(self):

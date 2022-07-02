@@ -5,7 +5,6 @@
 @brief Runtime operator.
 """
 import numpy
-from ..shape_object import ShapeObject
 from ._op import OpRun
 
 
@@ -52,7 +51,3 @@ class Adagrad(OpRun):
         x_new, h_new = _apply_adagrad(
             r, t, x, g, h, self.norm_coefficient, self.epsilon, self.decay_factor)
         return x_new, h_new
-
-    def _infer_shapes(self, i, *data):  # pylint: disable=W0221
-        n = (len(data) - 1) // 3
-        return (ShapeObject(None, i.dtype), ShapeObject(None, i.dtype)) * n

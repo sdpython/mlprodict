@@ -3,7 +3,6 @@
 @brief Runtime operator.
 """
 import numpy
-from ..shape_object import ShapeObject
 from ._op import OpRun
 
 
@@ -69,13 +68,3 @@ class GatherND(OpRun):
 
     def _run(self, data, indices, attributes=None, verbose=0, fLOG=None):  # pylint: disable=W0221
         return _gather_nd_impl(data, indices, self.batch_dims)  # pylint: disable=E1101
-
-    def _infer_shapes(self, x, target, weight=None):  # pylint: disable=W0221
-        return (ShapeObject(None, dtype=x.dtype), )
-
-    def _infer_types(self, x, target, weight=None):  # pylint: disable=W0221
-        return (x.dtype, )
-
-    def _infer_sizes(self, *args):  # pylint: disable=W0221
-        res = self.run(*args)
-        return (dict(temp=0), ) + res

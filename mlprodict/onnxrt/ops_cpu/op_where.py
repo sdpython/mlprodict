@@ -24,9 +24,3 @@ class Where(OpRun):
                 "x and y should share the same shape {} != {}".format(
                     x.shape, y.shape))
         return (numpy.where(condition, x, y).astype(x.dtype), )
-
-    def _infer_shapes(self, condition, x, y):  # pylint: disable=W0221
-        return (x, )
-
-    def _infer_types(self, condition, x, y):  # pylint: disable=W0221
-        return (x, )

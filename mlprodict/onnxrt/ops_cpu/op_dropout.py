@@ -38,30 +38,6 @@ class DropoutBase(OpRun):
         return _dropout(X, ratio, seed=seed, return_mask=self.nb_outputs == 2,
                         training_mode=training_mode)
 
-    def _infer_shapes(self, *inputs):  # pylint: disable=W0221
-        X = inputs[0]
-        if self.nb_outputs == 1:
-            return (X.copy(), )
-        if self.nb_outputs == 2:
-            return (X.copy(), X.copy())
-        raise RuntimeError(  # pragma: no cover
-            "Unexpected numbers of output {} > 2.".format(self.nb_outputs))
-
-    def _infer_types(self, *inputs):  # pylint: disable=W0221
-        X = inputs[0]
-        if self.nb_outputs == 1:
-            return (X, )
-        if self.nb_outputs == 2:
-            return (X, X)
-        raise RuntimeError(  # pragma: no cover
-            "Unexpected numbers of output {} > 2.".format(self.nb_outputs))
-
-    def _infer_sizes(self, *inputs):  # pylint: disable=W0221
-        res = self.run(*inputs)
-        x = inputs[0]
-        return (dict(temp=x.size * (
-            x.dtype.itemsize + numpy.bool_(True).itemsize)), ) + res
-
 
 class Dropout_7(DropoutBase):
 

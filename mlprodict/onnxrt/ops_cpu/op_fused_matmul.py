@@ -50,12 +50,6 @@ class FusedMatMul(OpRun):
     def _run(self, a, b, attributes=None, verbose=0, fLOG=None):  # pylint: disable=W0221
         return (self._meth(a, b), )
 
-    def _infer_shapes(self, a, b):  # pylint: disable=W0221
-        return (a, )
-
-    def _infer_types(self, a, b):  # pylint: disable=W0221
-        return (a, )
-
 
 class FusedMatMulSchema(OperatorSchema):
     """
