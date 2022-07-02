@@ -1,6 +1,6 @@
 """
 @file
-@brief Errors and exceptions.
+@brief Errors and exceptions for @see cl OnnxShapeInference.
 """
 
 
