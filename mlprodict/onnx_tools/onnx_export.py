@@ -143,6 +143,20 @@ def _python_make_node_name(domain, version, name, node=False):
     return name
 
 
+def _python_make_node(node, version):
+    ops = {'Add': '+', 'Sub': '-', 'Mul': '*', 'MatMul': '@',
+           'Div': '/', 'Pow': '**', 'Mod': '%',
+           'And': 'and', 'Or': 'Or', 'Greater': '>', 'Equal': '==',
+           'Lesser': '<', 'GreaterOrEqual': '>=', 'LessOrEqual': '<=',
+           'Not': 'not'}
+    if node['op_type'] in ops:
+        return (" %s " % ops[node['op_type']]).join(node['inputs'])
+    name = _python_make_node_name(
+        node['domain'], version, node['op_type'], node=True)
+    text = [name, '(', ', '.join(node['inputs']), node['attributes_str'], ')']
+    return "".join(text)
+
+
 def export_template(model_onnx, templates, opset=None,  # pylint: disable=R0914
                     verbose=True, name=None,
                     rename=False, use_onnx_tensor=False,
@@ -199,11 +213,20 @@ def export_template(model_onnx, templates, opset=None,  # pylint: disable=R0914
             return new_name
         return name
 
+    # unique_function_domain_version
+    unique_function_domain_version = set()
+    if hasattr(model_onnx, 'functions'):
+        for f in model_onnx.functions:
+            unique_function_domain_version.add((f.domain, 1))
+    unique_function_domain_version = list(sorted(unique_function_domain_version))
+
     # containers
     context = {'main_model': model_onnx,
                'printable_graph': printable_graph,
                'xop_make_node_name': _xop_make_node_name,
-               'python_make_node_name': _python_make_node_name}
+               'python_make_node': _python_make_node,
+               'python_make_node_name': _python_make_node_name,
+               'unique_function_domain_version': unique_function_domain_version}
     used = {}
 
     # opset
@@ -688,7 +711,7 @@ def export2xop(model_onnx, opset=None, verbose=True, name=None, rename=False,
 
 
 def export2python(model_onnx, opset=None, verbose=True, name=None, rename=False,
-                  autopep_options=None):
+                  autopep_options=None, function_name='main'):
     """
     Exports an ONNX model to the *python* syntax.
 
@@ -699,6 +722,7 @@ def export2python(model_onnx, opset=None, verbose=True, name=None, rename=False,
     :param name: to overwrite onnx name
     :param rename: rename the names to get shorter names
     :param autopep_options: :epkg:`autopep8` options
+    :param function_name: main function name
     :return: python code
 
     The following example shows what a python code creating a graph
@@ -733,5 +757,5 @@ def export2python(model_onnx, opset=None, verbose=True, name=None, rename=False,
                            rename=rename, use_onnx_tensor=True,
                            autopep_options=autopep_options,
                            raise_subgraph=False,
-                           clean_code=False)
+                           clean_code=True, function_name=function_name)
     return code

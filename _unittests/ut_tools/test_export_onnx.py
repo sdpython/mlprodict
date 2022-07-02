@@ -787,7 +787,7 @@ class TestExportOnnx(ExtTestCase):
         case2()
         case3()
 
-    def verify(self, content):
+    def verify(self, content, more_context=None):
         try:
             left, __ = verify_code(content, exc=False)
         except SyntaxError as e:
@@ -816,6 +816,9 @@ class TestExportOnnx(ExtTestCase):
                'print': print, 'sorted': sorted,
                'make_opsetid': make_opsetid,
                'collections': collections, 'inspect': inspect}
+        if more_context is not None:
+            loc.update(more_context)
+            glo.update(more_context)
         out, err = StringIO(), StringIO()
         if len(left) >= 10:
             raise AssertionError(
@@ -1557,35 +1560,33 @@ class TestExportOnnx(ExtTestCase):
                      output_names=['Y'])
         onx = op.to_onnx(numpy.float32, numpy.float32)
 
-        for rt in ['onnxruntime1', 'python']:
+        class LocalDomain:
+            def __init__(self, domain, version):
+                self.domain = domain
+                self.version = version
+
+        mlprodict1 = LocalDomain('mlprodict', 1)
+        opset14 = LocalDomain('', 14)
+        opset14.Abs = numpy.abs
+        opset14.Constant = lambda value: numpy_helper.to_array(value)
+        x = numpy.random.randn(3, 4).astype(numpy.float32)
+
+        for rt in ['python']:
             with self.subTest(rt=rt):
                 oinf0 = OnnxInference(onx, runtime=rt)
-                x = numpy.random.randn(3, 1, 4).astype(numpy.float32)
                 new_onnx = export2python(onx, name="TEST")
-                print(new_onnx)
-                _, loc = self.verify(new_onnx)
-                model = loc['onnx_model']
-
-                try:
-                    oinf = OnnxInference(model, runtime=rt)
-                except RuntimeError as e:
-                    raise AssertionError(
-                        "Issue with\n-----\n%s\n--CODE--\n%s\n--GOT--\n%s" % (
-                            onnx_simple_text_plot(onx), new_onnx,
-                            onnx_simple_text_plot(model))) from e
-                y = oinf0.run({'X': x})
-                y1 = oinf.run({'X': x})
-
-                new_onnx = export2python(onx, name="TEST")
-                _, loc = self.verify_xop(new_onnx, onx)
-                model = loc['onnx_model']
-                oinf = OnnxInference(model, runtime=rt)
-                y2 = oinf.run({'X': x})
-                self.assertEqual(y['Y'], y1['Y'])
-                self.assertEqual(y['Y'], y2['Y'])
-
+                self.assertIn('def main', new_onnx)
+                _, loc = self.verify(
+                    new_onnx, more_context={
+                        'mlprodict1': mlprodict1,
+                        'opset14': opset14})
+                mlprodict1.AddAbs = loc['AddAbs']
+                fct = loc['main']
+                y = fct(x)
+                expected = (numpy.abs(x) + 1) / 2
+                self.assertEqualArray(expected, y)
 
 
 if __name__ == "__main__":
-    TestExportOnnx().test_export_function_python()
+    # TestExportOnnx().test_export_function_python()
     unittest.main(verbosity=2)
