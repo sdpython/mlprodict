@@ -5,7 +5,6 @@
 @brief Runtime operator.
 """
 import numpy
-from ..shape_object import ShapeObject
 from ._op import OpRun
 
 
@@ -33,6 +32,3 @@ class ScatterND(OpRun):
     def _run(self, data, indices, updates, attributes=None, verbose=0, fLOG=None):  # pylint: disable=W0221
         y = _scatter_nd_impl(data, indices, updates, reduction=self.reduction)
         return (y, )
-
-    def _infer_shapes(self, data, indices, updates):  # pylint: disable=W0221
-        return (ShapeObject(None, dtype=data.dtype), )

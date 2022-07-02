@@ -20,15 +20,17 @@ from onnx.helper import make_model
 from ..tools.code_helper import make_callable, print_code
 from ..onnx_tools.model_checker import check_onnx
 from ..onnx_tools.onnx2py_helper import (
-    _var_as_dict, numpy_min, numpy_max, guess_numpy_type_from_string)
+    _var_as_dict, numpy_min, numpy_max)
 from ..onnx_tools.onnx_manipulations import (
     select_model_inputs_outputs, enumerate_model_node_outputs,
     overwrite_opset, insert_results_into_onnx)
 from ..onnx_tools.optim import onnx_remove_node_unused
 from .onnx_inference_node import OnnxInferenceNode
 from .onnx_inference_exports import OnnxInferenceExport
-from .shape_object import ShapeObject
-from .type_object import SequenceType
+from .onnx_shape_inference import OnnxShapeInference
+from .ops_shape.shape_excs import (
+    ShapeInferenceMissing, NotImplementedShapeInferenceError,
+    ShapeInferenceException, ShapeInferenceDimensionError)
 
 
 class OnnxInference:
@@ -1430,64 +1432,25 @@ class OnnxInference:
         relying on the runtime.
         The values are stored in every node.
         """
-        if not hasattr(self, 'sequence_') or not hasattr(self, 'inputs_'):
-            raise RuntimeError(  # pragma: no cover
-                "This method only works if the runtime is 'python' not "
-                "'{}'.".format(self.runtime))
-        values = OrderedDict()
-        impossible = False
-        for k, v in self.inputs_.items():
-            # The function assumes the first dimension is unknown
-            # and is the batch size.
-            try:
-                values[k] = ShapeObject(v, use_n1=True, name=k)
-            except TypeError as e:  # pragma: no cover
-                if v['type']['elem'] == 'unk':
-                    impossible = True
-                    values[k] = None
-                    continue
-                raise TypeError(
-                    "Unable to guess shape for %r (shape=%r)." % (
-                        k, v)) from e
-
-        for k, v in self.statics_.items():
-            # static inputs should be known.
-            if k not in values:
-                try:
-                    values[k] = ShapeObject(v)
-                except TypeError:
-                    # default value is wrong
-                    impossible = True
-                    values[k] = None
-            if values[k] is None:
-                impossible = True
-
-        for k, v in self.inits_.items():
-            values[k] = ShapeObject(v['value'], name=k)
-
-        last = None
-        for i, node in enumerate(self.sequence_):
-            try:
-                s = node._set_shape_inference_runtime(values)
-                last = s
-            except (IndexError, TypeError, KeyError,
-                    AttributeError) as e:  # pragma: no cover
-                rows = []
-                if last is not None:
-                    for k, v in last.items():
-                        rows.append("{}: {}".format(k, v))
-                for k in range(i + 1):
-                    rows.append("{} --> {}".format(k, self.sequence_[k]))
-                if not impossible:
-                    for v in values.values():
-                        if v is None:
-                            impossible = True
-                            break
-                if not impossible:
-                    raise RuntimeError(
-                        "Unable to infer shape of node type '{}' "
-                        "[impossible={}] {}\n{}".format(
-                            node.onnx_node.op_type, impossible, i, '\n'.join(rows))) from e
+        try:
+            rt = OnnxShapeInference(self.obj)
+        except (ShapeInferenceMissing, NotImplementedShapeInferenceError,
+                ShapeInferenceDimensionError, NotImplementedError):
+            # an operator is missing, shape cannot be computed.
+            return {name: None for name in self.output_names}
+        except KeyError:
+            # subgraphs or functions are not yet handled.
+            # it should be removed later.
+            return {name: None for name in self.output_names}
+        except NameError:
+            # loop subgraphs or function are not yet handled.
+            # they may overwrite results.
+            return {name: None for name in self.output_names}
+        except (ShapeInferenceException, RuntimeError, IndexError) as e:
+            raise ShapeInferenceException(  # pragma: no cover
+                "Unable to run ShapeInference for\n%s" % str(self.obj)) from e
+        out = rt.run()
+        values = out.get()
         return values
 
     def infer_shapes(self):
@@ -1497,110 +1460,6 @@ class OnnxInference:
         :return: dictionary of shapes
         """
         return self._set_shape_inference_runtime()
-
-    def _set_type_inference_runtime(self, inputs=None):
-        """
-        Set types based on type inference
-        relying on the runtime.
-        The values are stored in every node.
-        """
-        if not hasattr(self, 'sequence_') or not hasattr(self, 'inputs_'):
-            raise RuntimeError(  # pragma: no cover
-                "This method only works if the runtime is 'python' not "
-                "'{}'.".format(self.runtime))
-
-        values = OrderedDict()
-        for k, v in self.statics_.items():
-            values[k] = None
-
-        if inputs is None:
-            for k, v in self.inputs_.items():
-                # The function assumes the first dimension is unknown
-                # and is the batch size.
-                if isinstance(v['type']['elem'], dict):
-                    # sequence
-                    values[k] = SequenceType()
-                else:
-                    values[k] = guess_numpy_type_from_string(v['type']['elem'])
-        else:
-            for name, dtype in zip(self.input_names, inputs):
-                values[name] = dtype
-
-        for k, v in self.inits_.items():
-            values[k] = v['value'].dtype
-
-        last = None
-        for i, node in enumerate(self.sequence_):
-            try:
-                s = node._set_type_inference_runtime(values)
-                last = s
-            except IndexError as e:  # pragma: no cover
-                rows = []
-                if last is not None:
-                    for k, v in last.items():
-                        rows.append("{}: {}".format(k, v))
-                for k in range(i + 1):
-                    rows.append("{} --> {}".format(k, self.sequence_[k]))
-                raise RuntimeError("Unable to infer type of node {}\n{}".format(
-                    i, '\n'.join(rows))) from e
-        return values
-
-    def infer_types(self, inputs=None):
-        """
-        Computes expected shapes.
-
-        :param inputs: needed when this class host a function and not a graph
-        :return: dictionary of types
-        """
-        return self._set_type_inference_runtime(inputs)
-
-    def _set_size_inference_runtime(self, inputs, context=None):
-        """
-        Set sizes allocated during inference
-        relying on the runtime.
-        The values are stored in every node.
-        """
-        if not hasattr(self, 'sequence_') or not hasattr(self, 'inputs_'):
-            raise RuntimeError(  # pragma: no cover
-                "This method only works if the runtime is 'python' not "
-                "'{}'.".format(self.runtime))
-        values = OrderedDict()
-        for k, v in self.statics_.items():
-            if context is None:
-                raise RuntimeError(  # pragma: no cover
-                    "static variable but context is None.")
-            values[k] = context[k]
-        for k, v in self.inits_.items():
-            values[k] = v['value']
-        for k, v in self.inputs_.items():
-            if k in inputs:
-                values[k] = inputs[k]
-
-        last = None
-        for i, node in enumerate(self.sequence_):
-            try:
-                s = node._set_size_inference_runtime(values)
-                last = s
-            except IndexError as e:  # pragma: no cover
-                rows = []
-                if last is not None:
-                    for k, v in last.items():
-                        rows.append("{}: {}".format(k, v))
-                for k in range(i + 1):
-                    rows.append("{} --> {}".format(k, self.sequence_[k]))
-                raise RuntimeError("Unable to infer size of node {}\n{}".format(
-                    i, '\n'.join(rows))) from e
-        return values
-
-    def infer_sizes(self, inputs, context=None):
-        """
-        Computes expected sizes.
-
-        :param inputs: inputs as a dictionary
-        :return: dictionary of dictionary of sizes
-        """
-        res = self._set_size_inference_runtime(inputs, context=context)
-        return {k: v for k, v in res.items() if k.startswith('#')}
 
     def _guess_inplace(self, input_inplace=False):
         """

@@ -55,16 +55,6 @@ class CumSum(OpRun):
             res = res[rev_indices]
         return (res, )
 
-    def _infer_shapes(self, x, *axis):  # pylint: disable=W0221
-        return (x, )
-
-    def _infer_types(self, x, *axis):  # pylint: disable=W0221
-        return (x, )
-
-    def _infer_sizes(self, *args, **kwargs):
-        res = self.run(*args, **kwargs)
-        return (dict(temp=0), ) + res
-
     def to_python(self, inputs):
         lines = ['if exclusive or reverse:',
                  '    raise NotImplementedError("reverse=1 or exclusive=1 not implemente")',

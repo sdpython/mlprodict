@@ -4,7 +4,6 @@
 @file
 @brief Runtime operator.
 """
-from ..shape_object import ShapeObject
 from ._op import OpRun
 
 
@@ -49,7 +48,3 @@ class Momentum(OpRun):
         x_new, v_new = _apply_momentum(
             r, t, x, g, v, self.norm_coefficient, self.alpha, self.beta)
         return x_new, v_new
-
-    def _infer_shapes(self, i, *data):  # pylint: disable=W0221
-        n = (len(data) - 1) // 3
-        return (ShapeObject(None, i.dtype), ShapeObject(None, i.dtype)) * n

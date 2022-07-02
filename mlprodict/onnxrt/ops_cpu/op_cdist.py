@@ -7,7 +7,6 @@
 from scipy.spatial.distance import cdist
 from ._op import OpRunBinaryNum
 from ._new_ops import OperatorSchema
-from ..shape_object import ShapeObject
 
 
 class CDist(OpRunBinaryNum):
@@ -34,13 +33,6 @@ class CDist(OpRunBinaryNum):
             return CDistSchema()
         raise RuntimeError(  # pragma: no cover
             "Unable to find a schema for operator '{}'.".format(op_name))
-
-    def _infer_shapes(self, a, b):  # pylint: disable=W0221,W0237
-        """
-        Returns the same for the labels and the probabilities.
-        """
-        return (ShapeObject((a[0], b[0]), dtype=a.dtype,
-                            name=self.__class__.__name__), )
 
     def to_python(self, inputs):
         metric = self.metric.decode('ascii')

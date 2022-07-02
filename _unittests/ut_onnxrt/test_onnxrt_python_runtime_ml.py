@@ -31,19 +31,6 @@ class TestOnnxrtPythonRuntimeMl(ExtTestCase):
 
     def common_expected_shapes_types(self, oinf, got, model_def,
                                      raise_shape=False):
-        expected_types = oinf.infer_types()
-        self.assertEqual(set(got) & set(expected_types), set(got))
-        for k, v in got.items():
-            if expected_types[k] in (str, numpy.str_):
-                # Type mismatch: dtype('<U32') != <class 'str'>
-                continue
-            if v.dtype != expected_types[k]:
-                raise AssertionError(
-                    "Type mismatch: %r != %r\nexpected_types=%r\ngot=%r"
-                    "\n----\n%r" % (
-                        v.dtype, expected_types[k], expected_types, got,
-                        model_def))
-
         try:
             expected_shapes = oinf.infer_shapes()
             self.assertEqual(set(got) & set(expected_shapes), set(got))

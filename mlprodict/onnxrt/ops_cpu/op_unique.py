@@ -6,7 +6,6 @@
 """
 import numpy
 from ._op import OpRun
-from ..shape_object import ShapeObject
 
 
 def _specify_int64(indices, inverse_indices, counts):
@@ -54,18 +53,3 @@ class Unique(OpRun):
         if len(self.onnx_node.output) == 3:
             return (y, indices, inverse_indices)
         return (y, indices, inverse_indices, counts)
-
-    def _infer_shapes(self, data):  # pylint: disable=W0221
-        if len(self.onnx_node.output) == 1:
-            return (ShapeObject(None, data.dtype), )
-        return ((ShapeObject(None, data.dtype), ) +
-                (ShapeObject(None, numpy.int64), ) * (len(self.onnx_node.output) - 1))
-
-    def _infer_types(self, data):  # pylint: disable=W0221
-        if len(self.onnx_node.output) == 1:
-            return (data, )
-        return (data, ) + (numpy.int64, ) * (len(self.onnx_node.output) - 1)
-
-    def _infer_sizes(self, *args):  # pylint: disable=W0221
-        res = self.run(*args)
-        return (dict(temp=sum(a.size * a.dtype.itemsize for a in args)), ) + res

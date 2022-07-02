@@ -5,7 +5,6 @@
 @brief Runtime operator.
 """
 import numpy
-from ..shape_object import ShapeObject
 from ._op import OpRun
 
 
@@ -20,13 +19,3 @@ class Range(OpRun):
 
     def _run(self, starts, ends, steps, attributes=None, verbose=0, fLOG=None):  # pylint: disable=W0221
         return (numpy.arange(starts, ends, steps).astype(starts.dtype), )
-
-    def _infer_shapes(self, starts, ends, steps):  # pylint: disable=W0221
-        return (ShapeObject(None, starts.dtype), )
-
-    def _infer_types(self, starts, ends, steps):  # pylint: disable=W0221
-        return (starts, )
-
-    def _infer_sizes(self, *args, **kwargs):  # pylint: disable=W0221
-        res = self.run(*args, **kwargs)
-        return (dict(temp=0), ) + res

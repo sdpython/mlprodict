@@ -113,6 +113,3 @@ class StringNormalizer(OpRunUnary):
             s = ''.join(
                 [c for c in normalized if not unicodedata.combining(c)])
             return s
-
-    def _infer_shapes(self, x):  # pylint: disable=E0202,W0221
-        return (x, )

@@ -6,7 +6,6 @@
 """
 import numpy
 from ._op import OpRun
-from ..shape_object import ShapeObject
 
 
 class ConcatFromSequence(OpRun):
@@ -28,15 +27,3 @@ class ConcatFromSequence(OpRun):
         else:
             res = numpy.concatenate(seq, axis=self.axis)
         return (res, )
-
-    def _infer_shapes(self, seq):  # pylint: disable=W0221
-        return (ShapeObject(None, seq.dtype), )
-
-    def _infer_types(self, seq):  # pylint: disable=W0221
-        return (seq, )
-
-    def _infer_sizes(self, seq):  # pylint: disable=W0221
-        res = self.run(seq)
-        if self.new_axis == 1:
-            return (dict(temp=sum(o.size for o in seq)), ) + res
-        return (dict(temp=0), ) + res

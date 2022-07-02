@@ -5,7 +5,6 @@
 @brief Runtime operator.
 """
 import numpy
-from ..shape_object import ShapeObject
 from ._op import OpRun
 from ._new_ops import OperatorSchema
 
@@ -70,13 +69,6 @@ class BroadcastGradientArgs(OpRun):
 
         return (numpy.array(a_axes, dtype=numpy.int64),
                 numpy.array(b_axes, dtype=numpy.int64))
-
-    def _infer_shapes(self, a, b):  # pylint: disable=W0221,W0237
-        return (ShapeObject(None, dtype=numpy.int64),
-                ShapeObject(None, dtype=numpy.int64))
-
-    def _infer_types(self, a, b):  # pylint: disable=W0221,W0237
-        return (a.dtype, b.dtype)
 
 
 class BroadcastGradientArgsSchema(OperatorSchema):

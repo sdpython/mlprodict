@@ -6,7 +6,6 @@
 """
 import numpy
 from ._op import OpRun
-from ..shape_object import ShapeObject
 
 
 class Scan(OpRun):
@@ -107,24 +106,3 @@ class Scan(OpRun):
             conc = numpy.vstack(res)
             states.append(conc)
         return tuple(states)
-
-    def _infer_shapes(self, *args):  # pylint: disable=W0221
-        (num_loop_state_vars, num_scan_outputs, output_directions,  # pylint: disable=W0612
-         max_dir_out, output_axes, max_axe_out, state_names_in,  # pylint: disable=W0612
-         state_names_out, scan_names_in, scan_names_out,  # pylint: disable=W0612
-         scan_values, states) = self._common_run_shape(*args)  # pylint: disable=W0612
-
-        shapes = list(states)
-
-        shape = args[num_loop_state_vars].shape
-        if shape is None:
-            for sout in scan_values:
-                shapes.append(ShapeObject(None, dtype=sout.dtype))
-        else:
-            max_iter = shape[self.input_axes_[0]]
-            for sout in scan_values:
-                sc = sout.copy()
-                sc[0] = max_iter
-                shapes.append(sc)
-
-        return tuple(shapes)

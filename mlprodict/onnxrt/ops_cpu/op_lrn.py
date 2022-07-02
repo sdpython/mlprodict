@@ -35,13 +35,3 @@ class LRN(OpRun):
             square_sum[n, c, h, w] = numpy.sum(x[n, begin:end, h, w] ** 2)
         y = x / ((self.bias + (self.alpha / self.size) * square_sum) ** self.beta)
         return (y.astype(x.dtype), )
-
-    def _infer_shapes(self, x):  # pylint: disable=W0221
-        return (x, )
-
-    def _infer_types(self, x):  # pylint: disable=W0221
-        return (x.dtype, )
-
-    def _infer_sizes(self, *args):  # pylint: disable=W0221
-        res = self.run(*args)
-        return (dict(temp=0), ) + res

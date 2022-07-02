@@ -28,9 +28,3 @@ class FeatureVectorizer(OpRun):
         args = [self._preprocess(a) for a in args]
         res = numpy.concatenate(args, self.axis)
         return (res, )
-
-    def _infer_shapes(self, *args):  # pylint: disable=W0221
-        return (args[0].concat_columns(self.axis, *(args[1:])), )
-
-    def _infer_types(self, *args):  # pylint: disable=W0221
-        return (args[0], )

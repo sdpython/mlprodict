@@ -135,9 +135,10 @@ class OnnxInferenceExport:
         if add_rt_shapes:
             if not hasattr(self.oinf, 'shapes_'):
                 raise RuntimeError(  # pragma: no cover
-                    "No information on shapes, check the runtime '{}'.".format(self.oinf.runtime))
+                    "No information on shapes, check the runtime '{}'."
+                    "".format(self.oinf.runtime))
             for name, shape in self.oinf.shapes_.items():
-                va = shape.evaluate().to_string()
+                va = str(shape.shape)
                 shapes[name] = va
                 if name in self.oinf.inplaces_:
                     shapes[name] += "\\ninplace"
@@ -150,8 +151,8 @@ class OnnxInferenceExport:
         for obj in graph.input:
             if isinstance(obj, str):
                 exp.append(
-                    '  {2}{0} [shape=box color=red label="{0}" fontsize={1}];'.format(
-                        obj, fontsize, prefix))
+                    '  {2}{0} [shape=box color=red label="{0}" fontsize={1}];'
+                    ''.format(obj, fontsize, prefix))
                 inter_vars[obj] = obj
             else:
                 dobj = _var_as_dict(obj)
@@ -159,7 +160,8 @@ class OnnxInferenceExport:
                 if sh:
                     sh = "\\nshape={}".format(sh)
                 exp.append(
-                    '  {3}{0} [shape=box color=red label="{0}\\n{1}{4}" fontsize={2}];'.format(
+                    '  {3}{0} [shape=box color=red label="{0}\\n{1}{4}" fontsize={2}];'
+                    ''.format(
                         dot_name(dobj['name']), _type_to_string(dobj['type']),
                         fontsize, prefix, dot_label(sh)))
                 inter_vars[obj.name] = obj
@@ -178,7 +180,8 @@ class OnnxInferenceExport:
                 if sh:
                     sh = "\\nshape={}".format(sh)
                 exp.append(
-                    '  {3}{0} [shape=box color=green label="{0}\\n{1}{4}" fontsize={2}];'.format(
+                    '  {3}{0} [shape=box color=green label="{0}\\n{1}{4}" fontsize={2}];'
+                    ''.format(
                         dot_name(dobj['name']), _type_to_string(dobj['type']),
                         fontsize, prefix, dot_label(sh)))
                 inter_vars[obj.name] = obj
@@ -202,7 +205,8 @@ class OnnxInferenceExport:
                 st = st.replace('\n', '\\n')
                 kind = ""
                 exp.append(
-                    '  {6}{0} [shape=box label="{0}\\n{4}{1}({2})\\n{3}" fontsize={5}];'.format(
+                    '  {6}{0} [shape=box label="{0}\\n{4}{1}({2})\\n{3}" fontsize={5}];'
+                    ''.format(
                         dot_name(dobj['name']), dobj['value'].dtype,
                         dobj['value'].shape, dot_label(st), kind, fontsize, prefix))
                 inter_vars[obj.name] = obj
@@ -229,7 +233,8 @@ class OnnxInferenceExport:
                         sh = "\\nshape={}".format(sh)
                     exp.append(
                         '  {2}{0} [shape=box label="{0}{3}" fontsize={1}];'.format(
-                            dot_name(out), fontsize, dot_name(prefix), dot_label(sh)))
+                            dot_name(out), fontsize, dot_name(prefix),
+                            dot_label(sh)))
                 static_inputs.append(out)
 
             dobj = _var_as_dict(node)
@@ -268,7 +273,8 @@ class OnnxInferenceExport:
                     # creates the subgraph
                     body = dobj['atts'][field]['value']
                     oinf = self.oinf.__class__(
-                        body, runtime=self.oinf.runtime, skip_run=self.oinf.skip_run,
+                        body, runtime=self.oinf.runtime,
+                        skip_run=self.oinf.skip_run,
                         static_inputs=static_inputs)
                     subprefix = prefix + "B_"
                     subdot = oinf.to_dot(recursive=recursive, prefix=subprefix,

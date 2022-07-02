@@ -5,7 +5,6 @@
 @brief Runtime operator.
 """
 import numpy
-from ..shape_object import ShapeObject
 from ._op import OpRun
 from ._new_ops import OperatorSchema
 
@@ -31,24 +30,6 @@ class ComplexAbs(OpRun):
             raise TypeError(  # pragma: no cover
                 "Unexpected input type for x: %r." % x.dtype)
         return (y, )
-
-    def _infer_shapes(self, x):  # pylint: disable=W0221,W0237
-        if x.dtype == numpy.complex64:
-            return (ShapeObject(x.shape, numpy.float32), )
-        elif x.dtype == numpy.complex128:
-            return (ShapeObject(x.shape, numpy.float64), )
-        else:
-            raise TypeError(  # pragma: no cover
-                "Unexpected input type for x: %r." % x.dtype)
-
-    def _infer_types(self, x):  # pylint: disable=W0221,W0237
-        if x == numpy.complex64:
-            return (numpy.float32, )
-        elif x == numpy.complex128:
-            return (numpy.float64, )
-        else:
-            raise TypeError(  # pragma: no cover
-                "Unexpected input type for x: %r." % x)
 
     def to_python(self, inputs):
         return self._to_python_numpy(inputs, 'absolute')

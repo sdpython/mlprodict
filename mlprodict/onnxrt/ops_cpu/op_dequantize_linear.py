@@ -6,7 +6,6 @@
 """
 import numpy
 from ._op import OpRun
-from ..shape_object import ShapeObject
 
 
 class DequantizeLinear(OpRun):
@@ -48,13 +47,3 @@ class DequantizeLinear(OpRun):
         else:
             y = args[0].astype(numpy.float32) * x_scale
         return (y.astype(numpy.float32), )
-
-    def _infer_shapes(self, *args):  # pylint: disable=W0221
-        return (ShapeObject(args[0].shape, dtype=numpy.float32), )
-
-    def _infer_types(self, *args):  # pylint: disable=W0221
-        return (numpy.float32, )
-
-    def _infer_sizes(self, *args):  # pylint: disable=W0221
-        res = self.run(*args)
-        return (dict(temp=0), ) + res

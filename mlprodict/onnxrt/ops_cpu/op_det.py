@@ -5,7 +5,6 @@
 @brief Runtime operator.
 """
 import numpy
-from ..shape_object import ShapeObject
 from ._op import OpRun
 
 
@@ -20,17 +19,6 @@ class Det(OpRun):
         if not isinstance(res, numpy.ndarray):
             res = numpy.array([res])
         return (res, )
-
-    def _infer_shapes(self, x):  # pylint: disable=W0221
-        return (ShapeObject(None, dtype=x.dtype,
-                            name=self.__class__.__name__), )
-
-    def _infer_types(self, x):  # pylint: disable=W0221
-        return (x, )
-
-    def _infer_sizes(self, *args, **kwargs):
-        res = self.run(*args, **kwargs)
-        return (dict(temp=0), ) + res
 
     def to_python(self, inputs):
         return ('from numpy.linalg import det as npy_det',
