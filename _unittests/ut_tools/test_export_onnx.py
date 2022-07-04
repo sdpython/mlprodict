@@ -7,6 +7,7 @@ import unittest
 import collections
 import inspect
 import traceback
+from typing import Any
 from io import StringIO
 from contextlib import redirect_stdout, redirect_stderr
 import numpy
@@ -41,12 +42,13 @@ from mlprodict.onnx_tools.exports.numpy_helper import (
 from mlprodict.onnx_conv import to_onnx
 from mlprodict.testing.einsum import decompose_einsum_equation
 import mlprodict.npy.numpy_onnx_impl as npnx
-from mlprodict.npy import onnxnumpy_np
+from mlprodict.npy import onnxnumpy_np, onnxnumpy
 from mlprodict.npy.onnx_numpy_annotation import NDArrayType
-from mlprodict.onnx_tools.optim import onnx_remove_node_unused
-from mlprodict.plotting.text_plot import onnx_simple_text_plot
 from mlprodict.npy.xop_variable import Variable as XopVariable
 from mlprodict.npy.xop import loadop, OnnxOperatorFunction
+from mlprodict.npy import NDArray
+from mlprodict.onnx_tools.optim import onnx_remove_node_unused
+from mlprodict.plotting.text_plot import onnx_simple_text_plot
 
 
 class ConvertFFT2DOp:
@@ -1591,7 +1593,47 @@ class TestExportOnnx(ExtTestCase):
                 self.assertEqualArray(expected, y)
                 self.assertEqualArray(expected_onx, y)
 
+    @staticmethod
+    def fct_onnx_if(x: NDArray[Any, numpy.float32],
+                    ) -> NDArray[Any, numpy.float32]:
+        "onnx numpy abs"
+        xif = npnx.onnx_if(
+            npnx.sum(x) > numpy.float32(0),
+            then_branch=npnx.if_then_else(
+                numpy.array([-1], dtype=numpy.float32)),
+            else_branch=numpy.array([1], dtype=numpy.float32))
+        return xif + numpy.float32(-7)
+
+    def test_export_if(self):
+        fct_if = onnxnumpy()(TestExportOnnx.fct_onnx_if)
+        onx = fct_if.compiled.onnx_
+        new_onnx = export2python(onx, name="TEST")
+        self.assertIn('def main', new_onnx)
+        self.assertIn(' > ', new_onnx)
+
+        class LocalDomain:
+            def __init__(self, domain, version):
+                self.domain = domain
+                self.version = version
+
+        mlprodict1 = LocalDomain('mlprodict', 1)
+        opset15 = LocalDomain('', 15)
+        opset15.ReduceSum = numpy.sum
+        opset15.Identity = lambda i: i
+        opset15.Constant = lambda value: numpy_helper.to_array(value)
+
+        _, loc = self.verify(
+            new_onnx, more_context={
+                'mlprodict1': mlprodict1,
+                'opset15': opset15})
+
+        fct = loc['main']
+        x = numpy.random.randn(3, 4).astype(numpy.float32)
+        y = fct(x)
+        expected = fct_if(x)
+        self.assertEqualArray(expected, y)
+
 
 if __name__ == "__main__":
-    # TestExportOnnx().test_export_function_python()
+    # TestExportOnnx().test_export_if()
     unittest.main(verbosity=2)

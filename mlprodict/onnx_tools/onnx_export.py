@@ -5,10 +5,10 @@ with a python script. It relies on :epkg:`jinja2` and :epkg:`autopep8`.
 
 .. versionadded:: 0.7
 """
-from textwrap import indent
+import textwrap
 import numpy
 import onnx
-from onnx.helper import printable_graph
+from onnx.helper import printable_graph, make_node
 from onnx import numpy_helper, ModelProto
 from onnx.mapping import TENSOR_TYPE_TO_NP_TYPE
 from .onnx2py_helper import (
@@ -50,11 +50,13 @@ def select_attribute(ens, att, sort=False, unique=False, skip=None):
 
 def _nodes(graph, rename_name, used, output_names, use_onnx_tensor,
            templates, verbose, opset, rename, autopep_options, name,
-           subgraphs, unique_operators, raise_subgraph):
-    from ..npy.xop import loadop
+           subgraphs, unique_operators):
+    if unique_operators is not None:
+        from ..npy.xop import loadop
     nodes = []
     for node in graph.node:
-        if node.domain in ('', 'ai.onnx.ml'):
+        if (unique_operators is not None and
+                node.domain in ('', 'ai.onnx.ml')):
             clname = loadop((node.domain, node.op_type))
             unique_operators.add(
                 (node.domain, node.op_type, clname.__name__))
@@ -75,6 +77,9 @@ def _nodes(graph, rename_name, used, output_names, use_onnx_tensor,
             temp = _var_as_dict(at)
             value = temp['value']
             if node.op_type == 'Scan' and at.name == 'body':
+                if "{{ inputs[0][0] }}" in str(templates):
+                    attributes.append((at.name, at.g))
+                    continue
                 fname = "_create_" + node.name + "_body"
                 body = export_template(
                     value, templates, opset=opset, verbose=verbose,
@@ -85,7 +90,21 @@ def _nodes(graph, rename_name, used, output_names, use_onnx_tensor,
                 subgraphs.append((body, node.name + "_body"))
                 attributes.append((at.name, fname + "()"))
                 continue
-            if raise_subgraph and node.op_type in {'Loop', 'If'}:
+            if node.op_type == 'If' and at.name in {'then_branch', 'else_branch'}:
+                if "{{ inputs[0][0] }}" in str(templates):
+                    attributes.append((at.name, at.g))
+                    continue
+                fname = "_create_" + node.name + "_" + at.name
+                body = export_template(
+                    value, templates, opset=opset, verbose=verbose,
+                    name=name, rename=rename,
+                    use_onnx_tensor=use_onnx_tensor,
+                    autopep_options=autopep_options,
+                    function_name=fname)
+                subgraphs.append((body, node.name + "_" + at.name))
+                attributes.append((at.name, fname + "()"))
+                continue
+            if node.op_type == 'Loop':
                 raise NotImplementedError(
                     "Subgraphs are not yet implemented (operator=%r)."
                     "" % node.op_type)
@@ -113,7 +132,7 @@ def _nodes(graph, rename_name, used, output_names, use_onnx_tensor,
 
         attributes_str = ", ".join("%s=%s" % (k, v) for k, v in attributes)
         d = dict(name=node.name, op_type=node.op_type,
-                 domain=node.domain,
+                 domain=node.domain, onnx_node=node,
                  inputs=[rename_name(n) for n in node.input if len(n) > 0],
                  outputs=[rename_name(n) for n in node.output],
                  output_names=[rename_name(n) for n in node.output
@@ -143,17 +162,127 @@ def _python_make_node_name(domain, version, name, node=False):
     return name
 
 
-def _python_make_node(node, version):
+def _python_make_node_graph(graph, version, indent=0, output_names=None):
+    """
+    Translates a GraphProto into python.
+    """
+    code = []
+    sindent = '    ' * indent
+    for init in graph.initializer:
+        node = make_node('Constant', [], [init.name], value=init)
+        code.append(_python_make_node(node, version, indent=indent))
+    if len(graph.sparse_initializer) > 0:
+        raise NotImplementedError(  # pragma: no cover
+            "Unable to convert sparse_initilizer into python.")
+    for node in graph.node:
+        code.append(_python_make_node(node, version, indent=indent))
+    if output_names is not None:
+        for fr, to in zip(graph.output, output_names):
+            code.append("%s%s = %s" % (sindent, to, fr.name))
+    return "\n".join(code)
+
+
+def _python_make_node_make_attribute_str(node):
+    attributes = []
+    for at in node.attribute:
+        temp = _var_as_dict(at)
+        value = temp['value']
+        if isinstance(value, str):
+            attributes.append((at.name, "%r" % value))
+            continue
+        if isinstance(value, numpy.ndarray):
+            if at.name == 'value':
+                onnx_dtype = guess_proto_dtype_name(
+                    guess_proto_dtype(value.dtype))
+                value = (
+                    'make_tensor("value", %s, dims=%r, vals=%r)'
+                    '' % (onnx_dtype, list(value.shape),
+                          value.tolist()))
+                attributes.append((at.name, value))
+                continue
+            attributes.append((at.name, repr(value.tolist())))
+            continue
+        attributes.append((at.name, repr(value)))
+
+    return ", ".join("%s=%s" % (k, v) for k, v in attributes)
+
+
+def _python_make_node_if(node, version, indent=0):
+    """
+    Translates a node If into python.
+    """
+    sindent = '    ' * indent
+    code = ["%sif %s:" % (sindent, node.input[0])]
+    if len(node.attribute) != 2:
+        raise RuntimeError(  # pragma: no cover
+            "Node %r expected two attributes not %d." % (
+                node.op_type, len(node.attribute)))
+    atts = node.attribute
+    if atts[0].name == 'else_branch':
+        else_branch, then_branch = atts[0].g, atts[1].g
+    else:
+        else_branch, then_branch = atts[1].g, atts[0].g
+    code.append(_python_make_node_graph(
+        then_branch, version, indent=indent + 1,
+        output_names=node.output))
+    code.append("%selse:" % sindent)
+    code.append(_python_make_node_graph(
+        else_branch, version, indent=indent + 1,
+        output_names=node.output))
+    return "\n".join(code)
+
+
+def _python_make_node_loop(node, version, indent=0):
+    """
+    Translates a node Loop into python.
+    """
+    raise NotImplementedError()
+
+
+def _python_make_node_scan(node, version, indent=0):
+    """
+    Translates a node Scan into python.
+    """
+    raise NotImplementedError()
+
+
+def _python_make_node(onnx_node, version, indent=0):
+    if isinstance(onnx_node, dict):
+        node = onnx_node['onnx_node']
+    else:
+        node = onnx_node
+    if node.op_type in {'If', 'Loop', 'Scan'}:
+        # If, Loop, Scan
+        if node.op_type == 'If':
+            return _python_make_node_if(node, version, indent=indent)
+        if node.op_type == 'Loop':
+            return _python_make_node_loop(node, version, indent=indent)
+        if node.op_type == 'Scan':
+            return _python_make_node_scan(node, version, indent=indent)
+        raise RuntimeError(  # pragma: no cover
+            "Unable to export node type %r into python." % (node.op_type, ))
+        # pragma: no cover
+    if any(map(lambda att: hasattr(att, 'g') and att.g and att.g.ByteSize() > 0,
+               node.attribute)):
+        raise RuntimeError(  # pragma: no cover
+            "Unable to export node type %r into python." % node.op_type)
     ops = {'Add': '+', 'Sub': '-', 'Mul': '*', 'MatMul': '@',
            'Div': '/', 'Pow': '**', 'Mod': '%',
            'And': 'and', 'Or': 'Or', 'Greater': '>', 'Equal': '==',
            'Lesser': '<', 'GreaterOrEqual': '>=', 'LessOrEqual': '<=',
            'Not': 'not'}
-    if node['op_type'] in ops:
-        return (" %s " % ops[node['op_type']]).join(node['inputs'])
+    sindent = "    " * indent
+    if node.op_type in ops:
+        return "%s%s = %s" % (sindent, node.output[0],
+                              (" %s " % ops[node.op_type]).join(node.input))
     name = _python_make_node_name(
-        node['domain'], version, node['op_type'], node=True)
-    text = [name, '(', ', '.join(node['inputs']), node['attributes_str'], ')']
+        node.domain, version, node.op_type, node=True)
+    attributes_str = _python_make_node_make_attribute_str(node)
+    if len(node.input) > 0:
+        attributes_str = ", " + attributes_str
+    output = ", ".join(node.output)
+    text = [sindent, output, " = ", name,
+            '(', ', '.join(node.input), attributes_str, ')']
     return "".join(text)
 
 
@@ -161,7 +290,7 @@ def export_template(model_onnx, templates, opset=None,  # pylint: disable=R0914
                     verbose=True, name=None,
                     rename=False, use_onnx_tensor=False,
                     autopep_options=None, function_name='create_model',
-                    raise_subgraph=True, clean_code=True):
+                    clean_code=True):
     """
     Exports an ONNX model to the onnx syntax.
 
@@ -177,7 +306,6 @@ def export_template(model_onnx, templates, opset=None,  # pylint: disable=R0914
         ONNX tensor to avoid type mismatch, (operator *ConstantOfShape*, ...)
     :param autopep_options: :epkg:`autopep8` options
     :param function_name: main function name in the code
-    :param raise_subgraph: raise an exception if a subgraph is found
     :param clean_code: clean the code
     :return: python code
     """
@@ -283,8 +411,7 @@ def export_template(model_onnx, templates, opset=None,  # pylint: disable=R0914
                   'nodes': _nodes(fct, rename_name, used, fct.output,
                                   use_onnx_tensor, templates, verbose,
                                   opset, rename, autopep_options,
-                                  fct.name, [], unique_operators,
-                                  raise_subgraph=raise_subgraph)}))
+                                  fct.name, [], unique_operators)}))
             if fct.name in fct_dict:
                 fct_dict[fct.name].append(fct)
             else:
@@ -322,16 +449,17 @@ def export_template(model_onnx, templates, opset=None,  # pylint: disable=R0914
     # node
     output_names = set(o.name for o in graph.output)
     subgraphs = []
+    context['graph'] = graph
     context['nodes'] = _nodes(
         graph, rename_name, used, output_names, use_onnx_tensor,
         templates, verbose, opset, rename, autopep_options, name,
-        subgraphs, unique_operators, raise_subgraph)
+        subgraphs, unique_operators)
 
     # graph
     context['name'] = name or graph.name
     context['name'] = context['name'].replace("(", "_").replace(")", "")
     context['function_name'] = function_name
-    context['indent'] = indent
+    context['indent'] = textwrap.indent
     if hasattr(model_onnx, 'graph'):
         context['ir_version'] = model_onnx.ir_version
         context['producer_name'] = model_onnx.producer_name
@@ -610,7 +738,6 @@ def export2cpp(model_onnx, opset=None, verbose=True, name=None, rename=False,
                            opset=opset, verbose=verbose, name=name,
                            rename=rename, use_onnx_tensor=True,
                            autopep_options=autopep_options,
-                           raise_subgraph=False,
                            clean_code=False)
     return code
 
@@ -709,6 +836,5 @@ def export2python(model_onnx, opset=None, verbose=True, name=None, rename=False,
                            opset=opset, verbose=verbose, name=name,
                            rename=rename, use_onnx_tensor=True,
                            autopep_options=autopep_options,
-                           raise_subgraph=False,
                            clean_code=True, function_name=function_name)
     return code

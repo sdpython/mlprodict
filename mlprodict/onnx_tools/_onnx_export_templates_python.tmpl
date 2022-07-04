@@ -15,9 +15,8 @@ def {{ python_make_node_name(fct['proto'].domain, 1, fct['proto'].name) }}({{ ",
     {% if fct['proto'].doc_string %}"""
     {{ fct['proto'].doc_string }}
     """{% endif -%}
-    {% for node in fct['nodes']: -%}
-    {{ ', '.join(node['outputs']) }} = {{ python_make_node(node, opsets[node['domain']]) }}
-    {% endfor -%}
+    {%- for node in fct['nodes']: %}
+{{ python_make_node(node, opsets[node['domain']], 1) }}{% endfor %}
     return {{ ", ".join(fct['proto'].output) }}
 
 {% endfor %}
@@ -26,16 +25,16 @@ def {{ function_name }}({{ inputs[0][0] }}{% for name in inputs[1:]: %}, {{ name
     {% if doc_string %}"""
     {{ doc_string }}
     """{% endif -%}
-    {%- for name, value in initializers: %}{% if len(value.shape) == 0: -%}
+    {%- for name, value in initializers: %}{% if len(value.shape) == 0: %}
     {{ name }} = numpy.array({{ value }}, dtype=numpy.{{ value.dtype }})
     {%- else %}{% if value.size < 6: -%}
     {{ name }} = numpy.array({{ value.tolist() }}, dtype=numpy.{{ value.dtype }}){% if len(value.shape) > 1: %}.reshape({{ value.shape }}){% endif %}
     {%- else %}list_value = {{ value.ravel().tolist() }}
     {{ name }} = numpy.array(list_value, dtype=numpy.{{ value.dtype }}){% if len(value.shape) > 1: %}.reshape({{ value.shape }}){% endif %}
-    {% endif -%}{% endif -%}{% endfor %}
-    {% for node in nodes: -%}
-    {{ ', '.join(node['outputs']) }} = {{ python_make_node(node, opsets[node['domain']]) }}
-    {% endfor -%}
+    {% endif -%}{% endif %}
+    {% endfor %}
+    {%- for node in nodes: %}
+{{ python_make_node(node, opsets[node['domain']], 1) }}{% endfor %}
     return {{ outputs[0][0] }}{% for name in outputs[1:]: %}, {{ name[0] }}{% endfor %}
 
 
