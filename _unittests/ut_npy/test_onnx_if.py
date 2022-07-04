@@ -48,8 +48,6 @@ class TestOnnxVariableIf(ExtTestCase):
     def test_onnx_if(self):
         x = numpy.array([[6.1, -5], [3.5, -7.8]], dtype=numpy.float32)
         fct_if = onnxnumpy()(TestOnnxVariableIf.fct_onnx_if)
-        with open("debug.onnx", "wb") as f:
-            f.write(fct_if.compiled.onnx_.SerializeToString())
         y = fct_if(x)
         self.assertEqualArray(
             y, numpy.array([-6], dtype=numpy.float32))
