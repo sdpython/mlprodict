@@ -206,7 +206,7 @@ class NumpyCode:
         if isinstance(val, str):
             return tuple(map(int, val.strip('()[]').replace(" ", "").split(",")))
         raise NotImplementedError(  # pragma: no cover
-            "Unable to convert %r into tuple." % val)
+            "Unable to convert type %r (%r) into tuple." % (type(val), val))
 
     def make_numpy_code(self):
         """
