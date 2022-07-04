@@ -1,3 +1,4 @@
+# pylint: disable=W0201
 """
 @brief      test log(time=14s)
 """
@@ -1574,6 +1575,7 @@ class TestExportOnnx(ExtTestCase):
         for rt in ['python']:
             with self.subTest(rt=rt):
                 oinf0 = OnnxInference(onx, runtime=rt)
+                expected_onx = oinf0.run({'X': x})['Y']
                 new_onnx = export2python(onx, name="TEST")
                 self.assertIn('def main', new_onnx)
                 self.assertIn(' + ', new_onnx)
@@ -1587,6 +1589,7 @@ class TestExportOnnx(ExtTestCase):
                 y = fct(x)
                 expected = (numpy.abs(x) + 1) / 2
                 self.assertEqualArray(expected, y)
+                self.assertEqualArray(expected_onx, y)
 
 
 if __name__ == "__main__":
