@@ -87,7 +87,8 @@ def _nodes(graph, rename_name, used, output_names, use_onnx_tensor,
                     use_onnx_tensor=use_onnx_tensor,
                     autopep_options=autopep_options,
                     function_name=fname)
-                subgraphs.append((body, node.op_type + "_" + node.name + "_body"))
+                subgraphs.append(
+                    (body, node.op_type + "_" + node.name + "_body"))
                 attributes.append((at.name, fname + "()"))
                 continue
             if node.op_type == 'If' and at.name in {'then_branch', 'else_branch'}:
@@ -274,7 +275,7 @@ def _python_make_node(onnx_node, version, indent=0):
     name = _python_make_node_name(
         node.domain, version, node.op_type, node=True)
     attributes_str = _python_make_node_make_attribute_str(node)
-    if len(node.input) > 0:
+    if len(node.input) > 0 and len(attributes_str) > 0:
         attributes_str = ", " + attributes_str
     output = ", ".join(node.output)
     text = [sindent, output, " = ", name,
