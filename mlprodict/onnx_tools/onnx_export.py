@@ -76,38 +76,34 @@ def _nodes(graph, rename_name, used, output_names, use_onnx_tensor,
         for at in node.attribute:
             temp = _var_as_dict(at)
             value = temp['value']
-            if node.op_type == 'Scan' and at.name == 'body':
+            if node.op_type in {'Scan', 'Loop'} and at.name == 'body':
                 if "{{ inputs[0][0] }}" in str(templates):
                     attributes.append((at.name, at.g))
                     continue
-                fname = "_create_" + node.name + "_body"
+                fname = "_create_" + node.op_type + "_" + node.name + "_body"
                 body = export_template(
                     value, templates, opset=opset, verbose=verbose,
                     name=name, rename=rename,
                     use_onnx_tensor=use_onnx_tensor,
                     autopep_options=autopep_options,
                     function_name=fname)
-                subgraphs.append((body, node.name + "_body"))
+                subgraphs.append((body, node.op_type + "_" + node.name + "_body"))
                 attributes.append((at.name, fname + "()"))
                 continue
             if node.op_type == 'If' and at.name in {'then_branch', 'else_branch'}:
                 if "{{ inputs[0][0] }}" in str(templates):
                     attributes.append((at.name, at.g))
                     continue
-                fname = "_create_" + node.name + "_" + at.name
+                fname = "_create_if_" + node.name + "_" + at.name
                 body = export_template(
                     value, templates, opset=opset, verbose=verbose,
                     name=name, rename=rename,
                     use_onnx_tensor=use_onnx_tensor,
                     autopep_options=autopep_options,
                     function_name=fname)
-                subgraphs.append((body, node.name + "_" + at.name))
+                subgraphs.append((body, "if_" + node.name + "_" + at.name))
                 attributes.append((at.name, fname + "()"))
                 continue
-            if node.op_type == 'Loop':
-                raise NotImplementedError(
-                    "Subgraphs are not yet implemented (operator=%r)."
-                    "" % node.op_type)
             if use_onnx_tensor:
                 if node.op_type == 'Cast' and at.name == 'to':
                     attributes.append(
