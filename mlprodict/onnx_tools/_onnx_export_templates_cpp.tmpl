@@ -12,6 +12,6 @@ void make_model_{{ function_name }}(ModelProto& model) {
     
     // Creates the main graph.
     model.graph.ParseFromString(R"(
-    {{ printable_graph(main_model.graph) }}
+    {{ printable_graph(graph) }}
     )");
 }

@@ -1,3 +1,4 @@
+# pylint: disable=W0201
 """
 @brief      test log(time=14s)
 """
@@ -6,6 +7,7 @@ import unittest
 import collections
 import inspect
 import traceback
+from typing import Any
 from io import StringIO
 from contextlib import redirect_stdout, redirect_stderr
 import numpy
@@ -27,7 +29,7 @@ from skl2onnx.common._topology import Variable as SklVariable
 from skl2onnx.common.data_types import FloatTensorType
 from mlprodict.onnx_tools.onnx_export import (
     export2onnx, export2tf2onnx, export2numpy, export2xop,
-    export2cpp, select_attribute)
+    export2cpp, select_attribute, export2python)
 from mlprodict.testing.verify_code import verify_code
 from mlprodict.onnxrt import OnnxInference
 from mlprodict.onnx_tools.exports.tf2onnx_helper import (
@@ -40,12 +42,13 @@ from mlprodict.onnx_tools.exports.numpy_helper import (
 from mlprodict.onnx_conv import to_onnx
 from mlprodict.testing.einsum import decompose_einsum_equation
 import mlprodict.npy.numpy_onnx_impl as npnx
-from mlprodict.npy import onnxnumpy_np
+from mlprodict.npy import onnxnumpy_np, onnxnumpy
 from mlprodict.npy.onnx_numpy_annotation import NDArrayType
-from mlprodict.onnx_tools.optim import onnx_remove_node_unused
-from mlprodict.plotting.text_plot import onnx_simple_text_plot
 from mlprodict.npy.xop_variable import Variable as XopVariable
 from mlprodict.npy.xop import loadop, OnnxOperatorFunction
+from mlprodict.npy import NDArray
+from mlprodict.onnx_tools.optim import onnx_remove_node_unused
+from mlprodict.plotting.text_plot import onnx_simple_text_plot
 
 
 class ConvertFFT2DOp:
@@ -787,7 +790,7 @@ class TestExportOnnx(ExtTestCase):
         case2()
         case3()
 
-    def verify(self, content):
+    def verify(self, content, more_context=None):
         try:
             left, __ = verify_code(content, exc=False)
         except SyntaxError as e:
@@ -816,6 +819,9 @@ class TestExportOnnx(ExtTestCase):
                'print': print, 'sorted': sorted,
                'make_opsetid': make_opsetid,
                'collections': collections, 'inspect': inspect}
+        if more_context is not None:
+            loc.update(more_context)
+            glo.update(more_context)
         out, err = StringIO(), StringIO()
         if len(left) >= 10:
             raise AssertionError(
@@ -1338,7 +1344,7 @@ class TestExportOnnx(ExtTestCase):
         data = os.path.abspath(os.path.dirname(__file__))
         debug = os.path.join(data, "data", "debug.onnx")
         code = export2onnx(debug)
-        self.assertIn("def _create_Sc_Scan1_body():", code)
+        self.assertIn("def _create_Scan_Sc_Scan1_body():", code)
 
     def test_scan_knn(self):
         x = numpy.random.randn(3, 4).astype(numpy.float32)
@@ -1546,7 +1552,88 @@ class TestExportOnnx(ExtTestCase):
         code = export2cpp(model)
         self.assertIn('model.graph.ParseFromString(R"(', code)
 
+    def test_export_function_python(self):
+        # ONNX
+        OnnxAbs, OnnxAdd, OnnxDiv = loadop(  # pylint: disable=W0621
+            "Abs", "Add", "Div")
+        ov = OnnxAbs('X')
+        ad = OnnxAdd(ov, numpy.array([1], dtype=numpy.float32),
+                     output_names=['Y'])
+        op = OnnxDiv(ad('X'), numpy.array([2], dtype=numpy.float32),
+                     output_names=['Y'])
+        onx = op.to_onnx(numpy.float32, numpy.float32)
+
+        class LocalDomain:
+            def __init__(self, domain, version):
+                self.domain = domain
+                self.version = version
+
+        mlprodict1 = LocalDomain('mlprodict', 1)
+        opset14 = LocalDomain('', 14)
+        opset14.Abs = numpy.abs
+        opset14.Constant = lambda value: numpy_helper.to_array(value)
+        x = numpy.random.randn(3, 4).astype(numpy.float32)
+
+        for rt in ['python']:
+            with self.subTest(rt=rt):
+                oinf0 = OnnxInference(onx, runtime=rt)
+                expected_onx = oinf0.run({'X': x})['Y']
+                new_onnx = export2python(onx, name="TEST")
+                self.assertIn('def main', new_onnx)
+                self.assertIn(' + ', new_onnx)
+                self.assertIn(' / ', new_onnx)
+                _, loc = self.verify(
+                    new_onnx, more_context={
+                        'mlprodict1': mlprodict1,
+                        'opset14': opset14})
+                mlprodict1.AddAbs = loc['AddAbs']
+                fct = loc['main']
+                y = fct(x)
+                expected = (numpy.abs(x) + 1) / 2
+                self.assertEqualArray(expected, y)
+                self.assertEqualArray(expected_onx, y)
+
+    @staticmethod
+    def fct_onnx_if(x: NDArray[Any, numpy.float32],
+                    ) -> NDArray[Any, numpy.float32]:
+        "onnx numpy abs"
+        xif = npnx.onnx_if(
+            npnx.sum(x) > numpy.float32(0),
+            then_branch=npnx.if_then_else(
+                numpy.array([-1], dtype=numpy.float32)),
+            else_branch=numpy.array([1], dtype=numpy.float32))
+        return xif + numpy.float32(-7)
+
+    def test_export_if(self):
+        fct_if = onnxnumpy()(TestExportOnnx.fct_onnx_if)
+        onx = fct_if.compiled.onnx_
+        new_onnx = export2python(onx, name="TEST")
+        self.assertIn('def main', new_onnx)
+        self.assertIn(' > ', new_onnx)
+
+        class LocalDomain:
+            def __init__(self, domain, version):
+                self.domain = domain
+                self.version = version
+
+        mlprodict1 = LocalDomain('mlprodict', 1)
+        opset15 = LocalDomain('', 15)
+        opset15.ReduceSum = numpy.sum
+        opset15.Identity = lambda i: i
+        opset15.Constant = lambda value: numpy_helper.to_array(value)
+
+        _, loc = self.verify(
+            new_onnx, more_context={
+                'mlprodict1': mlprodict1,
+                'opset15': opset15})
+
+        fct = loc['main']
+        x = numpy.random.randn(3, 4).astype(numpy.float32)
+        y = fct(x)
+        expected = fct_if(x)
+        self.assertEqualArray(expected, y)
+
 
 if __name__ == "__main__":
-    # TestExportOnnx().test_export_function_onnx()
+    # TestExportOnnx().test_export_if()
     unittest.main(verbosity=2)
