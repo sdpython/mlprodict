@@ -1344,7 +1344,7 @@ class TestExportOnnx(ExtTestCase):
         data = os.path.abspath(os.path.dirname(__file__))
         debug = os.path.join(data, "data", "debug.onnx")
         code = export2onnx(debug)
-        self.assertIn("def _create_Sc_Scan1_body():", code)
+        self.assertIn("def _create_Scan_Sc_Scan1_body():", code)
 
     def test_scan_knn(self):
         x = numpy.random.randn(3, 4).astype(numpy.float32)
