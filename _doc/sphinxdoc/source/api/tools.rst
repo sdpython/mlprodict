@@ -18,14 +18,20 @@ Accessor
 
 .. autosignature:: mlprodict.onnx_tools.onnx_tools.insert_node
 
-Export
-++++++
+.. _l-api-export-onnx:
+
+Export from onnx to...
+++++++++++++++++++++++
 
 .. autosignature:: mlprodict.onnx_tools.onnx_export.export2numpy
 
 .. autosignature:: mlprodict.onnx_tools.onnx_export.export2onnx
 
+.. autosignature:: mlprodict.onnx_tools.onnx_export.export2python
+
 .. autosignature:: mlprodict.onnx_tools.onnx_export.export2tf2onnx
+
+.. autosignature:: mlprodict.onnx_tools.onnx_export.export2xop
 
 Graphs helper, manipulations
 ++++++++++++++++++++++++++++
@@ -115,6 +121,13 @@ Validation of scikit-learn models
 
 .. autosignature:: mlprodict.onnxrt.validate.validate_summary.summary_report
 
+Testing
++++++++
+
+.. autosignature:: mlprodict.testing.onnx_backend.enumerate_onnx_tests
+
+.. autosignature:: mlprodict.testing.onnx_backend.OnnxBackendTest
+
 Visualization
 +++++++++++++
 
@@ -166,6 +179,11 @@ Versions
 .. autosignature:: mlprodict.__max_supported_opset__
 
 .. autosignature:: mlprodict.__max_supported_opsets__
+
+skl2onnx
+========
+
+.. autosignature:: mlprodict.onnx_tools.exports.skl2onnx_helper.add_onnx_graph
 
 Type conversion
 ===============
@@ -269,8 +287,3 @@ The last example summarizes all the possibilities.
     print()
     for e in errors:
         print(e)
-
-skl2onnx
-========
-
-.. autosignature:: mlprodict.onnx_tools.exports.skl2onnx_helper.add_onnx_graph

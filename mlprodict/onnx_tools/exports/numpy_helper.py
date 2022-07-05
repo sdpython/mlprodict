@@ -250,6 +250,11 @@ class NumpyCode:
             return "%s = %s %s" % (
                 outs, self.inputs[0], unary_ops_[self.op_type])
 
+        if self.op_type in {'Abs', 'Ceil', 'Cos', 'Cosh',
+                            'Exp', 'Log', 'Sin', 'Sinh',
+                            'Tan', 'Tanh'}:
+            return "%s = numpy.%s(%s)" % (outs, self.op_type.lower(), self.inputs[0])
+
         if self.op_type == 'ArgMax':
             self._make_sure_opsets(12)
             self._make_sure_inputs(1)
@@ -304,9 +309,6 @@ class NumpyCode:
             shape = self._simplify(self.inputs[0], kind='tuple')
             return "%s = numpy.full(%s, %s)" % (
                 outs, shape, value)
-
-        if self.op_type == 'Exp':
-            return "%s = numpy.exp(%s)" % (outs, self.inputs[0])
 
         if self.op_type == 'Max':
             return "%s = numpy.maximum(%s)" % (outs, ", ".join(self.inputs))

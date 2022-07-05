@@ -282,7 +282,8 @@ def enumerate_onnx_tests(series, fct_filter=None):
     Works as an enumerator to start processing them
     without waiting or storing too much of them.
 
-    :param series: which subfolder to load
+    :param series: which subfolder to load, possible values:
+        (`'node'`, ...)
     :param fct_filter: function `lambda testname: boolean`
         to load or skip the test, None for all
     :return: list of @see cl OnnxBackendTest

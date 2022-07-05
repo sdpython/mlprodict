@@ -325,3 +325,9 @@ mlprodict/npy/_cache/*.rst
 *.so
 *.dylib
 *.dll
+_doc/examples/cpp/*
+_doc/examples/numpy/*
+_doc/examples/onnx/*
+_doc/examples/python/*
+_doc/examples/tf2onnx/*
+_doc/examples/xop/*
