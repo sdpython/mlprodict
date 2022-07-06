@@ -14,7 +14,7 @@ class LocalDomain:
 def {{ python_make_node_name(fct['proto'].domain, 1, fct['proto'].name) }}({{ ", ".join(fct['proto'].input) }}):
     {% if fct['proto'].doc_string %}"""
     {{ fct['proto'].doc_string }}
-    """{% endif -%}
+    """{%- endif %}
     {%- for node in fct['nodes']: %}
 {{ python_make_node(node, opsets[node['domain']], 1) }}{% endfor %}
     return {{ ", ".join(fct['proto'].output) }}
@@ -24,7 +24,7 @@ def {{ python_make_node_name(fct['proto'].domain, 1, fct['proto'].name) }}({{ ",
 def {{ function_name }}({{ inputs[0][0] }}{% for name in inputs[1:]: %}, {{ name[0] }}{% endfor %}):
     {% if doc_string %}"""
     {{ doc_string }}
-    """{% endif -%}
+    """{%- endif %}
     {%- for name, value in initializers: %}{% if len(value.shape) == 0: %}
     {{ name }} = numpy.array({{ value }}, dtype=numpy.{{ value.dtype }})
     {%- else %}{% if value.size < 6: -%}
