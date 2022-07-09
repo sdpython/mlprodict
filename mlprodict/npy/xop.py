@@ -311,7 +311,7 @@ def _populate_schemas():
 
     try:
         import onnxruntime.capi.onnxruntime_pybind11_state as rtpy
-    except ImportError:
+    except ImportError:  # pragma: no cover
         rtpy = None
 
     if rtpy is not None:
@@ -787,7 +787,7 @@ class OnnxOperatorBase:
         """
         Tells this operator is part of a subgraph.
         """
-        raise NotImplementedError(
+        raise NotImplementedError(  # pragma: no cover
             "Method '_set_control_op' must be overloaded for type %s."
             "" % type(self))
 
@@ -796,7 +796,7 @@ class OnnxOperatorBase:
         Tells a subgraph this node comes from the main graph.
         It may be used only by the subgraph but it must be processed as well.
         """
-        raise NotImplementedError(
+        raise NotImplementedError(  # pragma: no cover
             "Method '_set_control_op' must be overloaded for type %s."
             "" % type(self))
 
@@ -1171,7 +1171,7 @@ class OnnxOperator(OnnxOperatorBase):
                      output_names)
         if (output_names is None and
                 self.__class__.__name__.startswith("OnnxScan")):
-            raise NotImplementedError(
+            raise NotImplementedError(  # pragma: no cover
                 "The class cannot infer the number of variables "
                 "for node '{}' yet. output_names must be specified"
                 ".".format(self.__class__.__name__))
@@ -3593,7 +3593,7 @@ class OnnxExisting(OnnxOperator):
     def f(self, *inputs, verbose=0, fLOG=None,  # pylint: disable=W0221
           clear_cache=False, runtime=None):
         "For the eager mode."
-        raise NotImplementedError()
+        raise NotImplementedError()  # pragma: no cover
 
     def _set_control_op(self, op):
         if op is None:

@@ -21,6 +21,24 @@ from .exports.numpy_helper import make_numpy_code
 from .exports.tf2onnx_helper import make_tf2onnx_code
 
 
+_keywords = {
+    'False', 'await', 'else', 'import', 'pass',
+    'None', 'break', 'except', 'in', 'raise',
+    'True', 'class', 'finally', 'is', 'return',
+    'and', 'continue', 'for', 'lambda', 'try',
+    'as', 'def', 'from', 'nonlocal', 'while',
+    'assert', 'del', 'global', 'not', 'with',
+    'async', 'elif', 'if', 'or', 'yield'}
+
+
+def _rename_var(var):
+    if var in _keywords:
+        return 'r_' + var
+    if var == '':
+        return 'None'
+    return var
+    
+
 def select_attribute(ens, att, sort=False, unique=False, skip=None):
     """
     Returns the list of the same attribute.
@@ -62,16 +80,12 @@ def _nodes(graph, rename_name, used, output_names, use_onnx_tensor,
                 (node.domain, node.op_type, clname.__name__))
         for index_input, i_raw_name in enumerate(node.input):
             if len(i_raw_name) == 0:
-                # This means the input is optional.
-                if any(map(lambda s: len(s) > 0, node.input[index_input:])):
-                    raise NotImplementedError(
-                        "Input cannot be placed after an unused optional input "
-                        "in node %r." % (node, ))
-                break
-            i = rename_name(i_raw_name)
-            if i not in used:
-                used[i] = []
-            used[i].append(node)
+                i = 'None'
+            else:
+                i = rename_name(i_raw_name)
+                if i not in used:
+                    used[i] = []
+                used[i].append(node)
         attributes = []
         for at in node.attribute:
             temp = _var_as_dict(at)
@@ -166,7 +180,7 @@ def _python_make_node_graph(graph, version, indent=0, output_names=None):
     code = []
     sindent = '    ' * indent
     for init in graph.initializer:
-        node = make_node('Constant', [], [init.name], value=init)
+        node = make_node('Constant', [], [_rename_var(init.name)], value=init)
         code.append(_python_make_node(node, version, indent=indent))
     if len(graph.sparse_initializer) > 0:
         raise NotImplementedError(  # pragma: no cover
@@ -175,7 +189,7 @@ def _python_make_node_graph(graph, version, indent=0, output_names=None):
         code.append(_python_make_node(node, version, indent=indent))
     if output_names is not None:
         for fr, to in zip(graph.output, output_names):
-            code.append("%s%s = %s" % (sindent, to, fr.name))
+            code.append("%s%s = %s" % (sindent, _rename_var(to), _rename_var(fr.name)))
     return "\n".join(code)
 
 
@@ -185,7 +199,7 @@ def _python_make_node_make_attribute_str(node):
         temp = _var_as_dict(at)
         value = temp['value']
         if isinstance(value, str):
-            attributes.append((at.name, "%r" % value))
+            attributes.append((at.name, "%r" % value.decode('utf-8')))
             continue
         if isinstance(value, numpy.ndarray):
             if at.name == 'value':
@@ -194,7 +208,7 @@ def _python_make_node_make_attribute_str(node):
                 value = (
                     'make_tensor("value", %s, dims=%r, vals=%r)'
                     '' % (onnx_dtype, list(value.shape),
-                          value.tolist()))
+                          value.ravel().tolist()))
                 attributes.append((at.name, value))
                 continue
             attributes.append((at.name, repr(value.tolist())))
@@ -264,22 +278,22 @@ def _python_make_node(onnx_node, version, indent=0):
         raise RuntimeError(  # pragma: no cover
             "Unable to export node type %r into python." % node.op_type)
     ops = {'Add': '+', 'Sub': '-', 'Mul': '*', 'MatMul': '@',
-           'Div': '/', 'Pow': '**', 'Mod': '%',
-           'And': 'and', 'Or': 'Or', 'Greater': '>', 'Equal': '==',
-           'Lesser': '<', 'GreaterOrEqual': '>=', 'LessOrEqual': '<=',
-           'Not': 'not'}
+           'Div': '/', 'Pow': '**',
+           'And': '&', 'Or': '|', 'Greater': '>', 'Equal': '==',
+           'Lesser': '<', 'GreaterOrEqual': '>=', 'LessOrEqual': '<='}
     sindent = "    " * indent
     if node.op_type in ops:
-        return "%s%s = %s" % (sindent, node.output[0],
-                              (" %s " % ops[node.op_type]).join(node.input))
+        return "%s%s = %s" % (sindent, _rename_var(node.output[0]),
+                              (" %s " % ops[node.op_type]).join(
+                                map(_rename_var, node.input)))
     name = _python_make_node_name(
         node.domain, version, node.op_type, node=True)
     attributes_str = _python_make_node_make_attribute_str(node)
     if len(node.input) > 0 and len(attributes_str) > 0:
         attributes_str = ", " + attributes_str
-    output = ", ".join(node.output)
-    text = [sindent, output, " = ", name,
-            '(', ', '.join(node.input), attributes_str, ')']
+    output = ", ".join(map(_rename_var, node.output))
+    text = [sindent, _rename_var(output), " = ", name,
+            '(', ', '.join(map(_rename_var, node.input)), attributes_str, ')']
     return "".join(text)
 
 
@@ -352,7 +366,8 @@ def export_template(model_onnx, templates, opset=None,  # pylint: disable=R0914
                'xop_make_node_name': _xop_make_node_name,
                'python_make_node': _python_make_node,
                'python_make_node_name': _python_make_node_name,
-               'unique_function_domain_version': unique_function_domain_version}
+               'unique_function_domain_version': unique_function_domain_version,
+               'rename_var': _rename_var}
     used = {}
 
     # opset

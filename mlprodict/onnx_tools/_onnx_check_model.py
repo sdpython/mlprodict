@@ -51,7 +51,7 @@ class UndefinedSchema:
     def verify(self, node):
         "Verifies a, undefined node is consistent with ONNX language."
         if self.deprecated_:
-            raise OnnxCheckError(
+            raise OnnxCheckError(  # pragma: no cover
                 f"Operator '{self.name_}' has been deprecated since "
                 f"version {self.since_version_}.",
                 node)
@@ -83,7 +83,7 @@ class Schema(object):
     def verify(self, node):
         "Verifies a node is consistent with ONNX language."
         if self.deprecated_:
-            raise OnnxCheckError(
+            raise OnnxCheckError(  # pragma: no cover
                 f"Operator '{self.name_}' has been deprecated since "
                 f"version {self.since_version_}.",
                 node)
@@ -91,14 +91,14 @@ class Schema(object):
         # Check the number of inputs.
         if (len(node.input) < self.min_input_ or
                 len(node.input) > self.max_input_):
-            raise OnnxCheckError(
+            raise OnnxCheckError(  # pragma: no cover
                 f"Node '{node.name}' has input size {len(node.input)} "
                 f"not in range [min={self.min_input_}, "
                 f"max={self.max_input_}].",
                 node)
 
         if not self.num_inputs_allowed(len(node.input)):
-            raise OnnxCheckError(
+            raise OnnxCheckError(  # pragma: no cover
                 f"Node '{node.name}' has input size {len(node.input)} "
                 f"not in allowed input sizes.",
                 node)
@@ -106,14 +106,14 @@ class Schema(object):
         # Check the number of outputs.
         if (len(node.output) < self.min_output_ or
                 len(node.output) > self.max_output_):
-            raise OnnxCheckError(
+            raise OnnxCheckError(  # pragma: no cover
                 f"Node '{node.name}' has output size {len(node.output)} "
                 f"not in range [min={self.min_output_}, "
                 f"max={self.max_output_}].",
                 node)
 
         if not self.num_outputs_allowed(len(node.output)):
-            raise OnnxCheckError(
+            raise OnnxCheckError(  # pragma: no cover
                 f"Node '{node.name}' has output size {len(node.output)} "
                 f"not in allowed output sizes.",
                 node)
@@ -127,7 +127,7 @@ class Schema(object):
                     # The last input formal parameter should be variadic.
                     break
             else:
-                raise OnnxCheckError(
+                raise OnnxCheckError(  # pragma: no cover
                     f"Node '{node.name}' has more inputs ("
                     f"{len(node.input)} than declared {len(self.inputs_)}. "
                     f"in op definition.",
@@ -136,7 +136,7 @@ class Schema(object):
             if (not node.input[in_idx] and
                     OpSchema.FormalParameterOption.Single ==
                     self.inputs_[in_idx].GetOption()):
-                raise OnnxCheckError(
+                raise OnnxCheckError(  # pragma: no cover
                     f"Node '{node.name}' input[{in_idx}] is marked single but "
                     f"has an empty string in the graph.",
                     node)
@@ -149,7 +149,7 @@ class Schema(object):
                     # The last output formal parameter should be variadic.
                     break
             else:
-                raise OnnxCheckError(
+                raise OnnxCheckError(  # pragma: no cover
                     f"Node '{node.name}' has more outputs ("
                     f"{len(node.output)} than declared {len(self.outputs_)}. "
                     f"in op definition.",
@@ -158,7 +158,7 @@ class Schema(object):
             if (not node.output[out_idx] and
                     OpSchema.FormalParameterOption.Single ==
                     self.outputs_[out_idx].GetOption()):
-                raise OnnxCheckError(
+                raise OnnxCheckError(  # pragma: no cover
                     f"Node '{node.name}' output[{out_idx}] is marked single but "
                     f"has an empty string in the graph.",
                     node)
@@ -175,7 +175,7 @@ class Schema(object):
             name = attr_proto.name
 
             if name in seen_attr_names:
-                raise OnnxCheckError(
+                raise OnnxCheckError(  # pragma: no cover
                     f"Attribute '{name}' appeared multiple times.",
                     node)
             seen_attr_names.add(name)
@@ -190,13 +190,13 @@ class Schema(object):
             elif self.allows_unchecked_attributes_ or isInternalSymbol(name):
                 continue
             else:
-                raise OnnxCheckError(
+                raise OnnxCheckError(  # pragma: no cover
                     f"Unrecognized attribute '{name}' for operator "
                     f"'{node.op_type}'.", node)
 
             # Type would be UNDEFINED if not set
             if attr_proto.type != expected_type:
-                raise OnnxCheckError(
+                raise OnnxCheckError(  # pragma: no cover
                     f"Mismatched attribute type in '{node.name}' and "
                     f"attribute '{name}'.", node)
 
@@ -215,47 +215,47 @@ class Schema(object):
                 pass
             elif expected_type == AttributeProto.TENSOR:
                 if attr_proto.t.ByteSize == 0:
-                    raise OnnxCheckError(
+                    raise OnnxCheckError(  # pragma: no cover
                         f"Attribute '{name}' is expected to have field "
                         f"'t'.", node)
             elif expected_type == AttributeProto.SPARSE_TENSOR:
                 if attr_proto.sparse_tensor.ByteSize == 0:
-                    raise OnnxCheckError(
+                    raise OnnxCheckError(  # pragma: no cover
                         f"Attribute '{name}' is expected to have field "
                         f"'sparse_tensor'.", node)
             elif expected_type == AttributeProto.GRAPH:
                 if attr_proto.g.ByteSize == 0:
-                    raise OnnxCheckError(
+                    raise OnnxCheckError(  # pragma: no cover
                         f"Attribute '{name}' is expected to have field "
                         f"'g'.", node)
                 if node.op_type == 'If' and len(attr_proto.g.input) > 0:
-                    raise OnnxCheckError(
+                    raise OnnxCheckError(  # pragma: no cover
                         f"Attribute '{attr_proto.name}' of "
                         f"operator If with name '{node.name}' must not have "
                         f"inputs.", node)
             elif expected_type == AttributeProto.TYPE_PROTO:
                 if attr_proto.tp.ByteSize == 0:
-                    raise OnnxCheckError(
+                    raise OnnxCheckError(  # pragma: no cover
                         f"Attribute '{name}' is expected to have field "
                         f"'tp'.", node)
             elif expected_type == AttributeProto.FLOATS:
                 if attr_proto.floats.ByteSize == 0:
-                    raise OnnxCheckError(
+                    raise OnnxCheckError(  # pragma: no cover
                         f"Attribute '{name}' is expected to have field "
                         f"'floats'.", node)
             elif expected_type == AttributeProto.INTS:
                 if attr_proto.ints.ByteSize == 0:
-                    raise OnnxCheckError(
+                    raise OnnxCheckError(  # pragma: no cover
                         f"Attribute '{name}' is expected to have field "
                         f"'ints'.", node)
             elif expected_type == AttributeProto.STRINGS:
                 if attr_proto.strings.ByteSize == 0:
-                    raise OnnxCheckError(
+                    raise OnnxCheckError(  # pragma: no cover
                         f"Attribute '{name}' is expected to have field "
                         f"'strings'.", node)
             elif expected_type == AttributeProto.TENSORS:
                 if attr_proto.tensors.ByteSize == 0:
-                    raise OnnxCheckError(
+                    raise OnnxCheckError(  # pragma: no cover
                         f"Attribute '{name}' is expected to have field "
                         f"'tensors'.", node)
             elif expected_type == AttributeProto.SPARSE_TENSORS:
@@ -265,16 +265,16 @@ class Schema(object):
                 pass
             elif expected_type == AttributeProto.GRAPHS:
                 if attr_proto.graphs.ByteSize == 0:
-                    raise OnnxCheckError(
+                    raise OnnxCheckError(  # pragma: no cover
                         f"Attribute '{name}' is expected to have field "
                         f"'graphs'.", node)
             elif expected_type == AttributeProto.TYPE_PROTOS:
                 if attr_proto.type_protos.ByteSize == 0:
-                    raise OnnxCheckError(
+                    raise OnnxCheckError(  # pragma: no cover
                         f"Attribute '{name}' is expected to have field "
                         f"'type_protos'.", node)
             else:
-                raise OnnxCheckError(
+                raise OnnxCheckError(  # pragma: no cover
                     f"Attribute '{name}' has unknown expected type.",
                     node)
 
@@ -282,7 +282,7 @@ class Schema(object):
             if not attr.required:
                 continue
             if attr.name not in seen_attr_names:
-                raise OnnxCheckError(
+                raise OnnxCheckError(  # pragma: no cover
                     f"Required attribute '{attr.name}' is missing.",
                     node)
 
@@ -404,19 +404,19 @@ class LexicalScopeContext:
 
 def _enforce_has_field(proto, field):
     if not hasattr(proto, field):
-        raise OnnxCheckError(
+        raise OnnxCheckError(  # pragma: no cover
             f"Field '{field}' of '{proto}' is required but missing.", proto)
 
 
 def _enforce_has_repeated_field(proto, field):
     if not getattr(proto, field + '_size')():
-        raise OnnxCheckError(
+        raise OnnxCheckError(  # pragma: no cover
             f"Repeated field '{field}' of '{proto}' is required but missing.", proto)
 
 
 def _enforce_non_empty_field(proto, field):
     if not getattr(proto, field):
-        raise OnnxCheckError(
+        raise OnnxCheckError(  # pragma: no cover
             f"Field '{field}' of '{proto}' is required to be non-empty.", proto)
 
 
@@ -432,7 +432,7 @@ def _check_value_info(value_info, ctx):
             tt = getattr(value_info.type, n)
             if tt.ByteSize() > 0:
                 if value_case is not None:
-                    raise OnnxCheckError(
+                    raise OnnxCheckError(  # pragma: no cover
                         f"Value_info {value_info} has multiple types.",
                         value_info)
                 value_case = n
@@ -456,7 +456,7 @@ def _check_value_info(value_info, ctx):
         _enforce_has_field(tt, "elem_type")
         _enforce_has_field(tt, "shape")
     else:
-        raise OnnxCheckError(
+        raise OnnxCheckError(  # pragma: no cover
             f"Unrecognized type value case (value_info name '{value_info.name}' "
             f"value_case={value_case}.", value_info)
 
@@ -473,7 +473,7 @@ def _check_data_field(tensor, field, num_value_fields):
 
 def _check_field(tensor, field, value_field, nelem):
     if nelem != 0 and len(getattr(tensor, field)):
-        raise OnnxCheckError(
+        raise OnnxCheckError(  # pragma: no cover
             f"values of data_type '{tensor.data_type} "
             f"should be stored in field '{field}' "
             f"instead of '{value_field}'.",
@@ -484,7 +484,7 @@ def _check_tensor(tensor, ctx):
 
     _enforce_has_field(tensor, "data_type")
     if tensor.data_type == TensorProto.UNDEFINED:
-        raise OnnxCheckError(
+        raise OnnxCheckError(  # pragma: no cover
             f"Setting data_type field (tensor name '{tensor.name}' "
             f"to UNDEFINED is not allowed.", tensor)
 
@@ -506,7 +506,7 @@ def _check_tensor(tensor, ctx):
         tensor.data_location == TensorProto.EXTERNAL)
     if stored_externally:
         if num_value_fields != 0:
-            raise OnnxCheckError(
+            raise OnnxCheckError(  # pragma: no cover
                 f"Data of TensorProto ( tensor name: f{tensor.name}) "
                 f"is stored externally and should not have data field: "
                 f"{value_field}.", tensor)
@@ -519,12 +519,12 @@ def _check_tensor(tensor, ctx):
                 data_path = os.path.join(ctx.get_model_dir(), entry.value())
                 # use stat to check whether the file exists
                 if os.stat(data_path).st_size != 0:
-                    raise OnnxCheckError(
+                    raise OnnxCheckError(  # pragma: no cover
                         f"Data of TensorProto ( tensor name: {tensor.name} "
                         f"should be stored in {data_path}, but it doesn't "
                         "exist or is not accessible.", tensor)
         if not has_location:
-            raise OnnxCheckError(
+            raise OnnxCheckError(  # pragma: no cover
                 f"TensorProto tensor name {tensor.name} is stored externally "
                 f"but doesn't have a location.",
                 tensor)
@@ -535,18 +535,18 @@ def _check_tensor(tensor, ctx):
         nelem *= x
 
     if nelem == 0 and num_value_fields != 0:
-        raise OnnxCheckError(
+        raise OnnxCheckError(  # pragma: no cover
             f"TensorProto (tensor name f{tensor.name} "
             f"is 0-element but contains data!",
             tensor)
     if nelem != 0 and num_value_fields != 1:
-        raise OnnxCheckError(
+        raise OnnxCheckError(  # pragma: no cover
             f"TensorProto (tensor name: {tensor.name} "
             f"should contain one and only one value field.",
             tensor)
     if hasattr(tensor, 'raw_data') and len(tensor.raw_data) > 0:
         if tensor.data_type == TensorProto.STRING:
-            raise OnnxCheckError(
+            raise OnnxCheckError(  # pragma: no cover
                 f"STRING data (tensor name: f{tensor.name} "
                 f"should not be stored in raw_data field",
                 tensor)
@@ -576,7 +576,7 @@ def _check_tensor(tensor, ctx):
         elif tensor.data_type == TensorProto.STRING:
             _check_field(tensor, "string_data", value_field, nelem)
         else:
-            raise OnnxCheckError(
+            raise OnnxCheckError(  # pragma: no cover
                 f"Unrecognized data_type (tensor name: {tensor.name} "
                 f"): {tensor.data_type}.",
                 tensor)
@@ -597,7 +597,7 @@ def _check_sequence(sequence, ctx):
         for map in sequence.map_values():
             _check_map(map, ctx)
     else:
-        raise OnnxCheckError(
+        raise OnnxCheckError(  # pragma: no cover
             f"Sequence ( Structure name: {sequence.name}, "
             f"elem_type: {sequence.elem_type}) is not have "
             f"a valid element type.",
@@ -621,7 +621,7 @@ def _check_optional(optional, ctx):
         if (optional.has_map_value()):
             _check_map(optional.map_value(), ctx)
     else:
-        raise OnnxCheckError(
+        raise OnnxCheckError(  # pragma: no cover
             f"Optional ( Structure name: {optional.name}, "
             f"elem_type: {optional.elem_type}) is not "
             f"have a valid element type.",
@@ -631,7 +631,7 @@ def _check_optional(optional, ctx):
 def _check_map(map, ctx):
     _enforce_has_field(map, 'key_type')
     if map.key_type() == TensorProto.UNDEFINED:
-        raise OnnxCheckError(
+        raise OnnxCheckError(  # pragma: no cover
             f"Setting key_type field (map name: '{map.name}') "
             f"to UNDEFINED is not allowed.",
             map)
@@ -640,14 +640,14 @@ def _check_map(map, ctx):
     if map.key_type() in (TensorProto.FLOAT, TensorProto.BOOL,
                           TensorProto.FLOAT16, TensorProto.COMPLEX64,
                           TensorProto.COMPLEX128):
-        raise OnnxCheckError(
+        raise OnnxCheckError(  # pragma: no cover
             f"Setting key_type field (map name: {map.name}) "
             f" to invalid TensorProto key_type {map.key_type()} "
             f"is not allowed",
             map)
     # MapProto will use either keys or string_keys, so only one should be > 0.
     if map.keys_size() > 0 and map.string_keys_size() > 0:
-        raise OnnxCheckError(
+        raise OnnxCheckError(  # pragma: no cover
             f"Map (name: '{map.name}') should not "
             f"contain more than one keys field.",
             map)
@@ -668,7 +668,7 @@ def _check_map(map, ctx):
         num_values = map.values().map_values_size()
 
     if num_keys != num_values:
-        raise OnnxCheckError(
+        raise OnnxCheckError(  # pragma: no cover
             f"Length of map keys and map values are not the same "
             f"(map name: '{map.name}').",
             map)
@@ -676,7 +676,7 @@ def _check_map(map, ctx):
 
 def _parse_data(dtype, indices):
     if dtype != indices.dtype:
-        raise OnnxCheckError(
+        raise OnnxCheckError(  # pragma: no cover
             f"Wrong element type {indices.dtype}, expected is {dtype}.",
             None)
 
@@ -692,7 +692,7 @@ def _check_sparse_tensor_indices_1(indices, sparse_tensor_proto, nnz):
     for i in range(dense_rank):
         dense_size *= sparse_tensor_proto.dims(i)
         if indices.dims(0) != nnz:
-            raise OnnxCheckError(
+            raise OnnxCheckError(  # pragma: no cover
                 f"Sparse tensor indices '{indices.name}' has "
                 f"{indices.dims(0)} values, but NNZ is {nnz}.",
                 sparse_tensor_proto)
@@ -706,12 +706,12 @@ def _check_sparse_tensor_indices_1(indices, sparse_tensor_proto, nnz):
     for i in range(nnz):
         curr_index = index_data[i]  # linearized index of i-th value
         if curr_index < 0 or curr_index >= dense_size:
-            raise OnnxCheckError(
+            raise OnnxCheckError(  # pragma: no cover
                 f"Sparse tensor '{indices.name}' index value at "
                 f"position [{i}] out of range [0, {dense_size - 1}].",
                 sparse_tensor_proto)
         if curr_index <= prev_index:
-            raise OnnxCheckError(
+            raise OnnxCheckError(  # pragma: no cover
                 f"Sparse tensor '{indices.name}' index value at "
                 f"position [{i}] not in sorted order.",
                 sparse_tensor_proto)
@@ -726,13 +726,13 @@ def _check_sparse_tensor_indices_2(indices, sparse_tensor_proto, nnz):
     """
     dense_rank = sparse_tensor_proto.dims_size()
     if indices.dims(0) != nnz:
-        raise OnnxCheckError(
+        raise OnnxCheckError(  # pragma: no cover
             f"Sparse tensor indices '{indices.name}' "
             f"first dimension size does not equal NNZ={nnz}.",
             sparse_tensor_proto)
 
     if indices.dims(1) != dense_rank:
-        raise OnnxCheckError(
+        raise OnnxCheckError(  # pragma: no cover
             f"Sparse tensor indices '{indices.name}' "
             f"second dimension size does not equal "
             f"dense_rank={dense_rank}.",
@@ -747,13 +747,13 @@ def _check_sparse_tensor_indices_2(indices, sparse_tensor_proto, nnz):
         for j in range(dense_rank):
             index_ij = index_data[i * dense_rank + j]
             if index_ij < 0 or index_ij >= sparse_tensor_proto.dims(j):
-                raise OnnxCheckError(
+                raise OnnxCheckError(  # pragma: no cover
                     f"Sparse tensor '{indices.name}' index value "
                     f"at position [{i}, {j}] out of range.",
                     sparse_tensor_proto)
             curr_index = curr_index * sparse_tensor_proto.dims(j) + index_ij
         if curr_index <= prev_index:
-            raise OnnxCheckError(
+            raise OnnxCheckError(  # pragma: no cover
                 f"Sparse tensor '{indices.name}' index value "
                 f"at position [{i}] not in lexicographic sorted "
                 "order.", sparse_tensor_proto)
@@ -772,20 +772,20 @@ def _check_sparse_tensor(sparse_tensor_proto, ctx):
     # we may extend this to permit the value to be a "sub-tensor", in which
     # case values will have dimension > 1.
     if values.dims_size() != 1:
-        raise OnnxCheckError(
+        raise OnnxCheckError(  # pragma: no cover
             f"Sparse tensor values '{values.name}' must have rank 1.",
             sparse_tensor_proto)
 
     nnz = values.dims(0)
     dense_rank = sparse_tensor_proto.dims_size()
     if dense_rank == 0:
-        raise OnnxCheckError(
+        raise OnnxCheckError(  # pragma: no cover
             f"Sparse tensor '{values.name}' must have a "
             f"dense-rank > 0.", sparse_tensor_proto)
 
     for i in range(dense_rank):
         if sparse_tensor_proto.dims(i) <= 0:
-            raise OnnxCheckError(
+            raise OnnxCheckError(  # pragma: no cover
                 f"Sparse tensor '{values.name} dimensions "
                 f"are not positive.", sparse_tensor_proto)
 
@@ -793,7 +793,7 @@ def _check_sparse_tensor(sparse_tensor_proto, ctx):
         indices = sparse_tensor_proto.indices()
         _check_tensor(indices, ctx)
         if indices.data_type != TensorProto.INT64:
-            raise OnnxCheckError(
+            raise OnnxCheckError(  # pragma: no cover
                 f"Sparse tensor indices '{indices.name}' must have INT64 type.",
                 sparse_tensor_proto)
 
@@ -805,11 +805,11 @@ def _check_sparse_tensor(sparse_tensor_proto, ctx):
             # Check COO-style index. E.g., an index for a 3D tensor is a 3-tuple.
             _check_sparse_tensor_indices_2(indices, sparse_tensor_proto, nnz)
             return
-        raise OnnxCheckError(
+        raise OnnxCheckError(  # pragma: no cover
             f"Sparse tensor indices '{indices.name}' must have rank 1 or 2.",
             sparse_tensor_proto)
     elif nnz != 0:
-        raise OnnxCheckError(
+        raise OnnxCheckError(  # pragma: no cover
             f"Sparse tensor '{values.name}' has no index values.",
             sparse_tensor_proto)
 
@@ -828,7 +828,7 @@ def check_attribute(attr, ctx, lex_ctx):
 
     def check_type(expected_type):
         if hasattr(attr, 'type') and attr.type != expected_type:
-            raise OnnxCheckError(
+            raise OnnxCheckError(  # pragma: no cover
                 f"Type field and data field mismatch in attribute '{attr.name}'.",
                 attr)
 
@@ -866,7 +866,7 @@ def check_attribute(attr, ctx, lex_ctx):
     # In proto3, when the value to be set is type default value
     # (say 0 for int), used_fields may be 0.
     if used_fields > 1:
-        raise OnnxCheckError(
+        raise OnnxCheckError(  # pragma: no cover
             f"Attribute (name: '{attr.name}') should not "
             f"contain more than one value field.",
             attr)
@@ -876,7 +876,7 @@ def check_attribute(attr, ctx, lex_ctx):
         if attr.has_ref_attr_name() and used_fields != 0:
             # The attribute proto is supposed to refer to data outside and does not
             # have its own value field set.
-            raise OnnxCheckError(
+            raise OnnxCheckError(  # pragma: no cover
                 f"Attribute (name: '{attr.name}') should refer "
                 f"to attribute in parent node.",
                 attr)
@@ -909,7 +909,7 @@ def _check_node(node, ctx, lex_ctx):
     _enforce_non_empty_field(node, "op_type")
 
     if not node.input and not node.output:
-        raise OnnxCheckError(
+        raise OnnxCheckError(  # pragma: no cover
             f"NodeProto (name: '{node.name}', type: '{node.op_type}') "
             f"has zero input and zero output.",
             node)
@@ -924,7 +924,7 @@ def _check_node(node, ctx, lex_ctx):
     # Resolve domain for node
     opset_imports = ctx.get_opset_imports()
     if node.domain not in opset_imports:
-        raise OnnxCheckError(
+        raise OnnxCheckError(  # pragma: no cover
             f"No opset import for domain '{node.domain}'.",
             node)
     domain_version = opset_imports[node.domain]
@@ -938,7 +938,7 @@ def _check_node(node, ctx, lex_ctx):
         if node.domain in (ONNX_DOMAIN, AI_ONNX_ML_DOMAIN,
                            "ai.onnx", AI_ONNX_TRAINING_DOMAIN):
             # fail the checker if op in built-in domains has no schema
-            raise OnnxCheckError(
+            raise OnnxCheckError(  # pragma: no cover
                 f"No Op registered for '{node.op_type}' with domain_version "
                 f"of {domain_version}.",
                 node)
@@ -948,7 +948,7 @@ def _check_node(node, ctx, lex_ctx):
             # before we complete the above todo, let's skip the schema check for now
             pass
     elif schema.deprecated_:
-        raise OnnxCheckError(
+        raise OnnxCheckError(  # pragma: no cover
             f"Op registered for '{node.op_type}' is deprecated "
             f"in domain_version of {domain_version}.",
             node)
@@ -973,7 +973,7 @@ def _check_graph(graph, ctx, parent_lex):
         # TODO: If shadowing isn't allowed, this should maybe use
         # this_or_ancestor_graph_has
         if lex_ctx.this_graph_has(value_info.name):
-            raise OnnxCheckError(
+            raise OnnxCheckError(  # pragma: no cover
                 f"Graph must be in single static assignment (SSA) form, "
                 f"however '{value_info.name}' has been used as "
                 f"graph input names multiple times.",
@@ -987,12 +987,12 @@ def _check_graph(graph, ctx, parent_lex):
         _enforce_has_field(init, "name")
         name = init.name
         if not name:
-            raise OnnxCheckError(
+            raise OnnxCheckError(  # pragma: no cover
                 f"Tensor initializers must have a non-empty name.",
                 graph)
 
         if name in initializer_name_checker:
-            raise OnnxCheckError(
+            raise OnnxCheckError(  # pragma: no cover
                 f"'{name}' initializer name is not unique.",
                 graph)
         initializer_name_checker.add(name)
@@ -1002,7 +1002,7 @@ def _check_graph(graph, ctx, parent_lex):
         if ctx.get_ir_version() <= 0x00000003:
             # Initializers are a subset of graph inputs for IR_VERSION <= 3
             if not lex_ctx.this_graph_has(name):
-                raise OnnxCheckError(
+                raise OnnxCheckError(  # pragma: no cover
                     f"'{name}' in initializer but not in graph input.",
                     graph)
         else:
@@ -1015,11 +1015,11 @@ def _check_graph(graph, ctx, parent_lex):
         _enforce_has_field(values, name)
         name = values.name
         if name.empty():
-            raise OnnxCheckError(
+            raise OnnxCheckError(  # pragma: no cover
                 f"Sparse tensor initializers must have a non-empty name.",
                 graph)
         if name in initializer_name_checker:
-            raise OnnxCheckError(
+            raise OnnxCheckError(  # pragma: no cover
                 f"'{name}' initializer name is not unique across "
                 f"initializers and sparse_initializers.",
                 graph)
@@ -1035,7 +1035,7 @@ def _check_graph(graph, ctx, parent_lex):
             if not input:
                 continue
             if not lex_ctx.this_or_ancestor_graph_has(input):
-                raise OnnxCheckError(
+                raise OnnxCheckError(  # pragma: no cover
                     f"Nodes in a graph must be topologically sorted, however "
                     f"input '{input}' of node name '{node.name}', type "
                     f"'{node.op_type}' is not output of any previous nodes.",
@@ -1057,7 +1057,7 @@ def _check_graph(graph, ctx, parent_lex):
                 continue
 
             if lex_ctx.this_or_ancestor_graph_has(output):
-                raise OnnxCheckError(
+                raise OnnxCheckError(  # pragma: no cover
                     f"Graph must be in single static assignment "
                     f"(SSA) form, however '{output}' "
                     f"has been used as output names multiple times.",
@@ -1080,7 +1080,7 @@ def _check_opset_compatibility(node, ctx, func_opset_imports, model_opset_import
         node.domain, model_opset_imports)
 
     if func_opset_version == -1:
-        raise OnnxCheckError(
+        raise OnnxCheckError(  # pragma: no cover
             f"No Opset registered for domain '{node.domain}'.",
             node)
 
@@ -1106,7 +1106,7 @@ def _check_opset_compatibility(node, ctx, func_opset_imports, model_opset_import
     # versions do not match then raise an error
     if (not schema_for_model_import or not schema_for_function_import or
             schema_for_function_import.since_version() != schema_for_model_import.since_version()):
-        raise OnnxCheckError(
+        raise OnnxCheckError(  # pragma: no cover
             f"Opset import for domain '{node.domain}' in function op "
             f"'{node.op_type} is not compatible with the version "
             f"imported by model. FunctionOp imports version "
@@ -1158,7 +1158,7 @@ def _check_function(function, ctx, parent_lex):
         # TODO: If shadowing isn't allowed, this should maybe use
         # this_or_ancestor_graph_has
         if lex_ctx.this_graph_has(input):
-            raise OnnxCheckError(
+            raise OnnxCheckError(  # pragma: no cover
                 f"Graph must be in single static assignment (SSA) form, "
                 f"however '{input}' has been used multiple times.",
                 function)
@@ -1167,7 +1167,7 @@ def _check_function(function, ctx, parent_lex):
     outputs = set()
     for output in function.output:
         if output in outputs:
-            raise OnnxCheckError(
+            raise OnnxCheckError(  # pragma: no cover
                 f"Function '{function.name}' should not have "
                 f"duplicate outputs specified.",
                 function)
@@ -1176,7 +1176,7 @@ def _check_function(function, ctx, parent_lex):
     attrs = set()
     for attr in function.attribute:
         if attr in attrs:
-            raise OnnxCheckError(
+            raise OnnxCheckError(  # pragma: no cover
                 f"Function '{function.name}' should not have "
                 f"duplicate attributes specified.",
                 function)
@@ -1188,7 +1188,7 @@ def _check_function(function, ctx, parent_lex):
             if input.empty():
                 continue
             if not lex_ctx.this_graph_has(input):
-                raise OnnxCheckError(
+                raise OnnxCheckError(  # pragma: no cover
                     f"Nodes in a function must be topologically sorted, "
                     f"however input '{input}' of node name '{node.name}' "
                     f"and type '{node.op_type}' is neither output "
@@ -1208,7 +1208,7 @@ def _check_function(function, ctx, parent_lex):
                 continue
 
             if lex_ctx.this_or_ancestor_graph_has(output):
-                raise OnnxCheckError(
+                raise OnnxCheckError(  # pragma: no cover
                     f"Function must be in single static assignment (SSA) "
                     f"form, however '{output}' has been used as output "
                     f"names multiple times.",
@@ -1218,18 +1218,18 @@ def _check_function(function, ctx, parent_lex):
 
 def _check_model(model, ctx):
     if not model.ir_version:
-        raise OnnxCheckError(
+        raise OnnxCheckError(  # pragma: no cover
             f"The model does not have an ir_version set properly.",
             model)
     if model.ir_version > IR_VERSION:
-        raise OnnxCheckError(
+        raise OnnxCheckError(  # pragma: no cover
             f"Your model ir_version is higher than the checker's.",
             model)
     if len(model.metadata_props) > 1:
         keys = set()
         for entry in model.metadata_props:
             if entry.key() in keys:
-                raise OnnxCheckError(
+                raise OnnxCheckError(  # pragma: no cover
                     f"Your model has duplicate keys '{entry.key()}' "
                     f"in metadata_props.", model)
             keys.add(entry.key())
@@ -1240,14 +1240,14 @@ def _check_model(model, ctx):
         opset_imports[opset_import.domain] = int(opset_import.version)
     if model.ir_version >= 3:
         if not opset_imports:
-            raise OnnxCheckError(
+            raise OnnxCheckError(  # pragma: no cover
                 f"Model with IR version >= 3 must specify opset_import for "
                 f"ONNX ({opset_imports}).",
                 model)
     elif not opset_imports:
         opset_imports[ONNX_DOMAIN] = 1
     else:
-        raise OnnxCheckError(
+        raise OnnxCheckError(  # pragma: no cover
             f"Model with IR version < 3 cannot have opset_import specified.",
             model)
 

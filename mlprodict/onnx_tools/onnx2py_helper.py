@@ -683,6 +683,8 @@ def guess_proto_dtype_name(onnx_dtype):
         return "TensorProto.UINT8"
     if onnx_dtype == TensorProto.FLOAT16:  # pylint: disable=E1101
         return "TensorProto.FLOAT16"
+    if onnx_dtype == TensorProto.BFLOAT16:  # pylint: disable=E1101
+        return "TensorProto.BFLOAT16"
     if onnx_dtype == TensorProto.BOOL:  # pylint: disable=E1101
         return "TensorProto.BOOL"
     if onnx_dtype == TensorProto.STRING:  # pylint: disable=E1101

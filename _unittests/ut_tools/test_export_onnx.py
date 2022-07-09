@@ -49,6 +49,8 @@ from mlprodict.npy.xop import loadop, OnnxOperatorFunction
 from mlprodict.npy import NDArray
 from mlprodict.onnx_tools.optim import onnx_remove_node_unused
 from mlprodict.plotting.text_plot import onnx_simple_text_plot
+from mlprodict.testing.onnx_backend import enumerate_onnx_tests
+from mlprodict.onnx_tools.model_checker import check_onnx
 
 
 class ConvertFFT2DOp:
@@ -790,10 +792,10 @@ class TestExportOnnx(ExtTestCase):
         case2()
         case3()
 
-    def verify(self, content, more_context=None):
+    def verify(self, content, more_context=None, limit_left=10):
         try:
             left, __ = verify_code(content, exc=False)
-        except SyntaxError as e:
+        except (SyntaxError, AttributeError) as e:
             raise AssertionError(
                 "Unable to analyse a script due to %r. "
                 "\n--CODE--\n%s"
@@ -823,10 +825,10 @@ class TestExportOnnx(ExtTestCase):
             loc.update(more_context)
             glo.update(more_context)
         out, err = StringIO(), StringIO()
-        if len(left) >= 10:
+        if limit_left is not None and len(left) >= limit_left:
             raise AssertionError(
-                "Too many unknown symbols: %r in\n%s" % (
-                    left, content))
+                "Too many unknown symbols (%d): %r in\n%s" % (
+                    len(left), left, content))
 
         with redirect_stdout(out):
             with redirect_stderr(err):
@@ -1633,7 +1635,34 @@ class TestExportOnnx(ExtTestCase):
         expected = fct_if(x)
         self.assertEqualArray(expected, y)
 
+    def test_export_all(self):
+
+        class LocalDomain:
+            def __init__(self, domain, version):
+                self.domain = domain
+                self.version = version
+
+        context = {'mlprodict1': LocalDomain('mlprodict', 1)}
+        for i in range(0, 17):
+            op = LocalDomain('', i)
+            op.ReduceSum = numpy.sum
+            op.Identity = lambda i: i
+            op.Constant = lambda value: numpy_helper.to_array(value)
+            context['opset%d' % i] = op
+
+        for te in enumerate_onnx_tests('node'):
+            with self.subTest(name=te.name):
+                check_onnx(te.onnx_model)
+                try:
+                    new_onnx = export2python(te.onnx_model, name="TEST")
+                except Exception as e:
+                    raise AssertionError(
+                        "Unable to convert model\n%s" % te.onnx_model) from e
+                _, loc = self.verify(
+                    new_onnx, more_context=context, limit_left=None)
+                self.assertIn('main', loc)
+
 
 if __name__ == "__main__":
-    # TestExportOnnx().test_export_if()
+    TestExportOnnx().test_export_all()
     unittest.main(verbosity=2)

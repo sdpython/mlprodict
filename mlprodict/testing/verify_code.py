@@ -82,8 +82,9 @@ class CodeNodeVisitor(ast.NodeVisitor):
         """
         Overrides ``generic_visit`` to check it is not used.
         """
-        raise AttributeError(
-            "generic_visit_args should be used.")  # pragma: no cover
+        raise AttributeError(  # pragma: no cover
+            "generic_visit_args should not be used for node "
+            "type %r and node=%r." % (type(node), node))
 
     def generic_visit_args(self, node, row):
         """
@@ -180,6 +181,17 @@ class CodeNodeVisitor(ast.NodeVisitor):
             "ctx": node.ctx}
         self.push(cont)
         self._names.append((node.id, node))
+        return self.generic_visit_args(node, cont)
+
+    def visit_Constant(self, node):  # pylint: disable=C0116
+        cont = {
+            "indent": self._indent,
+            "type": "Constant",
+            "str": str(node.value),
+            "node": node,
+            "id": node.value}
+        self.push(cont)
+        self._names.append((str(node.value), node))
         return self.generic_visit_args(node, cont)
 
     def visit_Expr(self, node):  # pylint: disable=C0116
