@@ -21,6 +21,24 @@ from .exports.numpy_helper import make_numpy_code
 from .exports.tf2onnx_helper import make_tf2onnx_code
 
 
+_keywords = {
+    'False', 'await', 'else', 'import', 'pass',
+    'None', 'break', 'except', 'in', 'raise',
+    'True', 'class', 'finally', 'is', 'return',
+    'and', 'continue', 'for', 'lambda', 'try',
+    'as', 'def', 'from', 'nonlocal', 'while',
+    'assert', 'del', 'global', 'not', 'with',
+    'async', 'elif', 'if', 'or', 'yield'}
+
+
+def _rename_var(var, empty='None'):
+    if var in _keywords:
+        return 'r_' + var
+    if var == '':
+        return empty
+    return var
+
+
 def select_attribute(ens, att, sort=False, unique=False, skip=None):
     """
     Returns the list of the same attribute.
@@ -50,7 +68,9 @@ def select_attribute(ens, att, sort=False, unique=False, skip=None):
 
 def _nodes(graph, rename_name, used, output_names, use_onnx_tensor,
            templates, verbose, opset, rename, autopep_options, name,
-           subgraphs, unique_operators):
+           subgraphs, unique_operators, opsets=None):
+    if opsets is None:
+        raise ValueError("opsets cannot be None.")
     if unique_operators is not None:
         from ..npy.xop import loadop
     nodes = []
@@ -60,18 +80,14 @@ def _nodes(graph, rename_name, used, output_names, use_onnx_tensor,
             clname = loadop((node.domain, node.op_type))
             unique_operators.add(
                 (node.domain, node.op_type, clname.__name__))
-        for index_input, i_raw_name in enumerate(node.input):
+        for i_raw_name in node.input:
             if len(i_raw_name) == 0:
-                # This means the input is optional.
-                if any(map(lambda s: len(s) > 0, node.input[index_input:])):
-                    raise NotImplementedError(
-                        "Input cannot be placed after an unused optional input "
-                        "in node %r." % (node, ))
-                break
-            i = rename_name(i_raw_name)
-            if i not in used:
-                used[i] = []
-            used[i].append(node)
+                i = 'None'
+            else:
+                i = rename_name(i_raw_name, out=False)
+                if i not in used:
+                    used[i] = []
+                used[i].append(node)
         attributes = []
         for at in node.attribute:
             temp = _var_as_dict(at)
@@ -86,7 +102,7 @@ def _nodes(graph, rename_name, used, output_names, use_onnx_tensor,
                     name=name, rename=rename,
                     use_onnx_tensor=use_onnx_tensor,
                     autopep_options=autopep_options,
-                    function_name=fname)
+                    function_name=fname, opsets=opsets)
                 subgraphs.append(
                     (body, node.op_type + "_" + node.name + "_body"))
                 attributes.append((at.name, fname + "()"))
@@ -101,7 +117,7 @@ def _nodes(graph, rename_name, used, output_names, use_onnx_tensor,
                     name=name, rename=rename,
                     use_onnx_tensor=use_onnx_tensor,
                     autopep_options=autopep_options,
-                    function_name=fname)
+                    function_name=fname, opsets=opsets)
                 subgraphs.append((body, "if_" + node.name + "_" + at.name))
                 attributes.append((at.name, fname + "()"))
                 continue
@@ -130,9 +146,10 @@ def _nodes(graph, rename_name, used, output_names, use_onnx_tensor,
         attributes_str = ", ".join("%s=%s" % (k, v) for k, v in attributes)
         d = dict(name=node.name, op_type=node.op_type,
                  domain=node.domain, onnx_node=node,
-                 inputs=[rename_name(n) for n in node.input if len(n) > 0],
-                 outputs=[rename_name(n) for n in node.output],
-                 output_names=[rename_name(n) for n in node.output
+                 inputs=[rename_name(n, out=False)
+                         for n in node.input if len(n) > 0],
+                 outputs=[rename_name(n, out=True) for n in node.output],
+                 output_names=[rename_name(n, out=True) for n in node.output
                                if n in output_names],
                  attributes=attributes, attributes_str=attributes_str)
         nodes.append(d)
@@ -159,23 +176,24 @@ def _python_make_node_name(domain, version, name, node=False):
     return name
 
 
-def _python_make_node_graph(graph, version, indent=0, output_names=None):
+def _python_make_node_graph(graph, opsets, indent=0, output_names=None):
     """
     Translates a GraphProto into python.
     """
     code = []
     sindent = '    ' * indent
     for init in graph.initializer:
-        node = make_node('Constant', [], [init.name], value=init)
-        code.append(_python_make_node(node, version, indent=indent))
+        node = make_node('Constant', [], [_rename_var(init.name)], value=init)
+        code.append(_python_make_node(node, opsets, indent=indent))
     if len(graph.sparse_initializer) > 0:
         raise NotImplementedError(  # pragma: no cover
             "Unable to convert sparse_initilizer into python.")
     for node in graph.node:
-        code.append(_python_make_node(node, version, indent=indent))
+        code.append(_python_make_node(node, opsets, indent=indent))
     if output_names is not None:
         for fr, to in zip(graph.output, output_names):
-            code.append("%s%s = %s" % (sindent, to, fr.name))
+            code.append("%s%s = %s" %
+                        (sindent, _rename_var(to), _rename_var(fr.name)))
     return "\n".join(code)
 
 
@@ -185,7 +203,7 @@ def _python_make_node_make_attribute_str(node):
         temp = _var_as_dict(at)
         value = temp['value']
         if isinstance(value, str):
-            attributes.append((at.name, "%r" % value))
+            attributes.append((at.name, "%r" % value.decode('utf-8')))
             continue
         if isinstance(value, numpy.ndarray):
             if at.name == 'value':
@@ -194,7 +212,7 @@ def _python_make_node_make_attribute_str(node):
                 value = (
                     'make_tensor("value", %s, dims=%r, vals=%r)'
                     '' % (onnx_dtype, list(value.shape),
-                          value.tolist()))
+                          value.ravel().tolist()))
                 attributes.append((at.name, value))
                 continue
             attributes.append((at.name, repr(value.tolist())))
@@ -204,7 +222,7 @@ def _python_make_node_make_attribute_str(node):
     return ", ".join("%s=%s" % (k, v) for k, v in attributes)
 
 
-def _python_make_node_if(node, version, indent=0):
+def _python_make_node_if(node, opsets, indent=0):
     """
     Translates a node If into python.
     """
@@ -220,42 +238,43 @@ def _python_make_node_if(node, version, indent=0):
     else:
         else_branch, then_branch = atts[1].g, atts[0].g
     code.append(_python_make_node_graph(
-        then_branch, version, indent=indent + 1,
+        then_branch, opsets, indent=indent + 1,
         output_names=node.output))
     code.append("%selse:" % sindent)
     code.append(_python_make_node_graph(
-        else_branch, version, indent=indent + 1,
+        else_branch, opsets, indent=indent + 1,
         output_names=node.output))
     return "\n".join(code)
 
 
-def _python_make_node_loop(node, version, indent=0):
+def _python_make_node_loop(node, opsets, indent=0):
     """
     Translates a node Loop into python.
     """
     raise NotImplementedError()
 
 
-def _python_make_node_scan(node, version, indent=0):
+def _python_make_node_scan(node, opsets, indent=0):
     """
     Translates a node Scan into python.
     """
     raise NotImplementedError()
 
 
-def _python_make_node(onnx_node, version, indent=0):
+def _python_make_node(onnx_node, opsets, indent=0):
     if isinstance(onnx_node, dict):
         node = onnx_node['onnx_node']
     else:
         node = onnx_node
+    version = opsets[node.domain]
     if node.op_type in {'If', 'Loop', 'Scan'}:
         # If, Loop, Scan
         if node.op_type == 'If':
-            return _python_make_node_if(node, version, indent=indent)
+            return _python_make_node_if(node, opsets, indent=indent)
         if node.op_type == 'Loop':
-            return _python_make_node_loop(node, version, indent=indent)
+            return _python_make_node_loop(node, opsets, indent=indent)
         if node.op_type == 'Scan':
-            return _python_make_node_scan(node, version, indent=indent)
+            return _python_make_node_scan(node, opsets, indent=indent)
         raise RuntimeError(  # pragma: no cover
             "Unable to export node type %r into python." % (node.op_type, ))
         # pragma: no cover
@@ -264,22 +283,22 @@ def _python_make_node(onnx_node, version, indent=0):
         raise RuntimeError(  # pragma: no cover
             "Unable to export node type %r into python." % node.op_type)
     ops = {'Add': '+', 'Sub': '-', 'Mul': '*', 'MatMul': '@',
-           'Div': '/', 'Pow': '**', 'Mod': '%',
-           'And': 'and', 'Or': 'Or', 'Greater': '>', 'Equal': '==',
-           'Lesser': '<', 'GreaterOrEqual': '>=', 'LessOrEqual': '<=',
-           'Not': 'not'}
+           'Div': '/', 'Pow': '**',
+           'And': '&', 'Or': '|', 'Greater': '>', 'Equal': '==',
+           'Lesser': '<', 'GreaterOrEqual': '>=', 'LessOrEqual': '<='}
     sindent = "    " * indent
     if node.op_type in ops:
-        return "%s%s = %s" % (sindent, node.output[0],
-                              (" %s " % ops[node.op_type]).join(node.input))
+        return "%s%s = %s" % (sindent, _rename_var(node.output[0], empty='_'),
+                              (" %s " % ops[node.op_type]).join(
+            map(_rename_var, node.input)))
     name = _python_make_node_name(
         node.domain, version, node.op_type, node=True)
     attributes_str = _python_make_node_make_attribute_str(node)
     if len(node.input) > 0 and len(attributes_str) > 0:
         attributes_str = ", " + attributes_str
-    output = ", ".join(node.output)
+    output = ", ".join(map(lambda s: _rename_var(s, empty='_'), node.output))
     text = [sindent, output, " = ", name,
-            '(', ', '.join(node.input), attributes_str, ')']
+            '(', ', '.join(map(_rename_var, node.input)), attributes_str, ')']
     return "".join(text)
 
 
@@ -287,7 +306,7 @@ def export_template(model_onnx, templates, opset=None,  # pylint: disable=R0914
                     verbose=True, name=None,
                     rename=False, use_onnx_tensor=False,
                     autopep_options=None, function_name='create_model',
-                    clean_code=True):
+                    clean_code=True, opsets=None):
     """
     Exports an ONNX model to the onnx syntax.
 
@@ -295,6 +314,7 @@ def export_template(model_onnx, templates, opset=None,  # pylint: disable=R0914
     :param templates: exporting templates
     :param opset: opset to export to
         (None to select the one from the graph)
+    :param opsets: nodes uses these opsets
     :param verbose: insert prints
     :param name: to overwrite onnx name
     :param rename: rename the names to get shorter names
@@ -318,10 +338,11 @@ def export_template(model_onnx, templates, opset=None,  # pylint: disable=R0914
             n = (n - r) // 26
         return "".join(chr(65 + i) for i in reversed(seq))
 
-    def rename_name(name):
+    def rename_name(name, out):
         if len(name) == 0:
-            raise ValueError(  # pragma: no cover
-                "name is empty.")
+            if out:
+                return '__'
+            return "_"
         if name in dict_names:
             return dict_names[name]
         if rename:
@@ -352,12 +373,16 @@ def export_template(model_onnx, templates, opset=None,  # pylint: disable=R0914
                'xop_make_node_name': _xop_make_node_name,
                'python_make_node': _python_make_node,
                'python_make_node_name': _python_make_node_name,
-               'unique_function_domain_version': unique_function_domain_version}
+               'unique_function_domain_version': unique_function_domain_version,
+               'rename_var': _rename_var}
     used = {}
 
     # opset
     if hasattr(model_onnx, 'opset_import'):
-        opsets = {}
+        if opsets is None:
+            opsets = {}
+        else:
+            opsets = opsets.copy()
         for oimp in model_onnx.opset_import:
             if oimp.domain == '' and opset is None:
                 opsets[oimp.domain] = oimp.version
@@ -366,6 +391,10 @@ def export_template(model_onnx, templates, opset=None,  # pylint: disable=R0914
                 opsets[oimp.domain] = opset
         context['opsets'] = opsets
         context['target_opset'] = opset
+    else:
+        context['opsets'] = opsets
+    if opsets is None:
+        raise ValueError("opsets cannot be None.")
 
     if hasattr(model_onnx, 'graph'):
         graph = model_onnx.graph
@@ -382,7 +411,7 @@ def export_template(model_onnx, templates, opset=None,  # pylint: disable=R0914
     unique_operators = set()
     initializers = []
     for init in graph.initializer:
-        init_name = rename_name(init.name)
+        init_name = rename_name(init.name, out=False)
         value = numpy_helper.to_array(init)
         initializers.append((init_name, value))
     context['initializers'] = initializers
@@ -408,7 +437,8 @@ def export_template(model_onnx, templates, opset=None,  # pylint: disable=R0914
                   'nodes': _nodes(fct, rename_name, used, fct.output,
                                   use_onnx_tensor, templates, verbose,
                                   opset, rename, autopep_options,
-                                  fct.name, [], unique_operators)}))
+                                  fct.name, [], unique_operators,
+                                  opsets=opsets)}))
             if fct.name in fct_dict:
                 fct_dict[fct.name].append(fct)
             else:
@@ -450,11 +480,10 @@ def export_template(model_onnx, templates, opset=None,  # pylint: disable=R0914
     context['nodes'] = _nodes(
         graph, rename_name, used, output_names, use_onnx_tensor,
         templates, verbose, opset, rename, autopep_options, name,
-        subgraphs, unique_operators)
+        subgraphs, unique_operators, opsets=opsets)
 
     # graph
-    context['name'] = name or graph.name
-    context['name'] = context['name'].replace("(", "_").replace(")", "")
+    context['name'] = (name or graph.name).replace("(", "_").replace(")", "")
     context['function_name'] = function_name
     context['indent'] = textwrap.indent
     if hasattr(model_onnx, 'graph'):
@@ -486,7 +515,7 @@ def export_template(model_onnx, templates, opset=None,  # pylint: disable=R0914
     from jinja2 import Template  # delayed import
     template = Template(templates)
     final = template.render(
-        enumerate=enumerate, sorted=sorted, len=len,
+        enumerate=enumerate, sorted=sorted, len=len, map=map,
         select_attribute=select_attribute, repr=repr,
         TENSOR_TYPE_TO_NP_TYPE=TENSOR_TYPE_TO_NP_TYPE,
         make_numpy_code=lambda *args, **kwargs: make_numpy_code(

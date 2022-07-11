@@ -790,10 +790,10 @@ class TestExportOnnx(ExtTestCase):
         case2()
         case3()
 
-    def verify(self, content, more_context=None):
+    def verify(self, content, more_context=None, limit_left=10):
         try:
             left, __ = verify_code(content, exc=False)
-        except SyntaxError as e:
+        except (SyntaxError, AttributeError) as e:
             raise AssertionError(
                 "Unable to analyse a script due to %r. "
                 "\n--CODE--\n%s"
@@ -823,10 +823,10 @@ class TestExportOnnx(ExtTestCase):
             loc.update(more_context)
             glo.update(more_context)
         out, err = StringIO(), StringIO()
-        if len(left) >= 10:
+        if limit_left is not None and len(left) >= limit_left:
             raise AssertionError(
-                "Too many unknown symbols: %r in\n%s" % (
-                    left, content))
+                "Too many unknown symbols (%d): %r in\n%s" % (
+                    len(left), left, content))
 
         with redirect_stdout(out):
             with redirect_stderr(err):
@@ -1018,7 +1018,8 @@ class TestExportOnnx(ExtTestCase):
         out, err = StringIO(), StringIO()
         if len(left) > 14:
             raise AssertionError(
-                "Too many unknown symbols: %r." % left)
+                "Too many unknown symbols (%d): %r in \n%s" % (
+                    len(left), left, content))
 
         with redirect_stdout(out):
             with redirect_stderr(err):
@@ -1635,5 +1636,4 @@ class TestExportOnnx(ExtTestCase):
 
 
 if __name__ == "__main__":
-    # TestExportOnnx().test_export_if()
     unittest.main(verbosity=2)
