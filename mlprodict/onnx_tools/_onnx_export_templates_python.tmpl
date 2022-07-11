@@ -16,7 +16,7 @@ def {{ python_make_node_name(fct['proto'].domain, 1, fct['proto'].name) }}({{ ",
     {{ fct['proto'].doc_string }}
     """{%- endif %}
     {%- for node in fct['nodes']: %}
-{{ python_make_node(node, opsets[node['domain']], 1) }}{% endfor %}
+{{ python_make_node(node, opsets, 1) }}{% endfor %}
     return {{ ", ".join(map(rename_var, fct['proto'].output)) }}
 
 {% endfor %}
@@ -28,13 +28,13 @@ def {{ function_name }}({% if len(inputs) > 0 %}{{ rename_var(inputs[0][0]) }}{%
     {%- for name, value in initializers: %}{% if len(value.shape) == 0: %}
     {{ rename_var(name) }} = numpy.array({{ value }}, dtype=numpy.{{ value.dtype }})
     {%- else %}{% if value.size < 6: -%}
-    {{ rename_var(name) }} = numpy.array({{ value.tolist() }}, dtype=numpy.{{ value.dtype }}){% if len(value.shape) > 1: %}.reshape({{ value.shape }}){% endif %}
+    {{ rename_var(name, empty='_') }} = numpy.array({{ value.tolist() }}, dtype=numpy.{{ value.dtype }}){% if len(value.shape) > 1: %}.reshape({{ value.shape }}){% endif %}
     {%- else %}list_value = {{ value.ravel().tolist() }}
-    {{ rename_var(name) }} = numpy.array(list_value, dtype=numpy.{{ value.dtype }}){% if len(value.shape) > 1: %}.reshape({{ value.shape }}){% endif %}
+    {{ rename_var(name, empty='_') }} = numpy.array(list_value, dtype=numpy.{{ value.dtype }}){% if len(value.shape) > 1: %}.reshape({{ value.shape }}){% endif %}
     {% endif -%}{% endif %}
     {% endfor %}
     {%- for node in nodes: %}
-{{ python_make_node(node, opsets[node['domain']], 1) }}{% endfor %}
+{{ python_make_node(node, opsets, 1) }}{% endfor %}
     return {{ rename_var(outputs[0][0]) }}{% for name in outputs[1:]: %}, {{ rename_var(name[0]) }}{% endfor %}
 
 

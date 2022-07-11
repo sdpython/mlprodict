@@ -50,7 +50,7 @@ def verify_code(source, exc=True):
             issues.add(name[0])
     if exc and len(issues) > 0:
         raise ImperfectPythonCode(
-            "Unknown identifiers: {} in source\n{}".format(
+            "Unknown identifiers: '{}' in source\n{}".format(
                 issues, source))
     return issues, v
 
@@ -191,7 +191,6 @@ class CodeNodeVisitor(ast.NodeVisitor):
             "node": node,
             "id": node.value}
         self.push(cont)
-        self._names.append((str(node.value), node))
         return self.generic_visit_args(node, cont)
 
     def visit_Expr(self, node):  # pylint: disable=C0116
