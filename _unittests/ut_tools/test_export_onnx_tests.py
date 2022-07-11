@@ -17,7 +17,6 @@ from pyquickhelper.pycode import ExtTestCase
 from mlprodict.onnx_tools.onnx_export import export2python
 from mlprodict.testing.verify_code import verify_code
 from mlprodict.tools.code_helper import print_code
-from mlprodict.npy.xop_variable import Variable as XopVariable
 from mlprodict.testing.onnx_backend import enumerate_onnx_tests
 from mlprodict.onnx_tools.model_checker import check_onnx
 
