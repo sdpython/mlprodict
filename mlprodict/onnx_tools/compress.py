@@ -65,7 +65,7 @@ def _fuse_node(o, node, node_next):
                    for name in node_next.output]
         graph = make_graph([node, node_next], "expression", inputs, outputs)
 
-    if key1 == type_expression and node_next.domain == '':
+    elif key1 == type_expression and node_next.domain == '':
         att = node.attribute[0].g
         inputs = att.input
         outputs = [make_value_info(name, make_tensor_type_proto(0, []))
@@ -73,14 +73,14 @@ def _fuse_node(o, node, node_next):
         graph = make_graph(list(att.node) + [node_next],
                            "expression", inputs, outputs)
 
-    if node.domain == '' and key2 == type_expression:
+    elif node.domain == '' and key2 == type_expression:
         att = node_next.attribute[0].g
         inputs = [make_value_info(name, make_tensor_type_proto(0, []))
                   for name in node.input]
         outputs = att.output
         graph = make_graph([node] + list(att.node), "expression", inputs, outputs)
 
-    if key1 == type_expression and key2 == type_expression:
+    elif key1 == type_expression and key2 == type_expression:
         att1 = node.attribute[0].g
         att2 = node_next.attribute[0].g
         inputs = att1.input
