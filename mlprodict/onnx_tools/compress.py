@@ -198,7 +198,7 @@ def compress_proto(proto, verbose=0):
                 proto.domain, proto.name, len(proto.node), len(nodes))
         opsets = {op.domain: op.version for op in proto.opset_import}
         opsets['mlprodict'] = 1
-                
+
         return make_function(
             proto.domain, proto.name,
             proto.input, proto.output, nodes,
@@ -215,7 +215,7 @@ def compress_proto(proto, verbose=0):
         fcts = []
         for f in proto.functions:
             new_f = compress_proto(f, verbose=verbose)
-            if id(new_f) != id(d):
+            if id(new_f) != id(f):
                 modified += 1
             fcts.append(new_f)
         if modified == 0:

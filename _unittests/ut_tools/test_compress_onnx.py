@@ -100,7 +100,6 @@ class TestCompressOnnx(ExtTestCase):
         self.assertIn('expression=G1', text)
         self.assertIn('Log(out_abs_0) -> y', text)
 
-
     @ignore_warnings(RuntimeWarning)
     def test_simple_case4(self):
         OnnxAdd, OnnxLog, OnnxAbs, OnnxExp, OnnxSub = loadop(
