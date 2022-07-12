@@ -33,7 +33,7 @@ class TestCompressOnnx(ExtTestCase):
         self.assertEqual(len(onx2.graph.node), 1)
         check_onnx(onx2)
         oinf2 = OnnxInference(onx2)
-        y = oinf.run({'x': x})['y']
+        y = oinf2.run({'x': x})['y']
         self.assertEqual(numpy.log(x + 1), y)
 
         # text
@@ -61,14 +61,13 @@ class TestCompressOnnx(ExtTestCase):
         self.assertEqual(len(onx2.graph.node), 1)
         check_onnx(onx2)
         oinf2 = OnnxInference(onx2)
-        y = oinf.run({'x': x})['y']
+        y = oinf2.run({'x': x})['y']
         self.assertEqual(numpy.log(numpy.abs(x + 1)), y)
 
         # text
         text = onnx_simple_text_plot(onx2, recursive=True)
         self.assertIn('expression=G1', text)
         self.assertIn('Log(out_abs_0) -> y', text)
-
 
     @ignore_warnings(RuntimeWarning)
     def test_simple_case3(self):
@@ -93,7 +92,7 @@ class TestCompressOnnx(ExtTestCase):
         self.assertEqual(len(onx2.graph.node), 1)
         check_onnx(onx2)
         oinf2 = OnnxInference(onx2)
-        y = oinf.run({'x': x})['y']
+        y = oinf2.run({'x': x})['y']
         self.assertEqual(expected, y)
 
         # text
@@ -127,7 +126,7 @@ class TestCompressOnnx(ExtTestCase):
         self.assertEqual(len(onx2.graph.node), 1)
         check_onnx(onx2)
         oinf2 = OnnxInference(onx2)
-        y = oinf.run({'x': x, 'c': x})['y']
+        y = oinf2.run({'x': x, 'c': x})['y']
         self.assertEqual(expected, y)
 
         # text
