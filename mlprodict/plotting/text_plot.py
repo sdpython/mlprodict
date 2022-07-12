@@ -206,7 +206,7 @@ def _append_succ_pred(subgraphs, successors, predecessors, node_map, node, prefi
     for name in node.output:
         successors[node_name].append(name)
         predecessors[name] = [node_name]
-    if node.op_type in {'If', 'Scan', 'Loop'}:
+    if node.op_type in {'If', 'Scan', 'Loop', 'Expression'}:
         for att in node.attribute:
             if (att.type != AttributeProto.GRAPH or  # pylint: disable=E1101
                     not hasattr(att, 'g') or att.g is None):
