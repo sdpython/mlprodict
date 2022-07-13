@@ -586,10 +586,10 @@ def onnx_documentation_folder(folder, ops=None, title='ONNX operators',
             schemas = get_operator_schemas(op, domain=dom, version=None)
             links = []
             for sch in schemas:
-                link = (':ref:`{sver} <l-onnx-op{lname_}'
-                        '-{lname}-{sver}>`').format(sch=sch, sver=str(sch.since_version),
-                                                   lname=sch.name.lower(),
-                                                   lname_=sch.domain.lower().replace(".", "-"))
+                link = (
+                    ':ref:`{sver} <l-onnx-op{lname_}-{lname}-{sver}>`').format(
+                        sver=str(sch.since_version), lname=sch.name.lower(),
+                        lname_=sch.domain.lower().replace(".", "-"))
                 links.append(link)
             table_dom.extend(["    * - %s" % op,
                               "      - %s" % " ".join(links)])
