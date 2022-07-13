@@ -89,8 +89,17 @@ class TestXopDoc(ExtTestCase):
         self.assertGreater(len(pages), 3)
         index = pages[-1]
         self.assertEndsWith('index.rst', index)
+        with open(index, "r", encoding="utf-8") as f:
+            content = f.read()
+        self.assertIn("    table_main", content)
+        index = pages[-2]
+        self.assertEndsWith('table_main.rst', index)
+        with open(index, "r", encoding="utf-8") as f:
+            content = f.read()
+        self.assertIn('    * - Add', content)
+        self.assertIn('      - :ref:`', content)
 
 
 if __name__ == "__main__":
-    TestXopDoc().test_get_operator_schemas()
+    # TestXopDoc().test_get_operator_schemas()
     unittest.main(verbosity=2)

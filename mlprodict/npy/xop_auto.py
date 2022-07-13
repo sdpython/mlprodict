@@ -530,13 +530,26 @@ def onnx_documentation_folder(folder, ops=None, title='ONNX operators',
     index = ['', title, '=' * len(title), '', '.. contents::',
              '    :local:', '']
     pages = []
+    tables_domain_pages = []
 
     if ops is not None:
         ops = set(ops)
     for dom in sorted(all_schemas):
         sdom = 'main' if dom == '' else dom
+
         index_dom = [sdom, '+' * len(sdom), '', '.. toctree::',
                      '    :maxdepth: 1', '']
+
+        table_dom = ["", ".. _l-table-operator-%s:" % sdom.replace(".", "-"), "",
+                     "operator table for domain %s" % sdom]
+        table_dom.extend(["=" * len(table_dom[-1]), ""])
+        table_dom.extend([".. list-table:: operators for domain %s" % sdom,
+                          "    :widths: 10 10",
+                          "    :header-rows: 1",
+                          "",
+                          "    * - operator",
+                          "      - versions"])
+
         sub = all_schemas[dom]
         do = []
         if ops is None:
@@ -568,9 +581,35 @@ def onnx_documentation_folder(folder, ops=None, title='ONNX operators',
             with open(full, 'w', encoding='utf-8') as f:
                 f.write("\n".join(rows))
             pages.append(full)
+
+            # table
+            schemas = get_operator_schemas(op, domain=dom, version=None)
+            links = []
+            for sch in schemas:
+                link = (
+                    ':ref:`{sver} <l-onnx-op{lname_}-{lname}-{sver}>`').format(
+                        sver=str(sch.since_version), lname=sch.name.lower(),
+                        lname_=sch.domain.lower().replace(".", "-"))
+                links.append(link)
+            table_dom.extend(["    * - %s" % op,
+                              "      - %s" % " ".join(links)])
+
+        page_name = os.path.join(folder, 'table_%s.rst' % sdom)
+        tables_domain_pages.append('table_%s' % sdom)
+        pages.append(page_name)
+        with open(page_name, "w", encoding="utf-8") as f:
+            f.write("\n".join(table_dom))
+
         index.extend(index_dom)
         index.append('')
 
+    # adding pages
+    index.extend(["", "Tables", "======", "", ".. contents::", "    :maxdepth: 1", ""])
+    for page in tables_domain_pages:
+        index.append("    %s" % page)
+    index.append('')
+
+    # creating a big index
     page_name = os.path.join(folder, 'index.rst')
     with open(page_name, 'w', encoding='utf-8') as f:
         f.write('\n'.join(index))
