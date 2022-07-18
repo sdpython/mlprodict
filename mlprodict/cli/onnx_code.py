@@ -60,7 +60,7 @@ def onnx_code(filename, format="onnx", output=None, verbose=0, name=None,
         with open(output, "w", encoding="utf-8") as f:
             f.write(code)
     else:
-        fLOG(code)
+        fLOG(code)  # pragma: no cover
 
 
 def dynamic_doc(verbose=0, fLOG=print):
@@ -131,4 +131,4 @@ def plot_onnx(filename, format="onnx", verbose=0, output=None, fLOG=print):
         with open(output, "w", encoding="utf-8") as f:
             f.write(code)
     else:
-        fLOG(code)
+        fLOG(code)  # pragma: no cover

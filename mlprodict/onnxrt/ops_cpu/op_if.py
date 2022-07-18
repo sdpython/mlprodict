@@ -87,7 +87,8 @@ class If(OpRun):
         if len(cond.shape) > 0:
             if all(cond):
                 if verbose > 0 and fLOG is not None:
-                    fLOG('  -- then> %r' % list(context))
+                    fLOG(  # pragma: no cover
+                        '  -- then> %r' % list(context))
                 outputs = self._run_meth_then(named_inputs, context=context,
                                               attributes=attributes,
                                               verbose=verbose, fLOG=fLOG)
@@ -98,34 +99,37 @@ class If(OpRun):
                 branch = 'then'
             else:
                 if verbose > 0 and fLOG is not None:
-                    fLOG('  -- else> %r' % list(context))
+                    fLOG(  # pragma: no cover
+                        '  -- else> %r' % list(context))
                 outputs = self._run_meth_else(named_inputs, context=context,
                                               attributes=attributes,
                                               verbose=verbose, fLOG=fLOG)
                 if verbose > 0 and fLOG is not None:
-                    fLOG('  -- else<')
+                    fLOG('  -- else<')  # pragma: no cover
                 final = tuple([outputs[name]
                               for name in self.else_branch.output_names])
                 branch = 'else'
         elif cond:
             if verbose > 0 and fLOG is not None:
-                fLOG('  -- then> %r' % list(context))
+                fLOG(  # pragma: no cover
+                    '  -- then> %r' % list(context))
             outputs = self._run_meth_then(named_inputs, context=context,
                                           attributes=attributes,
                                           verbose=verbose, fLOG=fLOG)
             if verbose > 0 and fLOG is not None:
-                fLOG('  -- then<')
+                fLOG('  -- then<')  # pragma: no cover
             final = tuple([outputs[name]
                           for name in self.then_branch.output_names])
             branch = 'then'
         else:
             if verbose > 0 and fLOG is not None:
-                fLOG('  -- else> %r' % list(context))
+                fLOG(  # pragma: no cover
+                    '  -- else> %r' % list(context))
             outputs = self._run_meth_else(named_inputs, context=context,
                                           attributes=attributes,
                                           verbose=verbose, fLOG=fLOG)
             if verbose > 0 and fLOG is not None:
-                fLOG('  -- else<')
+                fLOG('  -- else<')  # pragma: no cover
             final = tuple([outputs[name]
                           for name in self.else_branch.output_names])
             branch = 'else'
@@ -150,7 +154,7 @@ class If(OpRun):
             return res[name]
         out = {o.name: o for o in self.then_branch.obj.graph.output}
         if name not in out:
-            raise ValueError(
+            raise ValueError(  # pragma: no cover
                 "Unable to find name=%r in %r or %r." % (
                     name, list(sorted(res)), list(sorted(out))))
         dt = out[name].type.tensor_type.elem_type

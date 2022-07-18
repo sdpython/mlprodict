@@ -41,7 +41,7 @@ def _fix_opset_skl2onnx():
     import skl2onnx
     from .. import __max_supported_opset__
     if skl2onnx.__max_supported_opset__ != __max_supported_opset__:
-        skl2onnx.__max_supported_opset__ = __max_supported_opset__
+        skl2onnx.__max_supported_opset__ = __max_supported_opset__  # pragma: no cover
 
 
 def convert_scorer(fct, initial_types, name=None,
@@ -557,7 +557,7 @@ def get_sklearn_json_params(model):
     pars = model.get_params(deep=False)
     try:
         return json.dumps(pars, cls=_ParamEncoder)
-    except TypeError as e:
+    except TypeError as e:  # pragma: no cover
         raise RuntimeError(
             "Unable to serialize parameters %s." % pprint.pformat(pars)) from e
 
@@ -609,7 +609,7 @@ def _to_onnx_function_pipeline(
             single_function=False)
         for o in protom.graph.output:
             if get_tensor_elem_type(o) == 0:
-                raise RuntimeError(
+                raise RuntimeError(  # pragma: no cover
                     "Unabble to guess output type of output %r "
                     "from model step %d: %r, output=%r." % (
                         protom.graph.output, i_step, step[1], o))
@@ -668,7 +668,7 @@ def _to_onnx_function_pipeline(
 
     for o in onx.graph.output:
         if get_tensor_elem_type(o) == 0:
-            raise RuntimeError(
+            raise RuntimeError(  # pragma: no cover
                 "Unable to guess output type of output %r "
                 "from model %r." % (onx.graph.output, model))
     return onx
@@ -702,9 +702,10 @@ def get_column_index(i, inputs):
         pos = 0
         end = inputs[0][1].shape[1]
         if end is None:
-            raise RuntimeError("Cannot extract a specific column %r when "
-                               "one input (%r) has unknown "
-                               "dimension." % (i, inputs[0]))
+            raise RuntimeError(  # pragma: no cover
+                "Cannot extract a specific column %r when "
+                "one input (%r) has unknown "
+                "dimension." % (i, inputs[0]))
         while True:
             if pos <= i < end:
                 return vi, i - pos
@@ -716,15 +717,16 @@ def get_column_index(i, inputs):
                         vi, i, end, pprint.pformat(inputs)))
             rel_end = inputs[vi][1].shape[1]
             if rel_end is None:
-                raise RuntimeError("Cannot extract a specific column %r when "
-                                   "one input (%r) has unknown "
-                                   "dimension." % (i, inputs[vi]))
+                raise RuntimeError(  # pragma: no cover
+                    "Cannot extract a specific column %r when "
+                    "one input (%r) has unknown "
+                    "dimension." % (i, inputs[vi]))
             end += rel_end
     else:
         for ind, inp in enumerate(inputs):
             if inp[0] == i:
                 return ind, 0
-        raise RuntimeError(
+        raise RuntimeError(  # pragma: no cover
             "Unable to find column name %r among names %r. "
             "Make sure the input names specified with parameter "
             "initial_types fits the column names specified in the "
@@ -765,7 +767,7 @@ def get_column_indices(indices, inputs, multiple):
             onnx_var = ov
         elif onnx_var != ov:
             cols = [onnx_var, ov]
-            raise NotImplementedError(
+            raise NotImplementedError(  # pragma: no cover
                 "sklearn-onnx is not able to merge multiple columns from "
                 "multiple variables ({0}). You should think about merging "
                 "initial types.".format(cols))
@@ -817,7 +819,7 @@ def _to_onnx_function_column_transformer(
         op_version = __max_supported_opset__
     elif isinstance(target_opset, int):
         op_version = target_opset
-    else:
+    else:  # pragma: no cover
         from .. import __max_supported_opset__
         op_version = target_opset.get('', __max_supported_opset__)
 
@@ -842,7 +844,7 @@ def _to_onnx_function_column_transformer(
         transform_inputs = []
         for onnx_var, onnx_is in names.items():
             if max(onnx_is) - min(onnx_is) != len(onnx_is) - 1:
-                raise RuntimeError(
+                raise RuntimeError(  # pragma: no cover
                     "The converter only with contiguous columns indices not %r "
                     "for step %r." % (column_indices, name_step))
             tr_inputs = OnnxSlice(input_nodes[onnx_var],
@@ -890,7 +892,7 @@ def _to_onnx_function_column_transformer(
 
         for o in protom.graph.output:
             if get_tensor_elem_type(o) == 0:
-                raise RuntimeError(
+                raise RuntimeError(  # pragma: no cover
                     "Unabble to guess output type of output %r "
                     "from model step %d: %r." % (
                         protom.graph.output, i_step, op))
@@ -939,7 +941,7 @@ def _to_onnx_function_column_transformer(
 
     for o in onx.graph.output:
         if get_tensor_elem_type(o) == 0:
-            raise RuntimeError(
+            raise RuntimeError(  # pragma: no cover
                 "Unable to guess output type of output %r "
                 "from model %r." % (onx.graph.output, model))
     return onx
@@ -1004,7 +1006,7 @@ def to_onnx_function(model, X=None, name=None, initial_types=None,
                  final_types)
 
     if final_types is not None:
-        raise NotImplementedError(
+        raise NotImplementedError(  # pragma: no cover
             "final_types != None, not implemented yet.")
 
     if single_function and (not isinstance(model, Pipeline) or

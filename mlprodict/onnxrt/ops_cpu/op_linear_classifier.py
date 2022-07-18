@@ -55,8 +55,9 @@ class LinearClassifier(OpRunClassifierProb, _ClassifierCommon):
             numpy.divide(scores, scores.sum(axis=1)[
                          :, numpy.newaxis], out=scores)
         else:
-            raise NotImplementedError("Unknown post_transform: '{}'.".format(
-                self.post_transform))
+            raise NotImplementedError(  # pragma: no cover
+                "Unknown post_transform: '{}'.".format(
+                    self.post_transform))
 
         if self.nb_class == 1:
             label = numpy.zeros((scores.shape[0],), dtype=x.dtype)

@@ -152,7 +152,7 @@ def _populate__get_all_schemas_with_history():
 
     try:
         import onnxruntime.capi.onnxruntime_pybind11_state as rtpy
-    except ImportError:
+    except ImportError:  # pragma: no cover
         rtpy = None
 
     if rtpy is not None:
@@ -228,7 +228,7 @@ def get_operator_schemas(op_name, version=None, domain=None):
                 elif version == 'last' and (dom == '' or 'onnx' in dom):
                     try:
                         sch.append(onnx.defs.get_schema(op, domain=dom))
-                    except SchemaError:
+                    except SchemaError:  # pragma: no cover
                         sch.append(v[max(v)])
                 elif version == 'last':
                     sch.append(v[max(v)])
@@ -482,7 +482,7 @@ def get_onnx_example(op_name):
                 if sub in code:
                     found = code
             if found is None:
-                raise RuntimeError(
+                raise RuntimeError(  # pragma: no cover
                     "Unable to find %r in\n%s" % (sub, code_cls))
             found = textwrap.dedent(found)
             lines = found.split('\n')
@@ -504,7 +504,7 @@ def is_last_schema(sch):
     """
     try:
         last = onnx.defs.get_schema(sch.name, domain=sch.domain)
-    except SchemaError:
+    except SchemaError:  # pragma: no cover
         # raise RuntimeError(
         #     "Unable to find schema for operator %r and domain %r."
         #     "" % (sch.name, sch.domain))
@@ -564,7 +564,8 @@ def onnx_documentation_folder(folder, ops=None, title='ONNX operators',
 
         for op in sorted(do):
             if fLOG is not None:
-                fLOG('generate page for onnx %r - %r' % (dom, op))
+                fLOG(  # pragma: no cover
+                    'generate page for onnx %r - %r' % (dom, op))
             page_name = "onnx_%s_%s" % (dom.replace('.', ''), op)
             index_dom.append('    %s' % page_name)
             doc = get_rst_doc(op, domain=dom, version=None, example=True,

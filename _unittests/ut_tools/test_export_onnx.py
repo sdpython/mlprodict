@@ -38,6 +38,7 @@ from mlprodict.onnx_tools.exports.tf2onnx_helper import (
 from mlprodict.tools.code_helper import print_code
 from mlprodict.onnx_tools.exports.numpy_helper import (
     argmin_use_numpy_select_last_index,
+    argmax_use_numpy_select_last_index,
     make_slice)
 from mlprodict.onnx_conv import to_onnx
 from mlprodict.testing.einsum import decompose_einsum_equation
@@ -1014,6 +1015,7 @@ class TestExportOnnx(ExtTestCase):
             'helper': helper, "make_sure": make_sure,
             'ConvertFFT2DOp': ConvertFFT2DOp, "make_name": make_name,
             'argmin_use_numpy_select_last_index': argmin_use_numpy_select_last_index,
+            'argmax_use_numpy_select_last_index': argmax_use_numpy_select_last_index,
             'make_slice': make_slice}
         out, err = StringIO(), StringIO()
         if len(left) > 14:
@@ -1095,6 +1097,7 @@ class TestExportOnnx(ExtTestCase):
             'helper': helper, "make_sure": make_sure,
             'ConvertFFT2DOp': ConvertFFT2DOp, "make_name": make_name,
             'argmin_use_numpy_select_last_index': argmin_use_numpy_select_last_index,
+            'argmax_use_numpy_select_last_index': argmax_use_numpy_select_last_index,
             'map_onnx_to_numpy_type': map_onnx_to_numpy_type, 'make_slice': make_slice}
         out, err = StringIO(), StringIO()
         if len(left) > 14:

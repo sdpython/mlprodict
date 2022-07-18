@@ -72,5 +72,5 @@ def einsum_test(equation="abc,cd->abd", shape="30", perm=False,
             raise ValueError(  # pragma: no cover
                 "Unknown extension %r in file %r." % (ext, output))
     else:
-        for r in res:
+        for r in res:  # pragma: no cover
             fLOG(r)

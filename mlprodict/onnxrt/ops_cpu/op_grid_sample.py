@@ -40,7 +40,8 @@ class GridSample(OpRun):
                                 self.mode, self.padding_mode)
             rt = self.rt64_
         else:
-            raise TypeError("Unsupported type %r for GridSample." % X.dtype)
+            raise TypeError(  # pragma: no cover
+                "Unsupported type %r for GridSample." % X.dtype)
 
         res = rt.compute(X, grid)
         return (res, )

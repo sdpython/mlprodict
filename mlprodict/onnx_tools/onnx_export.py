@@ -70,7 +70,8 @@ def _nodes(graph, rename_name, used, output_names, use_onnx_tensor,
            templates, verbose, opset, rename, autopep_options, name,
            subgraphs, unique_operators, opsets=None):
     if opsets is None:
-        raise ValueError("opsets cannot be None.")
+        raise ValueError(  # pragma: no cover
+            "opsets cannot be None.")
     if unique_operators is not None:
         from ..npy.xop import loadop
     nodes = []
@@ -251,14 +252,14 @@ def _python_make_node_loop(node, opsets, indent=0):
     """
     Translates a node Loop into python.
     """
-    raise NotImplementedError()
+    raise NotImplementedError()  # pragma: no cover
 
 
 def _python_make_node_scan(node, opsets, indent=0):
     """
     Translates a node Scan into python.
     """
-    raise NotImplementedError()
+    raise NotImplementedError()  # pragma: no cover
 
 
 def _python_make_node(onnx_node, opsets, indent=0):
