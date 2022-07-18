@@ -941,11 +941,13 @@ class OnnxInference:
                             continue
                         values[self._global_index[k]] = v
                         if verbose < 3:
-                            fLOG("+kI='{}': {} (dtype={} min={} max={})".format(
-                                 k, v.shape, v.dtype, numpy_min(v), numpy_max(v)))
+                            fLOG(  # pragma: no cover
+                                "+kI='{}': {} (dtype={} min={} max={})".format(
+                                k, v.shape, v.dtype, numpy_min(v), numpy_max(v)))
                         else:
-                            fLOG("+kI='{}': {} (dtype={} min={} max={}\n{}".format(
-                                 k, v.shape, v.dtype, numpy_min(v), numpy_max(v), v))
+                            fLOG(  # pragma: no cover
+                                "+kI='{}': {} (dtype={} min={} max={}\n{}".format(
+                                k, v.shape, v.dtype, numpy_min(v), numpy_max(v), v))
                 for k, v in self.inits_.items():
                     values[self._global_index[k]] = v['value']
                     if verbose < 3:
@@ -1171,12 +1173,12 @@ class OnnxInference:
                         break
             if len(rows) > 0:
                 if verbose < 0:
-                    raise RuntimeError(
+                    raise RuntimeError(  # pragma: no cover
                         "Validation failed.\n- %s" % "\n- ".join(rows))
                 else:
                     fLOG("[VALIDATE] validation failed.\n- %s" %
                          "\n- ".join(rows))
-            if verbose >= 2:
+            if verbose >= 2:  # pragma: no cover
                 fLOG('[VALIDATE] mis=%r' % mis)
             return mis
 
@@ -1609,7 +1611,7 @@ class OnnxInference:
             code.append("    # static: {0}".format(k))
             code.append("    {0} = dict_inputs['{1}']".format(
                 clean_name(k), k))
-            if debug:
+            if debug:  # pragma: no cover
                 code.append(
                     "    debug_print('i.{0}', {1}, printed)".format(
                         clean_name(k), k))
@@ -1624,7 +1626,7 @@ class OnnxInference:
                 context["_OPT_" + clean_name(k)] = v['value']
                 code.append("    # init: _OPT_{0} ({1})".format(
                     clean_name(k), k))
-                if debug:
+                if debug:  # pragma: no cover
                     code.append(
                         "    debug_print('c.[_OPT_{0}]', _OPT_{1}, printed)".format(
                             clean_name(k), k))

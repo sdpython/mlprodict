@@ -28,15 +28,15 @@ def _infer_node_output(node, inputs):
                     "Unexpected type %r for %r." % (type(v), v))
             type_set.add(v.dtype)
         if len(type_set) != 1:
-            raise RuntimeError(
+            raise RuntimeError(  # pragma: no cover
                 "Unable to guess output type from %r (inputs=%r)."
                 "" % (type_set, inputs))
         dtype = type_set.pop()
         if dtype is None:
-            raise RuntimeError(
+            raise RuntimeError(  # pragma: no cover
                 "Guessed output type is None from inputs=%r." % (inputs, ))
         return dtype, [None, None]
 
-    raise NotImplementedError(
+    raise NotImplementedError(  # pragma: no cover
         "Unable to infer type for node type %r and inputs=%r." % (
             node.op_type, inputs))

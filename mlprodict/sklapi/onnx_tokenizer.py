@@ -12,7 +12,7 @@ from onnx import helper, TensorProto, load
 from onnx.defs import onnx_opset_version
 try:
     from onnxruntime_extensions import get_library_path
-except ImportError:
+except ImportError:  # pragma: no cover
     get_library_path = None
 from mlprodict import __max_supported_opset__
 
@@ -40,7 +40,7 @@ class TokenizerTransformerBase(BaseEstimator, TransformerMixin):
 
     def __setstate__(self, state):
         if get_library_path is None:
-            raise ImportError(
+            raise ImportError(  # pragma: no cover
                 "onnxruntime_extensions is not installed.")
         from onnxruntime import InferenceSession, SessionOptions  # delayed
         state['onnx_'] = load(BytesIO(state['onnx_']))
@@ -100,7 +100,7 @@ class SentencePieceTokenizerTransformer(TokenizerTransformerBase):
         self.add_eos = add_eos
         self.opset = opset
         if get_library_path is None:
-            raise ImportError(
+            raise ImportError(  # pragma: no cover
                 "onnxruntime_extensions is not installed.")
 
     def fit(self, X, y=None, sample_weight=None):
@@ -199,7 +199,7 @@ class GPT2TokenizerTransformer(TokenizerTransformerBase):
         self.padding_length = padding_length
         self.opset = opset
         if get_library_path is None:
-            raise ImportError(
+            raise ImportError(  # pragma: no cover
                 "onnxruntime_extensions is not installed.")
 
     def fit(self, X, y=None, sample_weight=None):

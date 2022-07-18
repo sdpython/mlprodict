@@ -44,7 +44,7 @@ class _CombineModels:
         results = self.onnx_inference.run(inputs, **kwargs)
         for k, v in results.items():
             if not shapes[k].is_compatible(v):
-                raise RuntimeError(
+                raise RuntimeError(  # pragma: no cover
                     "Incompatible shapes %r and %r for output %r." % (
                         shapes[k], v.shape, k))
         return results
@@ -242,7 +242,8 @@ class OnnxInferenceBackend(Backend):
         This method is not implemented as it is much more efficient
         to run a whole model than every node independently.
         '''
-        raise NotImplementedError("Unable to run the model node by node.")
+        raise NotImplementedError(  # pragma: no cover
+            "Unable to run the model node by node.")
 
 
 class OnnxInferenceBackendPyC(OnnxInferenceBackend):

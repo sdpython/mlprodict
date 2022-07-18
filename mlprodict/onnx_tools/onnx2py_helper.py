@@ -781,9 +781,9 @@ def from_pb(obj):
                     type(obj.type.tensor_type), elem))
         ty = TENSOR_TYPE_TO_NP_TYPE[elem].type
     else:
-        raise NotImplementedError("Unsupported type '{}' as "
-                                  "a string ({}).".format(
-                                      type(obj), obj))
+        raise NotImplementedError(  # pragma: no cover
+            "Unsupported type '{}' as a string ({})."
+            "".format(type(obj), obj))
 
     return (name, ty, shape)
 

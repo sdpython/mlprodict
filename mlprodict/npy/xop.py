@@ -117,7 +117,7 @@ class _CustomSchema:
         def from_attribute(data):
             "Creates an instance of `_CustomSchema._attribute`."
             if not isinstance(data, dict):
-                raise TypeError(
+                raise TypeError(  # pragma: no cover
                     "Unexpected type %r." % type(data))
             self = _CustomSchema._empty()
             setattr(self, 'name', data['name'])
@@ -132,7 +132,7 @@ class _CustomSchema:
         def from_io(data):
             "Creates an instance of `_CustomSchema._io`."
             if not isinstance(data, dict):
-                raise TypeError(
+                raise TypeError(  # pragma: no cover
                     "Unexpected type %r." % type(data))
             self = _CustomSchema._empty()
             setattr(self, 'name', data['name'])
@@ -195,7 +195,7 @@ class _CustomSchema:
         self.since_version = schema.since_version
         try:
             self.inputs = [_CustomSchema._io(t) for t in schema.inputs]
-        except AttributeError as e:
+        except AttributeError as e:  # pragma: no cover
             raise AttributeError(
                 "Issue with operator=%r domain=%r since_version=%r, "
                 "type(schema)=%r" % (
@@ -203,7 +203,7 @@ class _CustomSchema:
                     type(schema))) from e
         try:
             self.outputs = [_CustomSchema._io(t) for t in schema.outputs]
-        except AttributeError as e:
+        except AttributeError as e:  # pragma: no cover
             raise AttributeError(
                 "Issue with operator=%r domain=%r since_version=%r, "
                 "type(schema)=%r" % (
@@ -2343,7 +2343,7 @@ class OnnxOperator(OnnxOperatorBase):
         inputs_names = ['I%d' % i for i in range(len(evaluated_inputs))]
         if self.output_names is None:
             if self.expected_outputs is None:
-                raise NotImplementedError(
+                raise NotImplementedError(  # pragma: no cover
                     "expected_outputs and output_names are not defined.")
             output_names = [o[0] for o in self.expected_outputs]
         else:
@@ -2443,7 +2443,7 @@ class OnnxOperator(OnnxOperatorBase):
                     if len(out) == 1:
                         evaluated_inputs.append(out.popitem()[1])
                     else:
-                        raise NotImplementedError(
+                        raise NotImplementedError(  # pragma: no cover
                             "Not yet implemented in case when there are multiple "
                             "outputs (%r)." % list(out))
                 elif isinstance(out, (list, OnnxOperator._InputContainer)):
@@ -3040,7 +3040,7 @@ class _GraphBuilder:
                             key, i, node)) from e
                 names.append(name)
             elif isinstance(i, OnnxOperatorTuple):
-                raise NotImplementedError()
+                raise NotImplementedError()  # pragma: no cover
             elif isinstance(i, numpy.ndarray):
                 # Adding an initializer
                 name = self.get_unique_name('init', reserved=False)
@@ -3191,7 +3191,7 @@ class _GraphBuilder:
                                 inp.name, inputs))
                     set_names.add(inp.name)
                     if isinstance(inp.node, OnnxExisting):
-                        raise NotImplementedError(
+                        raise NotImplementedError(  # pragma: no cover
                             "Unexpected name %r type %r." % (
                                 inp.name, type(inp.node)))
                         # continue

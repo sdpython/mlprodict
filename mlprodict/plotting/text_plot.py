@@ -721,7 +721,7 @@ def onnx_simple_text_plot(model, verbose=False, att_display=None,  # pylint: dis
                                 AttributeProto.SPARSE_TENSORS):  # pylint: disable=E1101
                     try:
                         val = str(to_array(att.t).tolist())
-                    except TypeError as e:
+                    except TypeError as e:  # pragma: no cover
                         raise TypeError(
                             "Unable to display tensor type %r.\n%s" % (
                                 att.type, str(att))) from e

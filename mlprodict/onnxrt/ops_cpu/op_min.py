@@ -26,4 +26,5 @@ class Min(OpRunBinaryNumpy):
             for i in range(1, len(data)):
                 a = numpy.minimum(a, data[i])
             return (a, )
-        raise RuntimeError("Unexpected turn of events.")
+        raise RuntimeError(  # pragma: no cover
+            "Unexpected turn of events.")
