@@ -38,7 +38,7 @@ from mlprodict.onnx_tools.exports.tf2onnx_helper import (
 from mlprodict.tools.code_helper import print_code
 from mlprodict.onnx_tools.exports.numpy_helper import (
     argmin_use_numpy_select_last_index,
-    argmax_use_numpy_select_last_index
+    argmax_use_numpy_select_last_index,
     make_slice)
 from mlprodict.onnx_conv import to_onnx
 from mlprodict.testing.einsum import decompose_einsum_equation
