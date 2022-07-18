@@ -1,7 +1,6 @@
 """
 @brief      test log(time=5s)
 """
-import sys
 import unittest
 from pyquickhelper.pycode import ExtTestCase
 from mlprodict.onnxrt import backend_pyc

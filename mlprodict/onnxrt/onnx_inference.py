@@ -943,11 +943,11 @@ class OnnxInference:
                         if verbose < 3:
                             fLOG(  # pragma: no cover
                                 "+kI='{}': {} (dtype={} min={} max={})".format(
-                                k, v.shape, v.dtype, numpy_min(v), numpy_max(v)))
+                                    k, v.shape, v.dtype, numpy_min(v), numpy_max(v)))
                         else:
                             fLOG(  # pragma: no cover
                                 "+kI='{}': {} (dtype={} min={} max={}\n{}".format(
-                                k, v.shape, v.dtype, numpy_min(v), numpy_max(v), v))
+                                    k, v.shape, v.dtype, numpy_min(v), numpy_max(v), v))
                 for k, v in self.inits_.items():
                     values[self._global_index[k]] = v['value']
                     if verbose < 3:
