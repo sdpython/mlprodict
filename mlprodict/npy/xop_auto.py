@@ -592,10 +592,11 @@ def onnx_documentation_folder(folder, ops=None, title='ONNX operators',
                         lname_=sch.domain.lower().replace(".", "-"))
                 links.append(link)
             table_dom.extend(["    * - %s" % op,
-                              "      - %s" % " ".join(links)])
+                              "      - %s" % ", ".join(links)])
 
-        page_name = os.path.join(folder, 'table_%s.rst' % sdom)
-        tables_domain_pages.append('table_%s' % sdom)
+        sdom_clean = sdom.replace('.', '_')
+        page_name = os.path.join(folder, 'table_%s.rst' % sdom_clean)
+        tables_domain_pages.append('table_%s' % sdom_clean)
         pages.append(page_name)
         with open(page_name, "w", encoding="utf-8") as f:
             f.write("\n".join(table_dom))
@@ -604,7 +605,7 @@ def onnx_documentation_folder(folder, ops=None, title='ONNX operators',
         index.append('')
 
     # adding pages
-    index.extend(["", "Tables", "======", "", ".. contents::", "    :maxdepth: 1", ""])
+    index.extend(["", "Tables", "++++++", "", ".. contents::", "    :maxdepth: 1", ""])
     for page in tables_domain_pages:
         index.append("    %s" % page)
     index.append('')
