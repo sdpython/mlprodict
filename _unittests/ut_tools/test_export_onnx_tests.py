@@ -5,7 +5,6 @@
 import unittest
 import collections
 import inspect
-from typing import Any
 from io import StringIO
 from contextlib import redirect_stdout, redirect_stderr
 import numpy
