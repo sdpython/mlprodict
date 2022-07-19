@@ -71,8 +71,8 @@ class GatherElements(OpRun):
         return (y, )
 
     def to_python(self, inputs):
-        lines = ['data_swaped = numpy.swapaxes(%s, 0, axis)' % inputs[0],
-                 'index_swaped = numpy.swapaxes(%s, 0, axis)' % inputs[1],
+        lines = [f'data_swaped = numpy.swapaxes({inputs[0]}, 0, axis)',
+                 f'index_swaped = numpy.swapaxes({inputs[1]}, 0, axis)',
                  "gathered = numpy.choose(index_swaped, data_swaped, mode='wrap')",
                  'return numpy.swapaxes(gathered, 0, axis)']
         return "import numpy", "\n".join(lines)

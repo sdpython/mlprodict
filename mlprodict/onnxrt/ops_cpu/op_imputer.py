@@ -31,11 +31,10 @@ class Imputer(OpRunUnaryNum):
     def _run(self, x, attributes=None, verbose=0, fLOG=None):  # pylint: disable=W0221
         if len(x.shape) != 2:
             raise RuntimeTypeError(
-                "x must be a matrix but shape is {}".format(x.shape))
+                f"x must be a matrix but shape is {x.shape}")
         if self.values.shape[0] not in (x.shape[1], 1):
             raise RuntimeTypeError(  # pragma: no cover
-                "Dimension mismatch {} != {}".format(
-                    self.values.shape[0], x.shape[1]))
+                f"Dimension mismatch {self.values.shape[0]} != {x.shape[1]}")
         x = x.copy()
         if numpy.isnan(self.replace):
             for i in range(0, x.shape[1]):

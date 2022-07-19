@@ -59,7 +59,7 @@ def extract_information_from_filename(name):
                 res['opset'] = i
                 continue
             raise ValueError(  # pragma: no cover
-                "Unable to parse '{}'.".format(name))
+                f"Unable to parse '{name}'.")
 
         if 'scenario' not in res:
             res['scenario'] = v
@@ -106,20 +106,20 @@ def make_readable_title(infos):
     """
     sp = [infos['model']]
     if 'problem' in infos:
-        sp.append('[{}]'.format(infos['problem']))
+        sp.append(f"[{infos['problem']}]")
     if 'scenario' in infos:
-        sp.append('[{}]'.format(infos['scenario']))
+        sp.append(f"[{infos['scenario']}]")
     if 'N' in infos:
-        sp.append('N={}'.format(infos['N']))
+        sp.append(f"N={infos['N']}")
     if 'nf' in infos:
-        sp.append('nf={}'.format(infos['nf']))
+        sp.append(f"nf={infos['nf']}")
     if 'opset' in infos:
-        sp.append('ops={}'.format(infos['opset']))
+        sp.append(f"ops={infos['opset']}")
     if 'double' in infos:
         if infos['double']:
             sp.append('x64')
     if 'opt' in infos:
-        sp.append('[{}]'.format(infos['opt']))
+        sp.append(f"[{infos['opt']}]")
     if 'profile' in infos:
-        sp.append('by {}'.format(infos['profile']))
+        sp.append(f"by {infos['profile']}")
     return " ".join(sp)

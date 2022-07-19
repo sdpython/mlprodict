@@ -29,7 +29,7 @@ def _process_node(node, data, edges, paths, prefix="", sep="::", path=None):
             # path_r = paths[inp, 0]
             if len(path) <= 1:
                 raise RuntimeError(  # pragma: no cover
-                    "Unexpected path %r." % (path, ))
+                    f"Unexpected path {path!r}.")
             edges[(inp, 0), (path[-2], 1)] = node
 
     for out in node.output:

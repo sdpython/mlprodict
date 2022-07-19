@@ -43,7 +43,7 @@ def calculate_lightgbm_output_shapes(operator):
     if objective.startswith('regression'):  # pragma: no cover
         return calculate_linear_regressor_output_shapes(operator)
     raise NotImplementedError(  # pragma: no cover
-        "Objective '{}' is not implemented yet.".format(objective))
+        f"Objective '{objective}' is not implemented yet.")
 
 
 def _translate_split_criterion(criterion):
@@ -301,7 +301,7 @@ def _split_tree_ensemble_atts(attrs, split):
                 new_att = [att[i] for i in indices_target]
                 assert len(new_att) == len(indices_target)
             elif name == 'name':
-                new_att = "%s%d" % (att, len(results))
+                new_att = f"{att}{len(results)}"
             else:
                 new_att = att
             ats[name] = new_att
@@ -564,12 +564,12 @@ def convert_lightgbm(scope, operator, container):  # pylint: disable=R0914
             if dtype == numpy.float64:
                 container.add_node(
                     'Sum', tree_nodes, output_name,
-                    name=scope.get_unique_operator_name("sumtree%d" % len(tree_nodes)))
+                    name=scope.get_unique_operator_name(f"sumtree{len(tree_nodes)}"))
             else:
                 cast_name = scope.get_unique_variable_name('ftrees')
                 container.add_node(
                     'Sum', tree_nodes, cast_name,
-                    name=scope.get_unique_operator_name("sumtree%d" % len(tree_nodes)))
+                    name=scope.get_unique_operator_name(f"sumtree{len(tree_nodes)}"))
                 container.add_node(
                     'Cast', cast_name, output_name, to=TensorProto.FLOAT,  # pylint: disable=E1101
                     name=scope.get_unique_operator_name("dtree%d" % i))

@@ -88,7 +88,7 @@ def onnx_shaker(oinf, inputs, output_fct, n=100, dtype=numpy.float32, force=1):
         sq = numpy.squeeze(res)
         if len(sq.shape) != 1:
             raise ValueError(  # pragma: no cover
-                "The function only works with shape={}".format(sq.shape))
+                f"The function only works with shape={sq.shape}")
         if results is None:
             results = numpy.empty((sq.shape[0], n), dtype=sq.dtype)
         results[:, i] = sq
@@ -123,7 +123,7 @@ def check_onnx(model, use_onnx=False, known_results=None,
             check_onnx(model.graph, known_results=known_results)
         except MissingInputError as e:
             raise MissingInputError(
-                "Wrong ONNX model\n--ONNX\n%s" % str(model)) from e
+                f"Wrong ONNX model\n--ONNX\n{str(model)}") from e
         for f in model.functions:
             check_onnx(f)
         return
@@ -141,7 +141,7 @@ def check_onnx(model, use_onnx=False, known_results=None,
             known_results[i.name] = i
     else:
         raise TypeError(  # pragma: no cover
-            "Unexpected type %r." % type(model))
+            f"Unexpected type {type(model)!r}.")
 
     if path is None:
         path = []

@@ -24,7 +24,7 @@ class Normalizer(OpRunUnaryNum):
             self._norm = Normalizer.norm_l2
         else:
             raise ValueError(  # pragma: no cover
-                "Unexpected value for norm='{}'.".format(self.norm))  # pylint: disable=E1101
+                f"Unexpected value for norm='{self.norm}'.")  # pylint: disable=E1101
 
     @staticmethod
     def norm_max(x, inplace):

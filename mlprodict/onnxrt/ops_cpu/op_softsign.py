@@ -21,7 +21,7 @@ class Softsign(OpRunUnaryNum):
         return (tmp, )
 
     def to_python(self, inputs):
-        lines = ["Y = numpy.abs(%s)" % inputs[0],
+        lines = [f"Y = numpy.abs({inputs[0]})",
                  "Y += 1",
                  "numpy.divide(X, Y, out=Y)",
                  "return Y"]

@@ -54,7 +54,7 @@ class QuantizedTensor:
 
         if self.quantized_.dtype != numpy.uint8:
             raise TypeError(  # pragma: no cover
-                "dtype={} not uint8".format(self.quantized_.dtype))
+                f"dtype={self.quantized_.dtype} not uint8")
 
 
 class QuantizedBiasTensor:
@@ -80,7 +80,7 @@ class QuantizedBiasTensor:
                     numpy.floor(data[i] / (X_or_scale.scale_ * W.scale_)))
         if self.quantized_.dtype != numpy.int32:
             raise TypeError(  # pragma: no cover
-                "dtype={} not int32".format(self.quantized_.dtype))
+                f"dtype={self.quantized_.dtype} not int32")
 
 
 def test_qlinear_conv(x: QuantizedTensor, x_shape,
@@ -157,8 +157,7 @@ def test_qlinear_conv(x: QuantizedTensor, x_shape,
     expected = y.quantized_.reshape(y_shape)
     if got.dtype != expected.dtype:
         raise TypeError(  # pragma: no cover
-            "Unexpected output dtype:\nEXPECTED\n{}\nGOT\n{}"
-            "".format(expected, got))
+            f"Unexpected output dtype:\nEXPECTED\n{expected}\nGOT\n{got}")
     diff = numpy.abs(got.ravel().astype(numpy.float32) -
                      expected.ravel().astype(numpy.float32))
     mdiff = diff.max()

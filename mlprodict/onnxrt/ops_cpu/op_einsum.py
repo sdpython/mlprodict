@@ -19,7 +19,7 @@ class Einsum(OpRun):
                        **options)
         if not isinstance(self.equation, (str, bytes)):
             raise TypeError(  # pragma: no cover
-                "equation must be string but is %r." % type(self.equation))
+                f"equation must be string but is {type(self.equation)!r}.")
         self.equation = self.equation.strip()
         if len(self.equation) == 0:
             raise TypeError("equation is empty.")  # pragma: no cover

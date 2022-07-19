@@ -1038,8 +1038,7 @@ class TestXOps(ExtTestCase):
         spl = str(model_def).split('op_type: "Abs"')
         if len(spl) < 2:
             raise AssertionError(
-                "Operator Abs is missing (%d) in\n%s" % (
-                    len(spl), str(model_def)))
+                f"Operator Abs is missing ({len(spl)}) in\n{str(model_def)}")
         if len(spl) > 2:
             raise AssertionError(
                 "Operator Abs should not be duplicated (%d) in\n%s" % (
@@ -1098,7 +1097,7 @@ class TestXOps(ExtTestCase):
             {'A': numpy.float32},
             run_shape=False, verbose=0)
         if len(model_def.graph.node) < 3:
-            raise AssertionError("Wrong graph.\n%s" % str(model_def))
+            raise AssertionError(f"Wrong graph.\n{str(model_def)}")
 
         text = onnx_simple_text_plot(model_def, recursive=True, verbose=False)
         self.assertIn("If", text)

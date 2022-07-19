@@ -172,7 +172,7 @@ class TestEinsum(ExtTestCase):
             with redirect_stdout(f):
                 res = fct()
         except Exception as e:
-            raise AssertionError("Issue. Logs =\n%s" % f.getvalue()) from e
+            raise AssertionError(f"Issue. Logs =\n{f.getvalue()}") from e
 
         out = f.getvalue()
         self.assertIn("numpy_extended_dot", out)
@@ -204,7 +204,7 @@ class TestEinsum(ExtTestCase):
             with redirect_stdout(f):
                 res = fct()
         except Exception as e:
-            raise AssertionError("Issue. Logs =\n%s" % f.getvalue()) from e
+            raise AssertionError(f"Issue. Logs =\n{f.getvalue()}") from e
 
         out = f.getvalue()
         self.assertIn("batch_dot", out)
@@ -386,8 +386,7 @@ class TestEinsum(ExtTestCase):
                         sp2 = "".join(p2)
                         if len(set([sp1[0], sp1[i], sp2[j]])) != 3:
                             continue
-                        equation = "%s,%s->%s%s%s" % (
-                            sp1, sp2, sp1[0], sp1[i], sp2[j])
+                        equation = f"{sp1},{sp2}->{sp1[0]}{sp1[i]}{sp2[j]}"
                         try:
                             r = numpy.einsum(equation, m1, m2)
                             res.append((equation, r))
@@ -435,8 +434,7 @@ class TestEinsum(ExtTestCase):
                             sp1 = "".join(p1)
                             sp2 = "".join(p2)
                             sp3 = "".join(p3)
-                            equation = "%s,%s,%s->%s%s%s" % (
-                                sp1, sp2, sp3, sp1[0], sp1[i], sp3[j])
+                            equation = f"{sp1},{sp2},{sp3}->{sp1[0]}{sp1[i]}{sp3[j]}"
                             try:
                                 r = numpy.einsum(equation, m1, m2, m3)
                                 res.append((equation, r))

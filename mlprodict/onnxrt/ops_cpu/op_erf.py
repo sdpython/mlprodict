@@ -24,4 +24,4 @@ class Erf(OpRunUnaryNum):
 
     def to_python(self, inputs):
         return ('from scipy.special import erf',
-                "return erf(%s)" % inputs[0])
+                f"return erf({inputs[0]})")

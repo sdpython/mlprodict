@@ -25,8 +25,7 @@ class Scan(OpRun):
                        **options)
         if not hasattr(self.body, 'run'):
             raise RuntimeError(  # pragma: no cover
-                "Parameter 'body' must have a method 'run', "
-                "type {}.".format(type(self.body)))
+                f"Parameter 'body' must have a method 'run', type {type(self.body)}.")
         self.input_directions_ = [0 if i >= len(self.scan_input_directions) else self.scan_input_directions[i]
                                   for i in range(self.num_scan_inputs)]
         max_dir_in = max(self.input_directions_)
@@ -95,8 +94,7 @@ class Scan(OpRun):
                 outputs = self._run_meth(inputs)
             except TypeError as e:  # pragma: no cover
                 raise TypeError(
-                    "Unable to call 'run' for type '{}'.".format(
-                        type(self.body))) from e
+                    f"Unable to call 'run' for type '{type(self.body)}'.") from e
 
             states = [outputs[name] for name in state_names_out]
             for i, name in enumerate(scan_names_out):

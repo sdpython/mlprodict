@@ -115,7 +115,7 @@ class TestVerifyCode(ExtTestCase):
                 tree = res.print_tree()
                 if 'BinOp' not in tree and 'BoolOp' not in tree:
                     raise AssertionError(
-                        "Unable to find %r in\n%r" % (op, str(tree)))
+                        f"Unable to find {op!r} in\n{str(tree)!r}")
                 self.assertIn('\n', tree)
                 rows = res.Rows
                 node = rows[0]['node']

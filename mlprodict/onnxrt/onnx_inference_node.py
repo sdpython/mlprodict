@@ -81,8 +81,8 @@ class OnnxInferenceNode:
             imports = '\n'.join(
                 line for line in lines[:last] if 'import ' in line)
             lines.append('')
-            lines.append("return OnnxPythonInference().run(%s)" %
-                         ', '.join(inputs))
+            lines.append(
+                f"return OnnxPythonInference().run({', '.join(inputs)})")
             code = '\n'.join(lines[last:])
             return imports, code
 
@@ -288,7 +288,7 @@ class OnnxInferenceNode:
         """
         if not isinstance(graph, GraphProto):
             raise TypeError(
-                "Unexpected type %r." % type(graph))
+                f"Unexpected type {type(graph)!r}.")
         local = set()
         known = set()
         for init in graph.initializer:
@@ -368,11 +368,10 @@ class OnnxInferenceNode:
                 v = values[self._global_index(n)]
             except IndexError as e:
                 raise IndexError(  # pragma: no cover
-                    "Unable to find an index for result %r in onnx "
-                    "object." % n) from e
+                    f"Unable to find an index for result {n!r} in onnx object.") from e
             if v is None:
                 raise ValueError(  # pragma: no cover
-                    "Input %r is None." % n)
+                    f"Input {n!r} is None.")
             context[n] = v
         return context
 
@@ -407,7 +406,7 @@ class OnnxInferenceNode:
             for name, val in zip(self.function_.obj.input, args):
                 if val is None:
                     raise ValueError(  # pragma: no cover
-                        "Input name %r is None." % name)
+                        f"Input name {name!r} is None.")
                 feeds[name] = val
 
             if verbose == 0 or fLOG is None:
@@ -448,7 +447,7 @@ class OnnxInferenceNode:
 
             if not isinstance(res, tuple):
                 raise RuntimeError(  # pragma: no cover
-                    "Results of operator %r should be a tuple." % type(self.ops_))
+                    f"Results of operator {type(self.ops_)!r} should be a tuple.")
 
         if len(self.outputs) != len(res):
             raise RuntimeError(  # pragma: no cover

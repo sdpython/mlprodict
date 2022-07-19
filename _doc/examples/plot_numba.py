@@ -184,10 +184,10 @@ fig, ax = plt.subplots(len(fcts), 2, figsize=(14, len(fcts) * 3))
 for i, fn in enumerate(fcts):
     piv = pandas.pivot(data=df[(df.fct == fn) & (df.dtype == numpy.float32)],
                        index="n", columns="name", values="average")
-    piv.plot(title="fct=%s - float32" % fn,
+    piv.plot(title=f"fct={fn} - float32",
              logx=True, logy=True, ax=ax[i, 0])
     piv = pandas.pivot(data=df[(df.fct == fn) & (df.dtype == numpy.float64)],
                        index="n", columns="name", values="average")
-    piv.plot(title="fct=%s - float64" % fn,
+    piv.plot(title=f"fct={fn} - float64",
              logx=True, logy=True, ax=ax[i, 1])
 plt.show()

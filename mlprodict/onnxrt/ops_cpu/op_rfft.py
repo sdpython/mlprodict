@@ -23,7 +23,7 @@ class RFFT(OpRun):
         if op_name == "RFFT":
             return RFFTSchema()
         raise RuntimeError(  # pragma: no cover
-            "Unable to find a schema for operator '{}'.".format(op_name))
+            f"Unable to find a schema for operator '{op_name}'.")
 
     def _run(self, a, fft_length=None, attributes=None, verbose=0, fLOG=None):  # pylint: disable=W0221
         if fft_length is not None:
@@ -34,16 +34,14 @@ class RFFT(OpRun):
         if a.dtype == numpy.float64:
             return (y.astype(numpy.complex128), )
         raise TypeError(  # pragma: no cover
-            "Unexpected input type: %r." % a.dtype)
+            f"Unexpected input type: {a.dtype!r}.")
 
     def to_python(self, inputs):
         if len(inputs) == 1:
             return ('from numpy.fft import rfft',
-                    "return rfft({}, axis={})".format(
-                        inputs[0], self.axis))
+                    f"return rfft({inputs[0]}, axis={self.axis})")
         return ('from numpy.fft import rfft',
-                "return rfft({}, {}[0], axis={})".format(
-                    inputs[0], inputs[1], self.axis))
+                f"return rfft({inputs[0]}, {inputs[1]}[0], axis={self.axis})")
 
 
 class RFFTSchema(OperatorSchema):

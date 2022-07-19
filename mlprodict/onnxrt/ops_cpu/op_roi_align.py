@@ -44,7 +44,7 @@ class RoiAlign(OpRun):
             rt = self.rt64_
         else:
             raise TypeError(
-                "Unexpected type %r for X." % X.dtype)
+                f"Unexpected type {X.dtype!r} for X.")
 
         res = rt.compute(X, rois, batch_indices)
         return (res, )

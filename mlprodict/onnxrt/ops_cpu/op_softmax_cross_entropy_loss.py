@@ -16,7 +16,7 @@ def softmaxcrossentropy(x, target, weight=None, reduction='mean',
     """
     input_shape = x.shape
     if len(input_shape) == 1:
-        raise RuntimeError("Unsupported shape %r." % (input_shape, ))
+        raise RuntimeError(f"Unsupported shape {input_shape!r}.")
 
     target_shape = target.shape
     N = input_shape[0]

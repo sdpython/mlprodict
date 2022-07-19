@@ -103,13 +103,13 @@ def sklearn_decision_tree_regressor(model, input_names=None, output_names=None, 
         xx = MLActionTensorTake(lvar, df)
         te = MLActionTestInf(xx, th)
 
-        new_lind = MLActionIfElse(te, le, lr, comment="lind{0}".format(i))
+        new_lind = MLActionIfElse(te, le, lr, comment=f"lind{i}")
         le = MLActionTensorTake(lleft, new_lind)
         th = MLActionTensorTake(lthres, new_lind)
 
         eq = MLActionTestEqual(m1, le)
         va = MLActionTensorTake(lvalue, new_lind)
-        cont = MLActionIfElse(eq, va, th, comment="cont{0}".format(i))
+        cont = MLActionIfElse(eq, va, th, comment=f"cont{i}")
 
     ret = MLActionReturn(cont)
     return MLModel(ret, output_names, name=DecisionTreeRegressor.__name__)

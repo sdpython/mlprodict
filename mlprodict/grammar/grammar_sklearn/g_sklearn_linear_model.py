@@ -44,7 +44,7 @@ def sklearn_logistic_regression(model, input_names=None, output_names=None, **kw
     check_type(model, LogisticRegression)
     if len(model.coef_.shape) > 1 and min(model.coef_.shape) != 1:
         raise NotImplementedError(  # pragma: no cover
-            "Multiclass is not implemented yet: coef_.shape={0}.".format(model.coef_.shape))
+            f"Multiclass is not implemented yet: coef_.shape={model.coef_.shape}.")
     dtype = kwargs.get('dtype', numpy.float32)
     coef_ = model.coef_.ravel()
     coef = coef_.astype(dtype)
@@ -53,10 +53,10 @@ def sklearn_logistic_regression(model, input_names=None, output_names=None, **kw
     for i, c in enumerate(coef):
         if numpy.isinf(c):
             raise Float32InfError(  # pragma: no cover
-                'Unable to convert coefficient {0}: {1}'.format(i, c))
+                f'Unable to convert coefficient {i}: {c}')
     if numpy.isinf(bias):
         raise Float32InfError(  # pragma: no cover
-            'Unable to convert intercept {0}'.format(model.intercept_[0]))
+            f'Unable to convert intercept {model.intercept_[0]}')
 
     gr_coef = MLActionCst(coef)
     gr_var = MLActionVar(coef, input_names)
@@ -101,7 +101,7 @@ def sklearn_linear_regression(model, input_names=None, output_names=None, **kwar
     check_type(model, LinearRegression)
     if len(model.coef_.shape) > 1 and min(model.coef_.shape) != 1:
         raise NotImplementedError(  # pragma: no cover
-            "MultiOutput is not implemented yet: coef_.shape={0}.".format(model.coef_.shape))
+            f"MultiOutput is not implemented yet: coef_.shape={model.coef_.shape}.")
 
     dtype = kwargs.get('dtype', numpy.float32)
     coef_ = model.coef_.ravel()
@@ -111,10 +111,10 @@ def sklearn_linear_regression(model, input_names=None, output_names=None, **kwar
     for i, c in enumerate(coef):
         if numpy.isinf(c):
             raise Float32InfError(  # pragma: no cover
-                'Unable to convert coefficient {0}: {1}'.format(i, c))
+                f'Unable to convert coefficient {i}: {c}')
     if numpy.isinf(bias):
         raise Float32InfError(  # pragma: no cover
-            'Unable to convert intercept {0}'.format(model.intercept_))
+            f'Unable to convert intercept {model.intercept_}')
 
     gr_coef = MLActionCst(coef)
     gr_var = MLActionVar(coef, input_names)

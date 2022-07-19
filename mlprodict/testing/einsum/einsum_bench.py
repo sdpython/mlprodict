@@ -38,8 +38,7 @@ def _measure_time(stmt, *x, repeat=5, number=5, div_by_number=True,
         try:
             stmt(*x)
         except RuntimeError as e:  # pragma: no cover
-            raise RuntimeError("{}-{}".format(
-                type(x), getattr(x, 'dtype', '?'))) from e
+            raise RuntimeError(f"{type(x)}-{getattr(x, 'dtype', '?')}") from e
 
     def fct():
         stmt(*x)
@@ -88,8 +87,7 @@ def _make_inputs(equation, shapes):
     else:
         if len(shapes) != len(inputs):
             raise ValueError(  # pragma: no cover
-                "Unexpected number of shapes %r with equation %r."
-                "" % (shapes, equation))
+                f"Unexpected number of shapes {shapes!r} with equation {equation!r}.")
     inputs = [numpy.random.randn(*sh) for sh in shapes]
     return [i.astype(numpy.float32) for i in inputs]
 
@@ -181,7 +179,7 @@ def einsum_benchmark(equation="abc,cd->abd", shape=30, perm=False,
             fct = lambda *x, oi=oinf: oi.run(
                 {"X%d" % i: v for i, v in enumerate(x)})
         else:
-            raise ValueError("Unexpected runtime %r." % rt)
+            raise ValueError(f"Unexpected runtime {rt!r}.")
 
         res = _measure_time(fct, *inputs, repeat=repeat, number=number)
         res['rt'] = rt

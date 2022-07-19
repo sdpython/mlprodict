@@ -26,7 +26,7 @@ class LRN(OpRun):
     def _run(self, x, attributes=None, verbose=0, fLOG=None):  # pylint: disable=W0221
         if len(x.shape) != 4:
             raise RuntimeError(  # pragma: no cover
-                "LRN only applies on 4D tensors but shape is %r." % (x.shape, ))
+                f"LRN only applies on 4D tensors but shape is {x.shape!r}.")
         square_sum = numpy.zeros(x.shape).astype(x.dtype)
         for ind in numpy.ndindex(x.shape):
             n, c, h, w = ind

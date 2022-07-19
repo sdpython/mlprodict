@@ -44,8 +44,7 @@ def _apply_optimisation_on_graph(fct, onnx_model, recursive=True, debug_info=Non
             op_set.version = oimp.version
         return new_model
     raise TypeError(  # pragma: no cover
-        "This function only works on 'ModelProto' anod not not on"
-        " {}.".format(type(onnx_model)))
+        f"This function only works on 'ModelProto' anod not not on {type(onnx_model)}.")
 
 
 def _apply_remove_node_fct_node(fct, node, recursive, debug_info):

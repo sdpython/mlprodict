@@ -35,13 +35,13 @@ class TestCreateAsvBenchmarkLogReg(ExtTestCase):
             for zoo in files:
                 if '__init__' in zoo:
                     continue
-                fLOG("process '{}'".format(zoo))
+                fLOG(f"process '{zoo}'")
                 fullname = os.path.join(path, zoo)
                 with open(fullname, 'r', encoding='utf-8') as f:
                     content = f.read()
                 names = reg.findall(content)
                 name = names[0]
-                content += "\n\ncl = %s()\ncl.setup_cache()\n" % name
+                content += f"\n\ncl = {name}()\ncl.setup_cache()\n"
                 allnames.append(fullname)
                 with open(fullname, 'w', encoding='utf-8') as f:
                     f.write(content)
@@ -54,7 +54,7 @@ class TestCreateAsvBenchmarkLogReg(ExtTestCase):
                 err = "\n".join(lines).strip(' \n\r')
                 if len(err) > 0:
                     raise RuntimeError(
-                        "Issue with '{}'\n{}".format(fullname, err))
+                        f"Issue with '{fullname}'\n{err}")
 
                 if (zoo.endswith("bench_LogReg_liblinear_m_cl_solverliblinear.py") and
                         compare_module_version(sklearn.__version__, "0.21") >= 0):

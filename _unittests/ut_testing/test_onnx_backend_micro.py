@@ -20,8 +20,7 @@ class TestOnnxBackEndMicro(ExtTestCase):
         names = obj.input_names
         if len(names) < len(inputs):
             raise AssertionError(
-                "Got %d inputs but expecting %d." % (
-                    len(inputs), len(names)))
+                f"Got {len(inputs)} inputs but expecting {len(names)}.")
         feeds = {names[i]: inputs[i] for i in range(len(inputs))}
         got = obj.run(feeds)
 

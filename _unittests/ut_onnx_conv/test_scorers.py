@@ -92,13 +92,13 @@ class TestScorers(ExtTestCase):
                     self.assertEqualArray(res1, res0, decimal=5)
                     self.assertEqualArray(res2, res0, decimal=5)
 
-                    name1 = os.path.join(temp, "cdist_scan_%s.onnx" % metric)
+                    name1 = os.path.join(temp, f"cdist_scan_{metric}.onnx")
                     with open(name1, 'wb') as f:
                         f.write(monx1.SerializeToString())
-                    name2 = os.path.join(temp, "cdist_cdist_%s.onnx" % metric)
+                    name2 = os.path.join(temp, f"cdist_cdist_{metric}.onnx")
                     with open(name2, 'wb') as f:
                         f.write(monx2.SerializeToString())
-                    data = os.path.join(temp, "data_%s.txt" % metric)
+                    data = os.path.join(temp, f"data_{metric}.txt")
                     with open(data, "w") as f:
                         f.write("X\n")
                         f.write(str(X) + "\n")

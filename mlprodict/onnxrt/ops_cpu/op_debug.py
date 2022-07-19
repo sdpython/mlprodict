@@ -22,13 +22,13 @@ class DEBUG(OpRun):
         return (a.copy(), )
 
     def to_python(self, inputs):
-        return "", "return %s.copy()" % inputs[0]
+        return "", f"return {inputs[0]}.copy()"
 
     def _find_custom_operator_schema(self, op_name):
         if op_name == "DEBUG":
             return DEBUGSchema()
         raise RuntimeError(  # pragma: no cover
-            "Unable to find a schema for operator '{}'.".format(op_name))
+            f"Unable to find a schema for operator '{op_name}'.")
 
 
 class DEBUGSchema(OperatorSchema):

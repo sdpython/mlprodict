@@ -88,7 +88,7 @@ summary.plot.bar(title="Conversion coverage")
 
 for obs in data:
     if obs['error'] != '':
-        print("%s | %s | %s" % (obs['name'], obs['format'], obs['error']))
+        print(f"{obs['name']} | {obs['format']} | {obs['error']}")
 
 
 # plt.show()

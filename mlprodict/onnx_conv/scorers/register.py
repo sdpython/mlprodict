@@ -61,11 +61,10 @@ def custom_scorer_transform_parser(scope, model, inputs, custom_parsers=None):
             "Case custom_parsers not empty is not implemented yet.")
     if isinstance(model, str):
         raise RuntimeError(  # pragma: no cover
-            "Parameter model must be an object not a "
-            "string '{0}'.".format(model))
+            f"Parameter model must be an object not a string '{model}'.")
     if len(inputs) != 2:
         raise RuntimeError(  # pragma: no cover
-            "Two inputs expected not {}.".format(len(inputs)))
+            f"Two inputs expected not {len(inputs)}.")
     alias = 'Mlprodict' + model.__class__.__name__
     this_operator = scope.declare_local_operator(alias, model)
     this_operator.inputs = inputs

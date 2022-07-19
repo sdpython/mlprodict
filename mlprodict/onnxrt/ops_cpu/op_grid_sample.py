@@ -41,7 +41,7 @@ class GridSample(OpRun):
             rt = self.rt64_
         else:
             raise TypeError(  # pragma: no cover
-                "Unsupported type %r for GridSample." % X.dtype)
+                f"Unsupported type {X.dtype!r} for GridSample.")
 
         res = rt.compute(X, grid)
         return (res, )

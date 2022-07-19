@@ -19,7 +19,7 @@ class BitShift(OpRunBinaryNumpy):
                                   desc=desc, **options)
         if self.direction not in (b'LEFT', b'RIGHT'):
             raise ValueError(  # pragma: no cover
-                "Unexpected value for direction (%r)." % (self.direction, ))
+                f"Unexpected value for direction ({self.direction!r}).")
         if self.direction == b'LEFT':
             self.numpy_fct = numpy.left_shift
         else:

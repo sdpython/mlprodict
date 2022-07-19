@@ -170,7 +170,7 @@ class TestOnnxrtPythonRuntimeMl(ExtTestCase):
                     exp.ravel(), y['variable'].ravel(), decimal=6)
             except AssertionError as e:
                 raise AssertionError(
-                    "Something is wrong with i={}".format(i)) from e
+                    f"Something is wrong with i={i}") from e
 
     @ignore_warnings(DeprecationWarning)
     def test_onnxrt_python_LinearRegression(self):

@@ -95,7 +95,7 @@ class TestCpuOps(ExtTestCase):
             diff = list(numpy.abs((gotrt['Y'] - got['Y']).ravel()))
             sdiff = list(sorted(diff))
             if sdiff[-1] > 3e-5:
-                raise AssertionError("runtimes disagree {}".format(sdiff[-5:]))
+                raise AssertionError(f"runtimes disagree {sdiff[-5:]}")
             for ii in range(len(diff)):  # pylint: disable=C0200
                 if numpy.isnan(diff[ii]):
                     raise AssertionError(
@@ -148,7 +148,7 @@ class TestCpuOps(ExtTestCase):
             diff = list(numpy.abs((gotrt['Y'] - got['Y']).ravel()))
             sdiff = list(sorted(diff))
             if sdiff[-1] > 1e-5:
-                raise AssertionError("runtimes disagree {}".format(sdiff[-5:]))
+                raise AssertionError(f"runtimes disagree {sdiff[-5:]}")
             for ii in range(len(diff)):  # pylint: disable=C0200
                 if numpy.isnan(diff[ii]):
                     raise AssertionError(

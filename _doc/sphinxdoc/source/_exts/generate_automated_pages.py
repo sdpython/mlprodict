@@ -38,12 +38,12 @@ def write_page_onnxrt_ops(app):
     logger = getLogger('mlprodict')
     srcdir = app.builder.srcdir if app is not None else ".."
     whe = os.path.join(os.path.abspath(srcdir), "api", "onnxrt_ops.rst")
-    logger.info("[mlprodict] create page '{}'.".format(whe))
-    print("[mlprodict-sphinx] create page '{}'.".format(whe))
+    logger.info(f"[mlprodict] create page '{whe}'.")
+    print(f"[mlprodict-sphinx] create page '{whe}'.")
     page = compose_page_onnxrt_ops()
     with open(whe, "w", encoding='utf-8') as f:
         f.write(page)
-    print("[mlprodict-sphinx] done page '{}'.".format(whe))
+    print(f"[mlprodict-sphinx] done page '{whe}'.")
 
 
 def write_page_onnxrt_benches(app, runtime, skip=None, white_list=None):
@@ -61,21 +61,21 @@ def write_page_onnxrt_benches(app, runtime, skip=None, white_list=None):
         whe = os.path.join(os.path.abspath(srcdir),
                            "skl_converters", "bench_onnxrt1.rst")
     else:
-        raise RuntimeError("Unsupported runtime '{}'.".format(runtime))
+        raise RuntimeError(f"Unsupported runtime '{runtime}'.")
 
-    logger.info("[mlprodict] create page '{}'.".format(whe))
-    print("[mlprodict-sphinx] create page runtime '{}' - '{}'.".format(runtime, whe))
+    logger.info(f"[mlprodict] create page '{whe}'.")
+    print(f"[mlprodict-sphinx] create page runtime '{runtime}' - '{whe}'.")
 
     out_sum = os.path.join(
-        srcdir, "skl_converters", "bench_sum_%s.xlsx" % runtime)
+        srcdir, "skl_converters", f"bench_sum_{runtime}.xlsx")
     if not os.path.exists(out_sum):
-        raise FileNotFoundError("Unable to find %r." % out_sum)
+        raise FileNotFoundError(f"Unable to find {out_sum!r}.")
     piv = read_excel(out_sum)
-    logger.info("[mlprodict] read '{}'.".format(out_sum))
-    print("[mlprodict-sphinx] read '{}'".format(out_sum))
+    logger.info(f"[mlprodict] read '{out_sum}'.")
+    print(f"[mlprodict-sphinx] read '{out_sum}'")
 
-    logger.info("[mlprodict] shape '{}'.".format(piv.shape))
-    print("[mlprodict-sphinx] shape '{}'".format(piv.shape))
+    logger.info(f"[mlprodict] shape '{piv.shape}'.")
+    print(f"[mlprodict-sphinx] shape '{piv.shape}'")
 
     def make_link(row):
         link = ":ref:`{name} <l-{name}-{problem}-{scenario}-{optim}-{opset}>`"
@@ -103,12 +103,11 @@ def write_page_onnxrt_benches(app, runtime, skip=None, white_list=None):
 
         piv["ERROR-msg"] = piv["ERROR-msg"].apply(shorten)
 
-    logger.info("[mlprodict] write '{}'.".format(whe))
-    print("[mlprodict-sphinx] write '{}'".format(whe))
+    logger.info(f"[mlprodict] write '{whe}'.")
+    print(f"[mlprodict-sphinx] write '{whe}'")
 
     with open(whe, 'w', encoding='utf-8') as f:
-        title = "Availability of scikit-learn model for runtime {0}".format(
-            runtime)
+        title = f"Availability of scikit-learn model for runtime {runtime}"
         f.write(dedent('''
         .. _l-onnx-bench-{0}:
 
@@ -172,8 +171,8 @@ def write_page_onnxrt_benches(app, runtime, skip=None, white_list=None):
                        column_size={'problem': 25},
                        label_pattern=".. _lpy-{section}:"))
     logger.info(
-        "[mlprodict] done page '{}'.".format(whe))
-    print("[mlprodict-sphinx] done page runtime '{}' - '{}'.".format(runtime, whe))
+        f"[mlprodict] done page '{whe}'.")
+    print(f"[mlprodict-sphinx] done page runtime '{runtime}' - '{whe}'.")
 
 
 def write_page_onnxrt_benches_python(app, white_list=None):

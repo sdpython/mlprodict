@@ -28,7 +28,7 @@ class TestEinsumBug(ExtTestCase):
             equation, clean=True, strategy='numpy')
         onx = seq.to_onnx('Y', 'X1', 'X2')
         sequ = equation.replace(",", "_").replace("->", "__")
-        with open("temp_%s_A.onnx" % sequ, "wb") as f:
+        with open(f"temp_{sequ}_A.onnx", "wb") as f:
             f.write(onx.SerializeToString())
         a = numpy.random.rand(*list((2, ) * dim1))
         b = numpy.random.rand(*list((2, ) * dim2))
@@ -44,7 +44,7 @@ class TestEinsumBug(ExtTestCase):
         new_eq = res.equation_
         new_onx = res.onnx_
         sequ = new_eq.replace(",", "_").replace("->", "__")
-        with open("temp_%s_B.onnx" % sequ, "wb") as f:
+        with open(f"temp_{sequ}_B.onnx", "wb") as f:
             f.write(new_onx.SerializeToString())
         oinf = OnnxInference(new_onx)
         got = oinf.run({'X0': a, 'X1': b})

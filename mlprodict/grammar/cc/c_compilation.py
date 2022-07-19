@@ -145,7 +145,7 @@ def compile_c_function(code_c, nbout, dtype=numpy.float32, add_header=True,
     if additional_paths:
         if fLOG:  # pragma: no cover
             for p in additional_paths:
-                fLOG("[compile_c_function] PATH += '{0}'".format(p))
+                fLOG(f"[compile_c_function] PATH += '{p}'")
         os.environ["PATH"] += ";" + ";".join(additional_paths)
 
     if lib_paths and sys.platform.startswith("win"):  # pragma: no cover
@@ -163,7 +163,7 @@ def compile_c_function(code_c, nbout, dtype=numpy.float32, add_header=True,
                     if not os.path.exists(msvd):
                         shutil.copy(msv, dst)
                         if fLOG:
-                            fLOG("[compile_c_function] copy '{0}'".format(msv))
+                            fLOG(f"[compile_c_function] copy '{msv}'")
                     libs[name] = True
         copied = len([k for k, v in libs.items() if v])
         if copied < len(libs):
@@ -173,7 +173,7 @@ def compile_c_function(code_c, nbout, dtype=numpy.float32, add_header=True,
     if include_paths:
         if fLOG:  # pragma: no cover
             for p in include_paths:
-                fLOG("[compile_c_function] INCLUDE += '{0}'".format(p))
+                fLOG(f"[compile_c_function] INCLUDE += '{p}'")
         if 'INCLUDE' in os.environ:  # pragma: no cover
             os.environ["INCLUDE"] += ";" + ";".join(include_paths)
         else:  # pragma: no cover
@@ -189,37 +189,33 @@ def compile_c_function(code_c, nbout, dtype=numpy.float32, add_header=True,
         ffibuilder.cdef(sig)
     except Exception as e:  # pragma: no cover
         raise CompilationError(
-            "Signature is wrong\n{0}\ndue to\n{1}".format(sig, e)) from e
+            f"Signature is wrong\n{sig}\ndue to\n{e}") from e
     ffibuilder.set_source("_" + name + suffix, code)
     try:
         ffibuilder.compile(verbose=False, tmpdir=tmpdir)
     except Exception as e:  # pragma: no cover
         raise CompilationError(
-            "Compilation failed \n{0}\ndue to\n{1}".format(sig, e)) from e
-    mod = __import__("_{0}{1}".format(name, suffix))
+            f"Compilation failed \n{sig}\ndue to\n{e}") from e
+    mod = __import__(f"_{name}{suffix}")
     fct = getattr(mod.lib, name)
 
     def wrapper(features, output, cast_type, dtype):
         "wrapper for a vector of features"
         if len(features.shape) != 1:
             raise TypeError(  # pragma: no cover
-                "Only one dimension for the features not {0}.".format(
-                    features.shape))
+                f"Only one dimension for the features not {features.shape}.")
         if output is None:
             output = numpy.zeros((nbout,), dtype=dtype)
         else:
             if len(output.shape) != 1:
                 raise TypeError(  # pragma: no cover
-                    "Only one dimension for the output not {0}.".format(
-                        output.shape))
+                    f"Only one dimension for the output not {output.shape}.")
             if output.shape[0] != nbout:
                 raise TypeError(  # pragma: no cover
-                    "Dimension mismatch {0} != {1} (expected).".format(
-                        output.shape, nbout))
+                    f"Dimension mismatch {output.shape} != {nbout} (expected).")
             if output.dtype != dtype:
                 raise TypeError(  # pragma: no cover
-                    "Type mismatch {0} != {1} (expected).".format(
-                        output.dtype, dtype))
+                    f"Type mismatch {output.dtype} != {dtype} (expected).")
         ptr = features.__array_interface__['data'][0]
         cptr = mod.ffi.cast(cast_type, ptr)
         optr = output.__array_interface__['data'][0]

@@ -68,7 +68,7 @@ def _nearest_coeffs(ratio, mode=b'round_prefer_floor'):
     if mode == b'ceil':
         return numpy.array([0, 1])
     raise ValueError(  # pragma: no cover
-        "Unexpected value %r." % mode)
+        f"Unexpected value {mode!r}.")
 
 
 def _cubic_coeffs(ratio, A=-0.75):
@@ -222,7 +222,7 @@ class Resize(OpRun):
             self.fct = _linear_coeffs
         else:
             raise ValueError(  # pragma: no cover
-                "Unexpected value %r for mode." % self.mode)
+                f"Unexpected value {self.mode!r} for mode.")
 
     def _run(self, X, roi, scales=None, sizes=None, attributes=None, verbose=0, fLOG=None):  # pylint: disable=W0221
         output = _interpolate_nd(

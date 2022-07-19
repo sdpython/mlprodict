@@ -108,8 +108,7 @@ def benchmark_fct(fct, X, time_limit=4, obs=None, node_time=False,
     for N in Ns:
         if not isinstance(N, int):
             raise RuntimeError(  # pragma: no cover
-                "time_kwargs ({}) is wrong:\n{}".format(
-                    type(time_kwargs), time_kwargs))
+                f"time_kwargs ({type(time_kwargs)}) is wrong:\n{time_kwargs}")
         if not allow(N, obs):
             continue  # pragma: no cover
         x = make(X, N)
@@ -129,7 +128,7 @@ def benchmark_fct(fct, X, time_limit=4, obs=None, node_time=False,
                     else:
                         if len(agg) != len(ms):
                             raise RuntimeError(  # pragma: no cover
-                                "Not the same number of nodes {} != {}.".format(len(agg), len(ms)))
+                                f"Not the same number of nodes {len(agg)} != {len(ms)}.")
                         for a, b in zip(agg, ms):
                             a['time'] += b['time']
                 if main is None:
@@ -137,7 +136,7 @@ def benchmark_fct(fct, X, time_limit=4, obs=None, node_time=False,
                 else:
                     if len(agg) != len(main):
                         raise RuntimeError(  # pragma: no cover
-                            "Not the same number of nodes {} != {}.".format(len(agg), len(main)))
+                            f"Not the same number of nodes {len(agg)} != {len(main)}.")
                     for a, b in zip(main, agg):
                         a['time'] += b['time']
                         a['max_time'] = max(

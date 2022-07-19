@@ -23,8 +23,7 @@ def _get_typed_class_attribute(self, k, atts):
     if isinstance(ty, int):
         return getattr(self, k)
     raise NotImplementedError(  # pragma: no cover
-        "Unable to convert '{}' ({}).".format(
-            k, getattr(self, k)))
+        f"Unable to convert '{k}' ({getattr(self, k)}).")
 
 
 def proto2dtype(proto_type):
@@ -63,4 +62,4 @@ def dtype_name(dtype):
     if dtype == numpy.bool_:
         return "bool"
     raise ValueError(
-        "Unexpected dtype {}.".format(dtype))
+        f"Unexpected dtype {dtype}.")

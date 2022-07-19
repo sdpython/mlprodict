@@ -70,7 +70,7 @@ def nn_im2col_2d(data, kernel_shape, dilations, padding, fill_value=0):
                             fill_value)
     else:
         raise NotImplementedError(  # pragma: no cover
-            "Unexpected dtype %r for data." % data.dtype)
+            f"Unexpected dtype {data.dtype!r} for data.")
     return result
 
 
@@ -94,7 +94,7 @@ def nn_col2im_2d(data, output_shape, kernel_shape, dilations, padding):
                             numpy.array(padding, dtype=numpy.int64))
     else:
         raise NotImplementedError(  # pragma: no cover
-            "Unexpected dtype %r for data." % data.dtype)
+            f"Unexpected dtype {data.dtype!r} for data.")
     return result
 
 
@@ -132,10 +132,10 @@ def im2col_naive_implementation(data, kernel_shape, fill_value=0):
     """
     if not isinstance(kernel_shape, tuple):
         raise TypeError(
-            "Unexpected type %r for kernel_shape." % type(kernel_shape))
+            f"Unexpected type {type(kernel_shape)!r} for kernel_shape.")
     if len(data.shape) != len(kernel_shape):
         raise ValueError(
-            "Shape mismatch %r and %r." % (data.shape, kernel_shape))
+            f"Shape mismatch {data.shape!r} and {kernel_shape!r}.")
     output_shape = data.shape + kernel_shape
     res = numpy.empty(output_shape, dtype=data.dtype)
     middle = numpy.array([-m / 2 for m in kernel_shape], dtype=numpy.int64)
@@ -234,7 +234,7 @@ def im2col(data, kernel_shape=None, fill_value=0):
             kernel_shape = (3, )
         elif len(kernel_shape) != 1:
             raise ValueError(
-                "Unexpected kernel_shape %r, should be 1d." % (kernel_shape, ))
+                f"Unexpected kernel_shape {kernel_shape!r}, should be 1d.")
         if data.dtype == numpy.float32:
             result = numpy.empty(
                 (data.shape[0], kernel_shape[0]), dtype=data.dtype)

@@ -54,7 +54,7 @@ def onnx_code(filename, format="onnx", output=None, verbose=0, name=None,
                             name=name, opset=opset)
     else:
         raise ValueError(  # pragma: no cover
-            "Unknown format %r." % format)
+            f"Unknown format {format!r}.")
 
     if output not in ('', None):
         with open(output, "w", encoding="utf-8") as f:
@@ -120,12 +120,12 @@ def plot_onnx(filename, format="onnx", verbose=0, output=None, fLOG=print):
         rows = []
         for node in content.graph.node:
             if node.op_type.startswith("TreeEnsemble"):
-                rows.append('Node type=%r name=%r' % (node.op_type, node.name))
+                rows.append(f'Node type={node.op_type!r} name={node.name!r}')
                 rows.append(onnx_text_plot_tree(node))
         code = "\n".join(rows)
     else:
         raise ValueError(  # pragma: no cover
-            "Unknown format %r." % format)
+            f"Unknown format {format!r}.")
 
     if output not in ('', None):
         with open(output, "w", encoding="utf-8") as f:

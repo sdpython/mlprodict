@@ -70,4 +70,4 @@ def numpy_matmul_inplace(inplaces, a, b):
         return numpy.matmul(a, b)
     except ValueError as e:  # pragma: no cover
         raise ValueError(
-            "Unable to multiply shapes %r, %r." % (a.shape, b.shape)) from e
+            f"Unable to multiply shapes {a.shape!r}, {b.shape!r}.") from e

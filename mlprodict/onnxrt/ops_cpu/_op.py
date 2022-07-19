@@ -57,7 +57,7 @@ class RefAttrName:
 
     def __repr__(self):
         "usual"
-        return "%s(%r)" % (self.__class__.__name__, self.name)
+        return f"{self.__class__.__name__}({self.name!r})"
 
 
 class OpRun:
@@ -98,7 +98,7 @@ class OpRun:
                     if not isinstance(b, dict) or (
                             'value' not in b and 'ref_attr_name' not in b):
                         raise ValueError(  # pragma: no cover
-                            "Unexpected value {}.".format(b))
+                            f"Unexpected value {b}.")
                     if 'ref_attr_name' in b:
                         options[a] = RefAttrName(b['ref_attr_name'])
                     else:
@@ -150,7 +150,7 @@ class OpRun:
         """
         if not isinstance(graph, GraphProto):
             raise TypeError(
-                "Unexpected type %r." % type(graph))
+                f"Unexpected type {type(graph)!r}.")
         local = set()
         known = set()
         for init in graph.initializer:
@@ -176,20 +176,19 @@ class OpRun:
 
     def _find_custom_operator_schema(self, op_name):
         raise NotImplementedError(  # pragma: no cover
-            "This method should be overwritten for operator "
-            "'{}'.".format(op_name))
+            f"This method should be overwritten for operator '{op_name}'.")
 
     def __str__(self):
         """
         usual
         """
         atts = [self.__class__.__name__ + '(',
-                "    op_type={}".format(self.onnx_node.op_type)]
+                f"    op_type={self.onnx_node.op_type}"]
         for k, v in sorted(self.__dict__.items()):
             if k in {'desc', 'onnx_node'}:
                 continue
             if 'a' <= k[0] <= 'z' and k[-1] != '_':
-                atts.append('    {0}={1},'.format(k, v))
+                atts.append(f'    {k}={v},')
         atts.append(')')
         return "\n".join(atts)
 
@@ -264,7 +263,7 @@ class OpRun:
             for k, v in self.atts.items():  # pylint: disable=E1101
                 if isinstance(v, (list, tuple, dict)) and len(v) == 0:
                     v = None
-                inps.append('%s=%r' % (k, v))
+                inps.append(f'{k}={v!r}')
         return inps
 
     @property
@@ -282,10 +281,10 @@ class OpRun:
                 val = list(val)
             try:
                 if val != v:
-                    inps.append('%s=%r' % (k, val))
+                    inps.append(f'{k}={val!r}')
             except ValueError as e:  # pragma: no cover
                 raise ValueError(
-                    "Unexpected value for v=%r and val=%r." % (v, val)) from e
+                    f"Unexpected value for v={v!r} and val={val!r}.") from e
         return inps
 
     @property
@@ -296,7 +295,7 @@ class OpRun:
         inps = []
         if hasattr(self, 'optional_inputs'):
             for k, v in self.optional_inputs.items():  # pylint: disable=E1101
-                inps.append('%s=%r' % (k, v))
+                inps.append(f'{k}={v!r}')
         return inps
 
     @property
@@ -316,11 +315,11 @@ class OpRun:
         @return                 imports, python code, both as strings
         """
         raise NotImplementedError(
-            "Operator '{}' has no equivalent python code.".format(self.__class__.__name__))  # pragma: no cover
+            f"Operator '{self.__class__.__name__}' has no equivalent python code.")  # pragma: no cover
 
     def _to_python_numpy(self, inputs, numpy_name):
         return ("import numpy",
-                "return numpy.%s(%s)" % (numpy_name, ", ".join(inputs)))
+                f"return numpy.{numpy_name}({', '.join(inputs)})")
 
     @property
     def atts_value(self):
@@ -482,8 +481,7 @@ class OpRunBinary(OpRun):
         """
         if x is None or y is None:
             raise RuntimeError(  # pragma: no cover
-                "x and y have different dtype: {} != {} ({})".format(
-                    type(x), type(y), type(self)))
+                f"x and y have different dtype: {type(x)} != {type(y)} ({type(self)})")
         if x.dtype != y.dtype:
             raise RuntimeTypeError(
                 "Input type mismatch: {} != {} (operator '{}', shapes {}, {})".format(
@@ -610,8 +608,7 @@ class OpRunBinaryNumpy(OpRunBinaryNum):
         lines = [
             "# inplaces not take into account {}-{}".format(
                 self.inplaces.get(0, False), self.inplaces.get(1, False)),
-            "return numpy.{0}({1})".format(
-                self.numpy_fct.__name__, ', '.join(inputs))
+            f"return numpy.{self.numpy_fct.__name__}({', '.join(inputs)})"
         ]
         return "import numpy", "\n".join(lines)
 
@@ -680,4 +677,4 @@ class OpRunCustom(OpRun):
                     self.__class__.op_name == op_name)):  # pylint: disable=E1101
             return OpRunCustom.OpRunCustomSchema(self.__class__)
         raise RuntimeError(  # pragma: no cover
-            "Unable to find a schema for operator '{}'.".format(op_name))
+            f"Unable to find a schema for operator '{op_name}'.")

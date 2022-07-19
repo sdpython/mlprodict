@@ -19,7 +19,7 @@ class Inverse(OpRunUnaryNum):
         return (numpy.linalg.inv(x), )
 
     def to_python(self, inputs):
-        return ("import numpy.linalg", "return numpy.linalg({})".format(inputs[0]))
+        return ("import numpy.linalg", f"return numpy.linalg({inputs[0]})")
 
     def _find_custom_operator_schema(self, op_name):
         """

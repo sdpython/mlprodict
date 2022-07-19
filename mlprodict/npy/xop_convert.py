@@ -72,11 +72,10 @@ class OnnxSubOnnx(OnnxOperator):
             if value is not None:
                 atts[att] = value
         atts.update(self.kwargs)
-        msg = ", ".join("%s=%r" % (k, v) for k, v in atts.items())
+        msg = ", ".join(f"{k}={v!r}" for k, v in atts.items())
         if len(atts) > 0:
             msg = ", " + msg
-        return "%s(...%s)" % (
-            self.__class__.__name__, msg)
+        return f"{self.__class__.__name__}(...{msg})"
 
     def add_to(self, builder):
         """
@@ -114,7 +113,7 @@ class OnnxSubOnnx(OnnxOperator):
             for i in node.input:
                 if i not in mapped_names:
                     raise RuntimeError(  # pragma: no cover
-                        "Unable to find input %r in %r." % (i, mapped_names))
+                        f"Unable to find input {i!r} in {mapped_names!r}.")
                 new_inputs.append(mapped_names[i])
             new_outputs = []
             for o in node.output:
@@ -203,11 +202,10 @@ class OnnxSubEstimator(OnnxSubOnnx):
             if value is not None:
                 atts[att] = value
         atts.update(self.kwargs)
-        msg = ", ".join("%s=%r" % (k, v) for k, v in atts.items())
+        msg = ", ".join(f"{k}={v!r}" for k, v in atts.items())
         if len(atts) > 0:
             msg = ", " + msg
-        return "%s(%r%s)" % (
-            self.__class__.__name__, self.ml_model, msg)
+        return f"{self.__class__.__name__}({self.ml_model!r}{msg})"
 
     @staticmethod
     def _to_onnx(model, inputs, op_version=None, options=None,
@@ -237,7 +235,7 @@ class OnnxSubEstimator(OnnxSubOnnx):
                 model, inputs, op_version=op_version, options=options,
                 initial_types=initial_types, **kwargs)
         raise RuntimeError(  # pragma: no cover
-            "Unable to convert into ONNX model type %r." % type(model))
+            f"Unable to convert into ONNX model type {type(model)!r}.")
 
     @staticmethod
     def _to_onnx_sklearn(model, inputs, op_version=None, options=None,

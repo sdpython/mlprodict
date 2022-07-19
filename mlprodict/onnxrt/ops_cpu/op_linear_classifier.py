@@ -24,8 +24,7 @@ class LinearClassifier(OpRunClassifierProb, _ClassifierCommon):
         self._post_process_label_attributes()
         if not isinstance(self.coefficients, numpy.ndarray):
             raise TypeError(  # pragma: no cover
-                "coefficient must be an array not {}.".format(
-                    type(self.coefficients)))
+                f"coefficient must be an array not {type(self.coefficients)}.")
         if len(getattr(self, "classlabels_ints", [])) == 0 and \
                 len(getattr(self, 'classlabels_strings', [])) == 0:
             raise ValueError(  # pragma: no cover
@@ -56,8 +55,7 @@ class LinearClassifier(OpRunClassifierProb, _ClassifierCommon):
                          :, numpy.newaxis], out=scores)
         else:
             raise NotImplementedError(  # pragma: no cover
-                "Unknown post_transform: '{}'.".format(
-                    self.post_transform))
+                f"Unknown post_transform: '{self.post_transform}'.")
 
         if self.nb_class == 1:
             label = numpy.zeros((scores.shape[0],), dtype=x.dtype)

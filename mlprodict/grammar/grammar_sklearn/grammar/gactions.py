@@ -27,7 +27,7 @@ class MLAction(AutoAction):
         for t in inputs:
             if not isinstance(t, MLType):
                 raise TypeError(  # pragma: no cover
-                    "Every input must be a MLType not '{0}'.".format(type(t)))
+                    f"Every input must be a MLType not '{type(t)}'.")
         if not isinstance(output, MLType):
             raise TypeError('output must be of MLType.')  # pragma: no cover
         self.inputs = inputs
@@ -73,10 +73,10 @@ class MLAction(AutoAction):
         for i, ch in enumerate(self.children):
             gr = ch.graph_execution()
             temp = ["    " + li for li in gr.split("\n")]
-            temp[0] = "  {0}-".format(i) + temp[0][4:]
+            temp[0] = f"  {i}-" + temp[0][4:]
             rows.extend(temp)
         rows.append(
-            "-- END {0} -- output={1}".format(self.name, self.output._cache))
+            f"-- END {self.name} -- output={self.output._cache}")
         return "\n".join(rows)
 
     @AutoAction.cache
@@ -98,17 +98,16 @@ class MLAction(AutoAction):
             raise ValueError(
                 "result_name must not be None")  # pragma: no cover
         rows = []
-        rows.append("// {0}-{1} - children".format(id(self), self.name))
+        rows.append(f"// {id(self)}-{self.name} - children")
         names = []
         if self.children:
             for i, c in enumerate(self.children):
-                rname = "{0}{1}{2}".format(
-                    result_name, getattr(self, "cname", ""), i)
+                rname = f"{result_name}{getattr(self, 'cname', '')}{i}"
                 dc = c._export_c(hook=hook, result_name=rname)
                 if not dc['cache']:
                     rows.append(dc['code'])
                 names.append(dc['result_name'])
-        rows.append("// {0}-{1} - itself".format(id(self), self.name))
+        rows.append(f"// {id(self)}-{self.name} - itself")
         res = "\n".join(rows)
         return {'code': res, 'result_name': result_name, 'child_names': names}
 
@@ -149,7 +148,7 @@ class MLActionCst(MLAction):
             t = MLActionCst.guess_type(a[0])
             return MLTensor(t, value.shape)
         raise NotImplementedError(  # pragma: no cover
-            "Not implemented for type '{0}'".format(type(value)))
+            f"Not implemented for type '{type(value)}'")
 
     def execute(self, **kwargs):
         MLAction.execute(self, **kwargs)
@@ -157,8 +156,8 @@ class MLActionCst(MLAction):
 
     def graph_execution(self):
         if self.comment:
-            return "cst: {0} = {1}".format(self.comment, self.cst)
-        return "cst: {0}".format(self.cst)
+            return f"cst: {self.comment} = {self.cst}"
+        return f"cst: {self.cst}"
 
     @AutoAction.cache
     def _export_json(self, hook=None, result_name=None):
@@ -173,10 +172,9 @@ class MLActionCst(MLAction):
         if result_name is None:
             raise ValueError("result_name cannot be None.")  # pragma: no cover
         dc = self.output._export_c(hook='declare', result_name=result_name)
-        res = "{0} = {1};".format(
-            dc['code'], self.output._format_value_c(self.cst))
+        res = f"{dc['code']} = {self.output._format_value_c(self.cst)};"
         if self.comment:
-            res += " // {0}".format(self.comment)
+            res += f" // {self.comment}"
         return {'code': res, 'result_name': result_name}
 
 
@@ -200,7 +198,7 @@ class MLActionVar(MLActionCst):
         MLAction.execute(self, **kwargs)
         if self.name_var not in kwargs:
             raise KeyError(  # pragma: no cover
-                "Unable to find variable name '{0}'".format(self.name_var))
+                f"Unable to find variable name '{self.name_var}'")
         return self.output.validate(kwargs[self.name_var])
 
     def enumerate_variables(self):
@@ -210,7 +208,7 @@ class MLActionVar(MLActionCst):
         yield self
 
     def graph_execution(self):
-        return "var: {0} = {1} ({2})".format(self.name_var, self.name, self.output._cache)
+        return f"var: {self.name_var} = {self.name} ({self.output._cache})"
 
     @AutoAction.cache
     def _export_json(self, hook=None, result_name=None):
@@ -222,7 +220,7 @@ class MLActionVar(MLActionCst):
             raise ValueError(  # pragma: no cover
                 "result_name must not be None")
         dc = self.output._export_c(hook='typeref', result_name=result_name)
-        res = "{0} = {1};".format(dc['code'], self.name_var)
+        res = f"{dc['code']} = {self.name_var};"
         return {'code': res, 'result_name': result_name}
 
 
@@ -240,7 +238,7 @@ class MLActionFunctionCall(MLAction):
         for act in acts:
             if not isinstance(act, MLAction):
                 raise TypeError(  # pragma: no cover
-                    "All element of acts must be MLAction not '{0}'.".format(type(act)))
+                    f"All element of acts must be MLAction not '{type(act)}'.")
         MLAction.__init__(self, [act.output for act in acts],
                           output, name, children=acts)
         self.cname = 'c'
@@ -266,9 +264,8 @@ class MLActionFunctionCall(MLAction):
         rows.append(dc['code'] + ";")
         ep = self.output._byref_c()
         type_list = "_".join(c.output.CTypeSingle for c in self.children)
-        rows.append("{0}_{4}({3}{1}, {2});".format(
-            self.name, result_name, fcall, ep, type_list))
-        rows.append("// {0}-{1} - done".format(id(self), self.name))
+        rows.append(f"{self.name}_{type_list}({ep}{result_name}, {fcall});")
+        rows.append(f"// {id(self)}-{self.name} - done")
         # Addition printf to debug the C++ code.
         # rows.append('printf("C++ {1} %f\\n", {0});'.format(result_name, self.name))
         res = {'code': "\n".join(rows), 'result_name': dcf['result_name']}
@@ -304,7 +301,7 @@ class MLActionBinary(MLAction):
         op = "{2} {0} = {0}0 {1} {0}1;".format(
             result_name, self.name, dc2['code'])
         rows.append(op)
-        rows.append("// {0}-{1} - done".format(id(self), self.name))
+        rows.append(f"// {id(self)}-{self.name} - done")
         return {'code': "\n".join(rows), 'result_name': result_name}
 
 
@@ -332,7 +329,7 @@ class MLActionUnary(MLAction):
         rows = [dc['code']]
         op = "auto {0} = {1} {0}0;".format(result_name, self.name)
         rows.append(op)
-        rows.append("// {0}-{1} - done".format(id(self), self.name))
+        rows.append(f"// {id(self)}-{self.name} - done")
         return {'code': "\n".join(rows), 'result_name': result_name}
 
 
@@ -411,7 +408,7 @@ class MLActionIfElse(MLAction):
             raise TypeError("cond must be MLAction.")  # pragma: no cover
         if not isinstance(cond.output, MLNumTypeBool):
             raise TypeError(  # pragma: no cover
-                "No boolean condition {0}".format(type(cond.output)))
+                f"No boolean condition {type(cond.output)}")
         if check_type and type(act1.output) != type(act2.output):
             raise TypeError("Not the same input type {0} != {1}".format(  # pragma: no cover
                 type(act1.output), type(act2.output)))
@@ -443,7 +440,7 @@ class MLActionIfElse(MLAction):
         dc2 = self.output._export_c(hook='type')
         op = "{1} {0} = {0}0 ? {0}1 : {0}2;".format(result_name, dc2['code'])
         rows.append(op)
-        rows.append("// {0}-{1} - done".format(id(self), self.name))
+        rows.append(f"// {id(self)}-{self.name} - done")
         return {'code': "\n".join(rows), 'result_name': result_name}
 
 
@@ -514,7 +511,7 @@ class MLActionFunction(MLActionUnary):
                 "The function must return one result.")  # pragma: no cover
         if result_name[-1] == '0':
             raise ValueError(  # pragma: no cover
-                "result_name '{0}' cannot end with 0.".format(result_name))
+                f"result_name '{result_name}' cannot end with 0.")
 
         vars = {v.name: v for v in self.enumerate_variables()}
         vars = [_[1] for _ in list(sorted(vars.items()))]
@@ -522,12 +519,11 @@ class MLActionFunction(MLActionUnary):
             v.output._export_c(hook='type')['code'], v.name_var) for v in vars)
         typename = self.children[0].output._export_c(
             hook='typeref', result_name=result_name)['code']
-        signature = "int {1} ({0}, {2})".format(
-            typename, self.name, parameters)
+        signature = f"int {self.name} ({typename}, {parameters})"
         dc = MLAction._export_c(self, hook=hook, result_name=result_name)
         code = dc['code']
         rows = [signature, "{"]
         rows.extend("    " + line for line in code.split("\n"))
         rows.extend(
-            ['    return 0;', "    // {0}-{1} - done".format(id(self), self.name), '}'])
+            ['    return 0;', f"    // {id(self)}-{self.name} - done", '}'])
         return {'code': "\n".join(rows), 'result_name': result_name}

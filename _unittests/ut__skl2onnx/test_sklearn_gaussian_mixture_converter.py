@@ -42,8 +42,7 @@ class TestGaussianMixtureConverter(ExtTestCase):
         try:
             sess = InferenceSession(onx.SerializeToString())
         except OrtFail as e:
-            raise RuntimeError('Issue {}\n{}'.format(
-                e, str(onx))) from e
+            raise RuntimeError(f'Issue {e}\n{str(onx)}') from e
         got = sess.run(None, {'X': X})
         self.assertEqual(len(got), 3)
         np.testing.assert_almost_equal(

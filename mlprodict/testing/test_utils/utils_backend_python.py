@@ -16,13 +16,13 @@ class MockVariableName:
     def shape(self):
         "returns shape"
         raise NotImplementedError(  # pragma: no cover
-            "No shape for '{}'.".format(self.name))
+            f"No shape for '{self.name}'.")
 
     @property
     def type(self):
         "returns type"
         raise NotImplementedError(  # pragma: no cover
-            "No type for '{}'.".format(self.name))
+            f"No type for '{self.name}'.")
 
 
 class MockVariableNameShape(MockVariableName):
@@ -62,7 +62,7 @@ class OnnxInference2(OnnxInference):
         if name in res:  # pragma: no cover
             return res[name]
         raise RuntimeError(  # pragma: no cover
-            "Unable to find output '{}'.".format(name))
+            f"Unable to find output '{name}'.")
 
     def get_inputs(self):
         "onnxruntime API"

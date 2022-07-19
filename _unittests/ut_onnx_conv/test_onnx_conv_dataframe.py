@@ -108,8 +108,7 @@ class TestOnnxConvDataframe(ExtTestCase):
         try:
             oinf = OnnxInference(model_onnx)
         except RuntimeError as e:
-            raise RuntimeError("Fails for case={}\n{}".format(
-                case, e)) from e
+            raise RuntimeError(f"Fails for case={case}\n{e}") from e
 
         pred = pipe.transform(X_train)
         inputs = get_inputs_from_data(X_train)

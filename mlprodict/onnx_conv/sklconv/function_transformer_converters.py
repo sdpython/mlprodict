@@ -37,7 +37,7 @@ def new_calculate_sklearn_function_transformer_output_shapes(operator):
         # Only the shape changes.
         if len(outputs) != 1:
             raise RuntimeError(  # pragma: no cover
-                "Only one output is allowed not %d." % len(outputs))
+                f"Only one output is allowed not {len(outputs)}.")
         input_type = operator.inputs[0].type.__class__
         if compiled.meta_.get('signature', None):
             dims = compiled.meta_['signature'].shape_calculator(
@@ -85,7 +85,7 @@ def _copy_attributes(att):
     if vt['type']['kind'] == 'real':
         return vt['value']
     raise RuntimeError(  # pragma: no cover
-        "Unable to copy attribute %r, got %r." % (att, vt))
+        f"Unable to copy attribute {att!r}, got {vt!r}.")
 
 
 def new_convert_sklearn_function_transformer(scope, operator, container):
@@ -120,7 +120,7 @@ def new_convert_sklearn_function_transformer(scope, operator, container):
         names_mapping = {}
         for name in names:
             names_mapping[name] = scope.get_unique_variable_name(
-                'ft_%s' % name)
+                f'ft_{name}')
 
         # adding identities
         apply_identity(scope, operator.inputs[0].full_name,
@@ -146,7 +146,7 @@ def new_convert_sklearn_function_transformer(scope, operator, container):
                 node.op_type,
                 [names_mapping[n] for n in node.input],
                 [names_mapping[n] for n in node.output],
-                name=scope.get_unique_operator_name('ft_%s' % node.op_type),
+                name=scope.get_unique_operator_name(f'ft_{node.op_type}'),
                 **atts)
         return
 

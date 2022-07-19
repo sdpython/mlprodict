@@ -14,8 +14,7 @@ def find_node_name(model, name):
     """
     if not hasattr(model, "graph"):
         raise TypeError(  # pragma: no cover
-            "Parameter model is not an ONNX model but "
-            "{}".format(type(model)))
+            f"Parameter model is not an ONNX model but {type(model)}")
     for node in model.graph.node:
         if node.name == name:
             return node

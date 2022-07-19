@@ -142,19 +142,18 @@ def create_asv_benchmark(
     if opset_max == -1:
         opset_max = __max_supported_opset__  # pragma: no cover
     if verbose > 0 and fLOG is not None:  # pragma: no cover
-        fLOG("[create_asv_benchmark] opset in [{}, {}].".format(
-            opset_min, opset_max))
+        fLOG(f"[create_asv_benchmark] opset in [{opset_min}, {opset_max}].")
 
     # creates the folder if it does not exist.
     if not os.path.exists(location):
         if verbose > 0 and fLOG is not None:  # pragma: no cover
-            fLOG("[create_asv_benchmark] create folder '{}'.".format(location))
+            fLOG(f"[create_asv_benchmark] create folder '{location}'.")
         os.makedirs(location)  # pragma: no cover
 
     location_test = os.path.join(location, 'benches')
     if not os.path.exists(location_test):
         if verbose > 0 and fLOG is not None:
-            fLOG("[create_asv_benchmark] create folder '{}'.".format(location_test))
+            fLOG(f"[create_asv_benchmark] create folder '{location_test}'.")
         os.mkdir(location_test)
 
     # Cleans the content of the folder
@@ -187,7 +186,7 @@ def create_asv_benchmark(
         conf['matrix'].update(matrix)
     elif env is not None:
         raise ValueError(  # pragma: no cover
-            "Unable to handle env='{}'.".format(env))
+            f"Unable to handle env='{env}'.")
     dest = os.path.join(location, "asv.conf.json")
     created.append(dest)
     with open(dest, "w", encoding='utf-8') as f:
@@ -327,7 +326,7 @@ def _enumerate_asv_benchmark_all_models(  # pylint: disable=R0914
 
         def iterate():
             for i, row in enumerate(ops):  # pragma: no cover
-                fLOG("{}/{} - {}".format(i + 1, len(ops), row))
+                fLOG(f"{i + 1}/{len(ops)} - {row}")
                 yield row
 
         if verbose >= 11:
@@ -342,7 +341,7 @@ def _enumerate_asv_benchmark_all_models(  # pylint: disable=R0914
                         for i in t:
                             row = ops[i]
                             disp = row['name'] + " " * (28 - len(row['name']))
-                            t.set_description("%s" % disp)
+                            t.set_description(f"{disp}")
                             yield row
 
                 loop = iterate_tqdm()
@@ -437,10 +436,10 @@ def _enumerate_asv_benchmark_all_models(  # pylint: disable=R0914
                 for cr in created:
                     if cr in all_created:
                         raise RuntimeError(  # pragma: no cover
-                            "File '{}' was already created.".format(cr))
+                            f"File '{cr}' was already created.")
                     all_created.add(cr)
                     if verbose > 1 and fLOG is not None:
-                        fLOG("[create_asv_benchmark] add '{}'.".format(cr))
+                        fLOG(f"[create_asv_benchmark] add '{cr}'.")
                     yield cr
 
 
@@ -470,8 +469,7 @@ def _create_asv_benchmark_file(  # pylint: disable=R0914
                     res[class_name] = v
                     continue
                 raise ValueError(  # pragma: no cover
-                    "Class '{}', unable to format options {}".format(
-                        class_name, d_options))
+                    f"Class '{class_name}', unable to format options {d_options}")
             res[k] = v
         return res
 
@@ -504,7 +502,7 @@ def _create_asv_benchmark_file(  # pylint: disable=R0914
             return opt
         if isinstance(opt, list):
             raise TypeError(
-                "Unable to process type %r." % type(opt))
+                f"Unable to process type {type(opt)!r}.")
         reps = {True: 1, False: 0, 'zipmap': 'zm',
                 'optim': 'opt'}
         info = []
@@ -513,7 +511,7 @@ def _create_asv_benchmark_file(  # pylint: disable=R0914
                 v = _optdict2string(v)
             if k.startswith('####'):
                 k = ''
-            i = '{}{}'.format(reps.get(k, k), reps.get(v, v))
+            i = f'{reps.get(k, k)}{reps.get(v, v)}'
             info.append(i)
         return "-".join(info)
 
@@ -567,7 +565,7 @@ def _create_asv_benchmark_file(  # pylint: disable=R0914
             "[__max_supported_opset__],  # values for opset": str(opsets),
             "['float', 'double'],  # values for dtype":
                 "['float']" if '-64' not in problem else "['double']",
-            "[None],  # values for optim": "%r" % nck_opts,
+            "[None],  # values for optim": f"{nck_opts!r}",
         }
         for k, v in rep.items():
             if k not in class_content:
@@ -590,23 +588,23 @@ def _create_asv_benchmark_file(  # pylint: disable=R0914
             extra, merged_options)
         class_content = class_content.replace(
             "class TemplateBenchmark",
-            "class {}".format(class_name))
+            f"class {class_name}")
 
         # dtype, dofit
-        atts.append("chk_method_name = %r" % method_name)
-        atts.append("par_scenario = %r" % scenario)
-        atts.append("par_problem = %r" % problem)
-        atts.append("par_optimisation = %r" % optimisation)
+        atts.append(f"chk_method_name = {method_name!r}")
+        atts.append(f"par_scenario = {scenario!r}")
+        atts.append(f"par_problem = {problem!r}")
+        atts.append(f"par_optimisation = {optimisation!r}")
         if not dofit:
             atts.append("par_dofit = False")
         if merged_options is not None and len(merged_options) > 0:
             atts.append("par_convopts = %r" % format_conv_options(
                 conv_options, model.__name__))
-        atts.append("par_full_test_name = %r" % full_class_name)
+        atts.append(f"par_full_test_name = {full_class_name!r}")
 
         simple_name = _make_simple_name(name)
-        atts.append("benchmark_name = %r" % simple_name)
-        atts.append("pretty_name = %r" % simple_name)
+        atts.append(f"benchmark_name = {simple_name!r}")
+        atts.append(f"pretty_name = {simple_name!r}")
 
         if atts:
             class_content = class_content.replace(
@@ -614,7 +612,7 @@ def _create_asv_benchmark_file(  # pylint: disable=R0914
                 "\n    ".join(atts))
         if prefix_import != '.':
             class_content = class_content.replace(
-                " from .", "from .{}".format(prefix_import))
+                " from .", f"from .{prefix_import}")
 
         # Check compilation
         try:
@@ -629,8 +627,7 @@ def _create_asv_benchmark_file(  # pylint: disable=R0914
             miss = find_missing_sklearn_imports(to_import)
         except ValueError as e:  # pragma: no cover
             raise ValueError(
-                "Unable to check import in script\n{}".format(
-                    class_content)) from e
+                f"Unable to check import in script\n{class_content}") from e
         class_content = class_content.replace(
             "#  __IMPORTS__", "\n".join(miss))
         verify_code(class_content, exc=True)
@@ -695,7 +692,7 @@ def _create_asv_benchmark_file(  # pylint: disable=R0914
                                         print(datetime.now(), "iter", iter)
 
                                         """).format(rt=rt, dim=dim, nf=nf, opset=opset,
-                                                    dtype=dtype, opt="%r" % opt)
+                                                    dtype=dtype, opt=f"{opt!r}")
                                         first = False
 
                                     tmpl += textwrap.dedent("""
@@ -706,7 +703,7 @@ def _create_asv_benchmark_file(  # pylint: disable=R0914
                                     print(datetime.now(), "iter", iter)
 
                                     """).format(rt=rt, dim=dim, nf=nf, opset=opset,
-                                                dtype=dtype, opt="%r" % opt)
+                                                dtype=dtype, opt=f"{opt!r}")
 
                                 thename = "{n}_{dim}_{nf}_{opset}_{dtype}_{opt}.py".format(
                                     n=fullname_pyspy, dim=dim, nf=nf,

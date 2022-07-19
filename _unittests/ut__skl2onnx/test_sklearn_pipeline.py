@@ -46,7 +46,7 @@ class PipeConcatenateInput:
             res = self.pipe.transform(x2)
             return res
         raise TypeError(
-            "Unable to predict with type {0}".format(type(inp)))
+            f"Unable to predict with type {type(inp)}")
 
 
 class TestSklearnPipeline(ExtTestCase):
@@ -204,7 +204,7 @@ class TestSklearnPipeline(ExtTestCase):
         try:
             data = pandas.read_csv(titanic_url)
         except HTTPError:
-            warnings.warn("Connectivity issue for '{}'.".format(titanic_url))
+            warnings.warn(f"Connectivity issue for '{titanic_url}'.")
             return
         X = data.drop("survived", axis=1)
         y = data["survived"]  # pylint: disable=E1136

@@ -88,7 +88,7 @@ def onnx_text_plot_tree(node):
         if r == b'BRANCH_NEQ':  # pragma: no cover
             return '!='
         raise ValueError(  # pragma: no cover
-            "Unexpected rule %r." % rule)
+            f"Unexpected rule {rule!r}.")
 
     class Node:
         "Node representation."
@@ -116,25 +116,24 @@ def onnx_text_plot_tree(node):
                     rule(self.nodes_modes),  # pylint: disable=E1101
                     self.nodes_values)  # pylint: disable=E1101
                 if self.nodes_hitrates and self.nodes_hitrates != 1:
-                    text += " hi=%r" % self.nodes_hitrates
+                    text += f" hi={self.nodes_hitrates!r}"
                 if self.nodes_missing_value_tracks_true:
-                    text += " miss=%r" % (
-                        self.nodes_missing_value_tracks_true)
-            return "%s%s" % ("   " * self.depth, text)
+                    text += f" miss={self.nodes_missing_value_tracks_true!r}"
+            return f"{'   ' * self.depth}{text}"
 
     def process_tree(atts, treeid):
         "tree to string"
-        rows = ['treeid=%r' % treeid]
+        rows = [f'treeid={treeid!r}']
         if 'base_values' in atts:
             if treeid < len(atts['base_values']):
-                rows.append('base_value=%r' % atts['base_values'][treeid])
+                rows.append(f"base_value={atts['base_values'][treeid]!r}")
 
         short = {}
         for prefix in ['nodes', 'target', 'class']:
-            if ('%s_treeids' % prefix) not in atts:
+            if (f'{prefix}_treeids') not in atts:
                 continue
-            idx = [i for i in range(len(atts['%s_treeids' % prefix]))
-                   if atts['%s_treeids' % prefix][i] == treeid]
+            idx = [i for i in range(len(atts[f'{prefix}_treeids']))
+                   if atts[f'{prefix}_treeids'][i] == treeid]
             for k, v in atts.items():
                 if k.startswith(prefix):
                     if 'classlabels' in k:
@@ -146,12 +145,12 @@ def onnx_text_plot_tree(node):
         for i in range(len(short['nodes_treeids'])):
             nodes[i] = Node(i, short)
         prefix = 'target' if 'target_treeids' in short else 'class'
-        for i in range(len(short['%s_treeids' % prefix])):
-            idn = short['%s_nodeids' % prefix][i]
+        for i in range(len(short[f'{prefix}_treeids'])):
+            idn = short[f'{prefix}_nodeids'][i]
             node = nodes[idn]
             node.target_nodeids = idn
-            node.target_ids = short['%s_ids' % prefix][i]
-            node.target_weights = short['%s_weights' % prefix][i]
+            node.target_ids = short[f'{prefix}_ids'][i]
+            node.target_weights = short[f'{prefix}_weights'][i]
 
         def iterate(nodes, node, depth=0, true_false=''):
             node.depth = depth
@@ -176,12 +175,12 @@ def onnx_text_plot_tree(node):
             atts[k] = v if isinstance(v, int) else list(v)
         trees = list(sorted(set(atts['nodes_treeids'])))
         if 'n_targets' in atts:
-            rows = ['n_targets=%r' % atts['n_targets']]
+            rows = [f"n_targets={atts['n_targets']!r}"]
         else:
             rows = ['n_classes=%r' % len(
                 atts.get('classlabels_int64s',
                          atts.get('classlabels_strings', [])))]
-        rows.append('n_trees=%r' % len(trees))
+        rows.append(f'n_trees={len(trees)!r}')
         for tree in trees:
             r = process_tree(atts, tree)
             rows.append('----')
@@ -189,7 +188,7 @@ def onnx_text_plot_tree(node):
         return "\n".join(rows)
 
     raise NotImplementedError(  # pragma: no cover
-        "Type %r cannot be displayed." % node.op_type)
+        f"Type {node.op_type!r} cannot be displayed.")
 
 
 def _append_succ_pred(subgraphs, successors, predecessors, node_map, node, prefix="",
@@ -396,7 +395,7 @@ def reorder_nodes_for_display(nodes, verbose=False):
 
         if best is None:
             raise RuntimeError(  # pragma: no cover
-                "Wrong implementation (len(sequence)=%d)." % len(sequences))
+                f"Wrong implementation (len(sequence)={len(sequences)}).")
         if verbose:
             print("[reorder_nodes_for_display] BEST: sequence(%s)=%s" % (
                 best, ",".join(sequences[best])))
@@ -406,8 +405,8 @@ def reorder_nodes_for_display(nodes, verbose=False):
             v = dnodes[k]
             new_nodes.append(v)
             if verbose:
-                print("[reorder_nodes_for_display] + %r (%r)" %
-                      (v.name, v.op_type))
+                print(
+                    f"[reorder_nodes_for_display] + {v.name!r} ({v.op_type!r})")
             done.add(k)
             known |= set(v.output)
 
@@ -460,7 +459,7 @@ def _get_type(obj0):
                 hasattr(obj, 'int32_data')):
             return TENSOR_TYPE_TO_NP_TYPE[TensorProto.INT32]  # pylint: disable=E1101
         raise RuntimeError(  # pragma: no cover
-            "Unable to guess type from %r." % obj0)
+            f"Unable to guess type from {obj0!r}.")
     if hasattr(obj, 'type'):
         obj = obj.type
     if hasattr(obj, 'tensor_type'):
@@ -468,7 +467,7 @@ def _get_type(obj0):
     if hasattr(obj, 'elem_type'):
         return TENSOR_TYPE_TO_NP_TYPE.get(obj.elem_type, '?')
     raise RuntimeError(  # pragma: no cover
-        "Unable to guess type from %r." % obj0)
+        f"Unable to guess type from {obj0!r}.")
 
 
 def _get_shape(obj):
@@ -487,13 +486,13 @@ def _get_shape(obj):
                 hasattr(obj, 'int32_data')):
             return (len(obj.int32_data), )
         raise RuntimeError(  # pragma: no cover
-            "Unable to guess type from %r." % obj0)
+            f"Unable to guess type from {obj0!r}.")
     if hasattr(obj, 'type'):
         obj = obj.type
     if hasattr(obj, 'tensor_type'):
         return get_tensor_shape(obj)
     raise RuntimeError(  # pragma: no cover
-        "Unable to guess type from %r." % obj0)
+        f"Unable to guess type from {obj0!r}.")
 
 
 def onnx_simple_text_plot(model, verbose=False, att_display=None,  # pylint: disable=R0915
@@ -699,7 +698,7 @@ def onnx_simple_text_plot(model, verbose=False, att_display=None,  # pylint: dis
                     if att.type == AttributeProto.INT:  # pylint: disable=E1101
                         atts.append("%s=%d" % (att.name, att.i))
                     elif att.type == AttributeProto.FLOAT:  # pylint: disable=E1101
-                        atts.append("%s=%1.2f" % (att.name, att.f))
+                        atts.append(f"{att.name}={att.f:1.2f}")
                     elif att.type == AttributeProto.INTS:  # pylint: disable=E1101
                         atts.append("%s=%s" % (att.name, str(
                             list(att.ints)).replace(" ", "")))
@@ -707,10 +706,9 @@ def onnx_simple_text_plot(model, verbose=False, att_display=None,  # pylint: dis
                         done = False
                 elif (att.type == AttributeProto.GRAPH and  # pylint: disable=E1101
                         hasattr(att, 'g') and att.g is not None):
-                    atts.append("%s=%s" %
-                                (att.name, _get_subgraph_name(id(att.g))))
+                    atts.append(f"{att.name}={_get_subgraph_name(id(att.g))}")
                 elif att.ref_attr_name:
-                    atts.append("%s=$%s" % (att.name, att.ref_attr_name))
+                    atts.append(f"{att.name}=${att.ref_attr_name}")
                 else:
                     done = False
                 if done:
@@ -747,7 +745,7 @@ def onnx_simple_text_plot(model, verbose=False, att_display=None,  # pylint: dis
                 elif att.type == AttributeProto.INTS:  # pylint: disable=E1101
                     n_val = list(att.ints)
                     if len(n_val) < 6:
-                        val = "[%s]" % ",".join(map(str, n_val))
+                        val = f"[{','.join(map(str, n_val))}]"
                     else:
                         val = "%d:[%s...%s]" % (
                             len(n_val),
@@ -756,7 +754,7 @@ def onnx_simple_text_plot(model, verbose=False, att_display=None,  # pylint: dis
                 elif att.type == AttributeProto.FLOATS:  # pylint: disable=E1101
                     n_val = list(att.floats)
                     if len(n_val) < 5:
-                        val = "[%s]" % ",".join(map(str, n_val))
+                        val = f"[{','.join(map(str, n_val))}]"
                     else:
                         val = "%d:[%s...%s]" % (
                             len(n_val),
@@ -764,14 +762,14 @@ def onnx_simple_text_plot(model, verbose=False, att_display=None,  # pylint: dis
                             ",".join(map(str, n_val[-2:])))
                 else:
                     val = '.%d' % att.type
-                atts.append("%s=%s" % (att.name, val))
+                atts.append(f"{att.name}={val}")
         inputs = list(node.input)
         if len(atts) > 0:
             inputs.extend(atts)
         if node.domain in ('', 'ai.onnx.ml'):
             domain = ''
         else:
-            domain = '[%s]' % node.domain
+            domain = f'[{node.domain}]'
         return "%s%s%s(%s) -> %s" % (
             "  " * indent, node.op_type, domain,
             ", ".join(inputs), ", ".join(node.output))
@@ -779,11 +777,11 @@ def onnx_simple_text_plot(model, verbose=False, att_display=None,  # pylint: dis
     rows = []
     if hasattr(model, 'opset_import'):
         for opset in model.opset_import:
-            rows.append("opset: domain=%r version=%r" % (
-                opset.domain, opset.version))
+            rows.append(
+                f"opset: domain={opset.domain!r} version={opset.version!r}")
     if hasattr(model, 'graph'):
         if model.doc_string:
-            rows.append('doc_string: %s' % model.doc_string)
+            rows.append(f'doc_string: {model.doc_string}')
         main_model = model
         model = model.graph
     else:
@@ -796,7 +794,7 @@ def onnx_simple_text_plot(model, verbose=False, att_display=None,  # pylint: dis
         rows.append("----- input ----")
     for inp in model.input:
         if isinstance(inp, str):
-            rows.append("input: %r" % inp)
+            rows.append(f"input: {inp!r}")
         else:
             line_name_new[inp.name] = len(rows)
             rows.append("input: name=%r type=%r shape=%r" % (
@@ -804,7 +802,7 @@ def onnx_simple_text_plot(model, verbose=False, att_display=None,  # pylint: dis
     if hasattr(model, 'attribute'):
         for att in model.attribute:
             if isinstance(att, str):
-                rows.append("attribute: %r" % att)
+                rows.append(f"attribute: {att!r}")
             else:
                 raise NotImplementedError(  # pragma: no cover
                     "Not yet introduced in onnx.")
@@ -815,7 +813,7 @@ def onnx_simple_text_plot(model, verbose=False, att_display=None,  # pylint: dis
             rows.append("----- initializer ----")
         for init in model.initializer:
             if numpy.prod(_get_shape(init)) < 5:
-                content = " -- %r" % to_array(init).ravel()
+                content = f" -- {to_array(init).ravel()!r}"
             else:
                 content = ""
             line_name_new[init.name] = len(rows)
@@ -848,7 +846,7 @@ def onnx_simple_text_plot(model, verbose=False, att_display=None,  # pylint: dis
         if raise_exc:
             raise e
         else:
-            rows.append("ERROR: %s" % e)
+            rows.append(f"ERROR: {e}")
         nodes = model.node
 
     previous_indent = None
@@ -861,7 +859,7 @@ def onnx_simple_text_plot(model, verbose=False, att_display=None,  # pylint: dis
             indent = indents[name]
             if previous_indent is not None and indent < previous_indent:
                 if verbose:
-                    print("[onnx_simple_text_plot] break1 %s" % node.op_type)
+                    print(f"[onnx_simple_text_plot] break1 {node.op_type}")
                 add_break = True
         elif previous_in is not None and set(node.input) == previous_in:
             indent = previous_indent
@@ -876,14 +874,12 @@ def onnx_simple_text_plot(model, verbose=False, att_display=None,  # pylint: dis
                 if previous_indent is not None and indent < previous_indent:
                     if verbose:
                         print(  # pragma: no cover
-                            "[onnx_simple_text_plot] break2 %s" %
-                                node.op_type)
+                            f"[onnx_simple_text_plot] break2 {node.op_type}")
                     add_break = True
             if not add_break and previous_out is not None:
                 if len(set(node.input) & previous_out) == 0:
                     if verbose:
-                        print("[onnx_simple_text_plot] break3 %s" %
-                              node.op_type)
+                        print(f"[onnx_simple_text_plot] break3 {node.op_type}")
                     add_break = True
                     indent = 0
 
@@ -915,8 +911,7 @@ def onnx_simple_text_plot(model, verbose=False, att_display=None,  # pylint: dis
                 line_name_in[out].append(len(rows))
             else:
                 line_name_in[out] = [len(rows)]
-            rows.append("output: name=%r type=%s shape=%s" % (
-                out, '?', '?'))
+            rows.append(f"output: name={out!r} type={'?'} shape={'?'}")
         else:
             if out.name in line_name_in:
                 line_name_in[out.name].append(len(rows))
@@ -987,10 +982,9 @@ def onnx_simple_text_plot(model, verbose=False, att_display=None,  # pylint: dis
     # functions
     if functions and main_model is not None:
         for fct in main_model.functions:
-            rows.append('----- function name=%s domain=%s' % (
-                fct.name, fct.domain))
+            rows.append(f'----- function name={fct.name} domain={fct.domain}')
             if fct.doc_string:
-                rows.append('----- doc_string: %s' % fct.doc_string)
+                rows.append(f'----- doc_string: {fct.doc_string}')
             res = onnx_simple_text_plot(
                 fct, verbose=verbose, att_display=att_display,
                 add_links=add_links, recursive=recursive,
@@ -1032,8 +1026,8 @@ def onnx_text_plot_io(model, verbose=False, att_display=None):
     rows = []
     if hasattr(model, 'opset_import'):
         for opset in model.opset_import:
-            rows.append("opset: domain=%r version=%r" % (
-                opset.domain, opset.version))
+            rows.append(
+                f"opset: domain={opset.domain!r} version={opset.version!r}")
     if hasattr(model, 'graph'):
         model = model.graph
 

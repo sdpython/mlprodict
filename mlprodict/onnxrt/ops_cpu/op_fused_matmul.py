@@ -29,7 +29,7 @@ class FusedMatMul(OpRun):
         if op_name == "FusedMatMul":
             return FusedMatMulSchema()
         raise RuntimeError(  # pragma: no cover
-            "Unable to find a schema for operator '{}'.".format(op_name))
+            f"Unable to find a schema for operator '{op_name}'.")
 
     @staticmethod
     def _fmatmul00(a, b, alpha):

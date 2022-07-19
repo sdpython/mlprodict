@@ -54,7 +54,7 @@ def load_op(onnx_node, desc=None, options=None, runtime=None):
     if opset is not None:
         if not isinstance(opset, int):
             raise TypeError(  # pragma no cover
-                "opset must be an integer not {}".format(type(opset)))
+                f"opset must be an integer not {type(opset)}")
         name_opset = name + "_" + str(opset)
         for op in range(opset, 0, -1):
             nop = name + "_" + str(op)

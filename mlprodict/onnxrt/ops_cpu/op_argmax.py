@@ -44,7 +44,7 @@ class _ArgMax(OpRunArg):
 
     def to_python(self, inputs):
         return ('import numpy\nfrom mlprodict.onnxrt.ops_cpu.op_argmax import _argmax',
-                'return _argmax(%s, axis=axis, keepdims=keepdims)' % inputs[0])
+                f'return _argmax({inputs[0]}, axis=axis, keepdims=keepdims)')
 
 
 class ArgMax_11(_ArgMax):

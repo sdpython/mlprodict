@@ -38,8 +38,7 @@ def enumerate_model_node_outputs(model, add_node=False, order=False):
     """
     if not hasattr(model, "graph"):
         raise TypeError(  # pragma: no cover
-            "Parameter model is not an ONNX model but "
-            "{}".format(type(model)))
+            f"Parameter model is not an ONNX model but {type(model)}")
     if order:
         edges = []
         order = {}
@@ -102,7 +101,7 @@ def get_opsets(model, include_functions=True, exc=True):
         for op in model.opset_import:
             if exc and op.domain in res:
                 raise ValueError(  # pragma: no cover
-                    "Domain %r appears multiple times." % op.domain)
+                    f"Domain {op.domain!r} appears multiple times.")
             res[op.domain] = op.version
         if include_functions:
             for f in model.functions:
@@ -124,7 +123,7 @@ def get_opsets(model, include_functions=True, exc=True):
     for op in model.opset_import:
         if exc and op.domain in res:
             raise ValueError(  # pragma: no cover
-                "Domain %r appears multiple times." % op.domain)
+                f"Domain {op.domain!r} appears multiple times.")
         res[op.domain] = op.version
     return res
 
@@ -211,7 +210,7 @@ def select_model_inputs_outputs(model, outputs=None, inputs=None,
     for out in outputs:
         if out not in mark_var:
             raise ValueError(  # pragma: no cover
-                "Output '{}' not found in model.".format(out))
+                f"Output '{out}' not found in model.")
         mark_var[out] = 1
 
     nodes = model.graph.node[::-1]
@@ -562,8 +561,7 @@ def hash_onnx_object(obj, max_size):
             m.update(obj.SerializeToString())
         except AttributeError as e:  # pragma: no cover
             raise RuntimeError(
-                "Unable to hash object type %r, value=%r."
-                "" % (type(obj), obj)) from e
+                f"Unable to hash object type {type(obj)!r}, value={obj!r}.") from e
         finally:
             obj.name = name
             obj.doc_string = docf
@@ -622,11 +620,11 @@ def onnx_rename_names(model, strategy='simple', recursive=True,
     def _check_name_type(obj, prefix):
         c = 2
         hash = hash_onnx_object(obj, c)
-        final = "%s_%s" % (prefix, hash)
+        final = f"{prefix}_{hash}"
         while final in taken:
             c += 2
             hash = hash_onnx_object(obj, c)
-            final = "%s_%s" % (prefix, hash)
+            final = f"{prefix}_{hash}"
         taken.add(final)
         return final
 
@@ -638,17 +636,17 @@ def onnx_rename_names(model, strategy='simple', recursive=True,
             counts['init'] += 1
             replace[init.name] = name
             if verbose > 0 and fLOG is not None:
-                fLOG('[onnx_rename_names] init: %r -> %r' % (init.name, name))
+                fLOG(f'[onnx_rename_names] init: {init.name!r} -> {name!r}')
             return name
         if strategy == 'type':
             name = _check_name_type(init, 'i')
             counts['init'] += 1
             replace[init.name] = name
             if verbose > 0 and fLOG is not None:
-                fLOG('[onnx_rename_names] init: %r -> %r' % (init.name, name))
+                fLOG(f'[onnx_rename_names] init: {init.name!r} -> {name!r}')
             return name
         raise ValueError(  # pragma: no cover
-            "Unknown strategy %r." % strategy)
+            f"Unknown strategy {strategy!r}.")
 
     def get_name_node(node):
         node_name = 'node_%s_%d' % (node.name, id(node))
@@ -659,17 +657,17 @@ def onnx_rename_names(model, strategy='simple', recursive=True,
             counts['node'] += 1
             replace[node_name] = name
             if verbose > 0 and fLOG is not None:
-                fLOG('[onnx_rename_names] node: %r -> %r' % (node_name, name))
+                fLOG(f'[onnx_rename_names] node: {node_name!r} -> {name!r}')
             return name
         if strategy == 'type':
             name = _check_name_type(node, 'n')
             counts['node'] += 1
             replace[node_name] = name
             if verbose > 0 and fLOG is not None:
-                fLOG('[onnx_rename_names] node: %r -> %r' % (node_name, name))
+                fLOG(f'[onnx_rename_names] node: {node_name!r} -> {name!r}')
             return name
         raise ValueError(  # pragma: no cover
-            "Unknown strategy %r." % strategy)
+            f"Unknown strategy {strategy!r}.")
 
     def get_name_result(node, i, name, suffix):
         if name in replace:
@@ -679,17 +677,17 @@ def onnx_rename_names(model, strategy='simple', recursive=True,
             counts['result'] += 1
             replace[name] = new_name
             if verbose > 0 and fLOG is not None:
-                fLOG('[onnx_rename_names] result: %r -> %r' % (name, new_name))
+                fLOG(f'[onnx_rename_names] result: {name!r} -> {new_name!r}')
             return new_name
         if strategy == 'type':
             new_name = _check_name_type(node, 'r%s%d' % (suffix, i))
             counts['result'] += 1
             replace[name] = new_name
             if verbose > 0 and fLOG is not None:
-                fLOG('[onnx_rename_names] result: %r -> %r' % (name, new_name))
+                fLOG(f'[onnx_rename_names] result: {name!r} -> {new_name!r}')
             return new_name
         raise ValueError(  # pragma: no cover
-            "Unknown strategy %r." % strategy)
+            f"Unknown strategy {strategy!r}.")
 
     def get_name_input(node, i):
         return get_name_result(node, i, node.input[i], 'i')
@@ -822,7 +820,7 @@ def onnx_replace_functions(model, replace):
     """
     if not isinstance(model, ModelProto):
         raise TypeError(  # pragma: no cover
-            "Unexpected type %r." % type(model))
+            f"Unexpected type {type(model)!r}.")
     new_functions = []
     modified = False
     for fct in model.functions:
@@ -832,14 +830,13 @@ def onnx_replace_functions(model, replace):
             f = replace[key]
             if not isinstance(f, FunctionProto):
                 raise TypeError(  # pragma: no cover
-                    "Unexpected type %r for function %r in replace." % (
-                        type(f), key))
+                    f"Unexpected type {type(f)!r} for function {key!r} in replace.")
             if len(f.input) != len(fct.input):
                 raise ValueError(  # pragma: no cover
-                    "Input mismatches %r != %r (expected)." % (f.input, fct.input))
+                    f"Input mismatches {f.input!r} != {fct.input!r} (expected).")
             if len(f.output) != len(fct.output):
                 raise ValueError(  # pragma: no cover
-                    "Output mismatches %r != %r (expected)." % (f.output, fct.output))
+                    f"Output mismatches {f.output!r} != {fct.output!r} (expected).")
             new_functions.append(f)
         else:
             new_functions.append(fct)
@@ -913,7 +910,7 @@ def insert_results_into_onnx(model, results, as_parameter=True, suffix='_DBG',
         if k in names_input:
             # inputs are added as
             raise NotImplementedError(
-                "Unable to add debug information on input %r." % k)
+                f"Unable to add debug information on input {k!r}.")
 
         if k not in names_output:
             raise RuntimeError(
@@ -1016,7 +1013,7 @@ def onnx_model_to_function(onx, name=None, domain="custom",
 
     if not isinstance(onx, GraphProto):
         raise TypeError(  # pragma: no cover
-            "Unexpected type %r for onx." % type(onx))
+            f"Unexpected type {type(onx)!r} for onx.")
 
     if name is None:
         name = onx.name
@@ -1100,7 +1097,7 @@ def onnx_function_to_model(onx, functions=None, type_info=None,
     """
     if not isinstance(onx, FunctionProto):
         raise TypeError(  # pragma: no cover
-            "onx must be a FunctionProto not %r." % type(onx))
+            f"onx must be a FunctionProto not {type(onx)!r}.")
     if len(onx.attribute) > 0:
         raise NotImplementedError(
             "The function has attributes, it is not implemented yet.")
@@ -1113,7 +1110,7 @@ def onnx_function_to_model(onx, functions=None, type_info=None,
         added_functions = []
     else:
         raise TypeError(  # pragma: no cover
-            "Unexpected type for functions %r." % type(functions))
+            f"Unexpected type for functions {type(functions)!r}.")
 
     if shape_fct is None:
         shape_fct = lambda name, dtype: None
@@ -1144,7 +1141,7 @@ def onnx_function_to_model(onx, functions=None, type_info=None,
 
 
 def _get_new_name(prefix, name, existing_names):
-    opt = "%s_%s_0" % (prefix, name)
+    opt = f"{prefix}_{name}_0"
     i = 0
     while opt in existing_names:
         i += 1
@@ -1215,7 +1212,7 @@ class _inline_mapping(dict):
         "Removes one element."
         if o not in self:
             raise KeyError(  # pragma: no cover
-                "Cannot remove a key %r." % o)
+                f"Cannot remove a key {o!r}.")
         self.pop(o)
 
 
@@ -1587,7 +1584,7 @@ def onnx_inline_function(obj, protos=None, existing_names=None, verbose=0, fLOG=
     modified = 1
     while modified > 0 and n_iter < max_iter:
         if verbose > 0:
-            fLOG("[onnx_inline_function] start iteration %r" % n_iter)
+            fLOG(f"[onnx_inline_function] start iteration {n_iter!r}")
 
         # local context
         mapping = _inline_mapping(verbose, fLOG, level=0)
@@ -1601,7 +1598,7 @@ def onnx_inline_function(obj, protos=None, existing_names=None, verbose=0, fLOG=
             mapping.update({i: i for i in obj.input})
         else:
             raise TypeError(  # pragma: no cover
-                "Unexpected type for obj: %r." % type(obj))
+                f"Unexpected type for obj: {type(obj)!r}.")
 
         # loop on nodes
         old_nodes = new_nodes
@@ -1689,4 +1686,4 @@ def onnx_inline_function(obj, protos=None, existing_names=None, verbose=0, fLOG=
                        sparse_initializer=list(obj.sparse_initializer)),
             modified_nodes)
     raise TypeError(  # pragma: no cover
-        "Unexpected type for obj %r." % type(obj))
+        f"Unexpected type for obj {type(obj)!r}.")

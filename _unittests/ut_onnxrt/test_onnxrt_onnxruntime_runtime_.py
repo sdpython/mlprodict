@@ -126,7 +126,7 @@ class TestOnnxrtOnnxRuntimeRuntime(ExtTestCase):
             rows = ['--EXP--', str(exp), '--GOT--', str(got),
                     '--EVERY-OUTPUT--']
             for k, v in res.items():
-                rows.append('-%s-' % k)
+                rows.append(f'-{k}-')
                 rows.append(str(v))
             if any(map(numpy.isnan, res["variable"].ravel())):
                 # raise AssertionError('\n'.join(rows))

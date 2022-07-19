@@ -20,4 +20,4 @@ class Sigmoid(OpRunUnaryNum):
 
     def to_python(self, inputs):
         return ("from scipy.special import expit",
-                "return expit(%s)" % inputs[0])
+                f"return expit({inputs[0]})")

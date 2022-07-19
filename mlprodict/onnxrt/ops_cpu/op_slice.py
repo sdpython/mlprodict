@@ -39,7 +39,7 @@ class SliceCommon(OpRun):
             return (data[tuple(slices)], )
         except TypeError as e:  # pragma: no cover
             raise TypeError(
-                "Unable to extract slice %r for shape %r." % (slices, data.shape)) from e
+                f"Unable to extract slice {slices!r} for shape {data.shape!r}.") from e
 
 
 class Slice_10(SliceCommon):

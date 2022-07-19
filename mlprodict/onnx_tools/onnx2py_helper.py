@@ -22,7 +22,7 @@ def get_tensor_shape(obj):
         return get_tensor_shape(obj.type)
     elif not isinstance(obj, TypeProto):
         raise TypeError(  # pragma: no cover
-            "Unexpected type %r." % type(obj))
+            f"Unexpected type {type(obj)!r}.")
     if not obj.tensor_type.HasField('shape'):
         return None
     shape = []
@@ -42,10 +42,10 @@ def get_tensor_elem_type(obj):
         return get_tensor_elem_type(obj.type)
     elif not isinstance(obj, TypeProto):
         raise TypeError(  # pragma: no cover
-            "Unexpected type %r." % type(obj))
+            f"Unexpected type {type(obj)!r}.")
     if obj.tensor_type.ByteSize() == 0:
         raise TypeError(  # pragma: no cover
-            "Unable to guess element type for %r." % obj)
+            f"Unable to guess element type for {obj!r}.")
     return obj.tensor_type.elem_type
 
 
@@ -106,7 +106,7 @@ def from_array(value, name=None):
     if isinstance(value, TensorProto):  # pragma: no cover
         return value
     raise NotImplementedError(  # pragma: no cover
-        "Unable to convert type %r into an ONNX tensor." % type(value))
+        f"Unable to convert type {type(value)!r} into an ONNX tensor.")
 
 
 def from_bytes(b):
@@ -171,8 +171,7 @@ def _sparse_array(shape, data, indices, dtype=None, copy=True):
     """
     if len(shape) != 2:
         raise ValueError(  # pragma: no cover
-            "Only matrices are allowed or sparse matrices "
-            "but shape is {}.".format(shape))
+            f"Only matrices are allowed or sparse matrices but shape is {shape}.")
     rows = numpy.array([i // shape[1] for i in indices])
     cols = numpy.array([i % shape[1] for i in indices])
     if isinstance(data, numpy.ndarray):
@@ -210,7 +209,7 @@ def guess_numpy_type_from_string(name):
     if name == 'str':
         return numpy.str_
     raise ValueError(  # pragma: no cover
-        "Unable to guess numpy dtype from %r." % name)
+        f"Unable to guess numpy dtype from {name!r}.")
 
 
 def guess_numpy_type_from_dtype(dt):
@@ -234,7 +233,7 @@ def guess_numpy_type_from_dtype(dt):
     if dt == numpy.dtype('uint8'):
         return numpy.uint8
     raise ValueError(  # pragma: no cover
-        "Unable to guess numpy dtype from %r." % dt)
+        f"Unable to guess numpy dtype from {dt!r}.")
 
 
 def _elem_type_as_str(elem_type):
@@ -346,7 +345,7 @@ def _to_array(var):
                                 copy=False).reshape(dims)
         else:
             raise NotImplementedError(
-                "Iniatilizer {} cannot be converted into a dictionary.".format(var)) from e
+                f"Iniatilizer {var} cannot be converted into a dictionary.") from e
     return data
 
 
@@ -447,7 +446,7 @@ def _var_as_dict(var):
                 values = _var_as_dict(t.values)
             except NotImplementedError as e:  # pragma: no cover
                 raise NotImplementedError(
-                    "Issue with\n{}\n---".format(var)) from e
+                    f"Issue with\n{var}\n---") from e
             indices = _var_as_dict(t.indices)
             res['value'] = _sparse_array(
                 dtype['shape'], values['value'], indices['value'], dtype=numpy.float32)
@@ -564,13 +563,13 @@ def _type_to_string(dtype):
     else:
         dtype_ = dtype
     if dtype_["kind"] == 'tensor':
-        return "{0}({1})".format(dtype_['elem'], dtype_['shape'])
+        return f"{dtype_['elem']}({dtype_['shape']})"
     if dtype_['kind'] == 'sequence':
-        return "[{0}]".format(_type_to_string(dtype_['elem']))
+        return f"[{_type_to_string(dtype_['elem'])}]"
     if dtype_["kind"] == 'map':
-        return "{{{0}, {1}}}".format(dtype_['key'], dtype_['value'])
+        return f"{{{dtype_['key']}, {dtype_['value']}}}"
     raise NotImplementedError(  # pragma: no cover
-        "Unable to convert into string {} or {}.".format(dtype, dtype_))
+        f"Unable to convert into string {dtype} or {dtype_}.")
 
 
 def numpy_min(x):
@@ -594,7 +593,7 @@ def numpy_min(x):
         val = keep[0]
         if len(val) > 10:  # pragma: no cover
             val = val[:10] + '...'
-        return "%r" % val
+        return f"{val!r}"
     except (ValueError, TypeError):  # pragma: no cover
         return '?'
 
@@ -620,7 +619,7 @@ def numpy_max(x):
         val = keep[-1]
         if len(val) > 10:  # pragma: no cover
             val = val[:10] + '...'
-        return "%r" % val
+        return f"{val!r}"
     except (ValueError, TypeError):  # pragma: no cover
         return '?'
 
@@ -659,7 +658,7 @@ def guess_proto_dtype(dtype):
     if dtype in (str, numpy.str_):
         return TensorProto.STRING  # pylint: disable=E1101
     raise RuntimeError(
-        "Unable to guess type for dtype={}.".format(dtype))  # pragma: no cover
+        f"Unable to guess type for dtype={dtype}.")  # pragma: no cover
 
 
 def guess_proto_dtype_name(onnx_dtype):
@@ -690,7 +689,7 @@ def guess_proto_dtype_name(onnx_dtype):
     if onnx_dtype == TensorProto.STRING:  # pylint: disable=E1101
         return "TensorProto.STRING"
     raise RuntimeError(  # pragma: no cover
-        "Unable to guess type for dtype={}.".format(onnx_dtype))
+        f"Unable to guess type for dtype={onnx_dtype}.")
 
 
 def guess_dtype(proto_type):
@@ -727,8 +726,7 @@ def guess_dtype(proto_type):
     if proto_type == TensorProto.FLOAT16:  # pylint: disable=E1101
         return numpy.float16
     raise ValueError(
-        "Unable to convert proto_type {} to numpy type.".format(
-            proto_type))
+        f"Unable to convert proto_type {proto_type} to numpy type.")
 
 
 def to_skl2onnx_type(name, elem_type, shape):
@@ -777,13 +775,11 @@ def from_pb(obj):
         shape = get_shape(tt)
         if elem not in TENSOR_TYPE_TO_NP_TYPE:
             raise NotImplementedError(
-                "Unsupported type '{}' (elem_type={}).".format(
-                    type(obj.type.tensor_type), elem))
+                f"Unsupported type '{type(obj.type.tensor_type)}' (elem_type={elem}).")
         ty = TENSOR_TYPE_TO_NP_TYPE[elem].type
     else:
         raise NotImplementedError(  # pragma: no cover
-            "Unsupported type '{}' as a string ({})."
-            "".format(type(obj), obj))
+            f"Unsupported type '{type(obj)}' as a string ({obj}).")
 
     return (name, ty, shape)
 
@@ -801,7 +797,7 @@ def numpy_type_prototype(dtype):
     if dt in NP_TYPE_TO_TENSOR_TYPE:
         return NP_TYPE_TO_TENSOR_TYPE[dt]
     raise ValueError(  # pragma: no cover
-        "Unable to convert dtype %r into ProtoType." % dtype)
+        f"Unable to convert dtype {dtype!r} into ProtoType.")
 
 
 def make_value_info(name, dtype, shape):
@@ -850,7 +846,7 @@ def _get_onnx_function():
             key = fct.domain, fct.name
             if key in _get_onnx_function_cache:
                 raise RuntimeError(  # pragma: no cover
-                    "Function %r is already registered." % (key, ))
+                    f"Function {key!r} is already registered.")
             _get_onnx_function_cache[key] = fct
     return _get_onnx_function_cache
 

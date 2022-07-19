@@ -41,10 +41,9 @@ def get_ort_device(device):
             return C_OrtDevice(
                 C_OrtDevice.cuda(), C_OrtDevice.default_memory(), idx)
         raise ValueError(  # pragma: no cover
-            "Unable to interpret string %r as a device." % device)
+            f"Unable to interpret string {device!r} as a device.")
     raise TypeError(  # pragma: no cover
-        "Unable to interpret type %r, (%r) as de device." % (
-            type(device), device))
+        f"Unable to interpret type {type(device)!r}, ({device!r}) as de device.")
 
 
 def device_to_providers(device):
@@ -61,4 +60,4 @@ def device_to_providers(device):
     if device.device_type() == device.cuda():
         return ['CUDAExecutionProvider', 'CPUExecutionProvider']
     raise ValueError(  # pragma: no cover
-        "Unexpected device %r." % device)
+        f"Unexpected device {device!r}.")

@@ -21,12 +21,11 @@ def _element_unary(known_shapes, node, dtype=None, one_input=True):
     """
     if one_input and len(node.input) != 1:
         raise ShapeInferenceException(  # pragma: no cover
-            "Node %r must have one input not %d." % (
-                node.name, len(node.input)))
+            f"Node {node.name!r} must have one input not {len(node.input)}.")
     x = known_shapes[node.input[0]]
     if x.mtype != OnnxKind.Tensor:
         raise ShapeInferenceException(  # pragma: no cover
-            "Result %r must be a tensor." % x)
+            f"Result {x!r} must be a tensor.")
     if dtype is None:
         return known_shapes.update(node.output[0], x.copy())
     cp = x.copy()
@@ -74,11 +73,11 @@ def shape_castlike(known_shapes, node):
     x = known_shapes[node.input[0]]
     if x.mtype != OnnxKind.Tensor:
         raise ShapeInferenceException(  # pragma: no cover
-            "Result %r must be a tensor." % x)
+            f"Result {x!r} must be a tensor.")
     y = known_shapes[node.input[1]]
     if y.mtype != OnnxKind.Tensor:
         raise ShapeInferenceException(  # pragma: no cover
-            "Result %r must be a tensor." % y)
+            f"Result {y!r} must be a tensor.")
     cp = x.copy()
     cp.dtype = y.dtype
     return known_shapes.update(node.output[0], cp)
@@ -179,8 +178,7 @@ def shape_not(known_shapes, node):
     x = known_shapes[node.input[0]]
     if x.dtype != numpy.bool_:
         raise ShapeInferenceException(
-            "Unexpected input type for operator Not %r (must be bool)."
-            "" % x.dtype)
+            f"Unexpected input type for operator Not {x.dtype!r} (must be bool).")
     return _element_unary(known_shapes, node)
 
 

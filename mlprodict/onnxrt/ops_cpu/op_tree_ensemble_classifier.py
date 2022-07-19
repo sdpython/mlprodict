@@ -39,7 +39,7 @@ class TreeEnsembleClassifierCommon(OpRunClassifierProb, _ClassifierCommon):
         if op_name == "TreeEnsembleClassifierDouble":
             return TreeEnsembleClassifierDoubleSchema()
         raise RuntimeError(  # pragma: no cover
-            "Unable to find a schema for operator '{}'.".format(op_name))
+            f"Unable to find a schema for operator '{op_name}'.")
 
     def _init(self, dtype, version):
         self._post_process_label_attributes()
@@ -73,7 +73,7 @@ class TreeEnsembleClassifierCommon(OpRunClassifierProb, _ClassifierCommon):
                 self.rt_ = RuntimeTreeEnsembleClassifierPFloat(
                     60, 20, True, True)
             else:
-                raise ValueError("Unknown version '{}'.".format(version))
+                raise ValueError(f"Unknown version '{version}'.")
         elif dtype == numpy.float64:
             if version == 0:
                 self.rt_ = RuntimeTreeEnsembleClassifierDouble()
@@ -88,10 +88,10 @@ class TreeEnsembleClassifierCommon(OpRunClassifierProb, _ClassifierCommon):
                     60, 20, True, True)
             else:
                 raise ValueError(  # pragma: no cover
-                    "Unknown version '{}'.".format(version))
+                    f"Unknown version '{version}'.")
         else:
             raise RuntimeTypeError(  # pragma: no cover
-                "Unsupported dtype={}.".format(dtype))
+                f"Unsupported dtype={dtype}.")
         self.rt_.init(*atts)
 
     def _run(self, x, attributes=None, verbose=0, fLOG=None):  # pylint: disable=W0221

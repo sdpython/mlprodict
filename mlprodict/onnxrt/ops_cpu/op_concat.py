@@ -21,7 +21,7 @@ class Concat(OpRun):
     def _preprocess(self, a):
         if len(a.shape) == 0:
             raise RuntimeError(  # pragma: no cover
-                "Concat: one input has an empty shape: %r." % a)
+                f"Concat: one input has an empty shape: {a!r}.")
         if self.axis >= len(a.shape):
             new_shape = a.shape + (1, ) * (self.axis + 1 - len(a.shape))
             return a.reshape(new_shape)

@@ -30,7 +30,7 @@ def topk_sorted_implementation(X, k, axis, largest):
     if isinstance(k, numpy.ndarray):
         if k.size != 1:
             raise RuntimeError(  # pragma: no cover
-                "k must be an integer not %r." % k)
+                f"k must be an integer not {k!r}.")
         k = k[0]
     if len(X.shape) == 2 and axis == 1:
         sample_range = numpy.arange(X.shape[0])[:, None]
@@ -77,7 +77,7 @@ def topk_sorted_implementation_cpp(X, k, axis, largest, th_para=50):
     if isinstance(k, numpy.ndarray):
         if k.size != 1:
             raise RuntimeError(  # pragma: no cover
-                "k must be an integer not %r." % k)
+                f"k must be an integer not {k!r}.")
     if axis != len(X.shape) - 1:
         if k == 0:
             return numpy.empty((0,), dtype=numpy.int64)

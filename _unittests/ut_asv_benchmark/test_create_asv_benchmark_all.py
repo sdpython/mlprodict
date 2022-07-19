@@ -67,13 +67,13 @@ class TestCreateAsvBenchmarkAll(ExtTestCase):
                     if not any(map(lambda x, z=zoo: x in z, subsets_test)):
                         continue
                     checked.append(zoo)
-                    fLOG("process '{}'".format(zoo))
+                    fLOG(f"process '{zoo}'")
                     fullname = os.path.join(path, zoo)
                     with open(fullname, 'r', encoding='utf-8') as f:
                         content = f.read()
                     names = reg.findall(content)
                     name = names[0]
-                    content += "\n\ncl = %s()\ncl.setup_cache()\n" % name
+                    content += f"\n\ncl = {name}()\ncl.setup_cache()\n"
                     with open(fullname, 'w', encoding='utf-8') as f:
                         f.write(content)
                     __, err = run_script(fullname, wait=True)
@@ -82,9 +82,9 @@ class TestCreateAsvBenchmarkAll(ExtTestCase):
                     err = "\n".join(lines).strip(' \n\r')
                     if len(err) > 0:
                         raise RuntimeError(
-                            "Issue with '{}'\n{}".format(fullname, err))
+                            f"Issue with '{fullname}'\n{err}")
             if len(checked) == 0:
-                raise AssertionError("Nothing found in '{}'.".format(folder))
+                raise AssertionError(f"Nothing found in '{folder}'.")
 
 
 if __name__ == "__main__":

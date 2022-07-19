@@ -50,8 +50,7 @@ def _pool_impl(padded, x_shape, kernel_shape, strides_shape,
             f = numpy.max
         else:
             raise NotImplementedError(  # pragma: no cover
-                "Pooling type '{}' does not support. Should be AVG, MAX."
-                "".format(pooling_type))
+                f"Pooling type '{pooling_type}' does not support. Should be AVG, MAX.")
 
         if count_include_pad == 1 and pooling_type == b'AVG':
             y[shape] = f(window_vals)

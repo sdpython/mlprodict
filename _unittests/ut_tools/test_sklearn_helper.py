@@ -142,7 +142,7 @@ class TestSklearnHelper(ExtTestCase):
                 self.assertEqual(ostats[k], v)
             except AssertionError as e:
                 raise AssertionError(
-                    "Issue with '{}' -> {}.".format(k, v)) from e
+                    f"Issue with '{k}' -> {v}.") from e
         self.assertIn('', ostats)
         self.assertIn("op_Cast", ostats)
 

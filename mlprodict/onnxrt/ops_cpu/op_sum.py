@@ -16,4 +16,4 @@ class Sum(OpRun):
         return (sum(args), )
 
     def to_python(self, inputs):
-        return None, "return sum([%s])" % ", ".join(inputs)
+        return None, f"return sum([{', '.join(inputs)}])"

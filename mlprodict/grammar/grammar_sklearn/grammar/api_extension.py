@@ -32,13 +32,13 @@ class AutoAction:
         @return                     depends on the language
         """
         self._reset_cache()
-        name = "_export_{0}".format(lang)
+        name = f"_export_{lang}"
         if hasattr(self, name):
             try:
                 return getattr(self, name)(hook=hook, result_name=result_name)
             except TypeError as e:  # pragma: no cover
                 raise TypeError(
-                    "Signature of '{0}' is wrong for type '{1}'".format(name, type(self))) from e
+                    f"Signature of '{name}' is wrong for type '{type(self)}'") from e
         else:
             raise NotImplementedError(  # pragma: no cover
                 "No conversion is implemented for lang='{0}' and type='{1}'".format(
@@ -84,13 +84,13 @@ class AutoType:
         @param      hook            tweaking parameters
         @return                     depends on the language
         """
-        name = "_format_value_{0}".format(lang)
+        name = f"_format_value_{lang}"
         if hasattr(self, name):
             try:
                 return getattr(self, name)(value, hook=hook)
             except TypeError as e:
                 raise TypeError(
-                    "Singature of '{0}' is wrong for type '{1}'".format(name, type(self))) from e
+                    f"Singature of '{name}' is wrong for type '{type(self)}'") from e
         else:
             raise NotImplementedError(
                 "No formatting is implemented for lang='{0}' and type='{1}'".format(

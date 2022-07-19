@@ -18,25 +18,23 @@ def _infer_node_output(node, inputs):
     """
     if not isinstance(inputs, dict):
         raise TypeError(  # pragma: no cover
-            "inputs should be OrderedDict not %r." % type(inputs))
+            f"inputs should be OrderedDict not {type(inputs)!r}.")
 
     if node.op_type == 'Concat':
         type_set = set()
         for v in inputs.values():
             if not isinstance(v, Variable):
                 raise TypeError(  # pragma: no cover
-                    "Unexpected type %r for %r." % (type(v), v))
+                    f"Unexpected type {type(v)!r} for {v!r}.")
             type_set.add(v.dtype)
         if len(type_set) != 1:
             raise RuntimeError(  # pragma: no cover
-                "Unable to guess output type from %r (inputs=%r)."
-                "" % (type_set, inputs))
+                f"Unable to guess output type from {type_set!r} (inputs={inputs!r}).")
         dtype = type_set.pop()
         if dtype is None:
             raise RuntimeError(  # pragma: no cover
-                "Guessed output type is None from inputs=%r." % (inputs, ))
+                f"Guessed output type is None from inputs={inputs!r}.")
         return dtype, [None, None]
 
     raise NotImplementedError(  # pragma: no cover
-        "Unable to infer type for node type %r and inputs=%r." % (
-            node.op_type, inputs))
+        f"Unable to infer type for node type {node.op_type!r} and inputs={inputs!r}.")

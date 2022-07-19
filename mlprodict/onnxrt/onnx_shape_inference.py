@@ -77,7 +77,7 @@ class OnnxShapeInference:
 
     def __repr__(self):
         "Usual"
-        return "%s(...)" % self.__class__.__name__
+        return f"{self.__class__.__name__}(...)"
 
     @staticmethod
     def _get_shape(obj, known_shapes=None, result_name=None):
@@ -126,8 +126,7 @@ class OnnxShapeInference:
         for name in self.input_names:
             if name in known_shapes:
                 raise NotImplementedError(
-                    "Optional inputs are not implemented yet. "
-                    "(name=%r)" % name)
+                    f"Optional inputs are not implemented yet. (name={name!r})")
             shape, dtype, sparse = self._get_shape(
                 get_obj(name, True), known_shapes, result_name=name)
             known_shapes.update(name, ShapeResult(
@@ -136,8 +135,7 @@ class OnnxShapeInference:
         for name in self.output_names:
             if name in known_shapes:
                 raise NameError(  # pragma: no cover
-                    "Output %r is already present. Use Identity node."
-                    "" % name)
+                    f"Output {name!r} is already present. Use Identity node.")
             shape, dtype, sparse = self._get_shape(
                 get_obj(name, False), known_shapes, result_name=name)
             if dtype is None:

@@ -45,7 +45,7 @@ class TestOnnxConvRegister(ExtTestCase):
             models = sklearn_operators(sub)
             if len(models) == 0:
                 raise AssertionError(
-                    "models is empty for subfolder '{}'.".format(sub))
+                    f"models is empty for subfolder '{sub}'.")
             if sub == "mlprodict.onnx_conv":
                 names = set(_['name'] for _ in models)
                 self.assertIn("LGBMClassifier", names)

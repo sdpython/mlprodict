@@ -67,12 +67,12 @@ def make_tf2onnx_code(opset, name=None, op_type=None, domain='',
             return str(list(value))
         if kind == 'list_var':
             if value is None:
-                return "varx[%r]" % name
+                return f"varx[{name!r}]"
             if len(value.shape) == 0:
                 return str(value)
             return str(list(value))
         raise NotImplementedError(
-            "Unknown scenario to simplify (%r)." % kind)
+            f"Unknown scenario to simplify ({kind!r}).")
 
     rows = []
     if op_type == 'Unsqueeze':
@@ -83,8 +83,7 @@ def make_tf2onnx_code(opset, name=None, op_type=None, domain='',
                 "" % (inputs[0], simplify(inputs[1], 'list_var')))
         else:
             raise NotImplementedError(  # pragma: no cover
-                "Unable to create code for operator %r (opset <= 12)"
-                "." % op_type)
+                f"Unable to create code for operator {op_type!r} (opset <= 12).")
     elif op_type == 'Squeeze':
         if len(inputs) == 1:
             rows.append(
@@ -98,12 +97,11 @@ def make_tf2onnx_code(opset, name=None, op_type=None, domain='',
                 "" % (inputs[0], simplify(inputs[1], 'list_var')))
         else:
             raise NotImplementedError(  # pragma: no cover
-                "Unable to create code for operator %r (opset <= 12)"
-                "." % op_type)
+                f"Unable to create code for operator {op_type!r} (opset <= 12).")
     elif op_type == 'Slice':
         atts = dict(zip(['starts', 'ends', 'axes', 'steps'],
                         inputs[1:]))
-        text = ", ".join("'%s': %s" % (k, simplify(v, 'list_var'))
+        text = ", ".join(f"'{k}': {simplify(v, 'list_var')}"
                          for k, v in atts.items())
         if len(inputs) in (3, 4, 5):
             rows.append(
@@ -112,17 +110,16 @@ def make_tf2onnx_code(opset, name=None, op_type=None, domain='',
                 "" % (inputs[0], text))
         else:
             raise NotImplementedError(  # pragma: no cover
-                "Unable to create code for operator %r (opset <= 12)"
-                "." % op_type)
+                f"Unable to create code for operator {op_type!r} (opset <= 12).")
     else:
         if len(attributes) > 0:
-            attributes_str = ", ".join("%s=%s" % (k, v) for k, v in attributes)
-            attr = ", attr=dict(%s)" % attributes_str
+            attributes_str = ", ".join(f"{k}={v}" for k, v in attributes)
+            attr = f", attr=dict({attributes_str})"
         else:
             attr = ""
         rows.append(
-            "inputs = [%s]" % ", ".join("varx[%r]" % n for n in inputs))
-        sdomain = '' if domain == '' else ("domain=%r, " % domain)
+            f"inputs = [{', '.join('varx[%r]' % n for n in inputs)}]")
+        sdomain = '' if domain == '' else (f"domain={domain!r}, ")
         rows.append(
             "node = ctx.make_node(%r, inputs=inputs%s, %s"
             "name=make_name(%r))" % (
@@ -228,7 +225,7 @@ class Tf2OnnxConvert:
             self.target_opsets = opsets
         else:
             raise ValueError(  # pragma: no cover
-                "Unexepected value for target_opset=%r." % target_opset)
+                f"Unexepected value for target_opset={target_opset!r}.")
         self._names = {}
         for node in onnx_model.graph.node:
             self._names[node.name] = node
@@ -240,7 +237,7 @@ class Tf2OnnxConvert:
             self.opset = self.target_opsets['']
         if not hasattr(self, 'opset'):
             raise RuntimeError(  # pragma: no cover
-                "Attribute opset is missing, target_opset=%r." % target_opset)
+                f"Attribute opset is missing, target_opset={target_opset!r}.")
 
     def get_node_by_name(self, name):
         """
@@ -262,7 +259,7 @@ class Tf2OnnxConvert:
         """
         if obj.name in self._forbidden_new_names:
             raise RuntimeError(  # pragma: no cover
-                "Name %r is already registered." % obj.name)
+                f"Name {obj.name!r} is already registered.")
         self._names[obj.name] = obj
         self._forbidden_new_names.add(obj.name)
 
@@ -286,8 +283,7 @@ class Tf2OnnxConvert:
         """
         if self.verbose:
             print(  # pragma: no cover
-                "[Tf2OnnxConvert.make_node] op_type=%r inputs=%r" % (
-                    op_type, inputs))
+                f"[Tf2OnnxConvert.make_node] op_type={op_type!r} inputs={inputs!r}")
 
         if attr is None:
             attr = {}
@@ -407,11 +403,11 @@ class Tf2OnnxConvert:
         """
         if name not in self._names:
             raise RuntimeError(  # pragma: no cover
-                "Unable to delete name %r because it does not exists." % name)
+                f"Unable to delete name {name!r} because it does not exists.")
         del self._names[name]
         if self.verbose:
             print(  # pragma: no cover
-                "[Tf2OnnxConvert.remove_node] delete name %r" % name)
+                f"[Tf2OnnxConvert.remove_node] delete name {name!r}")
 
     def get_shape(self, input_name):
         """

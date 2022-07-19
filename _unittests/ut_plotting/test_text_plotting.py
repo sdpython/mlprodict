@@ -100,7 +100,7 @@ class TestPlotTextPlotting(ExtTestCase):
         if (expected1 not in text and expected2 not in text and
                 expected3 not in text):
             raise AssertionError(
-                "Unexpected value:\n%s" % text)
+                f"Unexpected value:\n{text}")
 
     def test_onnx_simple_text_plot_knnr(self):
         x = numpy.random.randn(10, 3)

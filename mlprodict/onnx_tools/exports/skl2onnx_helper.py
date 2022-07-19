@@ -13,7 +13,7 @@ def get_tensor_shape(obj):
         return get_tensor_shape(obj.type)
     elif not isinstance(obj, TypeProto):
         raise TypeError(  # pragma: no cover
-            "Unexpected type %r." % type(obj))
+            f"Unexpected type {type(obj)!r}.")
     shape = []
     for d in obj.tensor_type.shape.dim:
         v = d.dim_value if d.dim_value > 0 else d.dim_param
@@ -33,7 +33,7 @@ def get_tensor_elem_type(obj):
         return get_tensor_elem_type(obj.type)
     elif not isinstance(obj, TypeProto):
         raise TypeError(  # pragma: no cover
-            "Unexpected type %r." % type(obj))
+            f"Unexpected type {type(obj)!r}.")
     return obj.tensor_type.elem_type
 
 

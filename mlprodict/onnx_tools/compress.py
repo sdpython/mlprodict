@@ -19,13 +19,11 @@ def _check_expression(expe):
     inputs = [i.name for i in att.input]
     if list(expe.input) != inputs:
         raise RuntimeError(  # pragma: no cover
-            'Name mismatch in node Expression %r != %r.' % (
-                expe.input, inputs))
+            f'Name mismatch in node Expression {expe.input!r} != {inputs!r}.')
     outputs = [o.name for o in att.output]
     if list(expe.output) != outputs:
         raise RuntimeError(  # pragma: no cover
-            'Name mismatch in node Expression %r != %r.' % (
-                expe.input, inputs))
+            f'Name mismatch in node Expression {expe.input!r} != {inputs!r}.')
 
 
 def _fuse_node(o, node, node_next):
@@ -40,8 +38,7 @@ def _fuse_node(o, node, node_next):
     type_expression = ('mlprodict', 'Expression')
     if list(node.output) != [o]:
         raise RuntimeError(  # pragma: no cover
-            "The only output of the first node should be %r not %r." % (
-                [o], node.output))
+            f"The only output of the first node should be {[o]!r} not {node.output!r}.")
     cannot_do = {('', 'If'), ('', 'Loop'), ('', 'Scan')}
     key1 = node.domain, node.op_type
     if key1 in cannot_do:
@@ -78,7 +75,8 @@ def _fuse_node(o, node, node_next):
         inputs = [make_value_info(name, make_tensor_type_proto(0, []))
                   for name in node.input]
         outputs = att.output
-        graph = make_graph([node] + list(att.node), "expression", inputs, outputs)
+        graph = make_graph([node] + list(att.node),
+                           "expression", inputs, outputs)
 
     elif key1 == type_expression and key2 == type_expression:
         att1 = node.attribute[0].g

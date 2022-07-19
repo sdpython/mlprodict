@@ -192,8 +192,8 @@ compilation.extend(list(measure_onnx_runtime(xgb, X_test)))
 # All data
 name = 'plot_time_tree_ensemble'
 df = pandas.DataFrame(compilation)
-df.to_csv('%s.csv' % name, index=False)
-df.to_excel('%s.xlsx' % name, index=False)
+df.to_csv(f'{name}.csv', index=False)
+df.to_excel(f'{name}.xlsx', index=False)
 df
 
 #########################################
@@ -206,7 +206,7 @@ piv
 ax = piv.T.plot(kind="bar")
 ax.set_title("Computation time ratio for %d observations and %d features\n"
              "lower is better for onnx runtimes" % X_test.shape)
-plt.savefig('%s.png' % name)
+plt.savefig(f'{name}.png')
 
 ###########################################
 # Available optimisation on this machine:

@@ -34,7 +34,7 @@ class DictVectorizer(OpRun):
     def _run(self, x, attributes=None, verbose=0, fLOG=None):  # pylint: disable=W0221
         if not isinstance(x, (numpy.ndarray, list)):
             raise RuntimeTypeError(  # pragma: no cover
-                "x must be iterable not {}.".format(type(x)))
+                f"x must be iterable not {type(x)}.")
         values = []
         rows = []
         cols = []

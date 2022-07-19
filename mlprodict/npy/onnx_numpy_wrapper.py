@@ -108,7 +108,7 @@ def onnxnumpy(op_version=None, runtime=None, signature=None):
         compiled = OnnxNumpyCompiler(
             fct, op_version=op_version, runtime=runtime,
             signature=signature)
-        name = "onnxnumpy_%s_%s_%s" % (fct.__name__, str(op_version), runtime)
+        name = f"onnxnumpy_{fct.__name__}_{str(op_version)}_{runtime}"
         newclass = type(
             name, (wrapper_onnxnumpy,),
             {'__doc__': fct.__doc__, '__name__': name, '__fct__': fct})
@@ -177,8 +177,7 @@ class wrapper_onnxnumpy_np:
         """
         if not isinstance(dtype, FctVersion):
             raise TypeError(  # pragma: no cover
-                "dtype must be of type 'FctVersion' not %s: %s." % (
-                    type(dtype), dtype))
+                f"dtype must be of type 'FctVersion' not {type(dtype)}: {dtype}.")
         if dtype not in self.signed_compiled:
             self._populate(dtype)
             key = dtype
@@ -253,8 +252,7 @@ class wrapper_onnxnumpy_np:
                 "with keys %r (add key=...)." % list(self.signed_compiled))
         if list(kwargs) != ['key']:
             raise ValueError(
-                "kwargs should contain one parameter key=... but "
-                "it is %r." % kwargs)
+                f"kwargs should contain one parameter key=... but it is {kwargs!r}.")
         key = kwargs['key']
         if key in self.signed_compiled:
             return self.signed_compiled[key].compiled.onnx_
@@ -289,8 +287,7 @@ def onnxnumpy_np(op_version=None, runtime=None, signature=None):
     .. versionadded:: 0.6
     """
     def decorator_fct(fct):
-        name = "onnxnumpy_nb_%s_%s_%s" % (
-            fct.__name__, str(op_version), runtime)
+        name = f"onnxnumpy_nb_{fct.__name__}_{str(op_version)}_{runtime}"
         newclass = type(
             name, (wrapper_onnxnumpy_np,), {
                 '__doc__': fct.__doc__,

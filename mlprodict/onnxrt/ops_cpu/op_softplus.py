@@ -29,7 +29,7 @@ class Softplus(OpRunUnaryNum):
         return (X, )
 
     def to_python(self, inputs):
-        lines = ["Y = numpy.exp(%s)" % inputs[0],
+        lines = [f"Y = numpy.exp({inputs[0]})",
                  "Y += 1",
                  "numpy.log(Y, out=Y)",
                  "return Y"]

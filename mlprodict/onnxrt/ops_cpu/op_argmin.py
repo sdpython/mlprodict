@@ -54,7 +54,7 @@ class ArgMin_11(_ArgMin):
 
     def to_python(self, inputs):
         return ('import numpy\nfrom mlprodict.onnxrt.ops_cpu.op_argmin import _argmin',
-                'return _argmin(%s, axis=axis, keepdims=keepdims)' % inputs[0])
+                f'return _argmin({inputs[0]}, axis=axis, keepdims=keepdims)')
 
 
 class ArgMin_12(_ArgMin):

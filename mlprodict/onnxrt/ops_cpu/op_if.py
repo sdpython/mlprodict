@@ -88,7 +88,7 @@ class If(OpRun):
             if all(cond):
                 if verbose > 0 and fLOG is not None:
                     fLOG(  # pragma: no cover
-                        '  -- then> %r' % list(context))
+                        f'  -- then> {list(context)!r}')
                 outputs = self._run_meth_then(named_inputs, context=context,
                                               attributes=attributes,
                                               verbose=verbose, fLOG=fLOG)
@@ -100,7 +100,7 @@ class If(OpRun):
             else:
                 if verbose > 0 and fLOG is not None:
                     fLOG(  # pragma: no cover
-                        '  -- else> %r' % list(context))
+                        f'  -- else> {list(context)!r}')
                 outputs = self._run_meth_else(named_inputs, context=context,
                                               attributes=attributes,
                                               verbose=verbose, fLOG=fLOG)
@@ -112,7 +112,7 @@ class If(OpRun):
         elif cond:
             if verbose > 0 and fLOG is not None:
                 fLOG(  # pragma: no cover
-                    '  -- then> %r' % list(context))
+                    f'  -- then> {list(context)!r}')
             outputs = self._run_meth_then(named_inputs, context=context,
                                           attributes=attributes,
                                           verbose=verbose, fLOG=fLOG)
@@ -124,7 +124,7 @@ class If(OpRun):
         else:
             if verbose > 0 and fLOG is not None:
                 fLOG(  # pragma: no cover
-                    '  -- else> %r' % list(context))
+                    f'  -- else> {list(context)!r}')
             outputs = self._run_meth_else(named_inputs, context=context,
                                           attributes=attributes,
                                           verbose=verbose, fLOG=fLOG)
@@ -136,7 +136,7 @@ class If(OpRun):
 
         if len(final) == 0:
             raise RuntimeError(  # pragma: no cover
-                "Operator If (%r) does not have any output." % (self.onnx_node.name, ))
+                f"Operator If ({self.onnx_node.name!r}) does not have any output.")
         for i, f in enumerate(final):
             if f is None:
                 ni = named_inputs if named_inputs else []  # pragma: no cover

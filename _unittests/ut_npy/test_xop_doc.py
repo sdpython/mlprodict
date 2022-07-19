@@ -77,7 +77,7 @@ class TestXopDoc(ExtTestCase):
         spl = rst.split('**Examples**')
         if len(spl) > 2:
             raise AssertionError(
-                "Too many example sections:\n%s" % rst)
+                f"Too many example sections:\n{rst}")
 
     def test_missing_examples(self):
         res = get_onnx_example('tttt')

@@ -38,8 +38,8 @@ class MLNumType(MLType):
 
     def _copy_c(self, src, dst, hook=None):
         if hook == "typeref":
-            return "*{0} = {1};".format(dst, src)
-        return "{0} = {1};".format(dst, src)
+            return f"*{dst} = {src};"
+        return f"{dst} = {src};"
 
 
 class MLNumTypeSingle(MLNumType):
@@ -67,8 +67,7 @@ class MLNumTypeSingle(MLNumType):
         MLNumType.validate(self, value)
         if not isinstance(value, self.numpy_type):
             raise TypeError(  # pragma: no cover
-                "'{0}' is not a {1}.".format(
-                    type(value), self.numpy_type))
+                f"'{type(value)}' is not a {self.numpy_type}.")
         return value
 
     def cast(self, value):
@@ -77,11 +76,11 @@ class MLNumTypeSingle(MLNumType):
         """
         if isinstance(value, numpy.float32):
             raise TypeError(  # pragma: no cover
-                "No need to cast, already a {0}".format(self.numpy_type))
+                f"No need to cast, already a {self.numpy_type}")
         if isinstance(value, numpy.ndarray):
             if len(value) != 1:
                 raise ValueError(  # pragma: no cover
-                    "Dimension of array must be one single {0}".format(self.numpy_type))
+                    f"Dimension of array must be one single {self.numpy_type}")
             return value[0]
         raise NotImplementedError(  # pragma: no cover
             "Unable to cast '{0}' into a {0}".format(type(self.numpy_type)))
@@ -94,8 +93,7 @@ class MLNumTypeSingle(MLNumType):
             v = value.ravel()
             if len(v) != 1:
                 raise ValueError(  # pragma: no cover
-                    "Cannot cast shape {0} into {1}".format(
-                        value.shape, self.numpy_type))
+                    f"Cannot cast shape {value.shape} into {self.numpy_type}")
             return self.numpy_type(v[0])
         return self.numpy_type(value)
 
@@ -124,7 +122,7 @@ class MLNumTypeSingle(MLNumType):
 
     def _format_value_c(self, value, hook=None):
         if hook is None or self.key not in hook:
-            return "({1}){0}".format(value, self.ctype)
+            return f"({self.ctype}){value}"
         return hook[self.key](value)
 
 
@@ -184,7 +182,7 @@ class MLTensor(MLType):
     def __init__(self, element_type, dim):
         if not isinstance(element_type, MLType):
             raise TypeError(  # pragma: no cover
-                'element_type must be of MLType not {0}'.format(type(element_type)))
+                f'element_type must be of MLType not {type(element_type)}')
         if not isinstance(dim, tuple):
             raise TypeError(  # pragma: no cover
                 'dim must be a tuple.')
@@ -212,18 +210,17 @@ class MLTensor(MLType):
         MLType.validate(self, value)
         if not isinstance(value, numpy.ndarray):
             raise TypeError(  # pragma: no cover
-                "value is not a numpy.array but '{0}'".format(type(value)))
+                f"value is not a numpy.array but '{type(value)}'")
         if self.dim != value.shape:
             raise ValueError(  # pragma: no cover
-                "Dimensions do not match {0}={1}".format(self.dim, value.shape))
+                f"Dimensions do not match {self.dim}={value.shape}")
         rvalue = value.ravel()
         for i, num in enumerate(rvalue):
             try:
                 self.element_type.validate(num)
             except TypeError as e:  # pragma: no cover
                 raise TypeError(
-                    'Unable to convert an array due to value index {0}: {1}'.format(
-                        i, num)) from e
+                    f'Unable to convert an array due to value index {i}: {num}') from e
         return value
 
     def _byref_c(self):
@@ -235,10 +232,10 @@ class MLTensor(MLType):
         return hook['array'](value)
 
     def _format_value_c(self, value, hook=None):
-        return "{{{0}}}".format(", ".join(self.element_type._format_value_c(x) for x in value))
+        return f"{{{', '.join(self.element_type._format_value_c(x) for x in value)}}}"
 
     def _export_json(self, hook=None, result_name=None):
-        return '{0}:{1}'.format(self.element_type._export_json(hook=hook), self.dim)
+        return f'{self.element_type._export_json(hook=hook)}:{self.dim}'
 
     def _export_c(self, hook=None, result_name=None):
         if len(self.dim) != 1:
@@ -260,21 +257,21 @@ class MLTensor(MLType):
                     "result_name must be specified.")
             dc = self.element_type._export_c(
                 hook=hook, result_name=result_name)
-            return {'code': "{0}[{1}]".format(dc['code'], self.dim[0])}
+            return {'code': f"{dc['code']}[{self.dim[0]}]"}
         elif hook == 'type':
-            return {'code': "{0}*".format(self.element_type._export_c(hook=hook)['code'])}
+            return {'code': f"{self.element_type._export_c(hook=hook)['code']}*"}
         elif hook == 'typeref':
             if result_name is None:
-                return {'code': "{0}*".format(self.element_type._export_c(hook='type')['code'])}
+                return {'code': f"{self.element_type._export_c(hook='type')['code']}*"}
             code = self.element_type._export_c(hook='type')['code']
-            return {'code': "{0}* {1}".format(code, result_name), 'result_name': result_name}
+            return {'code': f"{code}* {result_name}", 'result_name': result_name}
         else:
             raise ValueError(  # pragma: no cover
-                "hook must contains either 'signature' or 'declare' not '{0}'.".format(hook))
+                f"hook must contains either 'signature' or 'declare' not '{hook}'.")
 
     def _copy_c(self, src, dest, hook=None):
         if len(self.dim) != 1:
             raise NotImplementedError(  # pragma: no cover
                 'Only 1D vector implemented.')
         code = self.element_type._export_c(hook='type')['code']
-        return "memcpy({1}, {0}, {2}*sizeof({3}));".format(src, dest, self.dim[0], code)
+        return f"memcpy({dest}, {src}, {self.dim[0]}*sizeof({code}));"

@@ -56,7 +56,7 @@ class TestCliValidateDump(ExtTestCase):
         names = [_ for _ in names if "dump-i-" in _]
         self.assertNotEmpty(names)
         for i, name in enumerate(names):
-            fLOG("{}/{}: {}".format(i + 1, len(names), name))
+            fLOG(f"{i + 1}/{len(names)}: {name}")
             fullname = os.path.join(temp, name)
             with open(fullname, 'rb') as f:
                 pkl = pickle.load(f)

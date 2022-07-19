@@ -92,7 +92,7 @@ def enumerate_pipeline_models(pipe, coor=None, vs=None):
                 yield couple
     else:
         raise TypeError(  # pragma: no cover
-            "pipe is not a scikit-learn object: {}\n{}".format(type(pipe), pipe))
+            f"pipe is not a scikit-learn object: {type(pipe)}\n{pipe}")
 
 
 def enumerate_fitted_arrays(model):

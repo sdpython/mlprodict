@@ -273,10 +273,10 @@ def get_rst_doc(op_name=None, domain=None, version='last', clean=True,
     def format_name_with_domain(sch):
         if version == 'last':
             if sch.domain:
-                return '{} ({})'.format(sch.name, sch.domain)
+                return f'{sch.name} ({sch.domain})'
             return sch.name
         if sch.domain:
-            return '{} - {} ({})'.format(sch.name, sch.since_version, sch.domain)
+            return f'{sch.name} - {sch.since_version} ({sch.domain})'
         return '%s - %d' % (sch.name, sch.since_version)
 
     def format_option(obj):
@@ -288,7 +288,7 @@ def get_rst_doc(op_name=None, domain=None, version='last', clean=True,
         if getattr(obj, 'isHomogeneous', False):
             opts.append('heterogeneous')
         if opts:
-            return " (%s)" % ", ".join(opts)
+            return f" ({', '.join(opts)})"
         return ""
 
     def format_example(code):
@@ -300,7 +300,7 @@ def get_rst_doc(op_name=None, domain=None, version='last', clean=True,
             name = const.type_param_str
         else:
             name = str(ii)
-        name = "**%s** in (" % name
+        name = f"**{name}** in ("
         if const.allowed_type_strs:
             text = ",\n  ".join(sorted(const.allowed_type_strs))
             name += "\n  " + text + "\n  )"
@@ -317,7 +317,7 @@ def get_rst_doc(op_name=None, domain=None, version='last', clean=True,
             doc = ''
         if not isinstance(doc, str):
             raise TypeError(  # pragma: no cover
-                "doc must be a string not %r - %r." % (type(doc), doc + 42))
+                f"doc must be a string not {type(doc)!r} - {doc + 42!r}.")
         doc = textwrap.dedent(doc)
         main_docs_url = "https://github.com/onnx/onnx/blob/master/"
         rep = {
@@ -367,12 +367,12 @@ def get_rst_doc(op_name=None, domain=None, version='last', clean=True,
         if 'value' in dvar:
             v = dvar['value']
             if isinstance(v, bytes):
-                return "Default value is ``'%s'``." % v.decode('ascii')
-            return "Default value is ``{}``.".format(v)
+                return f"Default value is ``'{v.decode('ascii')}'``."
+            return f"Default value is ``{v}``."
         else:
             res = str(value).replace('\n', ' ').strip()
             if len(res) > 0:
-                return "Default value is ``%s``." % res
+                return f"Default value is ``{res}``."
         return ""
 
     def text_wrap(text, indent):
@@ -462,7 +462,7 @@ def get_onnx_example(op_name):
     :param fmt: rendering format
     :return: dictionary
     """
-    module = 'onnx.backend.test.case.node.%s' % op_name.lower()
+    module = f'onnx.backend.test.case.node.{op_name.lower()}'
     try:
         mod = importlib.import_module(module)
     except ImportError:
@@ -476,14 +476,14 @@ def get_onnx_example(op_name):
         for me in v.__dict__:
             if not me.startswith('export_'):
                 continue
-            sub = ' %s()' % me
+            sub = f' {me}()'
             found = None
             for code in codes:
                 if sub in code:
                     found = code
             if found is None:
                 raise RuntimeError(  # pragma: no cover
-                    "Unable to find %r in\n%s" % (sub, code_cls))
+                    f"Unable to find {sub!r} in\n{code_cls}")
             found = textwrap.dedent(found)
             lines = found.split('\n')
             first = 0
@@ -540,10 +540,10 @@ def onnx_documentation_folder(folder, ops=None, title='ONNX operators',
         index_dom = [sdom, '+' * len(sdom), '', '.. toctree::',
                      '    :maxdepth: 1', '']
 
-        table_dom = ["", ".. _l-table-operator-%s:" % sdom.replace(".", "-"), "",
-                     "operator table for domain %s" % sdom]
+        table_dom = ["", f".. _l-table-operator-{sdom.replace('.', '-')}:", "",
+                     f"operator table for domain {sdom}"]
         table_dom.extend(["=" * len(table_dom[-1]), ""])
-        table_dom.extend([".. list-table:: operators for domain %s" % sdom,
+        table_dom.extend([f".. list-table:: operators for domain {sdom}",
                           "    :widths: 10 10",
                           "    :header-rows: 1",
                           "",
@@ -565,16 +565,16 @@ def onnx_documentation_folder(folder, ops=None, title='ONNX operators',
         for op in sorted(do):
             if fLOG is not None:
                 fLOG(  # pragma: no cover
-                    'generate page for onnx %r - %r' % (dom, op))
-            page_name = "onnx_%s_%s" % (dom.replace('.', ''), op)
-            index_dom.append('    %s' % page_name)
+                    f'generate page for onnx {dom!r} - {op!r}')
+            page_name = f"onnx_{dom.replace('.', '')}_{op}"
+            index_dom.append(f'    {page_name}')
             doc = get_rst_doc(op, domain=dom, version=None, example=True,
                               diff=True)
             if dom == '':
                 main = op
             else:
-                main = '%s - %s' % (dom, op)
-            rows = ['', '.. _l-onnx-doc%s-%s:' % (dom, op), '',
+                main = f'{dom} - {op}'
+            rows = ['', f'.. _l-onnx-doc{dom}-{op}:', '',
                     '=' * len(main), main, '=' * len(main), '',
                     '.. contents::', '    :local:', '', doc]
 
@@ -592,12 +592,12 @@ def onnx_documentation_folder(folder, ops=None, title='ONNX operators',
                         sver=str(sch.since_version), lname=sch.name.lower(),
                         lname_=sch.domain.lower().replace(".", "-"))
                 links.append(link)
-            table_dom.extend(["    * - %s" % op,
-                              "      - %s" % ", ".join(links)])
+            table_dom.extend([f"    * - {op}",
+                              f"      - {', '.join(links)}"])
 
         sdom_clean = sdom.replace('.', '_')
-        page_name = os.path.join(folder, 'table_%s.rst' % sdom_clean)
-        tables_domain_pages.append('table_%s' % sdom_clean)
+        page_name = os.path.join(folder, f'table_{sdom_clean}.rst')
+        tables_domain_pages.append(f'table_{sdom_clean}')
         pages.append(page_name)
         with open(page_name, "w", encoding="utf-8") as f:
             f.write("\n".join(table_dom))
@@ -606,9 +606,10 @@ def onnx_documentation_folder(folder, ops=None, title='ONNX operators',
         index.append('')
 
     # adding pages
-    index.extend(["", "Tables", "++++++", "", ".. toctree::", "    :maxdepth: 1", ""])
+    index.extend(["", "Tables", "++++++", "",
+                 ".. toctree::", "    :maxdepth: 1", ""])
     for page in tables_domain_pages:
-        index.append("    %s" % page)
+        index.append(f"    {page}")
     index.append('')
 
     # creating a big index

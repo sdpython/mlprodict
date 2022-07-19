@@ -76,7 +76,7 @@ class ConvertFFT2DOp:
 
         # initializers
         if getattr(ctx, 'verbose', False):
-            print('[initializers] %r' % cls)
+            print(f'[initializers] {cls!r}')
 
         list_value = [1.0, 0.0]
         value = numpy.array(list_value, dtype=numpy.float32).reshape((2, 1, 1))
@@ -195,7 +195,7 @@ class ConvertFFT2DOp:
 
         # nodes
         if getattr(ctx, 'verbose', False):
-            print('[nodes] %r' % cls)
+            print(f'[nodes] {cls!r}')
 
         attr = dict()
         inputs = [vars['Un_Unsqueezecst'], vars['Un_Unsqueezecst1'], ]
@@ -505,7 +505,7 @@ class ConvertFFT2DOp:
 
         # finalize
         if getattr(ctx, 'verbose', False):
-            print('[replace_all_inputs] %r' % cls)
+            print(f'[replace_all_inputs] {cls!r}')
         ctx.replace_all_inputs(oldnode.output[0], node.output[0])
         ctx.remove_node(oldnode.name)
 
@@ -544,9 +544,9 @@ class ConvertSlice2Op:
                 if size == -1:
                     dtype = ctx.get_dtype(node.input[1])
                     make_sure(
-                        dtype, "dtype of {} is None".format(node.input[1]))
+                        dtype, f"dtype of {node.input[1]} is None")
                     make_sure(
-                        dtype, "dtype of {} is None".format(node.input[1]))
+                        dtype, f"dtype of {node.input[1]} is None")
                     ends.append(numpy.iinfo(dtype).max)
                 else:
                     ends.append(start + size)
@@ -613,7 +613,7 @@ class ConvertSqueeze2Op:
 
         # initializers
         if getattr(ctx, 'verbose', False):
-            print('[initializers] %r' % cls)
+            print(f'[initializers] {cls!r}')
 
         value = numpy.array([1], dtype=numpy.int64)
         varx['Sq_Squeezecst'] = ctx.make_const(
@@ -621,7 +621,7 @@ class ConvertSqueeze2Op:
 
         # nodes
         if getattr(ctx, 'verbose', False):
-            print('[nodes] %r' % cls)
+            print(f'[nodes] {cls!r}')
 
         node = GraphBuilder(ctx).make_squeeze(
             {'data': varx['X'], 'axes': [1]}, return_node=True)
@@ -629,7 +629,7 @@ class ConvertSqueeze2Op:
 
         # finalize
         if getattr(ctx, 'verbose', False):
-            print('[replace_all_inputs] %r' % cls)
+            print(f'[replace_all_inputs] {cls!r}')
         ctx.replace_all_inputs(oldnode.output[0], node.output[0])
         ctx.remove_node(oldnode.name)
 
@@ -826,8 +826,7 @@ class TestExportOnnx(ExtTestCase):
         out, err = StringIO(), StringIO()
         if limit_left is not None and len(left) >= limit_left:
             raise AssertionError(
-                "Too many unknown symbols (%d): %r in\n%s" % (
-                    len(left), left, content))
+                f"Too many unknown symbols ({len(left)}): {left!r} in\n{content}")
 
         with redirect_stdout(out):
             with redirect_stderr(err):
@@ -919,7 +918,7 @@ class TestExportOnnx(ExtTestCase):
         out, err = StringIO(), StringIO()
         if len(left) >= 14:
             raise AssertionError(
-                "Too many unknown symbols: %r." % left)
+                f"Too many unknown symbols: {left!r}.")
 
         with redirect_stdout(out):
             with redirect_stderr(err):
@@ -958,12 +957,12 @@ class TestExportOnnx(ExtTestCase):
                         verbose=False)
                     _, loc = self.verify_tf(new_onnx)
                     model = loc['onnx_raw']
-                    self.assertIn('op_type: "%s"' % op_name, str(model))
+                    self.assertIn(f'op_type: "{op_name}"', str(model))
                     self.assertNotEqual(
                         loc['onnx_raw'].SerializeToString(),
                         loc['onnx_model'].SerializeToString())
                     model = loc['onnx_model']
-                    self.assertNotIn('op_type: "%s"' % op_name, str(model))
+                    self.assertNotIn(f'op_type: "{op_name}"', str(model))
 
                     if rt == 'onnxruntime1':
                         opts = SessionOptions()
@@ -980,7 +979,7 @@ class TestExportOnnx(ExtTestCase):
                         os.path.join(folder, name), name=op_name)
                     _, loc = self.verify_tf(new_onnx)
                     model = loc['onnx_model']
-                    self.assertNotIn('op_type: "%s"' % op_name, str(model))
+                    self.assertNotIn(f'op_type: "{op_name}"', str(model))
                     oinf = OnnxInference(
                         model, runtime=rt, runtime_options=dict(
                             log_severity_level=3))
@@ -1020,8 +1019,7 @@ class TestExportOnnx(ExtTestCase):
         out, err = StringIO(), StringIO()
         if len(left) > 14:
             raise AssertionError(
-                "Too many unknown symbols (%d): %r in \n%s" % (
-                    len(left), left, content))
+                f"Too many unknown symbols ({len(left)}): {left!r} in \n{content}")
 
         with redirect_stdout(out):
             with redirect_stderr(err):
@@ -1102,7 +1100,7 @@ class TestExportOnnx(ExtTestCase):
         out, err = StringIO(), StringIO()
         if len(left) > 14:
             raise AssertionError(
-                "Too many unknown symbols: %r." % left)
+                f"Too many unknown symbols: {left!r}.")
 
         with redirect_stdout(out):
             with redirect_stderr(err):
@@ -1224,11 +1222,10 @@ class TestExportOnnx(ExtTestCase):
             self.assert_almost_equal(b, a, error)  # pylint: disable=W1114
             return
         if a.shape != b.shape:
-            raise AssertionError("Shape mismatch %r != %r." %
-                                 (a.shape, b.shape))
+            raise AssertionError(f"Shape mismatch {a.shape!r} != {b.shape!r}.")
         diff = numpy.abs(a.ravel() - b.ravel()).max()
         if diff > error:
-            raise AssertionError("Mismatch max diff=%r > %r." % (diff, error))
+            raise AssertionError(f"Mismatch max diff={diff!r} > {error!r}.")
 
     def test_einsum_numpy_full(self):
 
@@ -1370,7 +1367,7 @@ class TestExportOnnx(ExtTestCase):
                 self.i = i
 
             def __repr__(self):
-                return 'A(%r)' % self.i
+                return f'A({self.i!r})'
         ens = [A("a"), A("b"), A("c"), A("a")]
         self.assertEqual(['a', 'b', 'c', 'a'], select_attribute(ens, 'i'))
         self.assertEqual(['a', 'a', 'b', 'c'],

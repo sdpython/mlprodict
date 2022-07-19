@@ -32,13 +32,13 @@ class TestCreateAsvBenchmarkRF(ExtTestCase):
             for zoo in files:
                 if '__init__' in zoo:
                     continue
-                fLOG("process '{}'".format(zoo))
+                fLOG(f"process '{zoo}'")
                 fullname = os.path.join(path, zoo)
                 with open(fullname, 'r', encoding='utf-8') as f:
                     content = f.read()
                 names = reg.findall(content)
                 name = names[0]
-                content += "\n\ncl = %s()\ncl.setup_cache()\n" % name
+                content += f"\n\ncl = {name}()\ncl.setup_cache()\n"
                 allnames.append(fullname)
                 with open(fullname, 'w', encoding='utf-8') as f:
                     f.write(content)
@@ -51,7 +51,7 @@ class TestCreateAsvBenchmarkRF(ExtTestCase):
                 err = "\n".join(lines).strip(' \n\r')
                 if len(err) > 0:
                     raise RuntimeError(
-                        "Issue with '{}'\n{}".format(fullname, err))
+                        f"Issue with '{fullname}'\n{err}")
                 if (zoo.endswith("bench_RandomForestReg_default_b_reg_nest10.py") and
                         compare_module_version(sklearn.__version__, "0.21") >= 0):
                     if "random_state=42" not in content:

@@ -11,7 +11,7 @@ from pyquicksetup import read_version, read_readme, default_cmdclass
 #########
 
 project_var_name = "mlprodict"
-versionPython = "%s.%s" % (sys.version_info.major, sys.version_info.minor)
+versionPython = f"{sys.version_info.major}.{sys.version_info.minor}"
 path = "Lib/site-packages/" + project_var_name
 readme = 'README.rst'
 history = "HISTORY.rst"
@@ -435,7 +435,7 @@ try:
     ext_modules = get_extensions()
 except ImportError as e:
     warnings.warn(
-        "Unable to build C++ extension with missing dependencies %r." % e)
+        f"Unable to build C++ extension with missing dependencies {e!r}.")
     ext_modules = None
 
 # setup
@@ -447,8 +447,8 @@ setup(
     author='Xavier Dupré',
     author_email='xavier.dupre@gmail.com',
     license="MIT",
-    url="http://www.xavierdupre.fr/app/%s/helpsphinx/index.html" % project_var_name,
-    download_url="https://github.com/sdpython/%s/" % project_var_name,
+    url=f"http://www.xavierdupre.fr/app/{project_var_name}/helpsphinx/index.html",
+    download_url=f"https://github.com/sdpython/{project_var_name}/",
     description=DESCRIPTION,
     long_description=read_readme(__file__),
     cmdclass=default_cmdclass(),

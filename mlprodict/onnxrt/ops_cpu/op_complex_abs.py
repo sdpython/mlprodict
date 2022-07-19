@@ -18,7 +18,7 @@ class ComplexAbs(OpRun):
         if op_name == "ComplexAbs":
             return ComplexAbsSchema()
         raise RuntimeError(  # pragma: no cover
-            "Unable to find a schema for operator '{}'.".format(op_name))
+            f"Unable to find a schema for operator '{op_name}'.")
 
     def _run(self, x, attributes=None, verbose=0, fLOG=None):  # pylint: disable=W0221
         y = numpy.absolute(x)
@@ -28,7 +28,7 @@ class ComplexAbs(OpRun):
             y = y.astype(numpy.float64)
         else:
             raise TypeError(  # pragma: no cover
-                "Unexpected input type for x: %r." % x.dtype)
+                f"Unexpected input type for x: {x.dtype!r}.")
         return (y, )
 
     def to_python(self, inputs):

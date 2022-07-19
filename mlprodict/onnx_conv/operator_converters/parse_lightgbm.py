@@ -30,7 +30,7 @@ class WrappedLightGbmBooster:
             self.operator_name = 'LgbmRegressor'
         else:  # pragma: no cover
             raise NotImplementedError(
-                'Unsupported LightGbm objective: %r.' % self.objective_)
+                f'Unsupported LightGbm objective: {self.objective_!r}.')
         average_output = self.booster_.attr('average_output')
         if average_output:
             self.boosting_type = 'rf'
@@ -103,7 +103,7 @@ class MockWrappedLightGbmBoosterClassifier(WrappedLightGbmBoosterClassifier):
         if key == 'average_output':
             return None
         raise KeyError(  # pragma: no cover
-            "No response for %r." % key)
+            f"No response for {key!r}.")
 
 
 def lightgbm_parser(scope, model, inputs, custom_parsers=None):
@@ -112,8 +112,7 @@ def lightgbm_parser(scope, model, inputs, custom_parsers=None):
     """
     if hasattr(model, "fit"):
         raise TypeError(  # pragma: no cover
-            "This converter does not apply on type '{}'."
-            "".format(type(model)))
+            f"This converter does not apply on type '{type(model)}'.")
 
     if len(inputs) == 1:
         wrapped = WrappedLightGbmBooster(model)
@@ -130,7 +129,7 @@ def lightgbm_parser(scope, model, inputs, custom_parsers=None):
             return _parse_sklearn_simple_model(
                 scope, wrapped, inputs, custom_parsers=custom_parsers)
         raise NotImplementedError(  # pragma: no cover
-            "Objective '{}' is not implemented yet.".format(objective))
+            f"Objective '{objective}' is not implemented yet.")
 
     # Multiple columns
     this_operator = scope.declare_local_operator('LightGBMConcat')

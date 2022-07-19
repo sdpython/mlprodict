@@ -66,7 +66,7 @@ class SoftmaxGrad_13(OpRunBinaryNum):
         if op_name in ("SoftmaxGrad_13", "SoftmaxGrad"):
             return SoftmaxGradSchema()
         raise RuntimeError(  # pragma: no cover
-            "Unable to find a schema for operator '{}'.".format(op_name))
+            f"Unable to find a schema for operator '{op_name}'.")
 
     def _run(self, grad, prob, attributes=None, verbose=0, fLOG=None):  # pylint: disable=W0221
         # softmax

@@ -52,9 +52,9 @@ def _guess_noshape(obj, shape):
                 DoubleTensorType)
             return DoubleTensorType(shape)
         raise NotImplementedError(  # pragma: no cover
-            "Unable to process object(1) [{}].".format(obj))
+            f"Unable to process object(1) [{obj}].")
     raise NotImplementedError(  # pragma: no cover
-        "Unable to process object(2) [{}].".format(obj))
+        f"Unable to process object(2) [{obj}].")
 
 
 def _noshapevar(fct):

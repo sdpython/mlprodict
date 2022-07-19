@@ -54,7 +54,7 @@ class TestOnnxrtSwitchTypes(ExtTestCase):
             for j in range(dist.shape[1]):
                 d = dist[i, j]
                 if (0 < d < 1e9 and i == j) or d > 1e9:
-                    mes = "dist={}\n--\n{}\n--\n{}".format(d, l1[i], l2[j])
+                    mes = f"dist={d}\n--\n{l1[i]}\n--\n{l2[j]}"
                     raise AssertionError(mes)
 
     @ignore_warnings(FutureWarning)

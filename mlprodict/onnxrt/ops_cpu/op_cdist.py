@@ -32,7 +32,7 @@ class CDist(OpRunBinaryNum):
         if op_name == "CDist":
             return CDistSchema()
         raise RuntimeError(  # pragma: no cover
-            "Unable to find a schema for operator '{}'.".format(op_name))
+            f"Unable to find a schema for operator '{op_name}'.")
 
     def to_python(self, inputs):
         metric = self.metric.decode('ascii')
@@ -41,8 +41,7 @@ class CDist(OpRunBinaryNum):
                     "return cdist({}, {}, metric='{}', p={})".format(
                         inputs[0], inputs[1], metric, self.p))
         return ('from scipy.spatial.distance import cdist',
-                "return cdist({}, {}, metric='{}')".format(
-                    inputs[0], inputs[1], metric))
+                f"return cdist({inputs[0]}, {inputs[1]}, metric='{metric}')")
 
 
 class CDistSchema(OperatorSchema):
