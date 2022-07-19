@@ -5,14 +5,38 @@
 History
 =======
 
-current - 2022-05-27 - 0.00Mb
+current - 2022-07-20 - 0.00Mb
 =============================
+
+* #453: Uses f strings (2022-07-19)
+* #452: Extends code coverage (2022-07-18)
+* #451: Adds a table for all versions and all operators (2022-07-13)
+* #450: Implements node Expression to compress graph (2022-07-12)
+* #449: Improves code coverage (2022-07-11)
+* #448: Fixes template to export an onnx graph to python (2022-07-06)
+* #447: Adds an example to check export issues (2022-07-05)
+* #446: Creates an exporter to python (2022-07-05)
+* #445: Removes ShapeObject, replaces by OnnxShapeInference (2022-07-02)
+* #444: Fixes a bug in to_onnx when as_function=True (2022-07-01)
+* #442: Converts onnx with functions to code based on XOP API (2022-06-30)
+* #443: Add compiled dynamic libraries to .gitignore (2022-06-30)
+* #433: Converts a sklearn model into multiple functions (2022-06-29)
+* #441: Renames check_model into check_onnx (2022-06-25)
+* #439: Drops support for python 3.6 (2022-06-22)
+* #440: Update azure-pipelines.yml (2022-06-22)
+* #438: Fixes xgboost converter when base_score is specified (2022-06-22)
+* #437: Renders vector attributes in onnx_simple_text_plot (2022-06-21)
+* #436: Supports for attributes in onnx functions (2022-06-21)
+* #435: Extends documentation to onnxruntime (2022-06-13)
+
+0.8.1826 - 2022-05-29 - 0.71Mb
+==============================
 
 * #432: None and [] should be different function get_tensor_shape (2022-05-25)
 * #431: Adds functions to change the shape of inputs and outputs (2022-05-25)
 * #430: Adds function to rename inputs or outputs (2022-05-23)
-* #428: Investigates SVC discrepancies (2022-05-20)
 * #429: Adds more functions to manipulate graphs (2022-05-20)
+* #428: Investigates SVC discrepancies (2022-05-20)
 * #427: Adds function to inline function on onnx graph (2022-05-12)
 * #426: Adds support for operator RoiAlign for python runtime (2022-04-25)
 * #425: Adds support for operator GridSample for python runtime (2022-04-22)
@@ -347,10 +371,6 @@ current - 2022-05-27 - 0.00Mb
 * #142: Implement python runtime for operator BatchNormalization (2020-07-21)
 * #141: Fixes #140, add runtime for QuantizeLinear, DequantizeLinear (2020-07-20)
 * #140: Implement runtime for QuantizeLinear, DequantizeLinear (2020-07-20)
-
-0.4.1204 - 2020-07-09 - 0.31Mb
-==============================
-
 * #139: Add runtime for operator EyeLike (2020-07-08)
 * #138: Add code to register custom python operator (2020-07-08)
 * #137: Remove parameter dtype (onnx conversion) (2020-07-08)
@@ -363,10 +383,6 @@ current - 2022-05-27 - 0.00Mb
 * #129: Add operator Einsum (ONNX) (2020-06-11)
 * #128: Fixes #127, implements OnnxPipeline, train, convert at each step (2020-06-08)
 * #127: Implements a pipeline which replaces early stages by onnx (2020-06-08)
-
-0.3.1129 - 2020-06-04 - 0.29Mb
-==============================
-
 * #123: Enables opset 12 (ONNX) (2020-06-04)
 * #117: Support for op_version in onnx grammar (2020-06-04)
 * #126: Fix xgboost converter for xgboost >= 1.0 (2020-05-18)
