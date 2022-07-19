@@ -606,7 +606,7 @@ def onnx_documentation_folder(folder, ops=None, title='ONNX operators',
         index.append('')
 
     # adding pages
-    index.extend(["", "Tables", "++++++", "", ".. contents::", "    :maxdepth: 1", ""])
+    index.extend(["", "Tables", "++++++", "", ".. toctree::", "    :maxdepth: 1", ""])
     for page in tables_domain_pages:
         index.append("    %s" % page)
     index.append('')
