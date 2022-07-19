@@ -81,7 +81,7 @@ class TestBugsOnnxrtOnnxConverter(ExtTestCase):
                     self.assertRaise(
                         lambda rt=rt: self.fx_train(rt), RuntimeError)
                 else:
-                    raise ValueError("Unexpected runtime %r." % rt)
+                    raise ValueError(f"Unexpected runtime {rt!r}.")
 
     def fx_train_cls(self, runtime):
         data = os.path.join(os.path.abspath(os.path.dirname(__file__)),
@@ -124,7 +124,7 @@ class TestBugsOnnxrtOnnxConverter(ExtTestCase):
                     self.assertRaise(
                         lambda rt=rt: self.fx_train_cls(rt), RuntimeError)
                 else:
-                    raise ValueError("Unexpected runtime %r." % rt)
+                    raise ValueError(f"Unexpected runtime {rt!r}.")
 
 
 if __name__ == "__main__":

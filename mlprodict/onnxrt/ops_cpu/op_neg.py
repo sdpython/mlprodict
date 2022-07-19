@@ -24,4 +24,4 @@ class Neg(OpRunUnaryNum):
 
     def to_python(self, inputs):
         return ("import numpy",
-                "return -%s" % inputs[0])
+                f"return -{inputs[0]}")

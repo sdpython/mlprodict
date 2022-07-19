@@ -36,4 +36,4 @@ def load_op(onnx_node, desc=None, options=None, variables=None, dtype=None, runt
         from .ops_onnxruntime import load_op as lo
         return lo(onnx_node, desc=desc, options=options,  # pylint: disable=E1123
                   variables=variables, dtype=dtype, runtime=runtime)
-    raise ValueError("Unable to handle provider '{}'.".format(provider))
+    raise ValueError(f"Unable to handle provider '{provider}'.")

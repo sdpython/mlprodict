@@ -32,7 +32,7 @@ class ShapeConstraint:
                 "Name cannot be '?'.")
         if not isinstance(values, set):
             raise TypeError(  # pragma: no cover
-                "values must be a set not %r." % type(values))
+                f"values must be a set not {type(values)!r}.")
         self.name = name
         self.values = values
 
@@ -46,8 +46,7 @@ class ShapeConstraint:
 
     def __repr__(self):
         "usual"
-        return "%s(%r, %r)" % (
-            self.__class__.__name__, self.name, self.values)
+        return f"{self.__class__.__name__}({self.name!r}, {self.values!r})"
 
     def merge(self, cst):
         """
@@ -85,7 +84,7 @@ class ShapeConstraintList:
         self.csts.append(cst)
 
     def __repr__(self):
-        return "ShapeConstraintList(%r)" % self.csts
+        return f"ShapeConstraintList({self.csts!r})"
 
     def __iter__(self):
         for c in self.csts:
@@ -123,19 +122,18 @@ class ShapeResult:
                  mtype=OnnxKind.Tensor, constraints=None):
         if not isinstance(name, str):
             raise TypeError(  # pragma: no cover
-                "name must be a string not %r." % type(name))
+                f"name must be a string not {type(name)!r}.")
         if not isinstance(sparse, bool):
             raise TypeError(  # pragma: no cover
-                "sparse must be a boolean not %r." % sparse)
+                f"sparse must be a boolean not {sparse!r}.")
         if not isinstance(mtype, OnnxKind):
             raise TypeError(  # pragma: no cover
-                "mtype must be of type OnnxKind not %r." % type(mtype))
+                f"mtype must be of type OnnxKind not {type(mtype)!r}.")
         self.shape = list(shape)
         for i in range(0, len(self.shape)):  # pylint: disable=C0200
             if shape[i] in ('', None, '?'):
                 raise ValueError(  # pragma: no cover
-                    "All dimensions must an int or a variable name, "
-                    "%s is not." % (shape, ))
+                    f"All dimensions must an int or a variable name, {shape} is not.")
         self.name = name
         self.mtype = mtype
         self.dtype = dtype
@@ -159,7 +157,7 @@ class ShapeResult:
             shape = shape.shape
         if all(map(lambda x: isinstance(x, int), self.shape)):
             return tuple(self.shape) == tuple(shape)
-        raise NotImplementedError("%r ? %r" % (self, shape))
+        raise NotImplementedError(f"{self!r} ? {shape!r}")
 
     def copy(self, deep=False):
         """
@@ -201,7 +199,7 @@ class ShapeResult:
         """
         if self.mtype != OnnxKind.Tensor:
             raise ShapeInferenceException(  # pragma: no cover
-                "This shape is not a tensor %r." % self)
+                f"This shape is not a tensor {self!r}.")
         return len(self.shape)
 
     def merge(self, other_result):
@@ -210,12 +208,11 @@ class ShapeResult:
         """
         if self.mtype != other_result.mtype:
             raise RuntimeError(  # pragma: no cover
-                "Unable to merge %r and %r." % (self, other_result))
+                f"Unable to merge {self!r} and {other_result!r}.")
         if (len(self.shape) != 0 and len(other_result.shape) != 0 and
                 len(self.shape) != len(other_result.shape)):
             raise ShapeInferenceDimensionError(  # pragma: no cover
-                "Length mismatch, unable to merge %r and %r." % (
-                    self, other_result))
+                f"Length mismatch, unable to merge {self!r} and {other_result!r}.")
         updated = False
         if other_result.constraints is not None:
             for c in other_result.constraints:
@@ -233,8 +230,7 @@ class ShapeResult:
                 continue
             if isinstance(a, int) and isinstance(b, int):
                 raise RuntimeError(
-                    "Inconsistancy between %r and %r." % (
-                        self, other_result))
+                    f"Inconsistancy between {self!r} and {other_result!r}.")
             elif isinstance(a, str):
                 c = ShapeConstraint(a, {b})
                 if c not in self.constraints:
@@ -247,8 +243,7 @@ class ShapeResult:
                     self.constraints.append(c)
             else:
                 raise NotImplementedError(  # pragma: no cover
-                    "Merge not implemented between %r and %r." % (
-                        self, other_result))
+                    f"Merge not implemented between {self!r} and {other_result!r}.")
         return updated
 
     def resolve(self, variables):
@@ -275,8 +270,7 @@ class ShapeResult:
                         res.shape[i] = set(vals)
                 else:
                     raise RuntimeError(  # pragma: no cover
-                        "Unable to resolve shape %r due to missing "
-                        "%r." % (self, v))
+                        f"Unable to resolve shape {self!r} due to missing {v!r}.")
         return res
 
     @staticmethod
@@ -294,20 +288,19 @@ class ShapeResult:
         """
         if not isinstance(sh1, ShapeResult):
             raise TypeError(  # pragma: no cover
-                "Unexpected type for sh1 %r." % type(sh1))
+                f"Unexpected type for sh1 {type(sh1)!r}.")
         if not isinstance(sh2, ShapeResult):
             raise TypeError(  # pragma: no cover
-                "Unexpected type for sh2 %r." % type(sh2))
+                f"Unexpected type for sh2 {type(sh2)!r}.")
         if sh1.mtype != OnnxKind.Tensor:
             raise TypeError(  # pragma: no cover
-                "sh1 must be a tensor not %r." % sh1.mtype)
+                f"sh1 must be a tensor not {sh1.mtype!r}.")
         if sh2.mtype != OnnxKind.Tensor:
             raise TypeError(  # pragma: no cover
-                "sh2 must be a tensor not %r." % sh2.mtype)
+                f"sh2 must be a tensor not {sh2.mtype!r}.")
         if same_type and sh1.dtype != sh2.dtype:
             raise ShapeInferenceException(  # pragma: no cover
-                "Cannot broadcast shapes %r and %r (dtypes)."
-                "" % (sh1, sh2))
+                f"Cannot broadcast shapes {sh1!r} and {sh2!r} (dtypes).")
 
         # Specific cases.
         if sh1.n_dims() != sh2.n_dims():
@@ -360,7 +353,7 @@ class ShapeResult:
                 d = a
             else:
                 raise ShapeInferenceException(  # pragma: no cover
-                    "Cannot broadcast shapes %r and %r." % (sh1, sh2))
+                    f"Cannot broadcast shapes {sh1!r} and {sh2!r}.")
             shape.append(d)
         if name in (None, ''):
             raise ValueError(  # pragma: no cover

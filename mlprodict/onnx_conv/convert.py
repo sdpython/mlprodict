@@ -92,7 +92,7 @@ def convert_scorer(fct, initial_types, name=None,
     else:
         kwargs = None  # pragma: no cover
     if name is None:
-        name = "mlprodict_fct_ONNX(%s)" % fct.__name__
+        name = f"mlprodict_fct_ONNX({fct.__name__})"
     tr = CustomScorerTransform(fct.__name__, fct, kwargs)
     _fix_opset_skl2onnx()
     return convert_sklearn(
@@ -191,8 +191,7 @@ def get_inputs_from_data(X, schema=None):
         if isinstance(ct, Int64TensorType):
             return X.astype(numpy.int64)
         raise RuntimeError(  # pragma: no cover
-            "Unexpected column type {} for type {}."
-            "".format(ct, type(X)))
+            f"Unexpected column type {ct} for type {type(X)}.")
 
     if schema is None:
         schema = guess_schema_from_data(X)
@@ -209,8 +208,7 @@ def get_inputs_from_data(X, schema=None):
         return {sch[0]: _cast_data(X[c].values, sch[1]).reshape((-1, 1))
                 for sch, c in zip(schema, X.columns)}
     raise TypeError(  # pragma: no cover
-        "Unexpected type {}, expecting an array or a dataframe."
-        "".format(type(X)))
+        f"Unexpected type {type(X)}, expecting an array or a dataframe.")
 
 
 def guess_schema_from_model(model, tensor_type=None, schema=None):
@@ -276,8 +274,7 @@ def _guess_type_(X, itype, dtype):
             dtype = guess_numpy_type(initial_types[0][1])
         else:
             raise RuntimeError(  # pragma: no cover
-                "dtype cannot be guessed: {}".format(
-                    type(X)))
+                f"dtype cannot be guessed: {type(X)}")
         if dtype != numpy.float64:
             dtype = numpy.float32
     if dtype is None:
@@ -294,7 +291,7 @@ def _guess_type_(X, itype, dtype):
     if new_dtype not in (numpy.float32, numpy.float64, numpy.int64,
                          numpy.int32, numpy.float16):
         raise NotImplementedError(  # pragma: no cover
-            "dtype should be real not {} ({})".format(new_dtype, dtype))
+            f"dtype should be real not {new_dtype} ({dtype})")
     return initial_types, dtype, new_dtype
 
 
@@ -433,8 +430,7 @@ def to_onnx(model, X=None, name=None, initial_types=None,
     if isinstance(model, OnnxOperatorMixin):
         if not hasattr(model, 'op_version'):
             raise RuntimeError(  # pragma: no cover
-                "Missing attribute 'op_version' for type '{}'.".format(
-                    type(model)))
+                f"Missing attribute 'op_version' for type '{type(model)}'.")
         _fix_opset_skl2onnx()
         return model.to_onnx(
             X=X, name=name, options=options, black_op=black_op,
@@ -479,14 +475,14 @@ def to_onnx(model, X=None, name=None, initial_types=None,
             ndt = set(dts)
             if len(ndt) != 1:
                 raise RuntimeError(  # pragma: no cover
-                    "Multiple dtype is not efficient {}.".format(ndt))
+                    f"Multiple dtype is not efficient {ndt}.")
         res = convert_scorer(model, initial_types, name=name,
                              target_opset=target_opset, options=options,
                              black_op=black_op, white_op=white_op,
                              final_types=final_types, verbose=verbose)
     else:
         if name is None:
-            name = "mlprodict_ONNX(%s)" % model.__class__.__name__
+            name = f"mlprodict_ONNX({model.__class__.__name__})"
 
         initial_types, dtype, _ = _guess_type_(X, initial_types, None)
 
@@ -559,7 +555,7 @@ def get_sklearn_json_params(model):
         return json.dumps(pars, cls=_ParamEncoder)
     except TypeError as e:  # pragma: no cover
         raise RuntimeError(
-            "Unable to serialize parameters %s." % pprint.pformat(pars)) from e
+            f"Unable to serialize parameters {pprint.pformat(pars)}.") from e
 
 
 def _to_onnx_function_pipeline(
@@ -617,9 +613,9 @@ def _to_onnx_function_pipeline(
             step[1].__class__.__name__, get_sklearn_json_params(step[1]))
         protof, subf = onnx_model_to_function(
             protom, domain='sklearn',
-            name="%s_%s_%s" % (prefix, step[1].__class__.__name__, i_step),
+            name=f"{prefix}_{step[1].__class__.__name__}_{i_step}",
             doc_string=jspar)
-        input_names = ["%s_%s" % (step[0], o) for o in protof.input]
+        input_names = [f"{step[0]}_{o}" for o in protof.input]
         if last_op is not None:
             if len(input_names) == 1:
                 input_nodes = [OnnxIdentity(
@@ -629,7 +625,7 @@ def _to_onnx_function_pipeline(
                 input_nodes = [OnnxIdentity(last_op[i], output_names=[n],  # pylint: disable=E1136
                                             op_version=op_version)
                                for i, n in enumerate(input_names)]
-        output_names = ["%s_%s" % (step[0], o) for o in protof.output]
+        output_names = [f"{step[0]}_{o}" for o in protof.output]
 
         logger.debug("_to_onnx_function_pipeline:%s:%r->%r:%r:%s",
                      step[1].__class__.__name__,
@@ -900,9 +896,9 @@ def _to_onnx_function_column_transformer(
             op.__class__.__name__, get_sklearn_json_params(op))
         protof, fcts = onnx_model_to_function(
             protom, domain='sklearn',
-            name="%s_%s_%s" % (prefix, op.__class__.__name__, id(op)),
+            name=f"{prefix}_{op.__class__.__name__}_{id(op)}",
             doc_string=jspar)
-        output_names = ["%s_%s" % (name_step, o) for o in protof.output]
+        output_names = [f"{name_step}_{o}" for o in protof.output]
         output_namess.append(output_names)
 
         logger.debug("_to_onnx_function_column_transformer:%s:->%r:%r:%s",
@@ -1039,4 +1035,4 @@ def to_onnx_function(model, X=None, name=None, initial_types=None,
             single_function=single_function)
 
     raise TypeError(  # pragma: no cover
-        "Unexpected type %r for model to convert." % type(model))
+        f"Unexpected type {type(model)!r} for model to convert.")

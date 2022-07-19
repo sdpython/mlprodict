@@ -19,7 +19,8 @@ class TestCompressOnnx(ExtTestCase):
     def test_simple_case(self):
         OnnxAdd, OnnxLog = loadop('Add', 'Log')
         opv = 5
-        add = OnnxAdd('x', numpy.array([1], dtype=numpy.float32), op_version=opv)
+        add = OnnxAdd('x', numpy.array(
+            [1], dtype=numpy.float32), op_version=opv)
         logx = OnnxLog(add, op_version=opv, output_names=['y'])
         onx = logx.to_onnx(numpy.float32, numpy.float32)
         check_onnx(onx)
@@ -46,7 +47,8 @@ class TestCompressOnnx(ExtTestCase):
     def test_simple_case2(self):
         OnnxAdd, OnnxLog, OnnxAbs = loadop('Add', 'Log', 'Abs')
         opv = 5
-        add = OnnxAdd('x', numpy.array([1], dtype=numpy.float32), op_version=opv)
+        add = OnnxAdd('x', numpy.array(
+            [1], dtype=numpy.float32), op_version=opv)
         aaa = OnnxAbs(add, op_version=opv)
         logx = OnnxLog(aaa, op_version=opv, output_names=['y'])
         onx = logx.to_onnx(numpy.float32, numpy.float32)
@@ -74,7 +76,8 @@ class TestCompressOnnx(ExtTestCase):
     def test_simple_case3(self):
         OnnxAdd, OnnxLog, OnnxAbs, OnnxExp = loadop('Add', 'Log', 'Abs', 'Exp')
         opv = 5
-        add = OnnxAdd('x', numpy.array([1], dtype=numpy.float32), op_version=opv)
+        add = OnnxAdd('x', numpy.array(
+            [1], dtype=numpy.float32), op_version=opv)
         eee = OnnxExp(add, op_version=opv)
         logx = OnnxLog(OnnxAbs(eee, op_version=opv),
                        op_version=opv, output_names=['y'])
@@ -106,7 +109,8 @@ class TestCompressOnnx(ExtTestCase):
         OnnxAdd, OnnxLog, OnnxAbs, OnnxExp, OnnxSub = loadop(
             'Add', 'Log', 'Abs', 'Exp', 'Sub')
         opv = 5
-        add = OnnxAdd('x', numpy.array([1], dtype=numpy.float32), op_version=opv)
+        add = OnnxAdd('x', numpy.array(
+            [1], dtype=numpy.float32), op_version=opv)
         eee = OnnxExp(add, op_version=opv)
         bbb = OnnxSub(eee, 'c', op_version=opv)
         logx = OnnxLog(OnnxAbs(bbb, op_version=opv),

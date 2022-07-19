@@ -28,7 +28,7 @@ class SupportedOnnxOpsDirective(Directive):
         main = nodes.container()
 
         def make_ref(cl):
-            return ":ref:`l-xop-onnx-{}`".format(cl.__name__)
+            return f":ref:`l-xop-onnx-{cl.__name__}`"
 
         table = []
         cut = (len(sorted_cls_name) // 3 +
@@ -58,13 +58,13 @@ class SupportedOnnxOpsDirective(Directive):
         for name, cl in sorted_cls_name:
             rows = []
             rows.append('')
-            rows.append('.. _l-xop-onnx-{}:'.format(cl.__name__))
+            rows.append(f'.. _l-xop-onnx-{cl.__name__}:')
             rows.append('')
             rows.append(cl.__name__)
             rows.append('=' * len(cl.__name__))
             rows.append('')
             rows.append(
-                ".. autoclass:: mlprodict.npy.xop_auto_import_.{}".format(name))
+                f".. autoclass:: mlprodict.npy.xop_auto_import_.{name}")
             st = StringList(rows)
             node = nodes.container()
             nested_parse_with_titles(self.state, st, node)

@@ -460,7 +460,7 @@ class TestOnnxrtPythonRuntime(ExtTestCase):  # pylint: disable=R0904
                             tty = StringTensorType
                         else:
                             raise AssertionError(
-                                "{}-{} not tested.".format(ty, nty))
+                                f"{ty}-{nty} not tested.")
                     elif ty != 'float':
                         continue
                     else:
@@ -481,7 +481,7 @@ class TestOnnxrtPythonRuntime(ExtTestCase):  # pylint: disable=R0904
                         oinf = OnnxInference(model_def)
                     except RuntimeError as e:
                         raise AssertionError(
-                            "Unable to load the model:\n{}".format(model_def)) from e
+                            f"Unable to load the model:\n{model_def}") from e
                     if tty == StringTensorType:
                         continue
                     try:
@@ -553,7 +553,7 @@ class TestOnnxrtPythonRuntime(ExtTestCase):  # pylint: disable=R0904
                     oinf = OnnxInference(model_def)
                 except RuntimeError as e:
                     raise AssertionError(
-                        "Unable to load the model:\n{}".format(model_def)) from e
+                        f"Unable to load the model:\n{model_def}") from e
                 ope = oinf.sequence_[0].ops_
                 self.assertIsInstance(ope, expected_type[opset])
                 got = oinf.run({'X': X})
@@ -595,8 +595,7 @@ class TestOnnxrtPythonRuntime(ExtTestCase):  # pylint: disable=R0904
                 shape_results = shapeinf.run()
             except Exception as e:
                 raise AssertionError(
-                    "Unable to infer shape %r in\n%r\n." % (
-                        e, model_def)) from e
+                    f"Unable to infer shape {e!r} in\n{model_def!r}\n.") from e
             shape = shape_results.get()
             try:
                 self.assertIn('X', shape)
@@ -618,7 +617,7 @@ class TestOnnxrtPythonRuntime(ExtTestCase):  # pylint: disable=R0904
         except RuntimeError as e:
             if raise_shape:
                 raise e
-            warnings.warn("infer_shapes fails for operator %r." % onnx_cl)
+            warnings.warn(f"infer_shapes fails for operator {onnx_cl!r}.")
 
     @ignore_warnings(category=(RuntimeWarning, DeprecationWarning,
                                SparseEfficiencyWarning, PendingDeprecationWarning))
@@ -706,8 +705,7 @@ class TestOnnxrtPythonRuntime(ExtTestCase):  # pylint: disable=R0904
             shape_results = shapeinf.run()
         except Exception as e:
             raise AssertionError(
-                "Unable to infer shape %r in\n%r\n." % (
-                    e, model_def)) from e
+                f"Unable to infer shape {e!r} in\n{model_def!r}\n.") from e
         shape = shape_results.get()
         self.assertIn('X', shape)
         self.assertIn('Y', shape)
@@ -782,8 +780,7 @@ class TestOnnxrtPythonRuntime(ExtTestCase):  # pylint: disable=R0904
                 shape_results = shapeinf.run()
             except Exception as e:
                 raise AssertionError(
-                    "Unable to infer shape %r in\n%r\n." % (
-                        e, model_def)) from e
+                    f"Unable to infer shape {e!r} in\n{model_def!r}\n.") from e
             shape = shape_results.get()
             self.assertIn('X', shape)
             self.assertIn('Y', shape)
@@ -821,8 +818,7 @@ class TestOnnxrtPythonRuntime(ExtTestCase):  # pylint: disable=R0904
                 model_def_sparse, input_inplace=False, inplace=True)
         except RuntimeError as e:
             raise RuntimeError(
-                "Unable to load sparse model\n{}".format(
-                    model_def_sparse)) from e
+                f"Unable to load sparse model\n{model_def_sparse}") from e
         if debug:
             got = oinf.run({'X': X}, verbose=1, fLOG=print)
         else:
@@ -2767,8 +2763,7 @@ class TestOnnxrtPythonRuntime(ExtTestCase):  # pylint: disable=R0904
             oinf = OnnxInference(model_def, runtime=runtime)
         except RuntimeError as e:
             raise RuntimeError(
-                "Unable to instantiate (runtime='{}')\n{}".format(
-                    runtime, model_def)) from e
+                f"Unable to instantiate (runtime='{runtime}')\n{model_def}") from e
         got = oinf.run({'X': X.astype(numpy.float32)})
         self.assertEqual(list(sorted(got)), ['Y'])
         self.assertEqualArray(numpy.dot(X, idi) + cst, got['Y'], decimal=5)
@@ -2783,8 +2778,7 @@ class TestOnnxrtPythonRuntime(ExtTestCase):  # pylint: disable=R0904
             oinf = OnnxInference(model_def, runtime=runtime)
         except RuntimeError as e:
             raise RuntimeError(
-                "Unable to instantiate (runtime='{}')\n{}".format(
-                    runtime, model_def)) from e
+                f"Unable to instantiate (runtime='{runtime}')\n{model_def}") from e
         got = oinf.run({'X': X.astype(numpy.float32)})
         self.assertEqual(list(sorted(got)), ['Y'])
         self.assertEqualArray(numpy.dot(X.T, idi.T) + cst, got['Y'], decimal=5)

@@ -160,7 +160,7 @@ class NumpyCode:
                 return list(
                     map(float, v.strip('[]').replace(' ', '').split(',')))
             raise ValueError(  # pragma: no cover
-                "Unable to convert %r with format=%r." % (v, format))
+                f"Unable to convert {v!r} with format={format!r}.")
 
         for n, val in self.attributes:
             if name == n:
@@ -182,7 +182,7 @@ class NumpyCode:
 
         if kind == 'tuple':
             if value is None:
-                return "tuple(%s)" % name
+                return f"tuple({name})"
             if value.size == 1:
                 return str(tuple(value)[0])
             return str(tuple(value))
@@ -193,7 +193,7 @@ class NumpyCode:
                 return str(value)
             return str(list(value))
         raise NotImplementedError(  # pragma: no cover
-            "Unknown scenario to simplify (%r)." % kind)
+            f"Unknown scenario to simplify ({kind!r}).")
 
     @staticmethod
     def _make_tuple(val):
@@ -206,7 +206,7 @@ class NumpyCode:
         if isinstance(val, str):
             return tuple(map(int, val.strip('()[]').replace(" ", "").split(",")))
         raise NotImplementedError(  # pragma: no cover
-            "Unable to convert type %r (%r) into tuple." % (type(val), val))
+            f"Unable to convert type {type(val)!r} ({val!r}) into tuple.")
 
     def make_numpy_code(self):
         """
@@ -223,7 +223,7 @@ class NumpyCode:
             return self._make_numpy_code_others()
 
         raise NotImplementedError(  # pragma: no cover
-            "Unable to convert any operator from domain %r." % self.domain)
+            f"Unable to convert any operator from domain {self.domain!r}.")
 
     def _make_numpy_code_onnx(self):
 
@@ -242,18 +242,16 @@ class NumpyCode:
 
         if self.op_type in unary_ops:
             self._make_sure_inputs(1)
-            return "%s = %s %s" % (
-                outs, unary_ops[self.op_type], self.inputs[0])
+            return f"{outs} = {unary_ops[self.op_type]} {self.inputs[0]}"
 
         if self.op_type in unary_ops_:
             self._make_sure_inputs(1)
-            return "%s = %s %s" % (
-                outs, self.inputs[0], unary_ops_[self.op_type])
+            return f"{outs} = {self.inputs[0]} {unary_ops_[self.op_type]}"
 
         if self.op_type in {'Abs', 'Ceil', 'Cos', 'Cosh',
                             'Exp', 'Log', 'Sin', 'Sinh',
                             'Tan', 'Tanh'}:
-            return "%s = numpy.%s(%s)" % (outs, self.op_type.lower(), self.inputs[0])
+            return f"{outs} = numpy.{self.op_type.lower()}({self.inputs[0]})"
 
         if self.op_type == 'ArgMax':
             self._make_sure_opsets(12)
@@ -269,8 +267,7 @@ class NumpyCode:
             if keepdims:
                 return "%s = numpy.expand_dims(numpy.argmax(%s, axis=%s), -1)" % (
                     outs, self.inputs[0], axis)
-            return "%s = numpy.argmax(%s, axis=%s)" % (
-                outs, self.inputs[0], axis)
+            return f"{outs} = numpy.argmax({self.inputs[0]}, axis={axis})"
 
         if self.op_type == 'ArgMin':
             self._make_sure_opsets(12)
@@ -286,8 +283,7 @@ class NumpyCode:
             if keepdims:
                 return "%s = numpy.expand_dims(numpy.argmin(%s, axis=%s), -1)" % (
                     outs, self.inputs[0], axis)
-            return "%s = numpy.argmin(%s, axis=%s)" % (
-                outs, self.inputs[0], axis)
+            return f"{outs} = numpy.argmin({self.inputs[0]}, axis={axis})"
 
         if self.op_type == 'Cast':
             from ..onnx2py_helper import _elem_type_as_str
@@ -295,23 +291,21 @@ class NumpyCode:
             to = int(self._getat('to', 1))
             dtype = _elem_type_as_str(to)
             dtype = {'double': 'float64', 'float': 'float32'}.get(dtype, dtype)
-            return "%s = %s.astype(numpy.%s)" % (outs, self.inputs[0], dtype)
+            return f"{outs} = {self.inputs[0]}.astype(numpy.{dtype})"
 
         if self.op_type == 'Concat':
             axis = self._getat('axis', 0)
-            return "%s = numpy.concatenate([%s], %s)" % (
-                outs, ", ".join(self.inputs), axis)
+            return f"{outs} = numpy.concatenate([{', '.join(self.inputs)}], {axis})"
 
         if self.op_type == 'ConstantOfShape':
             self._make_sure_opsets(9)
             self._make_sure_inputs(1)
             value = self._getat('value', 0, format='listfloat')
             shape = self._simplify(self.inputs[0], kind='tuple')
-            return "%s = numpy.full(%s, %s)" % (
-                outs, shape, value)
+            return f"{outs} = numpy.full({shape}, {value})"
 
         if self.op_type == 'Max':
-            return "%s = numpy.maximum(%s)" % (outs, ", ".join(self.inputs))
+            return f"{outs} = numpy.maximum({', '.join(self.inputs)})"
 
         if self.op_type == 'Gather':
             self._make_sure_opsets(11)
@@ -329,15 +323,14 @@ class NumpyCode:
             ta = ".T" if transA in ('1', 1, True) else ""
             tb = ".T" if transB in ('1', 1, True) else ""
             if len(self.inputs) == 2:
-                return "%s = %s%s @ %s%s * %s" % (
-                    outs, self.inputs[0], ta, self.inputs[1], tb, alpha)
+                return f"{outs} = {self.inputs[0]}{ta} @ {self.inputs[1]}{tb} * {alpha}"
             beta = self._getat('beta', 0.)
             return "%s = %s%s @ %s%s * %s + %s * %s" % (
                 outs, self.inputs[0], ta, self.inputs[1], tb, alpha,
                 self.inputs[2], beta)
 
         if self.op_type == 'Identity':
-            return "%s = %s" % (outs, self.inputs[0])
+            return f"{outs} = {self.inputs[0]}"
 
         if self.op_type == 'ReduceProd':
             self._make_sure_inputs(1)
@@ -364,22 +357,19 @@ class NumpyCode:
         if self.op_type == 'Reshape':
             self._make_sure_inputs(2)
             simp = self._simplify(self.inputs[1], 'tuple')
-            return "%s = %s.reshape(%s)" % (
-                outs, self.inputs[0], simp)
+            return f"{outs} = {self.inputs[0]}.reshape({simp})"
 
         if self.op_type == 'Shape':
             self._make_sure_inputs(1)
-            return "%s = numpy.array(%s.shape, dtype=numpy.int64)" % (
-                outs, self.inputs[0])
+            return f"{outs} = numpy.array({self.inputs[0]}.shape, dtype=numpy.int64)"
 
         if self.op_type == 'Slice':
-            return "%s = make_slice(%s)" % (outs, ", ".join(self.inputs))
+            return f"{outs} = make_slice({', '.join(self.inputs)})"
 
         if self.op_type == 'Softmax':
             self._make_sure_inputs(1)
             axis = self._getat('axis', -1)
-            return "%s = scipy_special.softmax(%s, axis=%s)" % (
-                outs, self.inputs[0], axis)
+            return f"{outs} = scipy_special.softmax({self.inputs[0]}, axis={axis})"
 
         if self.op_type == 'Squeeze':
             self._make_sure_opsets(13)
@@ -401,8 +391,7 @@ class NumpyCode:
                 self._simplify(self.inputs[1], 'tuple'))
 
         raise NotImplementedError(  # pragma: no cover
-            "Unable to convert operator type %r name=%r." % (
-                self.op_type, self.name))
+            f"Unable to convert operator type {self.op_type!r} name={self.name!r}.")
 
     def _make_numpy_code_onnxml(self):
         outs = ", ".join(self.outputs)
@@ -476,8 +465,7 @@ class NumpyCode:
                 "reshape((%d, -1)).T" % (coefficients, targets),
                 "%sinter = numpy.array(%s, dtype=numpy.float32)."
                 "reshape((-1, %d))" % (self.indent, intercepts, targets),
-                "%s%s = %s @ coefs + inter" % (
-                    self.indent, outs, self.inputs[0])]
+                f"{self.indent}{outs} = {self.inputs[0]} @ coefs + inter"]
             return "\n".join(rows)
 
         if self.op_type == 'Normalizer':

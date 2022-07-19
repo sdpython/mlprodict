@@ -122,8 +122,7 @@ def _raw_score_binary_classification(model, X):
         scores = scores.reshape(-1, 1)
     if len(scores.shape) != 2 or scores.shape[1] != 1:
         raise RuntimeError(  # pragma: no cover
-            "Unexpected shape {} for a binary classifiation".format(
-                scores.shape))
+            f"Unexpected shape {scores.shape} for a binary classifiation")
     return numpy.hstack([-scores, scores])
 
 
@@ -139,8 +138,8 @@ def _save_model_dump(model, folder, basename, names):
             try:
                 pickle.dump(model, f)
             except AttributeError as e:  # pragma no cover
-                print("[dump_data_and_model] cannot pickle model '{}'"
-                      " due to {}.".format(dest, e))
+                print(
+                    f"[dump_data_and_model] cannot pickle model '{dest}' due to {e}.")
 
 
 def dump_data_and_model(  # pylint: disable=R0912
@@ -274,7 +273,7 @@ def dump_data_and_model(  # pylint: disable=R0912
                 lambda_original = lambda: call(dataone)
             else:
                 raise RuntimeError(  # pragma: no cover
-                    "Method '{0}' is not callable.".format(method))
+                    f"Method '{method}' is not callable.")
     else:
         if hasattr(model, "predict"):
             if _has_predict_proba(model):
@@ -315,8 +314,7 @@ def dump_data_and_model(  # pylint: disable=R0912
                 lambda_original = lambda: model.transform(dataone)
         else:
             raise TypeError(  # pragma: no cover
-                "Model has no predict or transform method: {0}".format(
-                    type(model)))
+                f"Model has no predict or transform method: {type(model)}")
 
     runtime_test["expected"] = prediction
 
@@ -350,7 +348,7 @@ def dump_data_and_model(  # pylint: disable=R0912
     with open(dest, "wb") as f:
         f.write(onnx_model.SerializeToString())
     if verbose:  # pragma: no cover
-        print("[dump_data_and_model] created '{}'.".format(dest))
+        print(f"[dump_data_and_model] created '{dest}'.")
 
     runtime_test["onnx"] = dest
 
@@ -418,7 +416,7 @@ def dump_data_and_model(  # pylint: disable=R0912
 
             if output is not None:
                 dest = os.path.join(folder,
-                                    basename + ".backend.{0}.pkl".format(b))
+                                    basename + f".backend.{b}.pkl")
                 names.append(dest)
                 with open(dest, "wb") as f:
                     pickle.dump(output, f)
@@ -451,8 +449,7 @@ def convert_model(model, name, input_types):
 
     model, prefix = convert_sklearn(model, name, input_types), "Sklearn"
     if model is None:  # pragma: no cover
-        raise RuntimeError("Unable to convert model of type '{0}'.".format(
-            type(model)))
+        raise RuntimeError(f"Unable to convert model of type '{type(model)}'.")
     return model, prefix
 
 
@@ -554,8 +551,8 @@ def dump_multiple_classification(
         y = ["l%d" % i for i in y]
     model.fit(X, y)
     if verbose:  # pragma: no cover
-        print("[dump_multiple_classification] model '{}'".format(
-            model.__class__.__name__))
+        print(
+            f"[dump_multiple_classification] model '{model.__class__.__name__}'")
     model_onnx, prefix = convert_model(model, "multi-class classifier",
                                        [("input", FloatTensorType([None, 2]))])
     if verbose:  # pragma: no cover
@@ -572,8 +569,8 @@ def dump_multiple_classification(
     X = X[:, :2]
     model.fit(X, y)
     if verbose:  # pragma: no cover
-        print("[dump_multiple_classification] model '{}'".format(
-            model.__class__.__name__))
+        print(
+            f"[dump_multiple_classification] model '{model.__class__.__name__}'")
     model_onnx, prefix = convert_model(model, "multi-class classifier",
                                        [("input", FloatTensorType([None, 2]))])
     if verbose:  # pragma: no cover
@@ -610,8 +607,8 @@ def dump_multilabel_classification(
     y = MultiLabelBinarizer().fit_transform(y)
     model.fit(X, y)
     if verbose:  # pragma: no cover
-        print("[make_multilabel_classification] model '{}'".format(
-            model.__class__.__name__))
+        print(
+            f"[make_multilabel_classification] model '{model.__class__.__name__}'")
     model_onnx, prefix = convert_model(model, "multi-label-classifier",
                                        [("input", FloatTensorType([None, 2]))])
     if verbose:  # pragma: no cover
@@ -628,8 +625,8 @@ def dump_multilabel_classification(
     X = X[:, :2]
     model.fit(X, y)
     if verbose:  # pragma: no cover
-        print("[make_multilabel_classification] model '{}'".format(
-            model.__class__.__name__))
+        print(
+            f"[make_multilabel_classification] model '{model.__class__.__name__}'")
     model_onnx, prefix = convert_model(model, "multi-class classifier",
                                        [("input", FloatTensorType([None, 2]))])
     if verbose:  # pragma: no cover

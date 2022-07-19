@@ -23,7 +23,7 @@ class Relu(OpRunUnaryNum):
         return (numpy.maximum(x, 0, out=x), )
 
     def to_python(self, inputs):
-        return ("import numpy", "return numpy.maximum(%s, 0)" % inputs[0])
+        return ("import numpy", f"return numpy.maximum({inputs[0]}, 0)")
 
 
 class ThresholdedRelu(OpRunUnaryNum):
@@ -44,4 +44,4 @@ class ThresholdedRelu(OpRunUnaryNum):
         return (numpy.maximum(x, self.alpha, out=x), )
 
     def to_python(self, inputs):
-        return ("import numpy", "return numpy.maximum(%s, alpha)" % inputs[0])
+        return ("import numpy", f"return numpy.maximum({inputs[0]}, alpha)")

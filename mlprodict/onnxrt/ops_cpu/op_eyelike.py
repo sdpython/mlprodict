@@ -27,7 +27,7 @@ class EyeLike(OpRun):
             sh = shape
         else:
             raise RuntimeError(  # pragma: no cover
-                "EyeLike only accept 1D or 2D tensors not %r." % (shape, ))
+                f"EyeLike only accept 1D or 2D tensors not {shape!r}.")
         return (numpy.eye(*sh, k=self.k, dtype=self.dtype_), )
 
     def to_python(self, inputs):

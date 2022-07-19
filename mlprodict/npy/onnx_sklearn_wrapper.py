@@ -48,7 +48,7 @@ def _skl2onnx_add_to_container(onx, scope, container, outputs):
         for i in node.input:
             if i not in mapped_names:
                 raise RuntimeError(  # pragma: no cover
-                    "Unable to find input %r in %r." % (i, mapped_names))
+                    f"Unable to find input {i!r} in {mapped_names!r}.")
             new_inputs.append(mapped_names[i])
         new_outputs = []
         for o in node.output:
@@ -74,8 +74,7 @@ def _skl2onnx_add_to_container(onx, scope, container, outputs):
                 value = list(att.strings)
             else:
                 raise NotImplementedError(  # pragma: no cover
-                    "Unable to copy attribute type %r (%r)." % (
-                        att.type, att))
+                    f"Unable to copy attribute type {att.type!r} ({att!r}).")
             atts[att.name] = value
 
         container.add_node(
@@ -104,11 +103,10 @@ def _common_shape_calculator_t(operator):
     X = operator.inputs
     if len(X) != 1:
         raise RuntimeError(
-            "This function only supports one input not %r." % len(X))
+            f"This function only supports one input not {len(X)!r}.")
     if len(operator.outputs) != 1:
         raise RuntimeError(
-            "This function only supports one output not %r." % len(
-                operator.outputs))
+            f"This function only supports one output not {len(operator.outputs)!r}.")
     op = operator.raw_operator
     cl = X[0].type.__class__
     dim = [X[0].type.shape[0], getattr(op, 'n_outputs_', None)]
@@ -142,11 +140,10 @@ def _common_shape_calculator_int_t(operator):
     X = operator.inputs
     if len(X) != 1:
         raise RuntimeError(
-            "This function only supports one input not %r." % len(X))
+            f"This function only supports one input not {len(X)!r}.")
     if len(operator.outputs) != 2:
         raise RuntimeError(
-            "This function only supports two outputs not %r." % len(
-                operator.outputs))
+            f"This function only supports two outputs not {len(operator.outputs)!r}.")
     from skl2onnx.common.data_types import Int64TensorType  # delayed
     op = operator.raw_operator
     cl = X[0].type.__class__
@@ -182,7 +179,7 @@ def _common_converter_begin(scope, operator, container, n_outputs):
     X = operator.inputs
     if len(X) != 1:
         raise RuntimeError(
-            "This function only supports one input not %r." % len(X))
+            f"This function only supports one input not {len(X)!r}.")
     if len(operator.outputs) != n_outputs:
         raise RuntimeError(
             "This function only supports %d output not %r." % (
@@ -400,8 +397,7 @@ def update_registered_converter_npy(
 
 def _internal_decorator(fct, op_version=None, runtime=None, signature=None,
                         register_class=None, overwrite=True, options=None):
-    name = "onnxsklearn_parser_%s_%s_%s" % (
-        fct.__name__, str(op_version), runtime)
+    name = f"onnxsklearn_parser_{fct.__name__}_{str(op_version)}_{runtime}"
     newclass = type(
         name, (wrapper_onnxnumpy_np,), {
             '__doc__': fct.__doc__,
@@ -414,8 +410,7 @@ def _internal_decorator(fct, op_version=None, runtime=None, signature=None,
         signature=signature)
     if register_class is not None:
         update_registered_converter_npy(
-            register_class, "Sklearn%s" % getattr(
-                register_class, "__name__", "noname"),
+            register_class, f"Sklearn{getattr(register_class, '__name__', 'noname')}",
             res, shape_fct=None, overwrite=overwrite, options=options)
     return res
 
@@ -591,8 +586,7 @@ def _internal_method_decorator(register_class, method, op_version=None,
             "Methods to overwrite are not known for class %r and "
             "method %r." % (register_class, method))
 
-    name = "onnxsklearn_parser_%s_%s_%s" % (
-        register_class.__name__, str(op_version), runtime)
+    name = f"onnxsklearn_parser_{register_class.__name__}_{str(op_version)}_{runtime}"
     newclass = type(
         name, (wrapper_onnxnumpy_np,), {
             '__doc__': method.__doc__,
@@ -604,7 +598,7 @@ def _internal_method_decorator(register_class, method, op_version=None,
     def _check_(op):
         if isinstance(op, str):
             raise TypeError(  # pragma: no cover
-                "Unexpected type: %r: %r." % (type(op), op))
+                f"Unexpected type: {type(op)!r}: {op!r}.")
         return op
 
     res = newclass(
@@ -636,8 +630,7 @@ def _internal_method_decorator(register_class, method, op_version=None,
             setattr(register_class, name, m)
 
     update_registered_converter_npy(
-        register_class, "Sklearn%s" % getattr(
-            register_class, "__name__", "noname"),
+        register_class, f"Sklearn{getattr(register_class, '__name__', 'noname')}",
         res, shape_fct=None, overwrite=overwrite,
         options=options)
     return res

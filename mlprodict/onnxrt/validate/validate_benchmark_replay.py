@@ -60,7 +60,7 @@ def enumerate_benchmark_replay(folder, runtime='python', time_kwargs=None,
         ".pkl") or _.endswith("_.pickle")]
     if len(files) == 0:
         raise FileNotFoundError(
-            "Unable to find any file in folder '{}'.".format(folder))
+            f"Unable to find any file in folder '{folder}'.")
 
     if time_kwargs in (None, ''):
         time_kwargs = default_time_kwargs()
@@ -81,10 +81,10 @@ def enumerate_benchmark_replay(folder, runtime='python', time_kwargs=None,
             # An error.
             if verbose >= 2 and fLOG is not None:  # pragma: no cover
                 fLOG(  # pragma: no cover
-                    "[enumerate_benchmark_replay] skip '{}'.".format(pkl))
+                    f"[enumerate_benchmark_replay] skip '{pkl}'.")
             continue  # pragma: no cover
         if verbose >= 2 and fLOG is not None:
-            fLOG("[enumerate_benchmark_replay] process '{}'.".format(pkl))
+            fLOG(f"[enumerate_benchmark_replay] process '{pkl}'.")
         row = {}
         with open(os.path.join(folder, pkl), 'rb') as f:
             obj = pickle.load(f)
@@ -126,7 +126,7 @@ def enumerate_benchmark_replay(folder, runtime='python', time_kwargs=None,
         for k, v in sorted(tkw.items()):
             if verbose >= 3 and fLOG is not None:
                 fLOG(  # pragma: no cover
-                    "[enumerate_benchmark_replay] process n_rows={} - {}".format(k, v))
+                    f"[enumerate_benchmark_replay] process n_rows={k} - {v}")
             xt = make_n_rows(X_test, k)
             number = v['number']
             repeat = v['repeat']
@@ -138,7 +138,7 @@ def enumerate_benchmark_replay(folder, runtime='python', time_kwargs=None,
                                    div_by_number=True)
             if verbose >= 4 and fLOG is not None:
                 fLOG(  # pragma: no cover
-                    "[enumerate_benchmark_replay] skl={}".format(skl))
+                    f"[enumerate_benchmark_replay] skl={skl}")
             row['%d-skl-details' % k] = skl
             row['%d-skl' % k] = skl['average']
 
@@ -157,7 +157,7 @@ def enumerate_benchmark_replay(folder, runtime='python', time_kwargs=None,
                                    div_by_number=True)
                 if verbose >= 4 and fLOG is not None:
                     fLOG(  # pragma: no cover
-                        "[enumerate_benchmark_replay] {}={}".format(rt, ort))
+                        f"[enumerate_benchmark_replay] {rt}={ort}")
                 row['%d-%s-detail' % (k, rt)] = ort
                 row['%d-%s' % (k, rt)] = ort['average']
         yield row

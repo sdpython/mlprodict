@@ -25,7 +25,7 @@ class TestOnnxShapeInference(ExtTestCase):
         inferred = onnx_shapes.graph.value_info  # pylint: disable=
         for data in inferred:
             if data.name not in out:
-                raise AssertionError("Name %r not found." % data.name)
+                raise AssertionError(f"Name {data.name!r} not found.")
             shape, dtype, sparse = OnnxShapeInference._get_shape(
                 data)  # pylint: disable=W0212
             for i in range(len(shape)):

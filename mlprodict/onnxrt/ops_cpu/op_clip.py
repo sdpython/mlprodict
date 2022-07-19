@@ -31,7 +31,7 @@ class Clip_6(OpRunUnaryNum):
 
     def to_python(self, inputs):
         return ("import numpy",
-                "return numpy.clip(%s, min_, max_)" % inputs[0])
+                f"return numpy.clip({inputs[0]}, min_, max_)")
 
 
 class Clip_11(OpRunUnaryNum):
@@ -80,7 +80,7 @@ class Clip_11(OpRunUnaryNum):
 
     def to_python(self, inputs):
         return ("import numpy",
-                "return numpy.clip(%s, min_, max_)" % inputs[0])
+                f"return numpy.clip({inputs[0]}, min_, max_)")
 
 
 if onnx_opset_version() >= 11:

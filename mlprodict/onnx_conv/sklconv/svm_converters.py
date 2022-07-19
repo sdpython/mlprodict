@@ -24,7 +24,7 @@ def _op_type_domain_regressor(dtype):
     if dtype == numpy.float64:
         return 'SVMRegressorDouble', 'mlprodict', 1
     raise RuntimeError(  # pragma: no cover
-        "Unsupported dtype {}.".format(dtype))
+        f"Unsupported dtype {dtype}.")
 
 
 def _op_type_domain_classifier(dtype):
@@ -36,7 +36,7 @@ def _op_type_domain_classifier(dtype):
     if dtype == numpy.float64:
         return 'SVMClassifierDouble', 'mlprodict', 1
     raise RuntimeError(  # pragma: no cover
-        "Unsupported dtype {}.".format(dtype))
+        f"Unsupported dtype {dtype}.")
 
 
 def new_convert_sklearn_svm_regressor(scope, operator, container):
@@ -170,7 +170,7 @@ def _convert_sklearn_svm_classifier(
             labels = [str(i) for i in op.classes_]
             svm_attrs['classlabels_strings'] = labels
         else:
-            raise RuntimeError("Invalid class label type '%s'." % op.classes_)
+            raise RuntimeError(f"Invalid class label type '{op.classes_}'.")
 
         svm_out = scope.get_unique_variable_name('SVM02')
         container.add_node(

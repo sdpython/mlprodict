@@ -383,8 +383,7 @@ class OnnxInference:
             if prop == 'shape':
                 return ('?', )
         raise NotImplementedError(  # pragma: no cover
-            "Unable to retrieve property %r from %r."
-            "" % (prop, info))
+            f"Unable to retrieve property {prop!r} from {info!r}.")
 
     @property
     def input_names_shapes_types(self):
@@ -400,10 +399,10 @@ class OnnxInference:
         names = set(self.input_names)
         if isinstance(self.obj, FunctionProto):
             return [(_.name, f(_var_as_dict(_)['type'], 'shape'),
-                     'tensor(%s)' % f(_var_as_dict(_)['type'], 'elem'))
+                     f"tensor({f(_var_as_dict(_)['type'], 'elem')})")
                     for _ in self.obj.input if _.name in names]
         return [(_.name, f(_var_as_dict(_)['type'], 'shape'),
-                 'tensor(%s)' % f(_var_as_dict(_)['type'], 'elem'))
+                 f"tensor({f(_var_as_dict(_)['type'], 'elem')})")
                 for _ in self.obj.graph.input if _.name in names]
 
     @property
@@ -441,7 +440,7 @@ class OnnxInference:
         if isinstance(self.obj, FunctionProto):
             return [(_, None) for _ in self.obj.graph.output if _ in names]
         return [(_.name, f(_var_as_dict(_)['type'], 'shape'),
-                 'tensor(%s)' % f(_var_as_dict(_)['type'], 'elem'))
+                 f"tensor({f(_var_as_dict(_)['type'], 'elem')})")
                 for _ in self.obj.graph.output if _.name in names]
 
     def global_index(self, name):
@@ -572,7 +571,7 @@ class OnnxInference:
                 init_obj = _var_as_dict(obj)
                 if init_obj is None:
                     raise RuntimeError(  # pragma: no cover
-                        "Unable to convert an initializer\n{}".format(obj))
+                        f"Unable to convert an initializer\n{obj}")
                 inits[obj.name] = init_obj
                 self.global_index(obj.name)
                 if 'value' not in inits[obj.name]:
@@ -585,7 +584,7 @@ class OnnxInference:
             dobj = _var_as_dict(node)
             if dobj is None:
                 raise RuntimeError(  # pragma: no cover
-                    "Unable to convert a node\n{}".format(node))
+                    f"Unable to convert a node\n{node}")
             if 'atts' in dobj:
                 atts = dobj['atts']
                 for k, v in atts.items():
@@ -611,14 +610,12 @@ class OnnxInference:
         for k, v in statics.items():
             if (k, 0) in names:
                 raise RuntimeError(  # pragma: no cover
-                    "Static variables '{}' already exists (tag='{}').".format(
-                        k, names[k, 0][0]))
+                    f"Static variables '{k}' already exists (tag='{names[k, 0][0]}').")
             names[k, 0] = ('S', v)
         for k, v in inits.items():
             if (k, 0) in names:
                 raise RuntimeError(  # pragma: no cover
-                    "Initializer '{}' already exists (tag='{}').".format(
-                        k, names[k, 0][0]))
+                    f"Initializer '{k}' already exists (tag='{names[k, 0][0]}').")
             names[k, 0] = ('C', v)
         for k, v in variables.items():
             if (k, 0) in names:
@@ -626,15 +623,13 @@ class OnnxInference:
                     # Kind of default value for an input
                     continue
                 raise RuntimeError(  # pragma: no cover
-                    "Variable '{}' already exists (tag='{}').".format(
-                        k, names[k, 0][0]))
+                    f"Variable '{k}' already exists (tag='{names[k, 0][0]}').")
             names[k, 0] = ('I', v)
         for k, v in outputs.items():
             if (k, 0) in names and (self.runtime != 'empty' and len(nodes) > 0):
                 if not self.inside_loop or names[k, 0][0] != 'I':
                     raise RuntimeError(  # pragma: no cover
-                        "Output '{}' already exists (tag='{}').".format(
-                            k, names[k, 0][0]))
+                        f"Output '{k}' already exists (tag='{names[k, 0][0]}').")
                 else:
                     # For input, output sharing the same name, we marked the name
                     # as an input.
@@ -901,10 +896,10 @@ class OnnxInference:
         Shows the sequence of nodes to run if ``runtime=='python'``.
         """
         rows = []
-        rows.append("#node: {}".format(len(self.sequence_)))
+        rows.append(f"#node: {len(self.sequence_)}")
         for i, node in enumerate(self.sequence_):
             if verbose >= 1:
-                rows.append("{}: {}".format(i, str(node)))
+                rows.append(f"{i}: {str(node)}")
         return "\n".join(rows)
 
     def _run_sequence_runtime(self, inputs, clean_right_away=False,
@@ -1030,12 +1025,11 @@ class OnnxInference:
                                 ' (sparse)' if isinstance(obj, coo_matrix) else ''))
                         elif (isinstance(obj, list) and len(obj) > 0 and
                                 not isinstance(obj[0], dict)):  # pragma: no cover
-                            fLOG("-kv='{}' list len={}".format(k, len(obj)))
+                            fLOG(f"-kv='{k}' list len={len(obj)}")
                             if verbose >= 3 and len(obj) > 0:
-                                fLOG("first={} last={}".format(
-                                    obj[0], obj[-1]))
+                                fLOG(f"first={obj[0]} last={obj[-1]}")
                         else:  # pragma: no cover
-                            fLOG("-kv='{}' type={}".format(k, type(obj)))
+                            fLOG(f"-kv='{k}' type={type(obj)}")
 
             keys = set(k for k in range(len(values)) if values[k] is not None)
             if verbose >= 1:
@@ -1047,7 +1041,7 @@ class OnnxInference:
                 if yield_ops is not None and node.onnx_node.op_type == 'YieldOp':
                     out = node.onnx_node.output[0]
                     if out in yield_ops:
-                        fLOG("+yo=%r" % out)
+                        fLOG(f"+yo={out!r}")
                         values[node.outputs_indices[0]] = yield_ops[out]
                     else:
                         raise RuntimeError(  # pragma: no cover
@@ -1088,8 +1082,7 @@ class OnnxInference:
                                 if verbose >= 3:
                                     dispsimple(values[k])
                             else:
-                                fLOG("+kr='{}': {}".format(
-                                    name, type(values[k])))
+                                fLOG(f"+kr='{name}': {type(values[k])}")
                                 if verbose >= 3:  # pragma: no cover
                                     dispsimple(values[k])
                 if added == 0 and verbose >= 1:
@@ -1123,7 +1116,7 @@ class OnnxInference:
         :return: dictionary
         """
         if verbose >= 2:
-            fLOG('[VALIDATE] type %r' % type(self.obj))
+            fLOG(f'[VALIDATE] type {type(self.obj)!r}')
         if isinstance(self.obj, ModelProto):
             from mlprodict.onnx_tools.onnx2py_helper import (
                 guess_proto_dtype, get_tensor_elem_type, get_tensor_shape)
@@ -1132,8 +1125,8 @@ class OnnxInference:
             mis = {}
             for k, v in res.items():
                 if k not in outputs:
-                    rows.append("Result %r cannot be found in %r." % (
-                        k, set(outputs)))
+                    rows.append(
+                        f"Result {k!r} cannot be found in {set(outputs)!r}.")
                     continue
                 try:
                     expected = get_tensor_elem_type(outputs[k])
@@ -1142,12 +1135,11 @@ class OnnxInference:
                 shape = get_tensor_shape(outputs[k])
                 if v is None:
                     rows.append(
-                        "Result %r is None instead of %r." % (
-                            k, expected))
+                        f"Result {k!r} is None instead of {expected!r}.")
                     continue
                 dtype = guess_proto_dtype(v.dtype)
                 if expected != dtype:
-                    mis[k] = "dtype %r != %r" % (dtype, expected)
+                    mis[k] = f"dtype {dtype!r} != {expected!r}"
                     rows.append(
                         "Result %r have unexpected element type %r "
                         "instead of %r." % (
@@ -1155,7 +1147,7 @@ class OnnxInference:
                 if shape is None or len(shape) == 0:
                     continue
                 if len(shape) != len(v.shape):
-                    mis[k] = "shape %r != %r" % (v.shape, shape)
+                    mis[k] = f"shape {v.shape!r} != {shape!r}"
                     rows.append(
                         "Result %r have unexpected shape length %r "
                         "instead of %r." % (
@@ -1165,7 +1157,7 @@ class OnnxInference:
                     if b is None or isinstance(b, str):
                         continue
                     if a != b:
-                        mis[k] = "shape %r != %r" % (v.shape, shape)
+                        mis[k] = f"shape {v.shape!r} != {shape!r}"
                         rows.append(
                             "Result %r have unexpected shape %r "
                             "instead of %r." % (
@@ -1179,7 +1171,7 @@ class OnnxInference:
                     fLOG("[VALIDATE] validation failed.\n- %s" %
                          "\n- ".join(rows))
             if verbose >= 2:  # pragma: no cover
-                fLOG('[VALIDATE] mis=%r' % mis)
+                fLOG(f'[VALIDATE] mis={mis!r}')
             return mis
 
         if isinstance(self.obj, FunctionProto):
@@ -1191,18 +1183,18 @@ class OnnxInference:
                         "Unexpected mismatch between outputs %r and "
                         "expected outputs %r." % (got, outputs))
                 else:  # pragma: no cover
-                    fLOG("CHECK: expected outputs %r != outputs %r" % (
-                        outputs, got))
+                    fLOG(
+                        f"CHECK: expected outputs {outputs!r} != outputs {got!r}")
                 mis = {k: None for k in set(got) - got & outputs}
                 if verbose >= 2:
-                    fLOG('[VALIDATE] mis=%r' % mis)
+                    fLOG(f'[VALIDATE] mis={mis!r}')
                 return mis
             if verbose >= 2:
                 fLOG('[VALIDATE] mis={}')
             return {}
 
         raise TypeError(  # pragma: no cover
-            "Unexpected type %r for self.obj." % type(self.obj))
+            f"Unexpected type {type(self.obj)!r} for self.obj.")
 
     def build_intermediate(self, outputs=None, verbose=0, overwrite_types=None,
                            fLOG=None):
@@ -1239,7 +1231,7 @@ class OnnxInference:
             subonx = onnx_remove_node_unused(subonx)
             if verbose > 0:
                 fLOG(  # pragma: no cover
-                    '[build_intermediate] + {}'.format(output))
+                    f'[build_intermediate] + {output}')
             ord[output] = OnnxInference(subonx, runtime=self.runtime,
                                         skip_run=self.skip_run,
                                         runtime_options=self.runtime_options,
@@ -1280,11 +1272,11 @@ class OnnxInference:
                 values[k] = v['value']
             if verbose >= 2:  # pragma: no cover
                 for k in sorted(values):
-                    fLOG("-k='{}' shape={} dtype={}".format(
-                        k, values[k].shape, values[k].dtype))
+                    fLOG(
+                        f"-k='{k}' shape={values[k].shape} dtype={values[k].dtype}")
             for node, oinf in self.intermediate_onnx_inference_.items():
                 if verbose >= 4:  # pragma: no cover
-                    fLOG('[intermediate] %r' % node)
+                    fLOG(f'[intermediate] {node!r}')
                     if verbose >= 5:  # pragma: no cover
                         fLOG(oinf.obj)
                 if yield_ops is not None and node.onnx_node.op_type == 'YieldOp':
@@ -1305,8 +1297,8 @@ class OnnxInference:
                                 fLOG("-i='{}': {} (dtype={}) {}".format(
                                      k, v.shape, v.dtype, v.ravel().tolist()))
                             else:
-                                fLOG("-i='{}': {} (dtype={}) - ?".format(
-                                     k, v.shape, v.dtype))
+                                fLOG(
+                                    f"-i='{k}': {v.shape} (dtype={v.dtype}) - ?")
                     if isinstance(output, numpy.ndarray):
                         fLOG("+k='{}': {} (dtype={})".format(  # pragma: no cover
                             node, output.shape, output.dtype))
@@ -1354,8 +1346,7 @@ class OnnxInference:
                 return att
 
         raise IndexError(  # pragma: no cover
-            "Unable to find attribute '{}' from node "
-            "'{}'.".format(att_name, node_name))
+            f"Unable to find attribute '{att_name}' from node '{node_name}'.")
 
     def switch_initializers_dtype(self, model=None,
                                   dtype_in=numpy.float32,
@@ -1450,7 +1441,7 @@ class OnnxInference:
             return {name: None for name in self.output_names}
         except (ShapeInferenceException, RuntimeError, IndexError) as e:
             raise ShapeInferenceException(  # pragma: no cover
-                "Unable to run ShapeInference for\n%s" % str(self.obj)) from e
+                f"Unable to run ShapeInference for\n{str(self.obj)}") from e
         out = rt.run()
         values = out.get()
         return values
@@ -1608,13 +1599,11 @@ class OnnxInference:
 
         # static variables
         for k in sorted(self.statics_):
-            code.append("    # static: {0}".format(k))
-            code.append("    {0} = dict_inputs['{1}']".format(
-                clean_name(k), k))
+            code.append(f"    # static: {k}")
+            code.append(f"    {clean_name(k)} = dict_inputs['{k}']")
             if debug:  # pragma: no cover
                 code.append(
-                    "    debug_print('i.{0}', {1}, printed)".format(
-                        clean_name(k), k))
+                    f"    debug_print('i.{clean_name(k)}', {k}, printed)")
 
         # initializers
         for k, v in sorted(self.inits_.items()):
@@ -1624,20 +1613,17 @@ class OnnxInference:
                     "starting with '_OPT_': '{}'.".format(k))
             if k in inputs:
                 context["_OPT_" + clean_name(k)] = v['value']
-                code.append("    # init: _OPT_{0} ({1})".format(
-                    clean_name(k), k))
+                code.append(f"    # init: _OPT_{clean_name(k)} ({k})")
                 if debug:  # pragma: no cover
                     code.append(
                         "    debug_print('c.[_OPT_{0}]', _OPT_{1}, printed)".format(
                             clean_name(k), k))
             else:
                 context[clean_name(k)] = v['value']
-                code.append("    # init: {0} ({1})".format(
-                    clean_name(k), k))
+                code.append(f"    # init: {clean_name(k)} ({k})")
                 if debug:
                     code.append(
-                        "    debug_print('c.[{0}]', {1}, printed)".format(
-                            clean_name(k), k))
+                        f"    debug_print('c.[{clean_name(k)}]', {k}, printed)")
 
         # method signature
         code.append("    # inputs")
@@ -1648,16 +1634,14 @@ class OnnxInference:
                     "    {0} = dict_inputs.get('{1}', _OPT_{0})".format(
                         clean_name(inp), inp))
             else:
-                code.append("    {0} = dict_inputs['{1}']".format(
-                    clean_name(inp), inp))
+                code.append(f"    {clean_name(inp)} = dict_inputs['{inp}']")
             if debug:
                 code.append(
-                    "    debug_print('i.{0}', {1}, printed)".format(
-                        clean_name(inp), inp))
+                    f"    debug_print('i.{clean_name(inp)}', {inp}, printed)")
 
         # code
         for i, node in enumerate(self.sequence_):
-            name = "n{}_{}".format(i, node.ops_.__class__.__name__.lower())
+            name = f"n{i}_{node.ops_.__class__.__name__.lower()}"
             if node.ops_ is None:
                 context[name] = node.function_
                 # The code of the function should be added but only once.
@@ -1680,17 +1664,15 @@ class OnnxInference:
                         ', '.join(map(clean_name, node.outputs)),
                         name))
                 if debug:
-                    code.append("    print('''# {}''')".format(code[-1][4:]))
+                    code.append(f"    print('''# {code[-1][4:]}''')")
                     for o in node.outputs:
                         code.append(
-                            "    debug_print('o.{0}', {1}, printed)".format(
-                                clean_name(o), o))
+                            f"    debug_print('o.{clean_name(o)}', {o}, printed)")
 
         # return
         code.append('    return {')
         for out in self.output_names:
-            code.append("        '{1}': {0},".format(
-                clean_name(out), out))
+            code.append(f"        '{out}': {clean_name(out)},")
         code.append('    }')
         final_code = '\n'.join(code)
 
@@ -1700,7 +1682,7 @@ class OnnxInference:
             obj = compile(final_code, "<string>", 'exec')
         except SyntaxError as e:  # pragma: no cover
             raise SyntaxError(
-                "Unable to compile\n#####\n{}".format(final_code)) from e
+                f"Unable to compile\n#####\n{final_code}") from e
         fcts_obj = [_ for _ in obj.co_consts
                     if _ is not None and not isinstance(_, (bool, str, int))]
         fct = make_callable(

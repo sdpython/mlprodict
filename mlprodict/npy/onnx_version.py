@@ -28,10 +28,9 @@ class FctVersion(namedtuple("_version_", ['args', 'kwargs'])):
             sa = "None"
         else:
             sa = ",".join(map(cl, self.args))
-            sa = ("(%s)" % sa) if len(self.args) > 1 else ("(%s,)" % sa)
+            sa = f"({sa})" if len(self.args) > 1 else (f"({sa},)")
 
-        return "%s(%s, %s)" % (
-            self.__class__.__name__, sa, self.kwargs)
+        return f"{self.__class__.__name__}({sa}, {self.kwargs})"
 
     def __len__(self):
         "Returns the sum of lengths."

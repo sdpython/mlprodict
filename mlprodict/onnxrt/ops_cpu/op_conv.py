@@ -41,16 +41,13 @@ class Conv(OpRun):
                     type(self), self.onnx_node))
         if min(X.shape) == 0:
             raise RuntimeError(  # pragma: no cover
-                "Unable to run operator Conv on an empty matrix. "
-                "X.shape=%r." % (X.shape, ))
+                f"Unable to run operator Conv on an empty matrix. X.shape={X.shape!r}.")
         if min(W.shape) == 0:
             raise RuntimeError(  # pragma: no cover
-                "Unable to run operator Conv on an empty matrix. "
-                "W.shape=%r." % (W.shape, ))
+                f"Unable to run operator Conv on an empty matrix. W.shape={W.shape!r}.")
         if B is not None and min(B.shape) == 0:
             raise RuntimeError(  # pragma: no cover
-                "Unable to run operator Conv on an empty matrix. "
-                "B.shape=%r." % (B.shape, ))
+                f"Unable to run operator Conv on an empty matrix. B.shape={B.shape!r}.")
         if X.dtype == numpy.float32:
             return (self.rt32_.compute(X, W, B), )
         return (self.rt64_.compute(X, W, B), )

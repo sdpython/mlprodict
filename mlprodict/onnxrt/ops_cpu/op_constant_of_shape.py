@@ -27,7 +27,7 @@ class ConstantOfShape(OpRun):
                                      numpy.int64, numpy.int32, numpy.bool_,
                                      numpy.float16)):
             raise TypeError(  # pragma: no cover
-                "cst must be a real not {}".format(type(self.cst)))
+                f"cst must be a real not {type(self.cst)}")
 
     def _run(self, data, attributes=None, verbose=0, fLOG=None):  # pylint: disable=W0221
         try:
@@ -40,5 +40,5 @@ class ConstantOfShape(OpRun):
 
     def to_python(self, inputs):
         lines = ['cst = value[0] if isinstance(value, numpy.ndarray) else value',
-                 'return numpy.full(tuple(%s), cst)' % inputs[0]]
+                 f'return numpy.full(tuple({inputs[0]}), cst)']
         return ("import numpy", "\n".join(lines))

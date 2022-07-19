@@ -24,7 +24,7 @@ class OnnxWholeSession:
     def __init__(self, onnx_data, runtime, runtime_options=None, device=None):
         if runtime not in ('onnxruntime1', 'onnxruntime1-cuda'):
             raise NotImplementedError(  # pragma: no cover
-                "runtime '{}' is not implemented.".format(runtime))
+                f"runtime '{runtime}' is not implemented.")
 
         from onnxruntime import (  # delayed
             InferenceSession, SessionOptions, RunOptions,
@@ -127,7 +127,7 @@ class OnnxWholeSession:
         for row in js:
             if 'args' in row and isinstance(row['args'], dict):
                 for k, v in row['args'].items():
-                    row['args_%s' % k] = v
+                    row[f'args_{k}'] = v
                 del row['args']
             rows.append(row)
         return rows

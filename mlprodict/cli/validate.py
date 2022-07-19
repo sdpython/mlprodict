@@ -41,10 +41,10 @@ def benchmark_doc(runtime, black_list=None, white_list=None,
             df.to_csv(name, index=False)
         else:
             raise ValueError(  # pragma: no cover
-                "Unexpected extension in %r." % name)
+                f"Unexpected extension in {name!r}.")
         if verbose > 1:
             fLOG(  # pragma: no cover
-                "[mlprodict] wrote '{}'".format(name))
+                f"[mlprodict] wrote '{name}'")
 
     from pyquickhelper.loghelper import run_cmd
     from pyquickhelper.loghelper.run_cmd import get_interpreter_path
@@ -82,24 +82,24 @@ def benchmark_doc(runtime, black_list=None, white_list=None,
             continue
         if verbose > 0:
             pbar.set_description(  # pragma: no cover
-                "[%s]" % (op + " " * (25 - len(op))))
+                f"[{op + ' ' * (25 - len(op))}]")
 
         loop_out_raw = os.path.join(
-            dump_dir, "bench_raw_%s_%s.csv" % (runtime, op))
+            dump_dir, f"bench_raw_{runtime}_{op}.csv")
         loop_out_sum = os.path.join(
-            dump_dir, "bench_sum_%s_%s.csv" % (runtime, op))
+            dump_dir, f"bench_sum_{runtime}_{op}.csv")
         cmd = ('{0} -m mlprodict validate_runtime --verbose=0 --out_raw={1} --out_summary={2} '
                '--benchmark=1 --dump_folder={3} --runtime={4} --models={5}'.format(
                    get_interpreter_path(), loop_out_raw, loop_out_sum, dump_dir, runtime, op))
         if verbose > 1:
-            fLOG("[mlprodict] cmd '{}'.".format(cmd))  # pragma: no cover
+            fLOG(f"[mlprodict] cmd '{cmd}'.")  # pragma: no cover
         out, err = run_cmd(cmd, wait=True, fLOG=None)
         if not os.path.exists(loop_out_sum):  # pragma: no cover
             if verbose > 2:
-                fLOG("[mlprodict] unable to find '{}'.".format(loop_out_sum))
+                fLOG(f"[mlprodict] unable to find '{loop_out_sum}'.")
             if verbose > 1:
-                fLOG("[mlprodict] cmd '{}'".format(cmd))
-                fLOG("[mlprodict] unable to find '{}'".format(loop_out_sum))
+                fLOG(f"[mlprodict] cmd '{cmd}'")
+                fLOG(f"[mlprodict] unable to find '{loop_out_sum}'")
             msg = "Unable to find '{}'\n--CMD--\n{}\n--OUT--\n{}\n--ERR--\n{}".format(
                 loop_out_sum, cmd, out, err)
             if verbose > 1:
@@ -302,8 +302,7 @@ def validate_runtime(verbose=1, opset_min=-1, opset_max="",
         os.mkdir(dump_folder)  # pragma: no cover
     if dump_folder and not os.path.exists(dump_folder):
         raise FileNotFoundError(  # pragma: no cover
-            "Cannot find dump_folder '{0}'.".format(
-                dump_folder))
+            f"Cannot find dump_folder '{dump_folder}'.")
 
     # handling parameters
     if opset_max == "":
@@ -329,8 +328,7 @@ def validate_runtime(verbose=1, opset_min=-1, opset_max="",
             n_jobs = None
     if time_kwargs is not None and not isinstance(time_kwargs, dict):
         raise ValueError(  # pragma: no cover
-            "time_kwargs must be a dictionary not {}\n{}".format(
-                type(time_kwargs), time_kwargs))
+            f"time_kwargs must be a dictionary not {type(time_kwargs)}\n{time_kwargs}")
     if not isinstance(n_features, list):
         if n_features in (None, ""):
             n_features = None
@@ -345,7 +343,7 @@ def validate_runtime(verbose=1, opset_min=-1, opset_max="",
         cl = m.__name__
         if cl in skip_models:
             return False
-        pair = "%s[%s]" % (cl, s)
+        pair = f"{cl}[{s}]"
         if pair in skip_models:
             return False
         return True
@@ -362,7 +360,7 @@ def validate_runtime(verbose=1, opset_min=-1, opset_max="",
         fct_filter = fct_filter_exp3
     else:
         raise ValueError(  # pragma: no cover
-            "dtype must be empty, 32, 64 not '{}'.".format(dtype))
+            f"dtype must be empty, 32, 64 not '{dtype}'.")
 
     # time_kwargs
 
@@ -374,7 +372,7 @@ def validate_runtime(verbose=1, opset_min=-1, opset_max="",
             v['number'] *= number
             v['repeat'] *= repeat
         if verbose > 0:
-            fLOG("time_kwargs=%r" % time_kwargs)
+            fLOG(f"time_kwargs={time_kwargs!r}")
 
     # body
 
@@ -423,7 +421,7 @@ def _finalize(rows, out_raw, out_summary, verbose, models, out_graph, fLOG):
 
     if out_raw:
         if verbose > 0:
-            fLOG("Saving raw_data into '{}'.".format(out_raw))
+            fLOG(f"Saving raw_data into '{out_raw}'.")
         if os.path.splitext(out_raw)[-1] == ".xlsx":
             df.to_excel(out_raw, index=False)
         else:
@@ -434,12 +432,11 @@ def _finalize(rows, out_raw, out_summary, verbose, models, out_graph, fLOG):
     piv = summary_report(df)
     if 'optim' not in piv:
         raise RuntimeError(  # pragma: no cover
-            "Unable to produce a summary. Missing column in \n{}".format(
-                piv.columns))
+            f"Unable to produce a summary. Missing column in \n{piv.columns}")
 
     if out_summary:
         if verbose > 0:
-            fLOG("Saving summary into '{}'.".format(out_summary))
+            fLOG(f"Saving summary into '{out_summary}'.")
         if os.path.splitext(out_summary)[-1] == ".xlsx":
             piv.to_excel(out_summary, index=False)
         else:
@@ -449,7 +446,7 @@ def _finalize(rows, out_raw, out_summary, verbose, models, out_graph, fLOG):
         fLOG(piv.T)
     if out_graph is not None:
         if verbose > 0:
-            fLOG("Saving graph into '{}'.".format(out_graph))
+            fLOG(f"Saving graph into '{out_graph}'.")
         from ..plotting.plotting import plot_validate_benchmark
         fig = plot_validate_benchmark(piv)[0]
         fig.savefig(out_graph)
@@ -488,7 +485,7 @@ def _validate_runtime_separate_process(**kwargs):
 
     for op in pbar:
         if not isinstance(pbar, list):
-            pbar.set_description("[%s]" % (op + " " * (25 - len(op))))
+            pbar.set_description(f"[{op + ' ' * (25 - len(op))}]")
 
         if kwargs['out_raw']:
             out_raw = os.path.splitext(kwargs['out_raw'])
@@ -568,10 +565,10 @@ def latency(model, law='normal', size=1, number=10, repeat=10, max_time=0,
 
     if not os.path.exists(model):
         raise FileNotFoundError(  # pragma: no cover
-            "Unable to find model %r." % model)
+            f"Unable to find model {model!r}.")
     if profiling not in (None, '', 'name', 'type'):
         raise ValueError(  # pragma: no cover
-            "Unexpected value for profiling: %r." % profiling)
+            f"Unexpected value for profiling: {profiling!r}.")
     size = int(size)
     number = int(number)
     repeat = int(repeat)
@@ -584,12 +581,11 @@ def latency(model, law='normal', size=1, number=10, repeat=10, max_time=0,
 
     if law != "normal":
         raise ValueError(  # pragma: no cover
-            "Only law='normal' is supported, not %r." % law)
+            f"Only law='normal' is supported, not {law!r}.")
 
     if profiling in ('name', 'type') and profile_output in (None, ''):
         raise ValueError(  # pragma: no cover
-            'profiling is enabled but profile_output is wrong (%r).'
-            '' % profile_output)
+            f'profiling is enabled but profile_output is wrong ({profile_output!r}).')
 
     res = _latency(
         model, law=law, size=size, number=number, repeat=repeat,
@@ -606,8 +602,7 @@ def latency(model, law='normal', size=1, number=10, repeat=10, max_time=0,
             gr.to_excel(profile_output, index=False)
         else:
             raise ValueError(  # pragma: no cover
-                "Unexpected extension for profile_output=%r."
-                "" % profile_output)
+                f"Unexpected extension for profile_output={profile_output!r}.")
 
     if fmt == 'csv':
         st = StringIO()
@@ -617,4 +612,4 @@ def latency(model, law='normal', size=1, number=10, repeat=10, max_time=0,
     if fmt in (None, ''):
         return res
     raise ValueError(  # pragma: no cover
-        "Unexpected value for fmt: %r." % fmt)
+        f"Unexpected value for fmt: {fmt!r}.")

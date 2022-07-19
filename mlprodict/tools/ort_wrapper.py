@@ -39,7 +39,7 @@ class InferenceSession:  # pylint: disable=E0102
             providers = ['CUDAExecutionProvider', 'CPUExecutionProvider']
         else:
             raise ValueError(
-                "Unexpected value %r for onnxruntime." % (runtime, ))
+                f"Unexpected value {runtime!r} for onnxruntime.")
         self.providers = providers
         set_default_logger_severity(3)
         if sess_options is None:
@@ -132,5 +132,5 @@ def prepare_c_profiling(model_onnx, inputs, dest=None):
         with open(n, "wb") as f:
             f.write(pr.SerializeToString())
 
-    cmd = 'onnx_test_runner -e cpu -r 100 -c 1 "%s"' % dest
+    cmd = f'onnx_test_runner -e cpu -r 100 -c 1 "{dest}"'
     return cmd

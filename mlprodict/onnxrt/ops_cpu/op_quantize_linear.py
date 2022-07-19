@@ -41,7 +41,7 @@ class _CommonQuantizeLinear(OpRun):
                 numpy.clip(x, -128, 127, out=x)
             else:
                 raise RuntimeError(  # pragma no cover
-                    "Unexpected dtype for input 2 {}.".format(dtype))
+                    f"Unexpected dtype for input 2 {dtype}.")
             return (x.astype(dtype), )
 
         dtype = numpy.uint8

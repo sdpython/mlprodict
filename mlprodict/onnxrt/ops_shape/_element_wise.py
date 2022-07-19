@@ -26,16 +26,15 @@ def _element_wise(known_shapes, node, return_bool=False, same_type=True,
             return known_shapes.update(node.output[0], x.copy())
     elif len(node.input) != 2:
         raise ShapeInferenceException(  # pragma: no cover
-            "Node %r must have two inputs not %d." % (
-                node.name, len(node.input)))
+            f"Node {node.name!r} must have two inputs not {len(node.input)}.")
     x = known_shapes[node.input[0]]
     y = known_shapes[node.input[1]]
     if x.mtype != OnnxKind.Tensor:
         raise ShapeInferenceException(  # pragma: no cover
-            "Result %r must be a tensor." % x)
+            f"Result {x!r} must be a tensor.")
     if y.mtype != OnnxKind.Tensor:
         raise ShapeInferenceException(  # pragma: no cover
-            "Result %r must be a tensor." % y)
+            f"Result {y!r} must be a tensor.")
     if return_bool:
         return known_shapes.update(
             node.output[0],

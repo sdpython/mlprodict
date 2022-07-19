@@ -50,8 +50,7 @@ def verify_code(source, exc=True):
             issues.add(name[0])
     if exc and len(issues) > 0:
         raise ImperfectPythonCode(
-            "Unknown identifiers: '{}' in source\n{}".format(
-                issues, source))
+            f"Unknown identifiers: '{issues}' in source\n{source}")
     return issues, v
 
 
@@ -135,7 +134,7 @@ class CodeNodeVisitor(ast.NodeVisitor):
         for att in ["s", "name", "str", "id", "body", "n",
                     "arg", "targets", "attr", "returns", "ctx"]:
             if att in node.__dict__:
-                r.append("{0}={1}".format(att, str(node.__dict__[att])))
+                r.append(f"{att}={str(node.__dict__[att])}")
         return " ".join(r)
 
     def print_tree(self):  # pylint: disable=C0116
@@ -147,11 +146,7 @@ class CodeNodeVisitor(ast.NodeVisitor):
         rows = []
         for r in self.Rows:
             rows.append(
-                ("{0}{1}: {2}".format(
-                    "    " *
-                    r["indent"],
-                    r.get("type", ''),
-                    r.get("str", ''))))
+                f"{'    ' * r['indent']}{r.get('type', '')}: {r.get('str', '')}")
         return "\n".join(rows)
 
     @property
@@ -324,7 +319,7 @@ class CodeNodeVisitor(ast.NodeVisitor):
             fir = cont["children"][0]
             if 'type' in fir and fir["type"] == "Name":
                 parent = fir["node"].id
-                cont["str"] = "{0}.{1}".format(parent, cont["str"])
+                cont["str"] = f"{parent}.{cont['str']}"
                 cont["children"][0]["remove"] = True
         return res
 
@@ -333,7 +328,7 @@ class CodeNodeVisitor(ast.NodeVisitor):
         return self.generic_visit_args(node, cont)
 
     def visit_keyword(self, node):  # pylint: disable=C0116
-        cont = {"indent": self._indent, "type": "keyword", "str": "{0}".format(node.arg),
+        cont = {"indent": self._indent, "type": "keyword", "str": f"{node.arg}",
                 "node": node, "arg": node.arg, "value": node.value}
         self.push(cont)
         return self.generic_visit_args(node, cont)
@@ -565,8 +560,7 @@ class CodeNodeVisitor(ast.NodeVisitor):
             "indent": self._indent,
             "type": "Num",
             "node": node,
-            "str": "{0}".format(
-                node.n),
+            "str": f"{node.n}",
             'n': node.n}
         self.push(cont)
         return self.generic_visit_args(node, cont)
@@ -627,7 +621,7 @@ class CodeNodeVisitor(ast.NodeVisitor):
 
     def visit_(self, node):  # pylint: disable=C0116
         raise RuntimeError(  # pragma: no cover
-            "This node is not handled: {}".format(node))
+            f"This node is not handled: {node}")
 
     def visit_Subscript(self, node):  # pylint: disable=C0116
         cont = {

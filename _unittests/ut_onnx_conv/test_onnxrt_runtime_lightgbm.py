@@ -406,8 +406,7 @@ class TestOnnxrtRuntimeLightGbm(ExtTestCase):
         input_names = [s_input.name for s_input in session.get_inputs()]
         if len(input_names) > 1:
             raise RuntimeError(
-                "Test expects one input. Found multiple inputs: %r."
-                "" % input_names)
+                f"Test expects one input. Found multiple inputs: {input_names!r}.")
         input_name = input_names[0]
         return session.run(output_names, {input_name: X})[0][:, 0]
 
@@ -494,7 +493,7 @@ class TestOnnxrtRuntimeLightGbm(ExtTestCase):
         dtypes = set(str(dtype) for dtype in X.dtypes)
         if len(dtypes) > 1:
             raise RuntimeError(
-                "Test expects homogenous input matrix. Found multiple dtypes: %r." % dtypes)
+                f"Test expects homogenous input matrix. Found multiple dtypes: {dtypes!r}.")
         dtype = dtypes.pop()
         tensor_type = _DTYPE_MAP[dtype]
         return [("input", tensor_type(X.shape))]
@@ -506,7 +505,7 @@ class TestOnnxrtRuntimeLightGbm(ExtTestCase):
         input_names = [s_input.name for s_input in session.get_inputs()]
         if len(input_names) > 1:
             raise RuntimeError(
-                "Test expects one input. Found multiple inputs: %r." % input_names)
+                f"Test expects one input. Found multiple inputs: {input_names!r}.")
         input_name = input_names[0]
         if hasattr(X, "values"):
             return session.run(output_names, {input_name: X.values})[0][:, 0]
@@ -541,7 +540,7 @@ class TestOnnxrtRuntimeLightGbm(ExtTestCase):
                 y_pred_onnx = self._predict_with_onnx(regressor_onnx, _X)
                 self._assert_almost_equal(
                     y_pred, y_pred_onnx, decimal=_N_DECIMALS, frac=_FRAC,
-                    msg="Objective=%r" % objective)
+                    msg=f"Objective={objective!r}")
 
     @skipif_circleci('stuck')
     @unittest.skipIf(sys.platform == 'darwin', 'stuck')
@@ -575,7 +574,7 @@ class TestOnnxrtRuntimeLightGbm(ExtTestCase):
                 y_pred_onnx = self._predict_with_onnx(regressor_onnx, _X) / 10
                 self._assert_almost_equal(
                     y_pred, y_pred_onnx, decimal=_N_DECIMALS, frac=_FRAC,
-                    msg="Objective=%r" % objective)
+                    msg=f"Objective={objective!r}")
 
     @ignore_warnings((RuntimeWarning, UserWarning))
     def test_lgbm_regressor10(self):

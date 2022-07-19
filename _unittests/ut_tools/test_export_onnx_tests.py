@@ -58,8 +58,7 @@ class TestExportOnnx(ExtTestCase):
         out, err = StringIO(), StringIO()
         if limit_left is not None and len(left) >= limit_left:
             raise AssertionError(
-                "Too many unknown symbols (%d): %r in\n%s" % (
-                    len(left), left, content))
+                f"Too many unknown symbols ({len(left)}): {left!r} in\n{content}")
 
         with redirect_stdout(out):
             with redirect_stderr(err):

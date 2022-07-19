@@ -23,7 +23,7 @@ class CommonRNN(OpRun):
             self.num_directions = 2
         else:
             raise RuntimeError(  # pragma: no cover
-                "Unknown direction '{}'.".format(self.direction))
+                f"Unknown direction '{self.direction}'.")
 
         if len(self.activation_alpha) != self.num_directions:
             raise RuntimeError(  # pragma: no cover
@@ -53,7 +53,7 @@ class CommonRNN(OpRun):
         if name in (b"Affine", b"affine", 'Affine', 'affine'):
             return lambda x: x * alpha + beta
         raise RuntimeError(  # pragma: no cover
-            "Unknown activation function '{}'.".format(name))
+            f"Unknown activation function '{name}'.")
 
     def _f_tanh(self, x):
         return numpy.tanh(x)

@@ -23,7 +23,7 @@ class Det(OpRun):
     def to_python(self, inputs):
         return ('from numpy.linalg import det as npy_det',
                 "\n".join([
-                    "res = npy_det({})".format(inputs[0]),
+                    f"res = npy_det({inputs[0]})",
                     "if not isinstance(res, ndarray):",
                     "    res = numpy.array([res])",
                     "return res"]))

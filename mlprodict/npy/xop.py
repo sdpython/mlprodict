@@ -118,7 +118,7 @@ class _CustomSchema:
             "Creates an instance of `_CustomSchema._attribute`."
             if not isinstance(data, dict):
                 raise TypeError(  # pragma: no cover
-                    "Unexpected type %r." % type(data))
+                    f"Unexpected type {type(data)!r}.")
             self = _CustomSchema._empty()
             setattr(self, 'name', data['name'])
             setattr(self, 'description', data['description'])
@@ -133,7 +133,7 @@ class _CustomSchema:
             "Creates an instance of `_CustomSchema._io`."
             if not isinstance(data, dict):
                 raise TypeError(  # pragma: no cover
-                    "Unexpected type %r." % type(data))
+                    f"Unexpected type {type(data)!r}.")
             self = _CustomSchema._empty()
             setattr(self, 'name', data['name'])
             setattr(self, 'typeStr', data['typeStr'])
@@ -242,7 +242,7 @@ class _CustomSchema:
             if hasattr(x, 'data'):
                 return x.data()
             raise TypeError(  # pragma: no cover
-                "Unable to handle type %r - %r." % (type(x), x))
+                f"Unable to handle type {type(x)!r} - {x!r}.")
 
         return {k: _(getattr(self, k)) for k in _CustomSchema._atts}
 
@@ -267,7 +267,7 @@ class _CustomSchema:
         return _CustomSchema(e)
 
     def __repr__(self):
-        return "_CustomSchema(**%s)" % pprint.pformat(self.data())
+        return f"_CustomSchema(**{pprint.pformat(self.data())})"
 
 
 def _get_all_operator_schema():
@@ -348,8 +348,7 @@ def _find_operator_domain(name):
     if len(domains) == 1:
         return list(domains)[0]
     raise ValueError(  # pragma: no cover
-        "Unable to guess domain of operator %r, found domains %r." % (
-            name, domains))
+        f"Unable to guess domain of operator {name!r}, found domains {domains!r}.")
 
 
 def _split_op_name(name):
@@ -425,7 +424,7 @@ def ClassFactory(class_name, op_name, inputs, outputs,
             # attr_names refers to the most recent version of
             # this operator. We may need an older one.
             for op in range(op_version, 0, -1):
-                name = '{}_{}'.format(self.__class__.__name__, op)
+                name = f'{self.__class__.__name__}_{op}'
                 if name in self.past_version:
                     found = (name, op)
                     attr_names = self.past_version[name].attr_names
@@ -538,14 +537,14 @@ def _dynamic_class_creation(operator_names=None, cache=False, include_past=False
         if isinstance(name, str):
             if name.startswith('Onnx'):
                 raise ValueError(
-                    "Operator name cannot start with Onnx: %r." % name)
+                    f"Operator name cannot start with Onnx: {name!r}.")
             n_name, _ = _split_op_name(name)
             domain = _find_operator_domain(n_name)
             ops.append((domain, name))
         elif isinstance(name, tuple) and len(name) == 2:
             if name[1].startswith('Onnx'):
                 raise ValueError(  # pragma: no cover
-                    "Operator name cannot starts with Onnx: %r." % name)
+                    f"Operator name cannot starts with Onnx: {name!r}.")
             ops.append(name)
         else:
             raise ValueError(  # pragma: no cover
@@ -569,8 +568,8 @@ def _dynamic_class_creation(operator_names=None, cache=False, include_past=False
                 set_names[op_domain, n] = -1
 
     if verbose > 1 and fLOG is not None:  # pragma: no cover
-        fLOG("[_dynamic_class_creation] set_names=%r" % set_names)
-        fLOG("[_dynamic_class_creation] set_skip=%r" % set_skip)
+        fLOG(f"[_dynamic_class_creation] set_names={set_names!r}")
+        fLOG(f"[_dynamic_class_creation] set_skip={set_skip!r}")
 
     returned_classes = []
     positions = {}
@@ -760,36 +759,34 @@ class OnnxOperatorBase:
     def add_to(self, builder):
         "This method should be overwritten."
         raise NotImplementedError(  # pragma: no cover
-            "Not overwritten for class %r." % type(self))
+            f"Not overwritten for class {type(self)!r}.")
 
     @property
     def output_names(self):
         "This method should be overwritten."
         raise NotImplementedError(  # pragma: no cover
-            "Not overwritten for class %r." % type(self))
+            f"Not overwritten for class {type(self)!r}.")
 
     def find_named_inputs(self):
         """
         Returns all inputs to the graph.
         """
         raise NotImplementedError(  # pragma: no cover
-            "Method 'find_named_inputs' must be overloaded for type %s."
-            "" % type(self))
+            f"Method 'find_named_inputs' must be overloaded for type {type(self)}.")
 
     def f(self, *args, **kwargs):
         """
         Evaluates this node.
         """
         raise NotImplementedError(  # pragma: no cover
-            "Method 'f' must be overloaded for type %s." % type(self))
+            f"Method 'f' must be overloaded for type {type(self)}.")
 
     def _set_control_op(self, op):
         """
         Tells this operator is part of a subgraph.
         """
         raise NotImplementedError(  # pragma: no cover
-            "Method '_set_control_op' must be overloaded for type %s."
-            "" % type(self))
+            f"Method '_set_control_op' must be overloaded for type {type(self)}.")
 
     def add_external_input(self, op):
         """
@@ -797,8 +794,7 @@ class OnnxOperatorBase:
         It may be used only by the subgraph but it must be processed as well.
         """
         raise NotImplementedError(  # pragma: no cover
-            "Method '_set_control_op' must be overloaded for type %s."
-            "" % type(self))
+            f"Method '_set_control_op' must be overloaded for type {type(self)}.")
 
 
 class OnnxOperatorItem(OnnxOperatorBase):
@@ -814,12 +810,12 @@ class OnnxOperatorItem(OnnxOperatorBase):
         OnnxOperatorBase.__init__(self)
         if not isinstance(index, int):
             raise TypeError(  # pragma: no cover
-                "index must be an integer not %r." % type(index))
+                f"index must be an integer not {type(index)!r}.")
         logger.debug("op:%s-%d(%r, %d, op_version=%r)",
                      self.__class__.__name__, id(self), onx_op, index, op_version)
         if not isinstance(onx_op, OnnxOperatorBase):
             raise TypeError(  # pragma: no cover
-                "onx_op must be an OnnxOperator not %r." % type(onx_op))
+                f"onx_op must be an OnnxOperator not {type(onx_op)!r}.")
         self.onx_op = onx_op
         self.index = index
         self.op_version = op_version
@@ -933,7 +929,7 @@ class OnnxOperatorTuple(OnnxOperatorBase):
                      len(args))
         if isinstance(first, (list, tuple)):
             raise TypeError(  # pragma: no cover
-                "Unexpected type for first %r." % type(first))
+                f"Unexpected type for first {type(first)!r}.")
         logger.debug('op:%s-%d(%d in)', self.__class__.__name__,
                      id(self), 1 + len(args))
         if len(args) > 0:
@@ -954,7 +950,7 @@ class OnnxOperatorTuple(OnnxOperatorBase):
     def __repr__(self):
         "usual"
         if self.values is None:
-            return "%s(%r)" % (self.__class__.__name__, type(self.unique))
+            return f"{self.__class__.__name__}({type(self.unique)!r})"
         return "%s(%s)" % (self.__class__.__name__, ", ".join(
             "%r" % type(v) for v in self.values))
 
@@ -1019,8 +1015,7 @@ class OnnxOperatorTuple(OnnxOperatorBase):
             if hasattr(self.unique, 'to_onnx'):
                 return self.unique.outputs
         raise NotImplementedError(  # pragma: no cover
-            "Not implemented yet unique=%r values=%r." % (
-                self.unique, self.values))
+            f"Not implemented yet unique={self.unique!r} values={self.values!r}.")
 
     @property
     def output_names(self):
@@ -1029,8 +1024,7 @@ class OnnxOperatorTuple(OnnxOperatorBase):
             if hasattr(self.unique, 'to_onnx'):
                 return self.unique.output_names
         raise NotImplementedError(  # pragma: no cover
-            "Not implemented yet unique=%r values=%r." % (
-                self.unique, self.values))
+            f"Not implemented yet unique={self.unique!r} values={self.values!r}.")
 
     @output_names.setter
     def output_names(self, value):
@@ -1145,7 +1139,7 @@ class OnnxOperator(OnnxOperatorBase):
         """
         if not isinstance(opset, int):
             raise ValueError(
-                "opset must an integer not %r." % type(opset))
+                f"opset must an integer not {type(opset)!r}.")
         best = None
         for _, v in cls.past_version.items():
             if v.since_version == opset:
@@ -1190,8 +1184,7 @@ class OnnxOperator(OnnxOperatorBase):
                     output_names[i] = Variable(output_names[i])
         elif output_names is not None:
             raise TypeError(  # pragma: no cover
-                "output_names must be a string or a list not %r."
-                "" % type(output_names))
+                f"output_names must be a string or a list not {type(output_names)!r}.")
 
         if op_version is None:
             if domain == '':
@@ -1250,7 +1243,7 @@ class OnnxOperator(OnnxOperatorBase):
                 elif isinstance(inp, tuple):
                     if len(inp) != 2:
                         raise RuntimeError(  # pragma: no cover
-                            "Unexpected tuple %r." % (inp, ))
+                            f"Unexpected tuple {inp!r}.")
                     self.inputs.append(
                         Variable(inp[0], dtype=guess_numpy_type(inp[1]),
                                  shape=inp[1].shape))
@@ -1285,8 +1278,7 @@ class OnnxOperator(OnnxOperatorBase):
             for k, v in global_context.items():
                 if not isinstance(v, OnnxOperatorBase):
                     raise TypeError(  # pragma: no cover
-                        "Value %r in must be an OnnxOperatorBase not %r."
-                        "" % (k, type(v)))
+                        f"Value {k!r} in must be an OnnxOperatorBase not {type(v)!r}.")
             self.global_context = global_context
 
         # check output
@@ -1440,7 +1432,7 @@ class OnnxOperator(OnnxOperatorBase):
                      self.__class__.__name__, value)
         if not isinstance(value, (list, OnnxOperator._InputContainer)):
             raise TypeError(  # pragma: no cover
-                "Value must be a list not %r." % type(value))
+                f"Value must be a list not {type(value)!r}.")
         res = []
         for v in value:
             if isinstance(v, (Variable, ExistingVariable)):
@@ -1459,14 +1451,12 @@ class OnnxOperator(OnnxOperatorBase):
         for o in self.inputs:
             if not isinstance(o, input_types):
                 raise TypeError(  # pragma: no cover
-                    "Wrong type for inputs %r." % (
-                        self.inputs, ))
+                    f"Wrong type for inputs {self.inputs!r}.")
         if self.output_names is not None:
             for o in self.output_names:
                 if not isinstance(o, Variable):
                     raise TypeError(  # pragma: no cover
-                        "Wrong type for output_names %r." % (
-                            self.output_names, ))
+                        f"Wrong type for output_names {self.output_names!r}.")
 
     def _post_process_attributes(self):
         """
@@ -1663,7 +1653,7 @@ class OnnxOperator(OnnxOperatorBase):
                 new_inputs[el.name] = el
             else:
                 raise TypeError(  # pragma: no cover
-                    "Unable to handle input type %r (%r)." % (type(el), el))
+                    f"Unable to handle input type {type(el)!r} ({el!r}).")
         return new_inputs
 
     @staticmethod
@@ -1724,7 +1714,7 @@ class OnnxOperator(OnnxOperatorBase):
                     new_inputs.append(var)
                 else:
                     raise ValueError(  # pragma: no cover
-                        "Unable to find input %r in %r." % (inp, inputs))
+                        f"Unable to find input {inp!r} in {inputs!r}.")
             elif inputs_dtype is not None:
                 new_inputs.append(
                     InputDetectedVariable(node, inp.copy_add(inputs_dtype)))
@@ -1736,13 +1726,12 @@ class OnnxOperator(OnnxOperatorBase):
                     new_inputs.append(InputDetectedVariable(node, inp))
             else:
                 raise RuntimeError(  # pragma: no cover
-                    "Unable to handle inputs=%r." % inputs)
+                    f"Unable to handle inputs={inputs!r}.")
         elif isinstance(inp, numpy.ndarray):
             pass
         else:
             raise TypeError(  # pragma: no cover
-                "Unexpected input type %r in node type %r." % (
-                    type(inp), type(node)))
+                f"Unexpected input type {type(inp)!r} in node type {type(node)!r}.")
 
     @staticmethod
     def _node_to_graph_get_type(node, name=None, outputs=None,
@@ -1756,7 +1745,7 @@ class OnnxOperator(OnnxOperatorBase):
                 return (outputs.dtype or name.dtype or outputs_dtype,
                         None)
             raise RuntimeError(  # pragma: no cover
-                "Unable to handle outputs=%r." % outputs)
+                f"Unable to handle outputs={outputs!r}.")
         if isinstance(outputs, dict):
             if name is None:
                 return _infer_node_output(node, outputs)
@@ -1769,12 +1758,11 @@ class OnnxOperator(OnnxOperatorBase):
             return outputs[n], None
         if isinstance(outputs, (list, OnnxOperator._InputContainer)):
             raise NotImplementedError(  # pragma: no cover
-                "Unexpected type for name=%r, outputs=%r." % (
-                    name, outputs))
+                f"Unexpected type for name={name!r}, outputs={outputs!r}.")
         if is_numpy_dtype(outputs):
             return outputs, None
         raise RuntimeError(  # pragma: no cover
-            "Unable to handle outputs=%r." % outputs)
+            f"Unable to handle outputs={outputs!r}.")
 
     @staticmethod
     def _node_to_graph_reorder_by_name(new_inputs, inputs):
@@ -1813,7 +1801,7 @@ class OnnxOperator(OnnxOperatorBase):
             return len(self._c)
 
         def __repr__(self):
-            return "%s(\n %s)" % ('_InputContainer', pprint.pformat(self._c))
+            return f"{'_InputContainer'}(\n {pprint.pformat(self._c)})"
 
         def __iter__(self):
             for inp in self._c:
@@ -1854,7 +1842,7 @@ class OnnxOperator(OnnxOperatorBase):
             inputs_dict = None
         else:
             raise TypeError(  # pragma: no cover
-                "Unexpected type %r for inputs." % type(inputs))
+                f"Unexpected type {type(inputs)!r} for inputs.")
 
         _keep_outputs = None
         outputs_dtype = None
@@ -1871,7 +1859,7 @@ class OnnxOperator(OnnxOperatorBase):
             outputs_dict = None
         else:
             raise TypeError(  # pragma: no cover
-                "Unexpected type %r for outputs." % type(outputs))
+                f"Unexpected type {type(outputs)!r} for outputs.")
 
         if inputs is not None:
             logger.debug("op:%s-%d._node_to_graph:2:inputs=%r",
@@ -1928,7 +1916,7 @@ class OnnxOperator(OnnxOperatorBase):
                             new_stack, inputs_dtype, as_function=as_function)
                 else:
                     raise TypeError(  # pragma: no cover
-                        "Unexpected type %r." % type(obj))
+                        f"Unexpected type {type(obj)!r}.")
             stack = new_stack
 
         # reorder new_inputs to follow inputs initial order
@@ -1965,7 +1953,7 @@ class OnnxOperator(OnnxOperatorBase):
                     var = Variable(res, added_dtype=to, shape=shape)
                     if var.name in set_names:
                         raise RuntimeError(  # pragma: no cover
-                            "Duplicated output name var=%r." % var)
+                            f"Duplicated output name var={var!r}.")
                     set_names.add(var.name)
                     new_outputs.append(OutputDetectedVariable(node, var, i))
             else:
@@ -1983,13 +1971,12 @@ class OnnxOperator(OnnxOperatorBase):
                     var = o.copy_merge(to, shape=shape)
                     if var.name in set_names:
                         raise RuntimeError(  # pragma: no cover
-                            "Duplicated output name o=%r var=%r." % (o, var))
+                            f"Duplicated output name o={o!r} var={var!r}.")
                     set_names.add(var.name)
                     new_outputs.append(OutputDetectedVariable(node, var, i))
         if len(new_outputs) == 0:
             raise RuntimeError(  # pragma: no cover
-                "No detected outputs inputs=%r outputs=%r." % (
-                    inputs_dict, outputs_dict))
+                f"No detected outputs inputs={inputs_dict!r} outputs={outputs_dict!r}.")
 
         # reorder new_outputs to follow outputs initial order
         if _keep_outputs is not None:
@@ -2232,7 +2219,7 @@ class OnnxOperator(OnnxOperatorBase):
                         inp.var.name, inp.var.dtype or inp.var.added_dtype))
             if verbose > 0:
                 fLOG(  # pragma: no cover
-                    '[OnnxOperator._to_onnx_attribute] inputs=%r' % (vars, ))
+                    f'[OnnxOperator._to_onnx_attribute] inputs={vars!r}')
             logger.debug("op:%s._to_onnx_attribute:inputs(%r)",
                          self.__class__.__name__, vars)
         logger.indent()
@@ -2245,7 +2232,7 @@ class OnnxOperator(OnnxOperatorBase):
         if len(hidden_inputs) > 0:
             if verbose > 0:
                 fLOG(  # pragma: no cover
-                    '[OnnxOperator._to_onnx_attribute] inputs=%r' % (vars, ))
+                    f'[OnnxOperator._to_onnx_attribute] inputs={vars!r}')
             logger.debug("op:%s._to_onnx_attribute:inputs:hidden:%r",
                          self.__class__.__name__, att_builder.hidden_input)
         if len(onx.graph.node) == 0:
@@ -2327,7 +2314,7 @@ class OnnxOperator(OnnxOperatorBase):
                 pass
             else:
                 raise RuntimeError(  # pragma: no cover
-                    "Unexpected input type %r." % type(inp))
+                    f"Unexpected input type {type(inp)!r}.")
         return found
 
     def to_onnx_this(self, evaluated_inputs):
@@ -2400,10 +2387,10 @@ class OnnxOperator(OnnxOperatorBase):
             as_dict = True
         elif not isinstance(inputs, (tuple, list, OnnxOperator._InputContainer)):
             raise TypeError(  # pragma: no cover
-                "inputs must be a list not %r." % type(inputs))
+                f"inputs must be a list not {type(inputs)!r}.")
         elif len(inputs) > 0 and isinstance(inputs[0], OnnxOperator):
             raise TypeError(  # pragma: no cover
-                "Unexpected type for inputs[0]: %r." % type(inputs[0]))
+                f"Unexpected type for inputs[0]: {type(inputs[0])!r}.")
         else:
             as_dict = False
             if verbose > 0:
@@ -2424,7 +2411,7 @@ class OnnxOperator(OnnxOperatorBase):
                 name: value for name, value in zip(named_inputs, inputs)}
             if verbose > 0:
                 fLOG(  # pragma: no cover
-                    "[OnnxOperator.f] found inputs: %r" % (named_inputs, ))
+                    f"[OnnxOperator.f] found inputs: {named_inputs!r}")
 
         # conversion
         evaluated_inputs = []
@@ -2462,8 +2449,8 @@ class OnnxOperator(OnnxOperatorBase):
         key = tuple((m.dtype, m.shape) for m in evaluated_inputs)
         if key not in self.feval_onnx_ or clear_cache:
             if verbose > 0:
-                fLOG("[OnnxOperator.f] creating node %r, inputs=%r" % (
-                    self.op_type, key))
+                fLOG(
+                    f"[OnnxOperator.f] creating node {self.op_type!r}, inputs={key!r}")
             from ..onnxrt import OnnxInference
             model = self.to_onnx_this(evaluated_inputs)
             oinf = OnnxInference(model, runtime=runtime)
@@ -2473,7 +2460,7 @@ class OnnxOperator(OnnxOperatorBase):
 
         # execution
         if verbose > 0:
-            fLOG("[OnnxOperator.f] execute node %r" % self.op_type)
+            fLOG(f"[OnnxOperator.f] execute node {self.op_type!r}")
         got = oinf.run({k: v for k, v in
                         zip(oinf.input_names, evaluated_inputs)})
         if as_dict:
@@ -2706,7 +2693,7 @@ class OnnxOperatorFunction(OnnxOperator):
             dtype = att.type
         else:
             raise NotImplementedError(  # pragma: no cover
-                "Unable to copy attribute type %r." % type(att))
+                f"Unable to copy attribute type {type(att)!r}.")
         if dtype == 1:  # .f
             value = att.f
         elif dtype == 2:  # .i
@@ -2725,8 +2712,7 @@ class OnnxOperatorFunction(OnnxOperator):
             value = list(att.double_data)
         else:
             raise NotImplementedError(  # pragma: no cover
-                "Unable to copy attribute type %r (%r)." % (
-                    dtype, att))
+                f"Unable to copy attribute type {dtype!r} ({att!r}).")
         return value
 
     def __init__(self, function_proto, *inputs, output_names=None,
@@ -2763,11 +2749,10 @@ class OnnxOperatorFunction(OnnxOperator):
         atts.update(self.kwargs)
         if self.sub_functions is not None and len(self.sub_functions) > 0:
             atts["sub_functions"] = list(range(len(self.sub_functions)))
-        msg = ", ".join("%s=%r" % (k, v) for k, v in atts.items())
+        msg = ", ".join(f"{k}={v!r}" for k, v in atts.items())
         if len(atts) > 0:
             msg = ", " + msg
-        return "%s(...%s)" % (
-            self.__class__.__name__, msg)
+        return f"{self.__class__.__name__}(...{msg})"
 
     def add_to(self, builder):
         """
@@ -2865,7 +2850,7 @@ class _GraphBuilder:
         for index, var in enumerate(output_names):
             if not isinstance(var, (Variable, ExistingVariable)):
                 raise TypeError(  # pragma: no cover
-                    "Unexpected type %r for %r." % (type(var), var))
+                    f"Unexpected type {type(var)!r} for {var!r}.")
             self.reserve_name(node, var.name, index)
 
     def reserve_name(self, node, name, index):
@@ -2878,7 +2863,7 @@ class _GraphBuilder:
         """
         if not isinstance(name, str):
             raise TypeError(  # pragma: no cover
-                "Name %r is not a string." % (name, ))
+                f"Name {name!r} is not a string.")
         if name in self.reserved_names:
             raise RuntimeError(  # pragma: no cover
                 "Name %r is already reserved from node %r, index=%d." % (
@@ -2923,7 +2908,7 @@ class _GraphBuilder:
         """
         if not isinstance(name, str):
             raise TypeError(  # pragma: no cover
-                "name must be a string not %r." % type(name))
+                f"name must be a string not {type(name)!r}.")
         if reserved and name in self.reserved_names:
             logger.debug(  # pragma: no cover
                 "_GraphBuilder-%d.get_unique_name(%r) 1-> %r",
@@ -2935,10 +2920,10 @@ class _GraphBuilder:
                          id(self), name, name)
             return name
         i = 1
-        new_name = "%s_%s" % (name, self.number2alpha(i))
+        new_name = f"{name}_{self.number2alpha(i)}"
         while new_name in self.names:
             i += 1
-            new_name = "%s_%s" % (name, self.number2alpha(i))
+            new_name = f"{name}_{self.number2alpha(i)}"
         self._add_name(new_name)
         logger.debug("_GraphBuilder-%d.get_unique_name(%r) 3-> %r",
                      id(self), name, new_name)
@@ -3031,7 +3016,7 @@ class _GraphBuilder:
                     key = id(i.onx_op), i.index
                 else:
                     raise TypeError(  # pragma: no cover
-                        "Unexpected type for OnnxOperatorItem: %r." % type(i.onx_op))
+                        f"Unexpected type for OnnxOperatorItem: {type(i.onx_op)!r}.")
                 try:
                     name = self.node_output_names[key]
                 except KeyError as e:  # pragma: no cover
@@ -3049,7 +3034,7 @@ class _GraphBuilder:
                 names.append(name)
             else:
                 raise TypeError(  # pragma: no cover
-                    "Unexpected type for an input %r." % type(i))
+                    f"Unexpected type for an input {type(i)!r}.")
         logger.debug(
             "_GraphBuilder-%d.get_input_names:3:%r", id(self), names)
         return names
@@ -3074,7 +3059,7 @@ class _GraphBuilder:
                          name, init.dtype, init.shape)
         else:
             raise NotImplementedError(  # pragma: no cover
-                "Unsupported initializer type %r." % type(init))
+                f"Unsupported initializer type {type(init)!r}.")
         self.initializer.append(val)
         return val
 
@@ -3100,7 +3085,7 @@ class _GraphBuilder:
         if key in self.functions:
             if raise_if_exist:
                 raise RuntimeError(  # pragma: no cover
-                    "Function %r is added for the second time." % (key, ))
+                    f"Function {key!r} is added for the second time.")
             if check_unique:
                 hs = _hash(function_proto)
                 if hs != self.function_hashes[key]:
@@ -3132,16 +3117,16 @@ class _GraphBuilder:
                      id(self), op_type, name, inputs, outputs, domain, opset)
         if not isinstance(inputs, (list, OnnxOperator._InputContainer)):
             raise TypeError(  # pragma: no cover
-                "inputs must be a list not %r." % type(inputs))
+                f"inputs must be a list not {type(inputs)!r}.")
         if not isinstance(outputs, (list, OnnxOperator._InputContainer)):
             raise TypeError(  # pragma: no cover
-                "inputs must be a list not %r." % type(outputs))
+                f"inputs must be a list not {type(outputs)!r}.")
         if any(map(lambda x: not isinstance(x, str), inputs)):
             raise TypeError(  # pragma: no cover
-                "inputs must be all strings not %r." % inputs)
+                f"inputs must be all strings not {inputs!r}.")
         if any(map(lambda x: not isinstance(x, str), outputs)):
             raise TypeError(  # pragma: no cover
-                "outputs must be all strings not %r." % outputs)
+                f"outputs must be all strings not {outputs!r}.")
         if opset is not None:
             self._add_domain(domain, opset)
         node = make_node(op_type, inputs, outputs, name=name,
@@ -3187,13 +3172,11 @@ class _GraphBuilder:
                 if isinstance(inp, OutputDetectedVariable):
                     if inp.name in set_names:
                         raise ValueError(  # pragma: no cover
-                            "Names already taken %r in %r." % (
-                                inp.name, inputs))
+                            f"Names already taken {inp.name!r} in {inputs!r}.")
                     set_names.add(inp.name)
                     if isinstance(inp.node, OnnxExisting):
                         raise NotImplementedError(  # pragma: no cover
-                            "Unexpected name %r type %r." % (
-                                inp.name, type(inp.node)))
+                            f"Unexpected name {inp.name!r} type {type(inp.node)!r}.")
                         # continue
                     key = id(inp.node), inp.index
                     if key in self.node_output_names:
@@ -3219,7 +3202,7 @@ class _GraphBuilder:
                         self.node_output_names_rev, set_names))
         elif not isinstance(input_names, (list, OnnxOperator._InputContainer)):
             raise RuntimeError(  # pragma: no cover
-                "Unexpected type for input_names %r." % type(input_names))
+                f"Unexpected type for input_names {type(input_names)!r}.")
         else:
             # inputs
             pass
@@ -3239,7 +3222,7 @@ class _GraphBuilder:
             for inp in input_names:
                 if inp.name in d_input_names:
                     raise ValueError(  # pragma: no cover
-                        "Duplicated name %r in %r." % (inp.name, input_names))
+                        f"Duplicated name {inp.name!r} in {input_names!r}.")
                 d_input_names[inp.name] = inp
         elif isinstance(input_names, dict):
             d_input_names = input_names
@@ -3258,16 +3241,14 @@ class _GraphBuilder:
         for inp in no_exists:
             if not isinstance(inp, DetectedVariable):
                 raise TypeError(  # pragma: no cover
-                    "inp not DetectedVariable but %r (%r)"
-                    "." % (type(inp), inp))
+                    f"inp not DetectedVariable but {type(inp)!r} ({inp!r}).")
             if inp.name.startswith('???'):
                 raise RuntimeError(  # pragma: no cover
-                    "Issue with variable %r." % inp)
+                    f"Issue with variable {inp!r}.")
             var = d_input_names[inp.name]
             if not isinstance(var, DetectedVariable):
                 raise TypeError(  # pragma: no cover
-                    "var not Variable but %r (%r)." % (
-                        type(var), var))
+                    f"var not Variable but {type(var)!r} ({var!r}).")
 
             # inp: Variable
             # var: str
@@ -3276,10 +3257,10 @@ class _GraphBuilder:
                 # main graph.
                 if inp.var.name != var.var.name:
                     raise RuntimeError(  # pragma: no cover
-                        "Unexpected %r != %r." % (inp, var))
+                        f"Unexpected {inp!r} != {var!r}.")
             elif inp.var != var.var:
                 raise RuntimeError(  # pragma: no cover
-                    "Unexpected %r != %r." % (inp, var))
+                    f"Unexpected {inp!r} != {var!r}.")
 
             if isinstance(inp.var, ExistingVariable):
                 # The type of ExistingVariable must be known
@@ -3346,7 +3327,7 @@ class _GraphBuilder:
         logger.dedent()
         if len(self.hidden_output) > 0:
             raise RuntimeError(  # pragma: no cover
-                "Unexpected hidden output %r." % (self.hidden_output, ))
+                f"Unexpected hidden output {self.hidden_output!r}.")
         logger.debug("_GraphBuilder-%d.to_onnx:self.input=%r",
                      id(self), [i.name for i in self.input])
         if len(self.hidden_input) > 0:
@@ -3367,7 +3348,7 @@ class _GraphBuilder:
                 for init in self.initializer:
                     nodes.append(
                         make_node('Constant', [], [init.name], value=init,
-                                  name='_init_%s' % init.name))
+                                  name=f'_init_{init.name}'))
                 nodes.extend(self.node)
             else:
                 nodes = self.node
@@ -3409,7 +3390,7 @@ class _GraphBuilder:
             for k, v in self.opsets.items():
                 if (k or '') in seen_opset:
                     raise RuntimeError(  # pragma: no cover
-                        "Duplicated opset (%r, %r)." % (k, v))
+                        f"Duplicated opset ({k!r}, {v!r}).")
                 op_set = onnx_model.opset_import.add()  # pylint: disable=E1101
                 op_set.domain = k or ''
                 op_set.version = v
@@ -3532,7 +3513,7 @@ class OnnxExisting(OnnxOperator):
                               var.op_type.lower())
         else:
             raise TypeError(  # pragma: no cover
-                "Unexpected type %r for var." % type(var))
+                f"Unexpected type {type(var)!r} for var.")
         i = 0
         new_name = "_exist_%s_%d" % (name, i)
         while new_name in OnnxExisting._unique_names:
@@ -3547,7 +3528,7 @@ class OnnxExisting(OnnxOperator):
         self.control_ops_ = None
         if len(self.inputs) != 1:
             raise RuntimeError(  # pragma: no cover
-                "Unexpected number of inputs %d." % len(self.inputs))
+                f"Unexpected number of inputs {len(self.inputs)}.")
         if isinstance(self.inputs[0], Variable):
             # It is one input
             new_names = [
@@ -3558,7 +3539,7 @@ class OnnxExisting(OnnxOperator):
         else:
             if not isinstance(self.inputs[0], OnnxOperatorBase):
                 raise TypeError(  # pragma: no cover
-                    "Only input should a node not %r." % type(self.inputs[0]))
+                    f"Only input should a node not {type(self.inputs[0])!r}.")
             if self.inputs[0].output_names is None:
                 new_names = [
                     ExistingVariable(OnnxExisting.get_unique_name(self.inputs[0]),

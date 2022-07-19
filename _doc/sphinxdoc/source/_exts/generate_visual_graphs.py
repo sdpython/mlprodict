@@ -23,19 +23,19 @@ def generate_dot_converters(app):
     srcdir = app.builder.srcdir
     whe = os.path.join(os.path.abspath(srcdir), "skl_converters")
     logger.info(
-        "[mlprodict] create visual representation in '{}'.".format(whe))
-    print("[mlprodict-sphinx] create visual representation in '{}'.".format(whe))
+        f"[mlprodict] create visual representation in '{whe}'.")
+    print(f"[mlprodict-sphinx] create visual representation in '{whe}'.")
 
     index = os.path.join(whe, "index.rst")
     subfolders = sklearn__all__ + ['mlprodict.onnx_conv']
     subs = []
     for sub in sorted(subfolders):
         logger.info(
-            "[mlprodict] graph for subfolder '{}'.".format(sub))
-        print("[mlprodict] graph for subfolder '{}'.".format(sub))
+            f"[mlprodict] graph for subfolder '{sub}'.")
+        print(f"[mlprodict] graph for subfolder '{sub}'.")
         models = sklearn_operators(sub)
         if len(models) > 0:
-            rows = [".. _l-skl2onnx-%s:" % sub, "", "=" * len(sub),
+            rows = [f".. _l-skl2onnx-{sub}:", "", "=" * len(sub),
                     sub, "=" * len(sub), "", ".. toctree::", ""]
             for irow, text in enumerate(
                     enumerate_visual_onnx_representation_into_rst(sub)):
@@ -47,17 +47,17 @@ def generate_dot_converters(app):
             if len(rows) == 0:
                 continue
             rows.append('')
-            dest = os.path.join(whe, "skl2onnx_%s.rst" % sub)
+            dest = os.path.join(whe, f"skl2onnx_{sub}.rst")
             with open(dest, "w", encoding="utf-8") as f:
                 f.write("\n".join(rows))
             subs.append(sub)
             logger.info(
-                "[mlprodict] wrote '{}' - {} scenarios.".format(sub, len(models)))
+                f"[mlprodict] wrote '{sub}' - {len(models)} scenarios.")
 
-    print("[mlprodict-sphinx] done visual representation in '{}'.".format(whe))
+    print(f"[mlprodict-sphinx] done visual representation in '{whe}'.")
     assert len(subs) >= 2
 
-    logger.info("[mlprodict] write '{}'.".format(index))
+    logger.info(f"[mlprodict] write '{index}'.")
     with open(index, "w", encoding="utf-8") as f:
         f.write(dedent("""
         Visual Representation of scikit-learn models
@@ -79,7 +79,7 @@ def generate_dot_converters(app):
 
         """))
         for sub in subs:
-            f.write("    skl2onnx_%s\n" % sub)
+            f.write(f"    skl2onnx_{sub}\n")
         f.write('')
 
 

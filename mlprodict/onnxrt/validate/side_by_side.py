@@ -67,8 +67,7 @@ def side_by_side_by_values(sessions, *args, inputs=None,
         new_sess, new_inputs = _side_by_side_by_values_inputs(sess, inputs, i)
         if verbose > 0 and fLOG:
             fLOG(  # pragma: no cover
-                '[side_by_side_by_values] run session {}/{}'.format(
-                    i + 1, len(sessions)))
+                f'[side_by_side_by_values] run session {i + 1}/{len(sessions)}')
         res = new_sess.run(new_inputs, *args, **kwargs)
         order = new_sess.get_execution_order()
         results.append([(k, v) for k, v in res.items()])
@@ -125,7 +124,7 @@ def side_by_side_by_values(sessions, *args, inputs=None,
                 elif diff < 0.1:  # pragma: no cover
                     row['cmp'] = 'e<0.1'
                 else:  # pragma: no cover
-                    row['cmp'] = "ERROR->=%1.1f" % diff
+                    row['cmp'] = f"ERROR->={diff:1.1f}"
 
         rows.append(row)
     if return_results:

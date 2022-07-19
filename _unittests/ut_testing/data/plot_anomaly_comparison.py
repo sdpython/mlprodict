@@ -84,7 +84,7 @@ for i_dataset, X in enumerate(datasets):
         plt.ylim(-7, 7)
         plt.xticks(())
         plt.yticks(())
-        plt.text(.99, .01, ('%.2fs' % (t1 - t0)).lstrip('0'),
+        plt.text(.99, .01, (f'{t1 - t0:.2f}s').lstrip('0'),
                  transform=plt.gca().transAxes, size=15,
                  horizontalalignment='right')
         plot_num += 1

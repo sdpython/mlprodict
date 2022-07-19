@@ -41,7 +41,7 @@ class OnnxMicroRuntime:
     def __init__(self, model_onnx):
         if not hasattr(model_onnx, 'graph'):
             raise TypeError(
-                "model_onnx is not an ONNX graph but %r." % type(model_onnx))
+                f"model_onnx is not an ONNX graph but {type(model_onnx)!r}.")
         self.model_onnx = model_onnx
 
     @property
@@ -63,7 +63,7 @@ class OnnxMicroRuntime:
         """
         if not isinstance(inputs, dict):
             raise TypeError(
-                "inputs must be a dictionary not %r." % type(inputs))
+                f"inputs must be a dictionary not {type(inputs)!r}.")
         results = inputs.copy()
 
         for init in self.model_onnx.graph.initializer:
@@ -74,10 +74,10 @@ class OnnxMicroRuntime:
         for node in self.model_onnx.graph.node:
             op_type = node.op_type
             inp = [results[n] for n in node.input]
-            meth_name = "_op_%s" % op_type.lower()
+            meth_name = f"_op_{op_type.lower()}"
             if not hasattr(self, meth_name):
                 raise NotImplementedError(
-                    "OnnxMicroRuntime does not implement operator %r." % op_type)
+                    f"OnnxMicroRuntime does not implement operator {op_type!r}.")
             kwargs = {}
             for at in node.attribute:
                 var = _var_as_dict(at)
@@ -141,10 +141,10 @@ class OnnxMicroRuntime:
 
         if not isinstance(transA, (int, bool, numpy.int64)):
             raise TypeError(  # pragma: no cover
-                "Unexpected type for transA: %r." % type(transA))
+                f"Unexpected type for transA: {type(transA)!r}.")
         if not isinstance(transB, (int, bool, numpy.int64)):
             raise TypeError(  # pragma: no cover
-                "Unexpected type for transA: %r." % type(transB))
+                f"Unexpected type for transA: {type(transB)!r}.")
         if transA:
             fct = _gemm11 if transB else _gemm10
         else:

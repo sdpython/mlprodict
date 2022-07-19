@@ -55,12 +55,12 @@ class TestOnnxrtValidateDocumentation(ExtTestCase):
                     rows.append(row)
                 if len(rows) == 0:
                     continue
-                rows = [".. _l-skl2onnx-%s:" % sub, "", "=" * len(sub),
+                rows = [f".. _l-skl2onnx-{sub}:", "", "=" * len(sub),
                         sub, "=" * len(sub), "", ".. contents::",
                         "    :local:", ""] + rows
                 rows.append('')
                 subs.append(sub)
-                fLOG("subfolder '{}' - {} scenarios.".format(sub, len(models)))
+                fLOG(f"subfolder '{sub}' - {len(models)} scenarios.")
                 if len(subs) > 2:
                     break
 

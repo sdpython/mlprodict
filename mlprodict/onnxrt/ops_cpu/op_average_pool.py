@@ -96,8 +96,7 @@ def _pool(padded, x_shape, kernel_shape, strides_shape,
         fpool = numpy.max
     else:
         raise NotImplementedError(  # pragma: no cover
-            'Pooling type {} does not support. Should be AVG, MAX.'
-            ''.format(pooling_type))
+            f'Pooling type {pooling_type} does not support. Should be AVG, MAX.')
     spatial_size = len(x_shape) - 2
     y = numpy.zeros([x_shape[0], x_shape[1]] + list(out_shape))
     round_fct = numpy.ceil if ceil_mode else numpy.floor

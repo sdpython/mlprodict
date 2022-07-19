@@ -20,7 +20,7 @@ class DepthToSpace(OpRun):
     def _run(self, data, attributes=None, verbose=0, fLOG=None):  # pylint: disable=W0221
         if len(data.shape) != 4:
             raise RuntimeError(  # pragma: no cover
-                "Unexpected shape %r." % (data.shape, ))
+                f"Unexpected shape {data.shape!r}.")
         b, c, h, w = data.shape
         if self.mode == b'DCR':
             tmpshape = (b, self.blocksize, self.blocksize,
@@ -51,7 +51,7 @@ class SpaceToDepth(OpRun):
     def _run(self, data, attributes=None, verbose=0, fLOG=None):  # pylint: disable=W0221
         if len(data.shape) != 4:
             raise RuntimeError(  # pragma: no cover
-                "Unexpected shape %r." % (data.shape, ))
+                f"Unexpected shape {data.shape!r}.")
         b, C, H, W = data.shape
         tmpshape = (b, C, H // self.blocksize, self.blocksize,
                     W // self.blocksize, self.blocksize)

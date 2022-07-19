@@ -146,8 +146,7 @@ def benchmark_op(axes, repeat=2, number=5, name="ReduceMean",
     # Graphs.
     fig, ax = plt.subplots(1, 2, figsize=(12, 4))
     piv.plot(logx=True, logy=True, ax=ax[0],
-             title="%s benchmark\n%r - %r"
-                   " lower better" % (name, shape_name, axes))
+             title=f"{name} benchmark\n{shape_name!r} - {axes!r} lower better")
     ax[0].legend(prop={"size": 9})
     rs.plot(logx=True, logy=True, ax=ax[1],
             title="%s Speedup, baseline=numpy\n%r - %r"
@@ -261,8 +260,8 @@ df.pivot("fct", "N", "average")
 
 merged = pandas.concat(dfs)
 name = "reducemean"
-merged.to_csv("plot_%s.csv" % name, index=False)
-merged.to_excel("plot_%s.xlsx" % name, index=False)
-plt.savefig("plot_%s.png" % name)
+merged.to_csv(f"plot_{name}.csv", index=False)
+merged.to_excel(f"plot_{name}.xlsx", index=False)
+plt.savefig(f"plot_{name}.png")
 
 plt.show()

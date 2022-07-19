@@ -34,16 +34,16 @@ def checker_check_model(model, full_check=True):
     except OnnxCheckError as ee:
         exc2 = ee
     if exc is None and exc2 is not None:
-        raise AssertionError("%r != %r" % (exc, exc2))
+        raise AssertionError(f"{exc!r} != {exc2!r}")
     if exc is not None and exc2 is None:
-        raise AssertionError("%r != %r" % (exc, exc2))
+        raise AssertionError(f"{exc!r} != {exc2!r}")
     if exc is None and exc2 is None:
         if full_check:
             checker.check_model(model, full_check=True)
         return
     if not _cmp_error(exc, exc2):
         raise AssertionError(
-            "Error messages are different:\n%s\n%s." % (exc, exc2)) from exc2
+            f"Error messages are different:\n{exc}\n{exc2}.") from exc2
     if exc is not None:
         raise exc
     if full_check:

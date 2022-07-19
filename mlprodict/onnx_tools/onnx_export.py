@@ -128,7 +128,7 @@ def _nodes(graph, rename_name, used, output_names, use_onnx_tensor,
                         (at.name, guess_proto_dtype_name(int(value))))
                     continue
             if isinstance(value, str):
-                attributes.append((at.name, "%r" % value))
+                attributes.append((at.name, f"{value!r}"))
             else:
                 if isinstance(value, numpy.ndarray):
                     if use_onnx_tensor and at.name == 'value':
@@ -144,7 +144,7 @@ def _nodes(graph, rename_name, used, output_names, use_onnx_tensor,
                 else:
                     attributes.append((at.name, repr(value)))
 
-        attributes_str = ", ".join("%s=%s" % (k, v) for k, v in attributes)
+        attributes_str = ", ".join(f"{k}={v}" for k, v in attributes)
         d = dict(name=node.name, op_type=node.op_type,
                  domain=node.domain, onnx_node=node,
                  inputs=[rename_name(n, out=False)
@@ -193,8 +193,7 @@ def _python_make_node_graph(graph, opsets, indent=0, output_names=None):
         code.append(_python_make_node(node, opsets, indent=indent))
     if output_names is not None:
         for fr, to in zip(graph.output, output_names):
-            code.append("%s%s = %s" %
-                        (sindent, _rename_var(to), _rename_var(fr.name)))
+            code.append(f"{sindent}{_rename_var(to)} = {_rename_var(fr.name)}")
     return "\n".join(code)
 
 
@@ -204,7 +203,7 @@ def _python_make_node_make_attribute_str(node):
         temp = _var_as_dict(at)
         value = temp['value']
         if isinstance(value, str):
-            attributes.append((at.name, "%r" % value.decode('utf-8')))
+            attributes.append((at.name, f"{value.decode('utf-8')!r}"))
             continue
         if isinstance(value, numpy.ndarray):
             if at.name == 'value':
@@ -220,7 +219,7 @@ def _python_make_node_make_attribute_str(node):
             continue
         attributes.append((at.name, repr(value)))
 
-    return ", ".join("%s=%s" % (k, v) for k, v in attributes)
+    return ", ".join(f"{k}={v}" for k, v in attributes)
 
 
 def _python_make_node_if(node, opsets, indent=0):
@@ -228,11 +227,10 @@ def _python_make_node_if(node, opsets, indent=0):
     Translates a node If into python.
     """
     sindent = '    ' * indent
-    code = ["%sif %s:" % (sindent, node.input[0])]
+    code = [f"{sindent}if {node.input[0]}:"]
     if len(node.attribute) != 2:
         raise RuntimeError(  # pragma: no cover
-            "Node %r expected two attributes not %d." % (
-                node.op_type, len(node.attribute)))
+            f"Node {node.op_type!r} expected two attributes not {len(node.attribute)}.")
     atts = node.attribute
     if atts[0].name == 'else_branch':
         else_branch, then_branch = atts[0].g, atts[1].g
@@ -241,7 +239,7 @@ def _python_make_node_if(node, opsets, indent=0):
     code.append(_python_make_node_graph(
         then_branch, opsets, indent=indent + 1,
         output_names=node.output))
-    code.append("%selse:" % sindent)
+    code.append(f"{sindent}else:")
     code.append(_python_make_node_graph(
         else_branch, opsets, indent=indent + 1,
         output_names=node.output))
@@ -277,12 +275,12 @@ def _python_make_node(onnx_node, opsets, indent=0):
         if node.op_type == 'Scan':
             return _python_make_node_scan(node, opsets, indent=indent)
         raise RuntimeError(  # pragma: no cover
-            "Unable to export node type %r into python." % (node.op_type, ))
+            f"Unable to export node type {node.op_type!r} into python.")
         # pragma: no cover
     if any(map(lambda att: hasattr(att, 'g') and att.g and att.g.ByteSize() > 0,
                node.attribute)):
         raise RuntimeError(  # pragma: no cover
-            "Unable to export node type %r into python." % node.op_type)
+            f"Unable to export node type {node.op_type!r} into python.")
     ops = {'Add': '+', 'Sub': '-', 'Mul': '*', 'MatMul': '@',
            'Div': '/', 'Pow': '**',
            'And': '&', 'Or': '|', 'Greater': '>', 'Equal': '==',
@@ -597,7 +595,7 @@ def export2onnx(model_onnx, opset=None, verbose=True, name=None, rename=False,
 
     if not isinstance(model_onnx, ModelProto):
         raise TypeError(  # pragma: no cover
-            "The function expects a ModelProto not %r." % type(model_onnx))
+            f"The function expects a ModelProto not {type(model_onnx)!r}.")
     code = export_template(model_onnx, templates=get_onnx_template(),
                            opset=opset, verbose=verbose, name=name,
                            rename=rename, use_onnx_tensor=True,
@@ -642,7 +640,7 @@ def export2tf2onnx(model_onnx, opset=None, verbose=True, name=None,
 
     if not isinstance(model_onnx, ModelProto):
         raise TypeError(  # pragma: no cover
-            "The function expects a ModelProto not %r." % type(model_onnx))
+            f"The function expects a ModelProto not {type(model_onnx)!r}.")
     code = export_template(model_onnx, templates=get_tf2onnx_template(),
                            opset=opset, verbose=verbose, name=name,
                            rename=rename, use_onnx_tensor=True,
@@ -710,7 +708,7 @@ def export2numpy(model_onnx, opset=None, verbose=True, name=None,
 
     if not isinstance(model_onnx, ModelProto):
         raise TypeError(  # pragma: no cover
-            "The function expects a ModelProto not %r." % type(model_onnx))
+            f"The function expects a ModelProto not {type(model_onnx)!r}.")
     code = export_template(model_onnx, templates=get_numpy_template(),
                            opset=opset, verbose=verbose, name=name,
                            rename=rename, autopep_options=autopep_options)
@@ -760,7 +758,7 @@ def export2cpp(model_onnx, opset=None, verbose=True, name=None, rename=False,
 
     if not isinstance(model_onnx, ModelProto):
         raise TypeError(  # pragma: no cover
-            "The function expects a ModelProto not %r." % type(model_onnx))
+            f"The function expects a ModelProto not {type(model_onnx)!r}.")
     code = export_template(model_onnx, templates=get_cpp_template(),
                            opset=opset, verbose=verbose, name=name,
                            rename=rename, use_onnx_tensor=True,
@@ -809,7 +807,7 @@ def export2xop(model_onnx, opset=None, verbose=True, name=None, rename=False,
 
     if not isinstance(model_onnx, ModelProto):
         raise TypeError(  # pragma: no cover
-            "The function expects a ModelProto not %r." % type(model_onnx))
+            f"The function expects a ModelProto not {type(model_onnx)!r}.")
     code = export_template(model_onnx, templates=get_xop_template(),
                            opset=opset, verbose=verbose, name=name,
                            rename=rename, use_onnx_tensor=True,
@@ -858,7 +856,7 @@ def export2python(model_onnx, opset=None, verbose=True, name=None, rename=False,
 
     if not isinstance(model_onnx, ModelProto):
         raise TypeError(  # pragma: no cover
-            "The function expects a ModelProto not %r." % type(model_onnx))
+            f"The function expects a ModelProto not {type(model_onnx)!r}.")
     code = export_template(model_onnx, templates=get_python_template(),
                            opset=opset, verbose=verbose, name=name,
                            rename=rename, use_onnx_tensor=True,

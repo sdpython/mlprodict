@@ -46,4 +46,4 @@ class LeakyRelu(OpRunUnaryNum):
                 sign = (x > 0).astype(x.dtype)
                 sign -= ((sign - 1) * alpha).astype(x.dtype)
                 return x * sign
-            """), "return _leaky_relu(%s, alpha)" % inputs[0])
+            """), f"return _leaky_relu({inputs[0]}, alpha)")

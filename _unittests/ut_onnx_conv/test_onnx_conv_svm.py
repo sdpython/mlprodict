@@ -42,7 +42,7 @@ class TestOnnxConvSVM(ExtTestCase):
         elif kind == 'mcl':
             y = y.astype(numpy.int64)
         else:
-            raise AssertionError("unknown '{}'".format(kind))
+            raise AssertionError(f"unknown '{kind}'")
 
         if n_targets != 1:
             yn = numpy.empty((y.shape[0], n_targets), dtype=dtype)
@@ -67,7 +67,7 @@ class TestOnnxConvSVM(ExtTestCase):
         except RuntimeError as e:
             if debug:
                 raise RuntimeError(
-                    "Unable to create a model\n{}".format(model_def)) from e
+                    f"Unable to create a model\n{model_def}") from e
             raise e
 
         if debug:

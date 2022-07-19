@@ -21,4 +21,4 @@ class Identity(OpRunUnaryNum):
         return (a.copy(), )
 
     def to_python(self, inputs):
-        return "", "return %s.copy()" % inputs[0]
+        return "", f"return {inputs[0]}.copy()"

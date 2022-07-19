@@ -102,7 +102,7 @@ def load_data(folder):
                 res['out'][noext] = numpy_helper.to_array(data)
             else:
                 raise ValueError(  # pragma: no cover
-                    "Unable to guess anything about %r." % noext)
+                    f"Unable to guess anything about {noext!r}.")
 
     return res
 
@@ -130,7 +130,7 @@ def download_model_data(name, model=None, cache=None, verbose=False):
                 break
         if model is None:
             raise ValueError(
-                "Unable to find a default value for name=%r." % name)
+                f"Unable to find a default value for name={name!r}.")
 
     # downloads
     last_name = model.split('/')[-1]
@@ -143,7 +143,7 @@ def download_model_data(name, model=None, cache=None, verbose=False):
     if size < 2 ** 20:  # pragma: no cover
         os.remove(dest)
         raise ConnectionError(
-            "Unable to download model from %r." % model)
+            f"Unable to download model from {model!r}.")
 
     outtar = os.path.splitext(dest)[0]
     if not os.path.exists(outtar):
@@ -170,13 +170,13 @@ def download_model_data(name, model=None, cache=None, verbose=False):
         _ for _ in fold_onnx if os.path.exists(_) and os.path.isdir(_))
     if len(fold_onnx_ok) != 1:
         raise FileNotFoundError(  # pragma: no cover
-            "Unable to find an existing folder among %r." % fold_onnx)
+            f"Unable to find an existing folder among {fold_onnx!r}.")
     onnx_file = list(fold_onnx_ok)[0]
 
     onnx_files = [_ for _ in os.listdir(onnx_file) if _.endswith(".onnx")]
     if len(onnx_files) != 1:
         raise FileNotFoundError(  # pragma: no cover
-            "Unable to find any onnx file in %r." % onnx_files)
+            f"Unable to find any onnx file in {onnx_files!r}.")
     final_onnx = os.path.join(onnx_file, onnx_files[0])
 
     # data

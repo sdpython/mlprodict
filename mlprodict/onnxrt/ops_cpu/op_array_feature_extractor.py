@@ -45,7 +45,7 @@ def sizeof_dtype(dty):
     if dty == numpy.int64:
         return 8
     raise ValueError(
-        "Unable to get bytes size for type {}.".format(numpy.dtype))
+        f"Unable to get bytes size for type {numpy.dtype}.")
 
 
 class ArrayFeatureExtractor(OpRun):

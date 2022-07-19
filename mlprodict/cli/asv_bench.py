@@ -117,7 +117,7 @@ def asv_bench(location='asvsklonnx', opset_min=-1, opset_max=None,
         fct_filter = fct_filter_exp3
     else:
         raise ValueError(  # pragma: no cover
-            "dtype must be empty, 32, 64 not '{}'.".format(dtype))
+            f"dtype must be empty, 32, 64 not '{dtype}'.")
 
     if conf_params is not None:
         res = {}
@@ -126,7 +126,7 @@ def asv_bench(location='asvsklonnx', opset_min=-1, opset_max=None,
             spl = kv.split(',')
             if len(spl) != 2:
                 raise ValueError(  # pragma: no cover
-                    "Unable to interpret '{}'.".format(kv))
+                    f"Unable to interpret '{kv}'.")
             k, v = spl
             res[k] = v
         conf_params = res

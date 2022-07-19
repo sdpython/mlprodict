@@ -20,10 +20,10 @@ def _private_get_file(name):
     Retrieves one template.
     """
     this = os.path.abspath(os.path.dirname(__file__))
-    filename = os.path.join(this, "_onnx_export_templates_%s.tmpl" % name)
+    filename = os.path.join(this, f"_onnx_export_templates_{name}.tmpl")
     if not os.path.exists(filename):
         raise FileNotFoundError(  # pragma: no cover
-            "Unable to find template %r in folder %r." % (name, this))
+            f"Unable to find template {name!r} in folder {this!r}.")
     with open(filename, "r", encoding="utf-8") as f:
         return dedent(f.read())
 

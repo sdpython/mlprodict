@@ -17,8 +17,7 @@ def _check_dtype(val):
             numpy.uint16, numpy.uint32, numpy.bool_, numpy.str_,
             numpy.uint64, bool, str, }:
         raise TypeError(  # pragma: no cover
-            "Type ({}, {}) is not a numpy type (operator 'Constant')".format(
-                a, type(a)))
+            f"Type ({a}, {type(a)}) is not a numpy type (operator 'Constant')")
 
 
 class Constant_9(OpRun):
@@ -100,12 +99,10 @@ class Constant_12(OpRun):
         if self.is_linked_attribute:
             if attributes is None:
                 raise RuntimeError(  # pragma: no cover
-                    "Attributes are empty, cannot retrieve value for %r."
-                    "" % self.cst)
+                    f"Attributes are empty, cannot retrieve value for {self.cst!r}.")
             if self.cst.name not in attributes:
                 raise RuntimeError(  # pragma: no cover
-                    "Cannot find attribute %r in %r." % (
-                        self.cst, list(attributes)))
+                    f"Cannot find attribute {self.cst!r} in {list(attributes)!r}.")
             return (attributes[self.cst.name]['value'], )
         return (self.cst, )
 

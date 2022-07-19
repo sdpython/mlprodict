@@ -35,7 +35,7 @@ class Tokenizer(OpRunUnary):
                                        for _ in self.separators)
         except AttributeError as e:  # pragma: no cover
             raise RuntimeTypeError(
-                "Unable to interpret separators {}.".format(self.separators)) from e
+                f"Unable to interpret separators {self.separators}.") from e
         if self.tokenexp not in (None, b''):
             self.tokenexp_ = re.compile(self.tokenexp.decode('utf-8'))
 
@@ -43,7 +43,7 @@ class Tokenizer(OpRunUnary):
         if op_name == "Tokenizer":
             return TokenizerSchema()
         raise RuntimeError(  # pragma: no cover
-            "Unable to find a schema for operator '{}'.".format(op_name))
+            f"Unable to find a schema for operator '{op_name}'.")
 
     def _run(self, text, attributes=None, verbose=0, fLOG=None):  # pylint: disable=W0221
         if self.char_tokenization_:
@@ -102,7 +102,7 @@ class Tokenizer(OpRunUnary):
             res = res[:, :, :max_pos]
         else:
             raise RuntimeError(  # pragma: no cover
-                "Only vector or matrices are supported not shape {}.".format(text.shape))
+                f"Only vector or matrices are supported not shape {text.shape}.")
         return (res, )
 
     def _run_char_tokenization(self, text, stops):

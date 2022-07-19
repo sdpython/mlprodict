@@ -54,19 +54,19 @@ def validate_python_inference(oinf, inputs, tolerance=0.):
     exp = oinf.run(inputs)
     if not isinstance(exp, dict):
         raise TypeError(  # pragma: no cover
-            "exp is not a dictionary by '{}'.".format(type(exp)))
+            f"exp is not a dictionary by '{type(exp)}'.")
     if len(exp) == 0:
         raise ValueError(  # pragma: no cover
             "No result to compare.")
     inps = ['{0}={0}'.format(k) for k in sorted(inputs)]
     code += "\n".join(['', '', 'opi = OnnxPythonInference()',
-                       'res = opi.run(%s)' % ', '.join(inps)])
+                       f"res = opi.run({', '.join(inps)})"])
 
     try:
         cp = compile(code, "<string>", mode='exec')
     except SyntaxError as e:
         raise SyntaxError(
-            "Error %s in code\n%s" % (str(e), code)) from e
+            f"Error {str(e)} in code\n{code}") from e
     pyrt_fcts = [_ for _ in cp.co_names if _.startswith("pyrt_")]
     fcts_local = {}
 
@@ -96,7 +96,7 @@ def validate_python_inference(oinf, inputs, tolerance=0.):
     except (NameError, TypeError, SyntaxError,  # pragma: no cover
             IndexError, ValueError) as e:
         raise RuntimeError(
-            "Unable to execute code.\n{}\n-----\n{}".format(e, code)) from e
+            f"Unable to execute code.\n{e}\n-----\n{code}") from e
 
     got = loc['res']
     keys = list(sorted(exp))
@@ -123,8 +123,7 @@ def validate_python_inference(oinf, inputs, tolerance=0.):
         if isinstance(e, numpy.ndarray):
             if e.shape != g.shape:
                 raise ValueError(  # pragma: no cover
-                    "Shapes are different {} != {}\n---\n{}\n{}.".format(
-                        e.shape, g.shape, e, g))
+                    f"Shapes are different {e.shape} != {g.shape}\n---\n{e}\n{g}.")
             diff = 0
             for a, b in zip(e.ravel(), g.ravel()):
                 if a == b:
@@ -139,4 +138,4 @@ def validate_python_inference(oinf, inputs, tolerance=0.):
                     "\n{}\n--\n{}".format(diff, tolerance, e, g, code))
         else:
             raise NotImplementedError(  # pragma: no cover
-                "Unable to compare values of type '{}'.".format(type(e)))
+                f"Unable to compare values of type '{type(e)}'.")

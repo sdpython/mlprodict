@@ -79,8 +79,7 @@ class StringNormalizer(OpRunUnary):
                 cout[i] = cout[i].upper()
         elif self.case_change_action != b'NONE':
             raise RuntimeError(
-                "Unknown option for case_change_action: {}.".format(
-                    self.case_change_action))
+                f"Unknown option for case_change_action: {self.case_change_action}.")
 
         if not self.is_case_sensitive and len(stops) > 0:
             for i in range(0, cin.shape[0]):

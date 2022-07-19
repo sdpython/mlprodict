@@ -28,13 +28,14 @@ class Expression(OpRun):
                                 if hasattr(self.expression, 'run_in_scan')
                                 else self.expression.run)
         self.additional_inputs = list(self.expression.static_inputs)
-        self.input_names = [i.name for i in self.onnx_node.attribute[0].g.input]
+        self.input_names = [
+            i.name for i in self.onnx_node.attribute[0].g.input]
 
     def _find_custom_operator_schema(self, op_name):
         if op_name == "Expression":
             return ExpressionSchema()
         raise RuntimeError(  # pragma: no cover
-            "Unable to find a schema for operator '{}'.".format(op_name))
+            f"Unable to find a schema for operator '{op_name}'.")
 
     def need_context(self):
         """
@@ -49,13 +50,14 @@ class Expression(OpRun):
              attributes=None, verbose=0, fLOG=None):
 
         if verbose > 0 and fLOG is not None:
-            fLOG('  -- expression> %r' % list(context))
+            fLOG(f'  -- expression> {list(context)!r}')
         if named_inputs is None:
             if len(inputs) != len(self.input_names):
                 raise RuntimeError(  # pragma: no cover
                     "Unpexpected number of inputs (%d != %d): %r." % (
                         len(inputs), len(self.input_names), self.input_names))
-            named_inputs = {name: value for name, value in zip(self.input_names, inputs)}
+            named_inputs = {name: value for name,
+                            value in zip(self.input_names, inputs)}
         outputs = self._run_expression(named_inputs, context=context,
                                        attributes=attributes,
                                        verbose=verbose, fLOG=fLOG)

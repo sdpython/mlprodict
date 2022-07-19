@@ -159,7 +159,7 @@ class TestOnnxConvKNN(ExtTestCase):
                 try:
                     sess = OnnxInference(model_def)
                 except RuntimeError as e:
-                    raise AssertionError("Issue\n{}".format(model_def)) from e
+                    raise AssertionError(f"Issue\n{model_def}") from e
                 res = sess.run({'input': x})['cdist']
                 exp = scipy_cdist(x, x2, metric="minkowski", p=pp)
                 self.assertEqualArray(exp, res, decimal=5)
@@ -213,7 +213,7 @@ class TestOnnxConvKNN(ExtTestCase):
         elif kind == 'mcl':
             y = y.astype(numpy.int64)
         else:
-            raise AssertionError("unknown '{}'".format(kind))
+            raise AssertionError(f"unknown '{kind}'")
 
         if n_targets != 1:
             yn = numpy.empty((y.shape[0], n_targets), dtype=dtype)
@@ -250,7 +250,7 @@ class TestOnnxConvKNN(ExtTestCase):
             opsets = [target_opset]
         for ops in opsets:
             if ops is None:
-                raise AssertionError("Cannot happen: {}.".format(opsets))
+                raise AssertionError(f"Cannot happen: {opsets}.")
             with self.subTest(target_opset=ops):
                 try:
                     model_def = to_onnx(

@@ -36,17 +36,15 @@ def check_is_almost_equal(xv, exp, precision=1e-5, message=None):
     if isinstance(exp, float) or len(exp.ravel()) == 1:
         if not (isinstance(xv, float) or len(xv.ravel()) == 1):
             raise TypeError(  # pragma: no cover
-                "Type mismatch between {0} and {1} (expected).".format(
-                    type(xv), type(exp)))
+                f"Type mismatch between {type(xv)} and {type(exp)} (expected).")
         diff = abs(xv - exp)
         if diff > 1e-5:
             raise ValueError(  # pragma: no cover
-                "Predictions are different expected={0}, computed={1}".format(
-                    exp, xv))
+                f"Predictions are different expected={exp}, computed={xv}")
     else:
         if not isinstance(xv, numpy.ndarray):
             raise TypeError(
-                "Type mismatch between {0} and {1} (expected).".format(type(xv), type(exp)))
+                f"Type mismatch between {type(xv)} and {type(exp)} (expected).")
         xv = xv.ravel()
         exp = exp.ravel()
         try:
@@ -119,7 +117,7 @@ def check_model_representation(model, X, y=None, convs=None,
         fLOG(model)
         for k, v in sorted(model.__dict__.items()):
             if k[-1] == '_':
-                fLOG("  {0}={1}".format(k, v))
+                fLOG(f"  {k}={v}")
         fLOG("---------------------")
 
     # grammar
@@ -177,15 +175,14 @@ def check_model_representation(model, X, y=None, convs=None,
                 fLOG("-----------------")
             lotc = fct(oneX)
             check_is_almost_equal(
-                lotc, ske, message="Issue with lang='{0}'".format(lang))
+                lotc, ske, message=f"Issue with lang='{lang}'")
             lotc_exp = lotc.copy()
             lotc2 = fct(oneX, lotc)
             if not numpy.array_equal(lotc_exp, lotc2):
                 raise ValueError(  # pragma: no cover
-                    "Second call returns different results.\n{0}\n{1}".format(
-                        lotc_exp, lotc2))
+                    f"Second call returns different results.\n{lotc_exp}\n{lotc2}")
         else:
             ser = gr.export(lang="json", hook={'array': lambda v: v.tolist()})
             if ser is None:
                 raise ValueError(  # pragma: no cover
-                    "No output for long='{0}'".format(lang))
+                    f"No output for long='{lang}'")

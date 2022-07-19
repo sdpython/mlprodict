@@ -42,7 +42,7 @@ class TestLONGMobileNet(ExtTestCase):
                 Y = oinf.run({name: X})
             if any(map(numpy.isnan, Y[out].ravel())):
                 raise AssertionError(
-                    "Runtime {}:{} produces NaN.\n{}".format(i, rt, Y[out]))
+                    f"Runtime {i}:{rt} produces NaN.\n{Y[out]}")
             res.append((rt, Y[out]))
         for rt, r in res[1:]:
             exp = numpy.squeeze(r[0])
@@ -52,7 +52,7 @@ class TestLONGMobileNet(ExtTestCase):
                 self.assertEqualArray(got, exp)
             except AssertionError as e:
                 raise AssertionError(
-                    "Issue with runtime: '{}'.".format(rt)) from e
+                    f"Issue with runtime: '{rt}'.") from e
 
 
 if __name__ == "__main__":

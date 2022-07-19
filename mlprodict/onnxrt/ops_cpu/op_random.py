@@ -74,8 +74,7 @@ class Bernoulli(_CommonRandom):
         lines = [
             'numpy_dtype = TENSOR_TYPE_TO_NP_TYPE[dtype]',
             'state = numpy.random.RandomState(seed=seed)',
-            'return state.binomial(1, %s).astype(numpy_dtype)' % (
-                inputs[0], )]
+            f'return state.binomial(1, {inputs[0]}).astype(numpy_dtype)']
         return ("import numpy\nfrom numpy import nan\n"
                 "from onnx.mapping import TENSOR_TYPE_TO_NP_TYPE",
                 "\n".join(lines))
@@ -95,14 +94,13 @@ class RandomUniform(_CommonRandom):
                                **options)
         if len(self.shape) == 0:
             raise ValueError(  # pragma: no cover
-                "shape cannot be empty for operator %s."
-                "" % self.__class__.__name__)
+                f"shape cannot be empty for operator {self.__class__.__name__}.")
         self.numpy_type = TENSOR_TYPE_TO_NP_TYPE[self.dtype]
 
     def _run(self, *args, attributes=None, verbose=0, fLOG=None):  # pylint: disable=W0221
         if len(args) != 0:
             raise RuntimeError(  # pragma: no cover
-                "Operator %s cannot have inputs." % self.__class__.__name__)
+                f"Operator {self.__class__.__name__} cannot have inputs.")
         dtype = self._dtype(*args)
         state = self._get_state(self.seed)
         res = state.rand(*self.shape).astype(dtype)
@@ -172,14 +170,13 @@ class RandomNormal(_CommonRandom):
                                **options)
         if len(self.shape) == 0:
             raise ValueError(  # pragma: no cover
-                "shape cannot be empty for operator %s."
-                "" % self.__class__.__name__)
+                f"shape cannot be empty for operator {self.__class__.__name__}.")
         self.numpy_type = TENSOR_TYPE_TO_NP_TYPE[self.dtype]
 
     def _run(self, *args, attributes=None, verbose=0, fLOG=None):  # pylint: disable=W0221
         if len(args) != 0:
             raise RuntimeError(  # pragma: no cover
-                "Operator %s cannot have inputs." % self.__class__.__name__)
+                f"Operator {self.__class__.__name__} cannot have inputs.")
         state = self._get_state(self.seed)
         res = state.randn(*self.shape).astype(self.numpy_type)
         res *= self.scale

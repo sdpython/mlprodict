@@ -211,8 +211,7 @@ def benchmark_equation(equation):
     # Graphs.
     fig, ax = plt.subplots(1, 2, figsize=(14, 5))
     piv.plot(logx=True, logy=True, ax=ax[0],
-             title="Einsum benchmark\n%s -- (2, N, 12, 64)"
-                   " lower better" % equation)
+             title=f"Einsum benchmark\n{equation} -- (2, N, 12, 64) lower better")
     ax[0].legend(prop={"size": 9})
     rs.plot(logx=True, logy=True, ax=ax[1],
             title="Einsum Speedup, baseline=numpy\n%s -- (2, N, 12, 64)"
@@ -300,8 +299,8 @@ dfs.append(df)
 
 merged = pandas.concat(dfs)
 name = "einsum"
-merged.to_csv("plot_%s.csv" % name, index=False)
-merged.to_excel("plot_%s.xlsx" % name, index=False)
-plt.savefig("plot_%s.png" % name)
+merged.to_csv(f"plot_{name}.csv", index=False)
+merged.to_excel(f"plot_{name}.xlsx", index=False)
+plt.savefig(f"plot_{name}.png")
 
 plt.show()

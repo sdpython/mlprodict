@@ -78,12 +78,12 @@ class TestOnnxConvTreeEnsemble(ExtTestCase):
                             sonx = str(onx)
                             if 'double' not in sonx and "_as_tensor" not in sonx:
                                 raise AssertionError(
-                                    "Issue with %s." % str(onx))
+                                    f"Issue with {str(onx)}.")
                         try:
                             check_onnx(onx)
                         except Exception as e:
                             raise AssertionError(
-                                "Issue with %s." % str(onx)) from e
+                                f"Issue with {str(onx)}.") from e
                         output = onx.graph.output[0].type.tensor_type.elem_type
                         self.assertEqual(
                             output, {numpy.float32: 1, numpy.float64: 11}[dtype])
@@ -97,7 +97,7 @@ class TestOnnxConvTreeEnsemble(ExtTestCase):
                                                   decimal=decimal)
                         except AssertionError as e:
                             raise AssertionError(
-                                "Discrepancies %s." % str(onx)) from e
+                                f"Discrepancies {str(onx)}.") from e
                         self.assertEqual(got['variable'].dtype, dtype)
 
     @ignore_warnings((RuntimeWarning, UserWarning))
@@ -209,7 +209,7 @@ class TestOnnxConvTreeEnsemble(ExtTestCase):
                             sonx = str(onx)
                             if 'double' not in sonx and "_as_tensor" not in sonx:
                                 raise AssertionError(
-                                    "Issue with %s." % str(onx))
+                                    f"Issue with {str(onx)}.")
                         output = onx.graph.output[1].type.tensor_type.elem_type
                         self.assertEqual(
                             output, {numpy.float32: 1, numpy.float64: 11}[dtype])

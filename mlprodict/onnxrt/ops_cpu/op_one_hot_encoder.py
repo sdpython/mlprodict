@@ -49,7 +49,7 @@ class OneHotEncoder(OpRun):
                         res[a, i, j] = 1.
         else:
             raise RuntimeError(  # pragma: no cover
-                "This operator is not implemented for shape {}.".format(x.shape))
+                f"This operator is not implemented for shape {x.shape}.")
 
         if not self.zeros:
             red = res.sum(axis=len(res.shape) - 1)

@@ -853,7 +853,7 @@ class TestOptimOnnxManipulations(ExtTestCase):
                 for k, v in oinf.intermediate_onnx_inference_.items():
                     fn = os.path.join(
                         save_intermediate,
-                        "debug_inter.f-%s.rt-%s.r-%s.onnx" % (name, oinf.runtime, k))
+                        f"debug_inter.f-{name}.rt-{oinf.runtime}.r-{k}.onnx")
                     with open(fn, 'wb') as f:
                         f.write(v.obj.SerializeToString())
                     text_new = onnx_simple_text_plot(
@@ -957,7 +957,7 @@ class TestOptimOnnxManipulations(ExtTestCase):
                     inter = oinf.intermediate_onnx_inference_
                     for k, v in inter.items():
                         self.assertEqual(v.runtime, runtime)
-                        with open("debug_%s.%s.%s.onnx" % (fct, runtime, k), "wb") as f:
+                        with open(f"debug_{fct}.{runtime}.{k}.onnx", "wb") as f:
                             f.write(v.obj.SerializeToString())
                 _save_intermediate(name, oinf, save_intermediate)
                 return got
@@ -1114,7 +1114,7 @@ class TestOptimOnnxManipulations(ExtTestCase):
                 _save_intermediate(name, oinf, save_intermediate)
                 return got
 
-            raise NameError("Unable to process %r." % names)
+            raise NameError(f"Unable to process {names!r}.")
 
         def _check_run(name, onx, inverse=False, check=False, runtime='python'):
             t = time.perf_counter()
@@ -1181,7 +1181,7 @@ class TestOptimOnnxManipulations(ExtTestCase):
                 return numpy.int64
             if name in {'final_3', 'return_val', 'final', 'output', 'final_2'}:
                 return numpy.float32
-            raise AssertionError("Unexpected name %r." % name)
+            raise AssertionError(f"Unexpected name {name!r}.")
 
         def _validate(fct, model, check_onnx_model=True, path_error=None, inverse=False):
             if check_onnx_model and isinstance(model, ModelProto):
@@ -1259,7 +1259,7 @@ class TestOptimOnnxManipulations(ExtTestCase):
             if isinstance(model, FunctionProto):
                 self.assertEqual(len(model.output), 1)
                 return model
-            raise AssertionError('Unexpected type %r.' % type(model))
+            raise AssertionError(f'Unexpected type {type(model)!r}.')
 
         def _m2f_shape_fct(name, dtype):
             if dtype == TensorProto.FLOAT:
@@ -1267,7 +1267,7 @@ class TestOptimOnnxManipulations(ExtTestCase):
             if dtype == TensorProto.INT64:
                 return [1]
             raise NotImplementedError(
-                "Unable to process %r, %r." % (name, dtype))
+                f"Unable to process {name!r}, {dtype!r}.")
 
         temp = get_temp_folder(
             __file__, 'temp_onnx_inline_function_' + subfolder)
@@ -1373,7 +1373,7 @@ class TestOptimOnnxManipulations(ExtTestCase):
             if skip_inline is not None and fct in skip_inline:
                 sx = str(inlined)
                 for n in skip_inline[fct]:
-                    if '"%s"' % n[1] not in sx:
+                    if f'"{n[1]}"' not in sx:
                         raise AssertionError(
                             "Unable to find %r (fct=%r, inline_protos=%r) "
                             "in\n%s" % (n, fct, list(inline_protos), sx))

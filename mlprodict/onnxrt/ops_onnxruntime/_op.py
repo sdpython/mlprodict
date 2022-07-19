@@ -43,7 +43,7 @@ class OpRunOnnxRuntime:
                 for a, b in desc['atts'].items():
                     if not isinstance(b, dict) or 'value' not in b:
                         raise ValueError(  # pragma: no cover
-                            "Unexpected value {}.".format(b))
+                            f"Unexpected value {b}.")
                     options[a] = b['value']
 
         self.options = options
@@ -60,10 +60,10 @@ class OpRunOnnxRuntime:
         for name in inputs:
             if name in mapping:
                 i = 0
-                new_name = "{}_{}".format(name, i)
+                new_name = f"{name}_{i}"
                 while new_name in mapping:
                     i += 1  # pragma: no cover
-                    new_name = "{}_{}".format(name, i)  # pragma: no cover
+                    new_name = f"{name}_{i}"  # pragma: no cover
                 mapping[new_name] = name
                 new_inputs.append(new_name)
             else:
@@ -160,8 +160,7 @@ class OpRunOnnxRuntime:
                                                 domain=domain)
                 if "dim_value: 0" in str(self.onnx_):
                     raise RuntimeError(  # pragma: no cover
-                        "Probable issue as one dimension is null.\n--\n{}".format(
-                            self.onnx_))
+                        f"Probable issue as one dimension is null.\n--\n{self.onnx_}")
             except AttributeError as e:  # pragma: no cover
                 # older version of skl2onnx
                 self.onnx_ = self.inst_.to_onnx(inputs)
@@ -188,8 +187,7 @@ class OpRunOnnxRuntime:
                                             domain=domain)
             if "dim_value: 0" in str(self.onnx_):
                 raise RuntimeError(  # pragma: no cover
-                    "Probable issue as one dimension is null.\n--\n{}".format(
-                        self.onnx_))
+                    f"Probable issue as one dimension is null.\n--\n{self.onnx_}")
             forced = True
         else:
             self.inst_ = self.alg_class(*self.inputs, output_names=self.outputs,
@@ -241,8 +239,7 @@ class OpRunOnnxRuntime:
                                             domain=domain)
             if "dim_value: 0" in str(self.onnx_):
                 raise RuntimeError(  # pragma: no cover
-                    "Probable issue as one dimension is null.\n--\n{}".format(
-                        self.onnx_))
+                    f"Probable issue as one dimension is null.\n--\n{self.onnx_}")
         else:
             lo = list(self.onnx_.graph.output)
             outputs = proto2vars(lo)

@@ -20,8 +20,7 @@ class Loop(OpRun):
                        **options)
         if not hasattr(self.body, 'run'):
             raise RuntimeError(  # pragma: no cover
-                "Parameter 'body' must have a method 'run', "
-                "type {}.".format(type(self.body)))
+                f"Parameter 'body' must have a method 'run', type {type(self.body)}.")
 
         self._run_meth = (self.body.run_in_scan
                           if hasattr(self.body, 'run_in_scan')
@@ -69,8 +68,7 @@ class Loop(OpRun):
             cond = outputs[cond_name]
             if cond is None:
                 raise RuntimeError(
-                    "condition %r returned by the subgraph cannot be None."
-                    "" % cond_name)
+                    f"condition {cond_name!r} returned by the subgraph cannot be None.")
             for i, o in zip(self.body.input_names[2:],
                             self.body.output_names[1:]):
                 inputs[i] = outputs[o]

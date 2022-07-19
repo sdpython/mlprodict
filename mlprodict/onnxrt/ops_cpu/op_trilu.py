@@ -17,7 +17,7 @@ class Trilu(OpRun):
                        expected_attributes=Trilu.atts,
                        **options)
         if self.upper not in (0, 1):
-            raise ValueError("upper must be 0 or 1 not %r." % (self.upper, ))
+            raise ValueError(f"upper must be 0 or 1 not {self.upper!r}.")
 
     def _run(self, *inputs, attributes=None, verbose=0, fLOG=None):  # pylint: disable=W0221
         x = inputs[0]

@@ -208,8 +208,8 @@ dfs = [df]
 
 merged = pandas.concat(dfs)
 name = "where"
-merged.to_csv("plot_%s.csv" % name, index=False)
-merged.to_excel("plot_%s.xlsx" % name, index=False)
-plt.savefig("plot_%s.png" % name)
+merged.to_csv(f"plot_{name}.csv", index=False)
+merged.to_excel(f"plot_{name}.xlsx", index=False)
+plt.savefig(f"plot_{name}.png")
 
 plt.show()

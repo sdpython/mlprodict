@@ -70,7 +70,7 @@ class TestCliOnnxCode(ExtTestCase):
         self.assertExists(name)
         for fmt in ['simple', 'dot', 'io', 'raw']:
             with self.subTest(fmt=fmt):
-                output = os.path.join(temp, "code_%s.py" % fmt)
+                output = os.path.join(temp, f"code_{fmt}.py")
                 st = BufferedPrint()
                 main(args=["plot_onnx", "--filename", name, '--format', fmt,
                            "--output", output, "--verbose", "1"], fLOG=st.fprint)
@@ -90,7 +90,7 @@ class TestCliOnnxCode(ExtTestCase):
         self.assertExists(name)
         for fmt in ['tree', 'mat']:
             with self.subTest(fmt=fmt):
-                output = os.path.join(temp, "code_%s.py" % fmt)
+                output = os.path.join(temp, f"code_{fmt}.py")
                 st = BufferedPrint()
                 main(args=["plot_onnx", "--filename", name, '--format', fmt,
                            "--output", output, "--verbose", "1"], fLOG=st.fprint)

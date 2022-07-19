@@ -12,13 +12,13 @@ def shape_det(known_shapes, node):
     x = known_shapes[node.input[0]]
     if x.mtype != OnnxKind.Tensor:
         raise ShapeInferenceException(  # pragma: no cover
-            "Result %r must be a tensor." % x)
+            f"Result {x!r} must be a tensor.")
     if x.n_dims() < 2:
         if x.n_dims() > 0:
             raise ShapeInferenceException(  # pragma: no cover
-                "Operator Det requires at least two dimensions not %r." % x.n_dims())
+                f"Operator Det requires at least two dimensions not {x.n_dims()!r}.")
         raise ShapeInferenceDimensionError(  # pragma: no cover
-            "Operator Det requires at least two dimensions not %r." % x.n_dims())
+            f"Operator Det requires at least two dimensions not {x.n_dims()!r}.")
     name = node.output[0]
 
     constraints = ShapeConstraintList()
@@ -26,14 +26,14 @@ def shape_det(known_shapes, node):
     if isinstance(a, int) and isinstance(b, int):
         if a != b:
             raise ShapeInferenceException(  # pragma: no cover
-                "Operator Det only applies on square matrices not %r." % x.n_dims())
+                f"Operator Det only applies on square matrices not {x.n_dims()!r}.")
     elif isinstance(a, str):
         constraints.append(ShapeConstraint(a, {b}))
     elif isinstance(b, str):
         constraints.append(ShapeConstraint(b, {a}))
     else:
         raise ShapeInferenceException(  # pragma: no cover
-            "Unexpected case for operator Det (%r)." % x)
+            f"Unexpected case for operator Det ({x!r}).")
     if x.n_dims() == 2:
         r = ShapeResult(name, [], x.dtype, False,
                         x.mtype, constraints)

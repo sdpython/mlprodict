@@ -108,16 +108,14 @@ def register_rewritten_operators(new_converters=None,
         for rew in _overwritten_operators:
             if rew not in _converter_pool:
                 raise KeyError(  # pragma: no cover
-                    "skl2onnx was not imported and '{}' was not registered."
-                    "".format(rew))
+                    f"skl2onnx was not imported and '{rew}' was not registered.")
         old_conv = {k: _converter_pool[k] for k in _overwritten_operators}
         _converter_pool.update(_overwritten_operators)
     else:
         for rew in new_converters:
             if rew not in _converter_pool:
                 raise KeyError(  # pragma: no cover
-                    "skl2onnx was not imported and '{}' was not registered."
-                    "".format(rew))
+                    f"skl2onnx was not imported and '{rew}' was not registered.")
         old_conv = {k: _converter_pool[k] for k in new_converters}
         _converter_pool.update(new_converters)
 
@@ -125,8 +123,7 @@ def register_rewritten_operators(new_converters=None,
         for rew in _overwritten_shape_calculator:
             if rew not in _shape_calculator_pool:
                 raise KeyError(  # pragma: no cover
-                    "skl2onnx was not imported and '{}' was not registered."
-                    "".format(rew))
+                    f"skl2onnx was not imported and '{rew}' was not registered.")
         old_shape = {k: _shape_calculator_pool[k]
                      for k in _overwritten_shape_calculator}
         _shape_calculator_pool.update(_overwritten_shape_calculator)
@@ -134,8 +131,7 @@ def register_rewritten_operators(new_converters=None,
         for rew in new_shape_calculators:
             if rew not in _shape_calculator_pool:
                 raise KeyError(  # pragma: no cover
-                    "skl2onnx was not imported and '{}' was not registered."
-                    "".format(rew))
+                    f"skl2onnx was not imported and '{rew}' was not registered.")
         old_shape = {k: _shape_calculator_pool[k]
                      for k in new_shape_calculators}
         _shape_calculator_pool.update(new_shape_calculators)

@@ -100,7 +100,7 @@ class TestRtValidateDecisionTree(ExtTestCase):
         if len(available) > 0:
             import pprint
             raise AssertionError(
-                "The runtime did have an issue with double\n{}".format(pprint.pformat(rows)))
+                f"The runtime did have an issue with double\n{pprint.pformat(rows)}")
         self.assertGreater(len(buffer), 1 if debug else 0)
 
     @ignore_warnings(category=(UserWarning, ConvergenceWarning, RuntimeWarning))

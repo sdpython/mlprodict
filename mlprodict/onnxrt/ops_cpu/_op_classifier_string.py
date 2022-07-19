@@ -23,8 +23,7 @@ class _ClassifierCommon:
                 len(self.classlabels_strings) > 0):  # pylint: disable=E0203
             if hasattr(self, name_int) and len(getattr(self, name_int)) != 0:
                 raise RuntimeError(  # pragma: no cover
-                    "'%s' must be empty if "
-                    "'classlabels_strings' is not." % name_int)
+                    f"'{name_int}' must be empty if 'classlabels_strings' is not.")
             setattr(self, name_int, numpy.arange(len(self.classlabels_strings),  # pylint: disable=E0203
                                                  dtype=numpy.int64))
             self._classlabels_int64s_string = self.classlabels_strings  # pylint: disable=E0203

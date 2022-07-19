@@ -27,7 +27,7 @@ def onnx_stats(name, optim=False, kind=None):
     """
     if not os.path.exists(name):
         raise FileNotFoundError(  # pragma: no cover
-            "Unable to find file '{}'.".format(name))
+            f"Unable to find file '{name}'.")
     with open(name, 'rb') as f:
         model = onnx.load(f)
     if kind in (None, ""):
@@ -43,7 +43,7 @@ def onnx_stats(name, optim=False, kind=None):
         from ..onnx_tools.optim import onnx_statistics
         return onnx_statistics(model, optim=optim, node_type=True)
     raise ValueError(  # pragma: no cover
-        "Unexpected kind=%r." % kind)
+        f"Unexpected kind={kind!r}.")
 
 
 def onnx_optim(name, outfile=None, recursive=True, options=None, verbose=0, fLOG=None):
@@ -67,26 +67,26 @@ def onnx_optim(name, outfile=None, recursive=True, options=None, verbose=0, fLOG
     from ..onnx_tools.optim import onnx_statistics, onnx_optimisations
     if not os.path.exists(name):
         raise FileNotFoundError(  # pragma: no cover
-            "Unable to find file '{}'.".format(name))
+            f"Unable to find file '{name}'.")
     if outfile == "":
         outfile = None  # pragma: no cover
     if options == "":
         options = None  # pragma: no cover
     if verbose >= 1 and fLOG is not None:
-        fLOG("[onnx_optim] read file '{}'.".format(name))
+        fLOG(f"[onnx_optim] read file '{name}'.")
     with open(name, 'rb') as f:
         model = onnx.load(f)
     if verbose >= 1 and fLOG is not None:
         stats = onnx_statistics(model, optim=False)
         for k, v in sorted(stats.items()):
-            fLOG('  before.{}={}'.format(k, v))
+            fLOG(f'  before.{k}={v}')
     new_model = onnx_optimisations(model, recursive=recursive)
     if verbose >= 1 and fLOG is not None:
         stats = onnx_statistics(model, optim=False)
         for k, v in sorted(stats.items()):
-            fLOG('   after.{}={}'.format(k, v))
+            fLOG(f'   after.{k}={v}')
     if outfile is not None:
-        fLOG("[onnx_optim] write '{}'.".format(outfile))
+        fLOG(f"[onnx_optim] write '{outfile}'.")
         with open(outfile, 'wb') as f:
             onnx.save(new_model, f)
     return new_model

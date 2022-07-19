@@ -75,18 +75,18 @@ class OnnxInferenceBackendRep(BackendRep):
             names = self._session.input_names
             if len(names) != 1:
                 raise RuntimeError(  # pragma: no cover
-                    "Expecting one input not %d." % len(names))
+                    f"Expecting one input not {len(names)}.")
             feeds = {names[0]: inputs}
         else:
             raise TypeError(  # pragma: no cover
-                "Unexpected input type %r." % type(inputs))
+                f"Unexpected input type {type(inputs)!r}.")
         outs = self._session.run(feeds)
         output_names = self._session.output_names
         if output_names is None and hasattr(self._session, 'expected_outputs'):
             output_names = [n[0] for n in self._session.expected_outputs]
         if output_names is None:
             raise RuntimeError(  # pragma: no cover
-                "output_names cannot be None for type %r." % type(self._session))
+                f"output_names cannot be None for type {type(self._session)!r}.")
         return [outs[name] for name in output_names]
 
 

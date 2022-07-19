@@ -38,7 +38,7 @@ class RuntimeBadResultsError(RuntimeError):
 def _dictionary2str(di):
     el = []
     for k in sorted(di):
-        el.append('{}={}'.format(k, di[k]))
+        el.append(f'{k}={di[k]}')
     return '/'.join(el)
 
 
@@ -152,7 +152,7 @@ def sklearn_operators(subfolder=None, extended=False,
             if '.' in sub and sub not in {'feature_extraction.text'}:
                 name_sub = sub
             else:
-                name_sub = "{0}.{1}".format("sklearn", sub)
+                name_sub = f"sklearn.{sub}"
             try:
                 mod = import_module(name_sub)
             except ModuleNotFoundError:
@@ -198,7 +198,7 @@ def sklearn_operators(subfolder=None, extended=False,
             try:
                 name = m.__module__.split('.')
             except AttributeError as e:  # pragma: no cover
-                raise AttributeError("Unexpected value, m={}".format(m)) from e
+                raise AttributeError(f"Unexpected value, m={m}") from e
             sub = '.'.join(name[1:])
             pack = name[0]
             if m.__name__ not in done:
@@ -286,9 +286,7 @@ def dump_into_folder(dump_folder, obs_op=None, is_error=True,
              obs_op['problem'], optim,
              "op" + str(obs_op.get('opset', '-')),
              "nf" + str(obs_op.get('n_features', '-')))
-    name = "dump-{}-{}.pkl".format(
-        "ERROR" if is_error else "i",
-        "-".join(map(str, parts)))
+    name = f"dump-{'ERROR' if is_error else 'i'}-{'-'.join(map(str, parts))}.pkl"
     name = os.path.join(dump_folder, name)
     obs_op = obs_op.copy()
     fcts = [k for k in obs_op if k.startswith('lambda')]
@@ -356,7 +354,7 @@ def measure_time(stmt, x, repeat=10, number=50, div_by_number=False,
         try:
             fct()
         except RuntimeError as e:  # pragma: no cover
-            raise RuntimeError("{}-{}".format(type(x), x.dtype)) from e
+            raise RuntimeError(f"{type(x)}-{x.dtype}") from e
 
     return _c_measure_time(fct, context={}, repeat=repeat, number=number,
                            div_by_number=div_by_number, max_time=max_time)
@@ -419,8 +417,7 @@ def _multiply_time_kwargs(time_kwargs, time_kwargs_fact, inst):
             return time_kwargs_modified
         return time_kwargs
     raise ValueError(  # pragma: no cover
-        "Unable to interpret time_kwargs_fact='{}'.".format(
-            time_kwargs_fact))
+        f"Unable to interpret time_kwargs_fact='{time_kwargs_fact}'.")
 
 
 def _get_problem_data(prob, n_features):
@@ -432,7 +429,7 @@ def _get_problem_data(prob, n_features):
         X_, y_, init_types, method, output_index, Xort_, dofit = data_problem
     else:
         raise RuntimeError(  # pragma: no cover
-            "Unable to interpret problem '{}'.".format(prob))
+            f"Unable to interpret problem '{prob}'.")
     if (len(X_.shape) == 2 and X_.shape[1] != n_features and
             n_features is not None):
         raise RuntimeError(  # pragma: no cover

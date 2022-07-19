@@ -91,7 +91,7 @@ def enumerate_visual_onnx_representation_into_rst(sub, fLOG=noLOG):
         link = link.replace(" ", "").replace(
             "{", "").replace("}", "").replace("'", "")
 
-        optim_param = ("Model was converted with additional parameter: ``{}``.".format(optim)
+        optim_param = (f"Model was converted with additional parameter: ``{optim}``."
                        if optim else "")
 
         oinf = OnnxInference(row['ONNX'], skip_run=True)
@@ -105,9 +105,9 @@ def enumerate_visual_onnx_representation_into_rst(sub, fLOG=noLOG):
         except KeyError as e:  # pragma: no cover
             rows = [
                 '', str(e), '',
-                "title='{}'".format(title),
-                "method='{}'".format(method),
-                "problem='{}'".format(problem),
+                f"title='{title}'",
+                f"method='{method}'",
+                f"problem='{problem}'",
                 model.__class__.__name__, "", "---------",
                 rst_templ]
             res = ".. index:: docissue:\n\n::\n\n" + \
@@ -154,14 +154,14 @@ def compose_page_onnxrt_ops(level="^"):
     rows = [begin]
     for name, op in names:
         rows.append("")
-        rows.append(".. _lpyort-{}:".format(name))
+        rows.append(f".. _lpyort-{name}:")
         rows.append("")
         rows.append(name)
         rows.append(level * len(name))
         rows.append("")
         mod = op.__module__.split('.')[-1]
         rows.append(
-            ".. autosignature:: mlprodict.onnxrt.ops_cpu.{}.{}".format(mod, name))
+            f".. autosignature:: mlprodict.onnxrt.ops_cpu.{mod}.{name}")
         rows.append('')
     return "\n".join(rows)
 

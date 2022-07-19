@@ -128,7 +128,7 @@ class OnnxInferenceExport:
         exp = ["digraph{"]
         for opt in {'orientation', 'pad', 'nodesep', 'ranksep', 'size'}:
             if opt in options:
-                exp.append("  {}={};".format(opt, options[opt]))
+                exp.append(f"  {opt}={options[opt]};")
         fontsize = 10
 
         shapes = {}
@@ -158,7 +158,7 @@ class OnnxInferenceExport:
                 dobj = _var_as_dict(obj)
                 sh = shapes.get(dobj['name'], '')
                 if sh:
-                    sh = "\\nshape={}".format(sh)
+                    sh = f"\\nshape={sh}"
                 exp.append(
                     '  {3}{0} [shape=box color=red label="{0}\\n{1}{4}" fontsize={2}];'
                     ''.format(
@@ -178,7 +178,7 @@ class OnnxInferenceExport:
                 dobj = _var_as_dict(obj)
                 sh = shapes.get(dobj['name'], '')
                 if sh:
-                    sh = "\\nshape={}".format(sh)
+                    sh = f"\\nshape={sh}"
                 exp.append(
                     '  {3}{0} [shape=box color=green label="{0}\\n{1}{4}" fontsize={2}];'
                     ''.format(
@@ -230,7 +230,7 @@ class OnnxInferenceExport:
                     inter_vars[out] = out
                     sh = shapes.get(out, '')
                     if sh:
-                        sh = "\\nshape={}".format(sh)
+                        sh = f"\\nshape={sh}"
                     exp.append(
                         '  {2}{0} [shape=box label="{0}{3}" fontsize={1}];'.format(
                             dot_name(out), fontsize, dot_name(prefix),
@@ -259,7 +259,7 @@ class OnnxInferenceExport:
                         if len(val) > sl:
                             val = val[:sl] + "..."
                     if val is not None:
-                        atts.append('{}={}'.format(k, val))
+                        atts.append(f'{k}={val}')
             satts = "" if len(atts) == 0 else ("\\n" + "\\n".join(atts))
 
             connects = []
@@ -288,20 +288,18 @@ class OnnxInferenceExport:
                     subgraph = "\n".join(lines[start:])
 
                     # connecting the subgraph
-                    cluster = "cluster_{}{}_{}".format(
-                        node.op_type, id(node), id(field))
-                    exp.append("  subgraph {} {{".format(cluster))
+                    cluster = f"cluster_{node.op_type}{id(node)}_{id(field)}"
+                    exp.append(f"  subgraph {cluster} {{")
                     exp.append('    label="{0}\\n({1}){2}";'.format(
                         dobj['op_type'], dot_name(dobj['name']), satts))
-                    exp.append('    fontsize={0};'.format(fontsize))
+                    exp.append(f'    fontsize={fontsize};')
                     exp.append('    color=black;')
                     exp.append(
                         '\n'.join(map(lambda s: '  ' + s, subgraph.split('\n'))))
 
                     node0 = body.node[0]
                     connects.append((
-                        "{}{}".format(dot_name(subprefix),
-                                      dot_name(node0.name)),
+                        f"{dot_name(subprefix)}{dot_name(node0.name)}",
                         cluster))
 
                     for inp1, inp2 in zip(node.input, body.input):
@@ -352,7 +350,7 @@ class OnnxInferenceExport:
                 spl = dot.split('\n')[1:]
                 exp.append('')
                 exp.append('  subgraph cluster_%d {' % i)
-                exp.append('    label="%s";' % v.obj.name)
+                exp.append(f'    label="{v.obj.name}";')
                 exp.append('    color=blue;')
                 #exp.append('    style=filled;')
                 exp.extend(('  ' + line) for line in spl)
@@ -408,36 +406,33 @@ class OnnxInferenceExport:
                     spl = line.strip().split(':')
                     if len(spl) != 2:
                         raise RuntimeError(  # pragma: no cover
-                            "Unable to interpret line '{}'.".format(line))
+                            f"Unable to interpret line '{line}'.")
 
                     if spl[0].strip() in ('type', ):
                         st = spl[1].strip()
                         if st in {'INT', 'INTS', 'FLOAT', 'FLOATS',
                                   'STRING', 'STRINGS', 'TENSOR'}:
-                            spl[1] = '"{}"'.format(st)
+                            spl[1] = f'"{st}"'
 
                     if spl[0] in ('floats', 'ints'):
                         if leave:
-                            rows.append("{},".format(spl[1]))
+                            rows.append(f"{spl[1]},")
                         else:
-                            rows.append('"{}": [{},'.format(
-                                spl[0], spl[1].strip()))
+                            rows.append(f'"{spl[0]}": [{spl[1].strip()},')
                             leave = spl[0]
                     elif leave:
                         rows[-1] = rows[-1].strip(',')
                         rows.append('],')
-                        rows.append('"{}": {},'.format(
-                            spl[0].strip(), spl[1].strip()))
+                        rows.append(f'"{spl[0].strip()}": {spl[1].strip()},')
                         leave = None
                     else:
-                        rows.append('"{}": {},'.format(
-                            spl[0].strip(), spl[1].strip()))
+                        rows.append(f'"{spl[0].strip()}": {spl[1].strip()},')
                 elif line.strip() == "}":
                     rows[-1] = rows[-1].rstrip(",")
                     rows.append(line + ",")
                 elif line:
                     raise RuntimeError(  # pragma: no cover
-                        "Unable to interpret line '{}'.".format(line))
+                        f"Unable to interpret line '{line}'.")
             rows[-1] = rows[-1].rstrip(',')
             rows.append("}")
             js = "\n".join(rows)
@@ -448,7 +443,7 @@ class OnnxInferenceExport:
                 js2 = "\n".join("%04d %s" % (i + 1, line)
                                 for i, line in enumerate(js.split("\n")))
                 raise RuntimeError(
-                    "Unable to parse JSON\n{}".format(js2)) from e
+                    f"Unable to parse JSON\n{js2}") from e
             return content
 
         # meta data
@@ -532,7 +527,7 @@ class OnnxInferenceExport:
         """
         if not isinstance(prefix, str):
             raise TypeError(  # pragma: no cover
-                "prefix must be a string not %r." % type(prefix))
+                f"prefix must be a string not {type(prefix)!r}.")
 
         def clean_args(args):
             new_args = []
@@ -549,8 +544,7 @@ class OnnxInferenceExport:
 
         if self.oinf.runtime != 'python':
             raise ValueError(
-                "The runtime must be 'python' not '{}'.".format(
-                    self.oinf.runtime))
+                f"The runtime must be 'python' not '{self.oinf.runtime}'.")
 
         # metadata
         obj = {}
@@ -571,7 +565,7 @@ class OnnxInferenceExport:
                       "        self._load_inits()", "",
                       "    @property",
                       "    def metadata(self):",
-                      "        return %r" % obj, ""]
+                      f"        return {obj!r}", ""]
 
         # inputs
         if hasattr(self.oinf.obj, 'graph'):
@@ -583,14 +577,14 @@ class OnnxInferenceExport:
 
         code_lines.extend([
             "    @property", "    def inputs(self):",
-            "        return %r" % inputs,
+            f"        return {inputs!r}",
             ""
         ])
 
         # outputs
         code_lines.extend([
             "    @property", "    def outputs(self):",
-            "        return %r" % outputs,
+            f"        return {outputs!r}",
             ""
         ])
 
@@ -603,25 +597,23 @@ class OnnxInferenceExport:
                 value = numpy_helper.to_array(obj)
                 bt = BytesIO()
                 pickle.dump(value, bt)
-                name = '{1}{0}.pkl'.format(obj.name, prefix)
+                name = f'{prefix}{obj.name}.pkl'
                 if inline:
                     code_lines.extend([
-                        "        iocst = %r" % bt.getvalue(),
-                        "        self._inits['{0}'] = pickle.loads(iocst)".format(
-                            obj.name)
+                        f"        iocst = {bt.getvalue()!r}",
+                        f"        self._inits['{obj.name}'] = pickle.loads(iocst)"
                     ])
                 else:
                     file_data[name] = bt.getvalue()
                     code_lines.append(
-                        "        self._inits['{0}'] = pickle.loads('{1}')".format(
-                            obj.name, name))
+                        f"        self._inits['{obj.name}'] = pickle.loads('{name}')")
             code_lines.append('')
 
         # inputs, outputs
         inputs = self.oinf.input_names
 
         # nodes
-        code_lines.extend(['    def run(self, %s):' % ', '.join(inputs)])
+        code_lines.extend([f"    def run(self, {', '.join(inputs)}):"])
         ops = {}
         if hasattr(self.oinf.obj, 'graph'):
             code_lines.append('        # constant')
@@ -643,7 +635,7 @@ class OnnxInferenceExport:
                 ', '.join(node.outputs), fct, ', '.join(args)))
         code_lines.append('')
         code_lines.append('        # return')
-        code_lines.append('        return %s' % ', '.join(outputs))
+        code_lines.append(f"        return {', '.join(outputs)}")
         code_lines.append('')
 
         # operator code
@@ -651,8 +643,7 @@ class OnnxInferenceExport:
         for name, op in ops.items():
             inputs_args = clean_args(op.inputs_args)
 
-            code_nodes.append('def {0}({1}):'.format(
-                name, ', '.join(inputs_args)))
+            code_nodes.append(f"def {name}({', '.join(inputs_args)}):")
             imps, code = op.to_python(op.python_inputs)
             if imps is not None:
                 if not isinstance(imps, list):
@@ -680,7 +671,7 @@ class OnnxInferenceExport:
                         f.write(v)
                 else:
                     raise NotImplementedError(  # pragma: no cover
-                        "Unknown extension for file '{}'.".format(k))
+                        f"Unknown extension for file '{k}'.")
         return file_data
 
     def to_text(self, recursive=False, grid=5, distance=5, kind='bi'):
@@ -705,7 +696,7 @@ class OnnxInferenceExport:
         if kind == 'seq':
             return onnx_simple_text_plot(self.oinf.obj)
         raise ValueError(  # pragma: no cover
-            "Unexpected value for format=%r." % format)
+            f"Unexpected value for format={format!r}.")
 
     def to_onnx_code(self):
         """

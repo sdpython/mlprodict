@@ -155,7 +155,7 @@ def get_rst_doc(op_name):
 
     def format_name_with_domain(sch):
         if sch.domain:
-            return '{} ({})'.format(sch.name, sch.domain)
+            return f'{sch.name} ({sch.domain})'
         return sch.name
 
     def format_option(obj):
@@ -167,7 +167,7 @@ def get_rst_doc(op_name):
         if getattr(obj, 'isHomogeneous', False):
             opts.append('heterogeneous')
         if opts:
-            return " (%s)" % ", ".join(opts)
+            return f" ({', '.join(opts)})"
         return ""  # pragma: no cover
 
     def getconstraint(const, ii):
@@ -192,7 +192,7 @@ def get_rst_doc(op_name):
             doc = ''  # pragma: no cover
         if not isinstance(doc, str):
             raise TypeError(  # pragma: no cover
-                "Unexpected type {} for {}".format(type(doc), doc))
+                f"Unexpected type {type(doc)} for {doc}")
         doc = textwrap.dedent(doc)
         main_docs_url = "https://github.com/onnx/onnx/blob/master/"
         rep = {
@@ -304,7 +304,7 @@ def debug_onnx_object(obj, depth=3):
             if 'method-wrapper' in sval or "built-in method" in sval:
                 continue
 
-            rows.append("- {}: {}".format(k, sval))
+            rows.append(f"- {k}: {sval}")
             if k.startswith('__') and k.endswith('__'):
                 continue
             if val is None:
@@ -316,7 +316,7 @@ def debug_onnx_object(obj, depth=3):
                 except TypeError:  # pragma: no cover
                     sorted_list = list(val.items())
                 for kk, vv in sorted_list:
-                    rows.append("  - [%s]: %s" % (str(kk), str(vv)))
+                    rows.append(f"  - [{str(kk)}]: {str(vv)}")
                     res = debug_onnx_object(vv, depth - 1)
                     if res is None:
                         continue

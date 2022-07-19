@@ -14,5 +14,4 @@ def check_type(model, model_type):
     """
     if not isinstance(model, model_type):
         raise TypeError(  # pragma: no cover
-            "Model type {0} is not of type {1}.".format(
-                type(model), model_type))
+            f"Model type {type(model)} is not of type {model_type}.")
