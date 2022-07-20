@@ -42,6 +42,10 @@ inline bool _isnan_(float x) { return _isnan_((double)x); }
 #undef max
 #endif
 
+#ifndef _SSIZE_T_DEFINED
+typedef int64_t ssize_t;
+#define _SSIZE_T_DEFINED
+#endif
 
 enum class POST_EVAL_TRANSFORM {
     NONE,
