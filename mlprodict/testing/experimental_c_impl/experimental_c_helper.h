@@ -33,6 +33,10 @@
 namespace py = pybind11;
 #endif
 
+#ifndef _SSIZE_T_DEFINED
+typedef int64_t ssize_t;
+#define _SSIZE_T_DEFINED
+#endif
 
 #if defined(_WIN32) || defined(WIN32)
 
