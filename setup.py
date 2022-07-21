@@ -45,7 +45,8 @@ packages = find_packages()
 package_dir = {k: os.path.join('.', k.replace(".", "/")) for k in packages}
 package_data = {
     project_var_name + ".asv_benchmark": ["*.json"],
-    project_var_name + ".npy": ["ort_get_all_operator_schema.txt"],
+    project_var_name + ".npy": ["ort_get_all_operator_schema.txt",
+                                "ort_get_all_operator_schema.tmpl"],
     project_var_name + ".onnxrt.ops_cpu": ["*.cpp", "*.hpp"],
     project_var_name + ".onnxrt.validate.data": ["*.csv"],
     project_var_name + ".onnx_tools": ["*.tmpl"],
@@ -458,9 +459,9 @@ setup(
     package_dir=package_dir,
     package_data=package_data,
     setup_requires=["pybind11", "numpy", "onnx>=1.7.0", "scikit-learn>=0.23",
-                    "jinja2", 'cython', 'pyquicksetup'],
+                    'cython', 'pyquicksetup'],
     install_requires=["pybind11", "numpy>=1.17", "onnx>=1.7.0", 'scipy>=1.0.0',
-                      'jinja2', 'cython'],
+                      'cython'],
     extras_require={
         'npy': ['scikit-learn>=0.24', 'skl2onnx>=1.10.2'],
         'onnx_conv': [
@@ -473,7 +474,7 @@ setup(
             'scikit-learn>=0.24', 'joblib', 'threadpoolctl',
             'onnxruntime>=1.19.0', 'onnxruntime-extensions'],
         'all': [
-            'scikit-learn>=0.24', 'skl2onnx>=1.10.2',
+            'jinja2', 'scikit-learn>=0.24', 'skl2onnx>=1.10.2',
             'onnxruntime>=1.10.0', 'scipy' 'joblib', 'pandas',
             'threadpoolctl', 'mlinsights>=0.3', 'lightgbm',
             'xgboost', 'mlstatpy>=0.3.593', 'onnxruntime-extensions'],
