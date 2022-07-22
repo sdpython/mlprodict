@@ -7,18 +7,18 @@ environment:
       PYTHON_ARCH: "64"
 
 install:
-  - "%PYTHONEXE% -m pip install wheel"
-  - "%PYTHONEXE% -m pip install numpy pandas scipy matplotlib scikit-learn"
-  - "%PYTHONEXE% -m pip install onnx onnxruntime"
-  - "%PYTHONEXE% -m pip install -r requirements-win.txt"
+  - "%PYTHON% -m pip install wheel"
+  - "%PYTHON% -m pip install numpy pandas scipy matplotlib scikit-learn"
+  - "%PYTHON% -m pip install onnx onnxruntime"
+  - "%PYTHON% -m pip install -r requirements-win.txt"
 
 build: false
 
 before_test:
-  - "%PYTHONEXE% -u setup.py build_ext --inplace"
+  - "%PYTHON% -u setup.py build_ext --inplace"
 
 test_script:
-  - "%PYTHONEXE% -u setup.py unittests -d 15 -g \".*((LONG)|(SKIP)|(notebooks)|(asv)|(plotting)).*\""
+  - "%PYTHON% -u setup.py unittests -d 15 -g \".*((LONG)|(SKIP)|(notebooks)|(asv)|(plotting)).*\""
 
 after_test:
   - "%PYTHONEXE% -u setup.py bdist_wheel"

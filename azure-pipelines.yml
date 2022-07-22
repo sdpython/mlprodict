@@ -196,7 +196,7 @@ jobs:
     displayName: 'Install tools'
   - script: python -m pip install --upgrade pip numpy pandas matplotlib scipy scikit-learn matplotlib
     displayName: 'Install tools'
-  - script: python -m pip install onnxruntime onnxruntime-extensions --no-deps
+  - script: python -m pip install onnxruntime --no-deps
     displayName: 'Install onnx'
   - script: pip install -r requirements-win.txt --upgrade-strategy eager
     displayName: 'Install Requirements'
