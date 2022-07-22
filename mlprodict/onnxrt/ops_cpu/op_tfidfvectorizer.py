@@ -27,12 +27,15 @@ class TfIdfVectorizer(OpRunUnary):
                             **options)
         self.rt_ = RuntimeTfIdfVectorizer()
         if len(self.pool_strings) != 0:
-            pool_int64s = list(range(len(self.pool_strings)))
             pool_strings_ = numpy.array(
                 [_.decode('utf-8') for _ in self.pool_strings])
             mapping = {}
+            pool_int64s = []
             for i, w in enumerate(pool_strings_):
-                mapping[w] = i
+                if w not in mapping:
+                    # 1-gram are processed first.
+                    mapping[w] = i
+                pool_int64s.append(mapping[w])
         else:
             mapping = None
             pool_int64s = self.pool_int64s
@@ -49,13 +52,13 @@ class TfIdfVectorizer(OpRunUnary):
         if self.mapping_ is None:
             res = self.rt_.compute(x)
             return (res.reshape((x.shape[0], -1)), )
-        else:
-            xi = numpy.empty(x.shape, dtype=numpy.int64)
-            for i in range(0, x.shape[0]):
-                for j in range(0, x.shape[1]):
-                    try:
-                        xi[i, j] = self.mapping_[x[i, j]]
-                    except KeyError:
-                        xi[i, j] = -1
-            res = self.rt_.compute(xi)
-            return (res.reshape((x.shape[0], -1)), )
+
+        xi = numpy.empty(x.shape, dtype=numpy.int64)
+        for i in range(0, x.shape[0]):
+            for j in range(0, x.shape[1]):
+                try:
+                    xi[i, j] = self.mapping_[x[i, j]]
+                except KeyError:
+                    xi[i, j] = -1
+        res = self.rt_.compute(xi)
+        return (res.reshape((x.shape[0], -1)), )

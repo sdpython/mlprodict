@@ -581,7 +581,7 @@ def _to_onnx_function_pipeline(
         op_version = __max_supported_opset__
     elif isinstance(target_opset, int):
         op_version = target_opset
-    else:
+    else:  # pragma: no cover
         from .. import __max_supported_opset__
         op_version = target_opset.get('', __max_supported_opset__)
 
@@ -622,9 +622,10 @@ def _to_onnx_function_pipeline(
                     last_op, output_names=input_names[0],
                     op_version=op_version)]
             else:
-                input_nodes = [OnnxIdentity(last_op[i], output_names=[n],  # pylint: disable=E1136
-                                            op_version=op_version)
-                               for i, n in enumerate(input_names)]
+                input_nodes = [  # pragma: no cover
+                    OnnxIdentity(last_op[i], output_names=[n],  # pylint: disable=E1136
+                                 op_version=op_version)
+                    for i, n in enumerate(input_names)]
         output_names = [f"{step[0]}_{o}" for o in protof.output]
 
         logger.debug("_to_onnx_function_pipeline:%s:%r->%r:%r:%s",
@@ -708,7 +709,7 @@ def get_column_index(i, inputs):
             vi += 1
             pos = end
             if vi >= len(inputs):
-                raise RuntimeError(
+                raise RuntimeError(  # pragma: no cover
                     "Input %r (i=%r, end=%r) is not available in\n%r" % (
                         vi, i, end, pprint.pformat(inputs)))
             rel_end = inputs[vi][1].shape[1]
