@@ -64,8 +64,10 @@ class TestOnnxConvTreeEnsemble(ExtTestCase):
                         XGBRegressor}):
                     decimal = 7
                 xt = X_test.astype(dtype)
-                for opset in [(16, 3), (15, 1)]:
-                    if opset[1] > __max_supported_opsets__['ai.onnx.ml']:
+                for opset in [(17, 3), (15, 1)]:
+                    if (opset[1] > __max_supported_opsets__['ai.onnx.ml'] or (
+                            opset[0] == 15 and dtype == numpy.float64 and
+                            runtime == 'onnxruntime1')):
                         continue
                     with self.subTest(runtime=runtime, dtype=dtype,
                                       model=gbm.__class__.__name__,
@@ -190,8 +192,10 @@ class TestOnnxConvTreeEnsemble(ExtTestCase):
                                           GradientBoostingClassifier}):
                     decimal = 12
                 xt = X_test.astype(dtype)
-                for opset in [(15, 1), (16, 3)]:
-                    if opset[1] > __max_supported_opsets__['ai.onnx.ml']:
+                for opset in [(15, 1), (17, 3)]:
+                    if (opset[1] > __max_supported_opsets__['ai.onnx.ml'] or (
+                            opset[0] == 15 and dtype == numpy.float64 and
+                            runtime == 'onnxruntime1')):
                         continue
                     with self.subTest(runtime=runtime, dtype=dtype,
                                       model=gbm.__class__.__name__,
