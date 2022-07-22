@@ -14,7 +14,7 @@ jyquickhelper
 lightgbm
 llvmlite
 matplotlib
-mlinsights>=0.3.631
+mlinsights>=0.3.649
 mlstatpy
 nbconvert
 notebook
