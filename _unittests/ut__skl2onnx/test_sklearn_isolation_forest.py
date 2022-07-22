@@ -6,7 +6,8 @@ import numpy
 from sklearn.ensemble import IsolationForest
 from skl2onnx import to_onnx
 from pyquickhelper.pycode import ExtTestCase
-from mlprodict.testing.test_utils import dump_data_and_model, TARGET_OPSET
+from mlprodict.testing.test_utils import dump_data_and_model
+from mlprodict import __max_supported_opset__ as TARGET_OPSET
 
 
 class TestSklearnIsolationForest(ExtTestCase):

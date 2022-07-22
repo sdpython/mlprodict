@@ -21,6 +21,10 @@ function converted in ONNX.
 Everybody playing with :epkg:`scikit-learn` knows :epkg:`numpy`
 then it should be possible to write a function using :epkg:`numpy`
 and automatically have it converted into :epkg:`ONNX`.
+This tutorial focuses more on the implementation of custom
+transformer for :epkg:`scikit-learn`. Notebook
+:ref:`lossfunctionsrst` focuses on the implementation of
+loss functions to train machine learned models.
 
 This API was first added to *mlprodict* in version 0.6.
 
@@ -44,7 +48,7 @@ Following example shows how to replace *numpy* by *ONNX*.
 
 .. runpython::
     :showcode:
-    :warningout: DeprecationWarning
+    :warningout: DeprecationWarning, FutureWarning
     :process:
 
     from typing import Any
@@ -183,7 +187,7 @@ One instance is added in a pipeline trained on the Iris dataset.
 
 .. runpython::
     :showcode:
-    :warningout: DeprecationWarning
+    :warningout: DeprecationWarning, FutureWarning
     :process:
 
     from typing import Any
@@ -338,7 +342,7 @@ is used. Let's see how to do it.
 
 .. runpython::
     :showcode:
-    :warningout: DeprecationWarning
+    :warningout: DeprecationWarning, FutureWarning
 
     import numpy
     from pandas import DataFrame
@@ -451,7 +455,7 @@ the class is a transformer and automatically adds method
 
 .. runpython::
     :showcode:
-    :warningout: DeprecationWarning
+    :warningout: DeprecationWarning, FutureWarning
 
     import numpy
     from pandas import DataFrame
@@ -513,7 +517,7 @@ with arguments :class:`onnxnumpy_np
 
 .. runpython::
     :showcode:
-    :warningout: DeprecationWarning
+    :warningout: DeprecationWarning, FutureWarning
     :process:
 
     from typing import Any
@@ -561,7 +565,7 @@ as an argument of `to_onnx`.
 
 .. runpython::
     :showcode:
-    :warningout: DeprecationWarning
+    :warningout: DeprecationWarning, FutureWarning
     :process:
 
     from typing import Any
@@ -617,7 +621,7 @@ another operator.
 
 .. runpython::
     :showcode:
-    :warningout: DeprecationWarning
+    :warningout: DeprecationWarning, FutureWarning
     :process:
 
     import numpy as np
@@ -709,7 +713,7 @@ the conversion to ONNX :meth:`to_algebra
 
 .. runpython::
     :showcode:
-    :warningout: DeprecationWarning
+    :warningout: DeprecationWarning, FutureWarning
     :process:
 
     from typing import Any
@@ -759,7 +763,7 @@ types. If types are different, one must be cast into the other one.
 .. runpython::
     :showcode:
     :exception:
-    :warningout: DeprecationWarning
+    :warningout: DeprecationWarning, FutureWarning
     :process:
 
     from typing import Any
@@ -786,7 +790,7 @@ except one.
 .. runpython::
     :showcode:
     :exception:
-    :warningout: DeprecationWarning
+    :warningout: DeprecationWarning, FutureWarning
     :process:
 
     from typing import Any
@@ -837,7 +841,7 @@ a new one supporting custom functions implemented this API.
 .. runpython::
     :showcode:
     :exception:
-    :warningout: DeprecationWarning
+    :warningout: DeprecationWarning, FutureWarning
     :process:
 
     from typing import Any
@@ -889,7 +893,7 @@ does. However it produces the following error.
 .. runpython::
     :showcode:
     :exception:
-    :warningout: DeprecationWarning
+    :warningout: DeprecationWarning, FutureWarning
     :process:
 
     import numpy
@@ -943,7 +947,7 @@ in class @see cl OnnxVar.
 
 .. runpython::
     :showcode:
-    :warningout: DeprecationWarning
+    :warningout: DeprecationWarning, FutureWarning
     :process:
 
     from typing import Any
@@ -991,7 +995,7 @@ is called.
 
 .. runpython::
     :showcode:
-    :warningout: DeprecationWarning
+    :warningout: DeprecationWarning, FutureWarning
     :process:
 
     from typing import Any

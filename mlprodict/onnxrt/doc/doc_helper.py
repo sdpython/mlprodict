@@ -6,7 +6,6 @@ import keyword
 import textwrap
 import re
 from onnx.defs import OpSchema
-from ...tools import change_style
 
 
 def type_mapping(name):
@@ -127,6 +126,18 @@ class NewOperatorSchema:
         self.domain = 'mlprodict'
 
 
+def change_style(name):
+    """
+    Switches from *AaBb* into *aa_bb*.
+
+    @param      name    name to convert
+    @return             converted name
+    """
+    s1 = re.sub('(.)([A-Z][a-z]+)', r'\1_\2', name)
+    s2 = re.sub('([a-z0-9])([A-Z])', r'\1_\2', s1).lower()
+    return s2 if not keyword.iskeyword(s2) else s2 + "_"
+
+
 def get_rst_doc(op_name):
     """
     Returns a documentation in RST format
@@ -144,7 +155,7 @@ def get_rst_doc(op_name):
 
     def format_name_with_domain(sch):
         if sch.domain:
-            return '{} ({})'.format(sch.name, sch.domain)
+            return f'{sch.name} ({sch.domain})'
         return sch.name
 
     def format_option(obj):
@@ -156,7 +167,7 @@ def get_rst_doc(op_name):
         if getattr(obj, 'isHomogeneous', False):
             opts.append('heterogeneous')
         if opts:
-            return " (%s)" % ", ".join(opts)
+            return f" ({', '.join(opts)})"
         return ""  # pragma: no cover
 
     def getconstraint(const, ii):
@@ -181,7 +192,7 @@ def get_rst_doc(op_name):
             doc = ''  # pragma: no cover
         if not isinstance(doc, str):
             raise TypeError(  # pragma: no cover
-                "Unexpected type {} for {}".format(type(doc), doc))
+                f"Unexpected type {type(doc)} for {doc}")
         doc = textwrap.dedent(doc)
         main_docs_url = "https://github.com/onnx/onnx/blob/master/"
         rep = {
@@ -248,6 +259,7 @@ def get_rst_doc(op_name):
 
     fnwd = format_name_with_domain
     tmpl = _template_operator
+
     docs = tmpl.render(schemas=schemas, OpSchema=OpSchema,
                        len=len, getattr=getattr, sorted=sorted,
                        format_option=format_option,
@@ -292,7 +304,7 @@ def debug_onnx_object(obj, depth=3):
             if 'method-wrapper' in sval or "built-in method" in sval:
                 continue
 
-            rows.append("- {}: {}".format(k, sval))
+            rows.append(f"- {k}: {sval}")
             if k.startswith('__') and k.endswith('__'):
                 continue
             if val is None:
@@ -304,7 +316,7 @@ def debug_onnx_object(obj, depth=3):
                 except TypeError:  # pragma: no cover
                     sorted_list = list(val.items())
                 for kk, vv in sorted_list:
-                    rows.append("  - [%s]: %s" % (str(kk), str(vv)))
+                    rows.append(f"  - [{str(kk)}]: {str(vv)}")
                     res = debug_onnx_object(vv, depth - 1)
                     if res is None:
                         continue
@@ -352,7 +364,7 @@ def visual_rst_template():
     Fitted on a problem type *{{ kind }}*
     (see :func:`find_suitable_problem
     <mlprodict.onnxrt.validate.validate_problems.find_suitable_problem>`),
-    method {{ method }} matches output {{ output_index }}.
+    method `{{ method }}` matches output {{ output_index }}.
     {{ optim_param }}
 
     ::

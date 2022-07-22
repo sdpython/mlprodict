@@ -17,7 +17,7 @@ class ReduceMin(OpRunReduceNumpy):
                                   expected_attributes=ReduceMin.atts,
                                   **options)
 
-    def _run(self, data):  # pylint: disable=W0221
+    def _run(self, data, attributes=None, verbose=0, fLOG=None):  # pylint: disable=W0221
         axes = tuple(self.axes) if self.axes else None
         return (numpy.minimum.reduce(data, axis=axes,  # pylint: disable=E1123
                                      keepdims=self.keepdims == 1), )

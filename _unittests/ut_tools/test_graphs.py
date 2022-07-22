@@ -13,7 +13,7 @@ from pyquickhelper.pycode import ExtTestCase
 from skl2onnx.algebra.onnx_ops import OnnxAdd, OnnxSub  # pylint: disable=E0611
 from mlprodict.onnx_conv import to_onnx
 from mlprodict.onnxrt import OnnxInference
-from mlprodict.tools import get_opset_number_from_onnx
+from mlprodict import __max_supported_opset__ as TARGET_OPSET
 from mlprodict.tools.graphs import onnx2bigraph, BiGraph
 
 
@@ -76,7 +76,7 @@ class TestGraphs(ExtTestCase):
 
     def test_pipe_graph_display_text(self):
         idi = numpy.identity(2).astype(numpy.float32)
-        opv = get_opset_number_from_onnx()
+        opv = TARGET_OPSET
         A = OnnxAdd('X', idi, op_version=opv)
         B = OnnxSub(A, 'W', output_names=['Y'], op_version=opv)
         onx = B.to_onnx({'X': idi.astype(numpy.float32),

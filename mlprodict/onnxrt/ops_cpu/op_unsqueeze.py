@@ -6,7 +6,6 @@
 """
 import numpy
 from onnx.defs import onnx_opset_version
-from ..shape_object import ShapeObject
 from ._op import OpRunUnaryNum, OpRun
 
 
@@ -25,7 +24,7 @@ class Unsqueeze_1(OpRunUnaryNum):
         elif isinstance(self.axes, list):
             self.axes = tuple(self.axes)
 
-    def _run(self, data):  # pylint: disable=W0221
+    def _run(self, data, attributes=None, verbose=0, fLOG=None):  # pylint: disable=W0221
         if isinstance(self.axes, (tuple, list)):
             sq = data
             for a in self.axes:
@@ -34,16 +33,6 @@ class Unsqueeze_1(OpRunUnaryNum):
             raise RuntimeError(  # pragma: no cover
                 "axes cannot be None for operator Unsqueeze (Unsqueeze_1).")
         return (sq, )
-
-    def _infer_shapes(self, x):  # pylint: disable=W0221
-        return (x.unsqueeze(axes=self.axes), )
-
-    def _infer_types(self, x):  # pylint: disable=W0221
-        return (x, )
-
-    def _infer_sizes(self, *args, **kwargs):
-        res = self.run(*args, **kwargs)
-        return (dict(temp=0), ) + res
 
 
 class Unsqueeze_11(Unsqueeze_1):
@@ -60,7 +49,7 @@ class Unsqueeze_13(OpRun):
                        **options)
         self.axes = None
 
-    def _run(self, data, axes=None):  # pylint: disable=W0221
+    def _run(self, data, axes=None, attributes=None, verbose=0, fLOG=None):  # pylint: disable=W0221
         if axes is not None:
             if hasattr(axes, '__iter__') and len(axes.shape) > 0:
                 sq = numpy.expand_dims(data, axis=tuple(axes))
@@ -71,20 +60,10 @@ class Unsqueeze_13(OpRun):
                 "axes cannot be None for operator Unsqueeze (Unsqueeze_13).")
         return (sq, )
 
-    def _infer_shapes(self, x, axes=None):  # pylint: disable=W0221
-        return (ShapeObject(None, dtype=x.dtype), )
-
-    def _infer_types(self, x, axes=None):  # pylint: disable=W0221
-        return (x, )
-
-    def _infer_sizes(self, *args, **kwargs):
-        res = self.run(*args, **kwargs)
-        return (dict(temp=0), ) + res
-
 
 if onnx_opset_version() >= 13:
     Unsqueeze = Unsqueeze_13
-elif onnx_opset_version() >= 11:
+elif onnx_opset_version() >= 11:  # pragma: no cover
     Unsqueeze = Unsqueeze_11
-else:
+else:  # pragma: no cover
     Unsqueeze = Unsqueeze_1

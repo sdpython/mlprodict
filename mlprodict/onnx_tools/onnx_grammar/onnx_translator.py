@@ -102,11 +102,11 @@ class OnnxTranslator(CodeTranslator):
             if isinstance(value, str):
                 return '"{}"'.format(value.replace('"', '\\"').replace('\\', '\\\\'))
             if isinstance(value, list):
-                return "[{}]".format(", ".join(map(OnnxTranslator.Parameter.format_value, value)))
+                return f"[{', '.join(map(OnnxTranslator.Parameter.format_value, value))}]"
             if isinstance(value, tuple):
                 if value == ('#NODEFAULT#', ):
                     return None
-                return "({})".format(", ".join(map(OnnxTranslator.Parameter.format_value, value)))
+                return f"({', '.join(map(OnnxTranslator.Parameter.format_value, value))})"
             return str(value)
 
         @property
@@ -175,7 +175,7 @@ class OnnxTranslator(CodeTranslator):
             if hasattr(info, 'col_offset'):
                 col_offset = info.col_offset
 
-        return "line {}, col {}".format(lineno, col_offset)
+        return f"line {lineno}, col {col_offset}"
 
     def export(self, context=None, format='code',  # pylint: disable=W0221
                output_names=None):
@@ -227,17 +227,16 @@ class OnnxTranslator(CodeTranslator):
         def write_expression(stack_fct_used, expr, indent, parameter_mapping=None):
             if isinstance(expr, str):
                 # an argument
-                return ['{}{}'.format(" " * indent * 4, expr)]
+                return [f"{' ' * indent * 4}{expr}"]
             if isinstance(expr, (int, float)):
                 # an argument
-                return ['{}{}'.format(" " * indent * 4, expr)]
+                return [f"{' ' * indent * 4}{expr}"]
             if isinstance(expr, OnnxTranslator.Parameter):
                 if parameter_mapping is None:
                     name = expr.name
                 else:
                     name = parameter_mapping.get(expr.name, expr.name)
-                return ["{}{}={}".format(" " * indent * 4, name,
-                                         expr.formatted_value)]
+                return [f"{' ' * indent * 4}{name}={expr.formatted_value}"]
             rows = []
             if isinstance(expr, tuple):
                 expr = [expr]
@@ -247,7 +246,7 @@ class OnnxTranslator(CodeTranslator):
                     opon = args["args"]
                     onnx_name = OnnxTranslator._binary_operators[opname]
                     rows.append(
-                        '{}Onnx{}('.format(" " * indent * 4, onnx_name))
+                        f"{' ' * indent * 4}Onnx{onnx_name}(")
                     for expr2 in opon:
                         sexpr2 = write_expression(
                             stack_fct_used, expr2, indent + 1)
@@ -255,15 +254,15 @@ class OnnxTranslator(CodeTranslator):
                             continue  # pragma: no cover
                         rows.extend(sexpr2)
                         rows[-1] += ","
-                    rows.append('{}op_version=op_version'.format(
-                        " " * (indent + 1) * 4))
-                    rows.append('{})'.format(" " * indent * 4))
+                    rows.append(
+                        f"{' ' * (indent + 1) * 4}op_version=op_version")
+                    rows.append(f"{' ' * indent * 4})")
                 elif op == 'UnaryOp':
                     opname = args["op"]
                     opon = args["args"]
                     onnx_name = OnnxTranslator._unary_operators[opname]
                     rows.append(
-                        '{}Onnx{}('.format(" " * indent * 4, onnx_name))
+                        f"{' ' * indent * 4}Onnx{onnx_name}(")
                     for expr2 in opon:
                         sexpr2 = write_expression(
                             stack_fct_used, expr2, indent + 1)
@@ -271,9 +270,9 @@ class OnnxTranslator(CodeTranslator):
                             continue
                         rows.extend(sexpr2)
                         rows[-1] += ","
-                    rows.append('{}op_version=op_version'.format(
-                        " " * (indent + 1) * 4))
-                    rows.append('{})'.format(" " * indent * 4))
+                    rows.append(
+                        f"{' ' * (indent + 1) * 4}op_version=op_version")
+                    rows.append(f"{' ' * indent * 4})")
                 elif op == 'Call':
                     name = args['name']
                     if name.startswith("onnx_"):
@@ -289,19 +288,19 @@ class OnnxTranslator(CodeTranslator):
                     op_conv = find_onnx_correspondance(context[name], args)
                     if callable(op_conv) and op_conv.__name__.startswith('py_'):
                         rows.append(
-                            '{}{}('.format(" " * indent * 4, op_conv.__name__))
+                            f"{' ' * indent * 4}{op_conv.__name__}(")
                     elif callable(op_conv) and op_conv.__name__.startswith('onnx_'):
                         stack_fct_used.append(op_conv.__name__)
                         rows.append(
-                            '{}{}('.format(" " * indent * 4, op_conv))
+                            f"{' ' * indent * 4}{op_conv}(")
                     else:
                         prefix = "onnx_" if 'a' <= op_conv[0] <= 'z' else 'Onnx'
                         if prefix == "onnx_":
                             stack_fct_used.append(
-                                "{}{}".format(prefix, op_conv))
+                                f"{prefix}{op_conv}")
                             prefix = '_' + prefix
                         rows.append(
-                            '{}{}{}('.format(" " * indent * 4, prefix, op_conv))
+                            f"{' ' * indent * 4}{prefix}{op_conv}(")
 
                     opon = args["args"]
                     opon = opon[1:]
@@ -313,12 +312,12 @@ class OnnxTranslator(CodeTranslator):
                             continue
                         rows.extend(sexpr2)
                         rows[-1] += ","
-                    rows.append('{}op_version=op_version'.format(
-                        " " * (indent + 1) * 4))
-                    rows.append('{})'.format(" " * indent * 4))
+                    rows.append(
+                        f"{' ' * (indent + 1) * 4}op_version=op_version")
+                    rows.append(f"{' ' * indent * 4})")
                 else:
                     raise RuntimeError(  # pragma: no cover
-                        "Unable to interpret '{}'.".format(expr))
+                        f"Unable to interpret '{expr}'.")
             return rows
 
         def write_function(stack_fct_used, to_replaces, node):
@@ -334,42 +333,41 @@ class OnnxTranslator(CodeTranslator):
             if all(map(lambda s: 'op_version=' not in s, list_args)):
                 list_args.append("op_version=None")
             fct_name = args['name']
-            rows.append("def {}({}):".format(
-                fct_name, ', '.join(list_args)))
+            rows.append(f"def {fct_name}({', '.join(list_args)}):")
             indent = 1
 
-            to_replace = "# __HEADER__{}".format(id(node))
+            to_replace = f"# __HEADER__{id(node)}"
             to_replaces.append(to_replace)
-            rows.append("{}{}".format(" " * (indent * 4), to_replace))
+            rows.append(f"{' ' * (indent * 4)}{to_replace}")
 
             code = args['code']
             for op, args in code:
                 if op == "Assign":
                     name = args['name']
                     args = args["args"]
-                    rows.append("{}{} = (".format(" " * (indent * 4), name))
+                    rows.append(f"{' ' * (indent * 4)}{name} = (")
                     rows.extend(write_expression(
                         stack_fct_used, args, indent + 1))
-                    rows.append("{})".format(" " * (indent * 4)))
+                    rows.append(f"{' ' * (indent * 4)})")
                 elif op == "Return":
                     args = args["code"]
                     if output_names is None:
-                        rows.append("{}return (".format(" " * (indent * 4)))
+                        rows.append(f"{' ' * (indent * 4)}return (")
                         rows.extend(write_expression(
                             stack_fct_used, args, indent + 1))
-                        rows.append("{})".format(" " * (indent * 4)))
+                        rows.append(f"{' ' * (indent * 4)})")
                     else:
                         rows.append(
-                            "{}return OnnxIdentity(".format(" " * (indent * 4)))
+                            f"{' ' * (indent * 4)}return OnnxIdentity(")
                         subrows = write_expression(
                             stack_fct_used, args, indent + 1)
                         subrows[-1] += ","
                         rows.extend(subrows)
                         rows.append("{}output_names={},".format(
                             " " * ((indent + 1) * 4), str(output_names)))
-                        rows.append("{}op_version=op_version".format(
-                            " " * ((indent + 1) * 4)))
-                        rows.append("{})".format(" " * (indent * 4)))
+                        rows.append(
+                            f"{' ' * ((indent + 1) * 4)}op_version=op_version")
+                        rows.append(f"{' ' * (indent * 4)})")
                 else:
                     raise RuntimeError(  # pragma: no cover
                         "Unable to process operator '{}' at {}. "
@@ -471,7 +469,7 @@ class OnnxTranslator(CodeTranslator):
         if kind == 'keyword':
             self._get_last('Call')
             self._stack.append(
-                ('keyword', {'name': "{0}".format(node.arg),
+                ('keyword', {'name': f"{node.arg}",
                              'lineno': getattr(node, 'lineno', '?'),
                              'col_offset': getattr(node, 'col_offset', '?')}))
             return
@@ -613,7 +611,7 @@ class OnnxTranslator(CodeTranslator):
                 fir = info["children"][0]
                 if fir["type"] == "Name":
                     parent = fir["node"].id
-                    info["str"] = "{0}.{1}".format(parent, info["str"])
+                    info["str"] = f"{parent}.{info['str']}"
                     info["children"][0]["remove"] = True
 
             buf['name'] = info["str"]

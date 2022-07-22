@@ -3,9 +3,8 @@
 @brief Common functions to reduce the number of
 nodes of an :epkg:`ONNX` graphs.
 """
-from onnx.helper import make_graph, ValueInfoProto, make_model
-from onnx import AttributeProto, NodeProto
-from onnx.helper import make_attribute
+from onnx.helper import make_graph, make_model, make_attribute
+from onnx import AttributeProto, NodeProto, ValueInfoProto
 
 
 def _apply_optimisation_on_graph(fct, onnx_model, recursive=True, debug_info=None,
@@ -28,7 +27,7 @@ def _apply_optimisation_on_graph(fct, onnx_model, recursive=True, debug_info=Non
         graph = fct(
             onnx_model.graph, debug_info=debug_info + ['GRAPH'],
             **kwargs)
-        new_model = make_model(graph)
+        new_model = make_model(graph, functions=onnx_model.functions)
         new_model.ir_version = onnx_model.ir_version
         new_model.producer_name = onnx_model.producer_name
         new_model.producer_version = onnx_model.producer_version
@@ -45,8 +44,7 @@ def _apply_optimisation_on_graph(fct, onnx_model, recursive=True, debug_info=Non
             op_set.version = oimp.version
         return new_model
     raise TypeError(  # pragma: no cover
-        "This function only works on 'ModelProto' anod not not on"
-        " {}.".format(type(onnx_model)))
+        f"This function only works on 'ModelProto' anod not not on {type(onnx_model)}.")
 
 
 def _apply_remove_node_fct_node(fct, node, recursive, debug_info):
@@ -62,7 +60,7 @@ def _apply_remove_node_fct_node(fct, node, recursive, debug_info):
     modified = 0
     new_atts = []
     for att in node.attribute:
-        if att.name == 'body':
+        if att.name in ('body', 'then_branch', 'else_branch'):
             new_body = fct(
                 att.g, recursive=recursive,
                 debug_info=debug_info + [att.name])
@@ -138,7 +136,8 @@ def _rename_node_input(onnx_node, old_name, new_name=None):
     if hasattr(onnx_node, 'attribute'):
         new_atts = []
         for att in onnx_node.attribute:
-            if att.name == 'body':
+            if (att.type == AttributeProto.GRAPH and  # pylint: disable=E1101
+                    hasattr(att, 'g') and att.g is not None):
                 new_body = _rename_graph_input(att.g, old_name, new_name)
                 attr = AttributeProto()
                 attr.name = att.name
@@ -231,7 +230,8 @@ def _rename_node_output(onnx_node, old_name, new_name):
     if hasattr(onnx_node, 'attribute'):
         new_atts = []
         for att in onnx_node.attribute:
-            if att.name == 'body':
+            if (att.type == AttributeProto.GRAPH and  # pylint: disable=E1101
+                    hasattr(att, 'g') and att.g is not None):
                 new_body = _rename_graph_output(att.g, old_name, new_name)
                 new_atts.append(_make_att_graph(att.name, new_body))
             else:

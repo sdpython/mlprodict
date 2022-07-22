@@ -25,7 +25,7 @@ from skl2onnx.common.data_types import FloatTensorType, BooleanTensorType
 from skl2onnx.algebra.onnx_ops import OnnxWhere, OnnxSub, OnnxMul
 from cpyquickhelper.numbers import measure_time
 from tqdm import tqdm
-from mlprodict.testing.experimental_c import code_optimisation
+from mlprodict.testing.experimental_c_impl.experimental_c import code_optimisation
 print(code_optimisation())
 
 ###################################
@@ -208,8 +208,8 @@ dfs = [df]
 
 merged = pandas.concat(dfs)
 name = "where"
-merged.to_csv("plot_%s.csv" % name, index=False)
-merged.to_excel("plot_%s.xlsx" % name, index=False)
-plt.savefig("plot_%s.png" % name)
+merged.to_csv(f"plot_{name}.csv", index=False)
+merged.to_excel(f"plot_{name}.xlsx", index=False)
+plt.savefig(f"plot_{name}.png")
 
 plt.show()

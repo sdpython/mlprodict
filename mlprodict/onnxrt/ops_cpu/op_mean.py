@@ -13,8 +13,8 @@ class Mean(OpRun):
         OpRun.__init__(self, onnx_node, desc=desc,
                        **options)
 
-    def _run(self, *args):  # pylint: disable=W0221
-        if self.inplaces.get(0, False):
+    def _run(self, *args, attributes=None, verbose=0, fLOG=None):  # pylint: disable=W0221
+        if self.inplaces.get(0, False) and args[0].flags['WRITEABLE']:
             return self._run_inplace(*args)
         res = args[0].copy()
         for m in args[1:]:
@@ -26,13 +26,3 @@ class Mean(OpRun):
         for m in args[1:]:
             res += m
         return (res / len(args), )
-
-    def _infer_shapes(self, *args):  # pylint: disable=W0221
-        return (args[0], )
-
-    def _infer_types(self, *args):  # pylint: disable=W0221
-        return (args[0], )
-
-    def _infer_sizes(self, *args, **kwargs):
-        res = self.run(*args, **kwargs)
-        return (dict(temp=0), ) + res

@@ -7,14 +7,15 @@ from pyquickhelper.pycode import ExtTestCase, ignore_warnings
 from onnxruntime.capi._pybind_state import (  # pylint: disable=E0611,W0611
     OrtDevice as C_OrtDevice, OrtValue as C_OrtValue)
 from onnxruntime import get_device
-from skl2onnx.algebra.onnx_ops import (  # pylint: disable=E0611,W0611
-    OnnxAdd)
 from mlprodict.onnxrt import OnnxInference
 from mlprodict.tools.onnx_inference_ort_helper import get_ort_device
-from mlprodict.tools import get_opset_number_from_onnx
+from mlprodict.npy.xop import loadop
+from mlprodict import __max_supported_opset__ as TARGET_OPSET
 
 
 DEVICE = "cuda" if get_device().upper() == 'GPU' else 'cpu'
+
+OnnxAdd = loadop('Add')
 
 
 class TestOnnxrtIOBinding(ExtTestCase):
@@ -24,11 +25,11 @@ class TestOnnxrtIOBinding(ExtTestCase):
         idi = numpy.identity(2, dtype=numpy.float32)
         idi2 = (numpy.identity(2) * 2).astype(numpy.float32)
         onx = OnnxAdd(
-            OnnxAdd('X', idi, op_version=get_opset_number_from_onnx()),
+            OnnxAdd('X', idi, op_version=TARGET_OPSET),
             idi2, output_names=['Y'],
-            op_version=get_opset_number_from_onnx())
+            op_version=TARGET_OPSET)
         model_def = onx.to_onnx({'X': idi.astype(numpy.float32)},
-                                target_opset=get_opset_number_from_onnx())
+                                target_opset=TARGET_OPSET)
         oinf = OnnxInference(model_def)
         X = numpy.array([[1, 1], [3, 3]])
         y = oinf.run({'X': X.astype(numpy.float32)})
@@ -41,11 +42,11 @@ class TestOnnxrtIOBinding(ExtTestCase):
         idi = numpy.identity(2, dtype=numpy.float32)
         idi2 = (numpy.identity(2) * 2).astype(numpy.float32)
         onx = OnnxAdd(
-            OnnxAdd('X', idi, op_version=get_opset_number_from_onnx()),
+            OnnxAdd('X', idi, op_version=TARGET_OPSET),
             idi2, output_names=['Y'],
-            op_version=get_opset_number_from_onnx())
+            op_version=TARGET_OPSET)
         model_def = onx.to_onnx({'X': idi.astype(numpy.float32)},
-                                target_opset=get_opset_number_from_onnx())
+                                target_opset=TARGET_OPSET)
         oinf = OnnxInference(model_def, runtime="onnxruntime1")
         X = numpy.array([[1, 1], [3, 3]])
         y = oinf.run({'X': X.astype(numpy.float32)})
@@ -58,11 +59,11 @@ class TestOnnxrtIOBinding(ExtTestCase):
         idi = numpy.identity(2, dtype=numpy.float32)
         idi2 = (numpy.identity(2) * 2).astype(numpy.float32)
         onx = OnnxAdd(
-            OnnxAdd('X', idi, op_version=get_opset_number_from_onnx()),
+            OnnxAdd('X', idi, op_version=TARGET_OPSET),
             idi2, output_names=['Y'],
-            op_version=get_opset_number_from_onnx())
+            op_version=TARGET_OPSET)
         model_def = onx.to_onnx({'X': idi.astype(numpy.float32)},
-                                target_opset=get_opset_number_from_onnx())
+                                target_opset=TARGET_OPSET)
         oinf = OnnxInference(model_def)
         X = numpy.array([[1, 1], [3, 3]])
         X32 = X.astype(numpy.float32)
@@ -74,11 +75,11 @@ class TestOnnxrtIOBinding(ExtTestCase):
         idi = numpy.identity(2, dtype=numpy.float32)
         idi2 = (numpy.identity(2) * 2).astype(numpy.float32)
         onx = OnnxAdd(
-            OnnxAdd('X', idi, op_version=get_opset_number_from_onnx()),
+            OnnxAdd('X', idi, op_version=TARGET_OPSET),
             idi2, output_names=['Y'],
-            op_version=get_opset_number_from_onnx())
+            op_version=TARGET_OPSET)
         model_def = onx.to_onnx({'X': idi.astype(numpy.float32)},
-                                target_opset=get_opset_number_from_onnx())
+                                target_opset=TARGET_OPSET)
         oinf = OnnxInference(model_def, runtime="onnxruntime1")
         X = numpy.array([[1, 1], [3, 3]])
         X32 = X.astype(numpy.float32)
@@ -93,14 +94,14 @@ class TestOnnxrtIOBinding(ExtTestCase):
         idi = numpy.identity(2, dtype=numpy.float32)
         idi2 = (numpy.identity(2) * 2).astype(numpy.float32)
         onx = OnnxAdd(
-            OnnxAdd('X', idi, op_version=get_opset_number_from_onnx()),
+            OnnxAdd('X', idi, op_version=TARGET_OPSET),
             idi2, output_names=['Y'],
-            op_version=get_opset_number_from_onnx())
+            op_version=TARGET_OPSET)
         model_def = onx.to_onnx({'X': idi.astype(numpy.float32)},
-                                target_opset=get_opset_number_from_onnx())
-        self.assertRaise(lambda: OnnxInference(model_def, device='cpu'),
+                                target_opset=TARGET_OPSET)
+        self.assertRaise(lambda: OnnxInference(model_def, runtime="cuda"),
                          ValueError)
-        oinf = OnnxInference(model_def, runtime="onnxruntime1", device='cpu')
+        oinf = OnnxInference(model_def, runtime="onnxruntime1")
         X = numpy.array([[1, 1], [3, 3]])
         X32 = X.astype(numpy.float32)
         ov = C_OrtValue.ortvalue_from_numpy(X32, get_ort_device('cpu'))
@@ -115,12 +116,12 @@ class TestOnnxrtIOBinding(ExtTestCase):
         idi = numpy.identity(2, dtype=numpy.float32)
         idi2 = (numpy.identity(2) * 2).astype(numpy.float32)
         onx = OnnxAdd(
-            OnnxAdd('X', idi, op_version=get_opset_number_from_onnx()),
+            OnnxAdd('X', idi, op_version=TARGET_OPSET),
             idi2, output_names=['Y'],
-            op_version=get_opset_number_from_onnx())
+            op_version=TARGET_OPSET)
         model_def = onx.to_onnx({'X': idi.astype(numpy.float32)},
-                                target_opset=get_opset_number_from_onnx())
-        oinf = OnnxInference(model_def, runtime="onnxruntime1", device='cuda')
+                                target_opset=TARGET_OPSET)
+        oinf = OnnxInference(model_def, runtime="onnxruntime1-cuda",)
         X = numpy.array([[1, 1], [3, 3]])
         X32 = X.astype(numpy.float32)
         ov = C_OrtValue.ortvalue_from_numpy(X32, get_ort_device('cuda'))

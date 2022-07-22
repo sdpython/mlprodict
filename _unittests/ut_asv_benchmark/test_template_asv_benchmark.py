@@ -9,7 +9,7 @@ except ImportError:
     from sklearn.utils.testing import ignore_warnings
 from skl2onnx.common.exceptions import MissingShapeCalculator
 from pyquickhelper.pycode import ExtTestCase
-from mlprodict.tools.asv_options_helper import get_opset_number_from_onnx
+from mlprodict import __max_supported_opset__ as TARGET_OPSET
 from mlprodict.asv_benchmark.template.skl_model_classifier import (
     TemplateBenchmarkClassifier)
 from mlprodict.asv_benchmark.template.skl_model_classifier_raw_scores import (
@@ -41,7 +41,7 @@ class TestAsvTemplateBenchmark(ExtTestCase):
         cl.setup_cache()
         N = 60
         nf = cl.params[2][1]
-        opset = get_opset_number_from_onnx()
+        opset = TARGET_OPSET
         dtype = 'float'
         optim = None
         for runtime in ['skl', 'pyrt', 'ort']:
@@ -78,7 +78,7 @@ class TestAsvTemplateBenchmark(ExtTestCase):
         cl.setup_cache()
         N = 60
         nf = cl.params[2][1]
-        opset = get_opset_number_from_onnx()
+        opset = TARGET_OPSET
         dtype = 'float'
         optim = None
         for runtime in ['skl', 'pyrt', 'ort']:
@@ -115,7 +115,7 @@ class TestAsvTemplateBenchmark(ExtTestCase):
         cl.setup_cache()
         N = 60
         nf = cl.params[2][1]
-        opset = get_opset_number_from_onnx()
+        opset = TARGET_OPSET
         dtype = 'float'
         optim = None
         for runtime in ['skl', 'pyrt']:
@@ -149,7 +149,7 @@ class TestAsvTemplateBenchmark(ExtTestCase):
         cl.setup_cache()
         N = 60
         nf = cl.params[2][1]
-        opset = get_opset_number_from_onnx()
+        opset = TARGET_OPSET
         dtype = 'float'
         optim = None
         for runtime in ['skl', 'pyrt', 'ort']:
@@ -186,7 +186,7 @@ class TestAsvTemplateBenchmark(ExtTestCase):
         cl.setup_cache()
         N = 60
         nf = cl.params[2][1]
-        opset = get_opset_number_from_onnx()
+        opset = TARGET_OPSET
         dtype = 'float'
         optim = None
         for runtime in ['skl', 'pyrt']:
@@ -225,7 +225,7 @@ class TestAsvTemplateBenchmark(ExtTestCase):
         N = 60
         nf = cl.params[2][1]
         expect = 16
-        opset = get_opset_number_from_onnx()
+        opset = TARGET_OPSET
         dtype = 'float'
         optim = None
         for runtime in ['skl', 'pyrt']:
@@ -266,7 +266,7 @@ class TestAsvTemplateBenchmark(ExtTestCase):
         cl.setup_cache()
         N = 60
         nf = cl.params[2][1]
-        opset = get_opset_number_from_onnx()
+        opset = TARGET_OPSET
         dtype = 'float'
         expect = 12
         optim = None
@@ -309,7 +309,7 @@ class TestAsvTemplateBenchmark(ExtTestCase):
         cl.setup_cache()
         N = 60
         nf = cl.params[2][1]
-        opset = get_opset_number_from_onnx()
+        opset = TARGET_OPSET
         dtype = 'float'
         expect = 16
         optim = None
@@ -351,7 +351,7 @@ class TestAsvTemplateBenchmark(ExtTestCase):
         cl.setup_cache()
         N = 60
         nf = cl.params[2][1]
-        opset = get_opset_number_from_onnx()
+        opset = TARGET_OPSET
         dtype = 'float'
         expect = 12
         optim = None
@@ -387,4 +387,4 @@ class TestAsvTemplateBenchmark(ExtTestCase):
 
 
 if __name__ == "__main__":
-    unittest.main()
+    unittest.main(verbosity=2)

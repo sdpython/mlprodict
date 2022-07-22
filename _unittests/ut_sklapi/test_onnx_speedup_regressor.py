@@ -15,7 +15,7 @@ from sklearn.datasets import load_iris, make_regression
 from sklearn.gaussian_process import GaussianProcessRegressor
 from pyquickhelper.pycode import ExtTestCase, ignore_warnings
 from mlprodict.sklapi import OnnxSpeedupRegressor
-from mlprodict.tools import get_opset_number_from_onnx
+from mlprodict import __max_supported_opset__ as TARGET_OPSET
 from mlprodict.onnx_conv import to_onnx
 from mlprodict.onnxrt import OnnxInference
 
@@ -27,7 +27,7 @@ class TestOnnxSpeedupRegressor(ExtTestCase):
         logger.disabled = True
 
     def opset(self):
-        return get_opset_number_from_onnx()
+        return TARGET_OPSET
 
     @ignore_warnings((ConvergenceWarning, DeprecationWarning))
     def test_speedup_regressor32(self):

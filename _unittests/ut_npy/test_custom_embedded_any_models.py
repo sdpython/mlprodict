@@ -16,7 +16,7 @@ from mlprodict.onnx_conv import to_onnx, register_rewritten_operators
 from mlprodict.onnxrt import OnnxInference
 from mlprodict.npy import onnxsklearn_class
 from mlprodict.npy.onnx_variable import MultiOnnxVar
-# import mlprodict.npy.numpy_onnx_impl as nxnp
+from mlprodict import __max_supported_opsets__ as TARGET_OPSETS
 import mlprodict.npy.numpy_onnx_impl_skl as nxnpskl
 
 
@@ -158,7 +158,8 @@ class TestCustomEmbeddedModels(ExtTestCase):
         dec = AnyCustomClassifierOnnx(est)
         dec.fit(X, y)
         onx = to_onnx(dec, X.astype(dtype),
-                      options={id(dec): {'zipmap': False}})
+                      options={id(dec): {'zipmap': False}},
+                      target_opset=TARGET_OPSETS)
         oinf = OnnxInference(onx)
         exp = dec.predict(X)  # pylint: disable=E1101
         prob = dec.predict_proba(X)  # pylint: disable=E1101
@@ -167,12 +168,12 @@ class TestCustomEmbeddedModels(ExtTestCase):
         self.assertEqualArray(exp, got['label'].ravel())
         self.assertEqualArray(prob, got['probabilities'])
 
-    @ignore_warnings((DeprecationWarning, RuntimeWarning))
+    @ignore_warnings((DeprecationWarning, RuntimeWarning, UserWarning))
     def test_function_classifier_embedded_float32(self):
         self.common_test_function_classifier_embedded(
             numpy.float32, DecisionTreeClassifier(max_depth=3))
 
-    @ignore_warnings((DeprecationWarning, RuntimeWarning))
+    @ignore_warnings((DeprecationWarning, RuntimeWarning, UserWarning))
     def test_function_classifier_embedded_float64(self):
         self.common_test_function_classifier_embedded(
             numpy.float64, DecisionTreeClassifier(max_depth=3))
@@ -183,19 +184,19 @@ class TestCustomEmbeddedModels(ExtTestCase):
              X.shape[0])).astype(numpy.float32)
         dec = AnyCustomRegressorOnnx(est)
         dec.fit(X, y)
-        onx = to_onnx(dec, X.astype(dtype))
+        onx = to_onnx(dec, X.astype(dtype), target_opset=TARGET_OPSETS)
         oinf = OnnxInference(onx)
         exp = dec.predict(X)  # pylint: disable=E1101
         got = oinf.run({'X': X})
         self.assertEqual(dtype, exp.dtype)
         self.assertEqualArray(exp, got['variable'])
 
-    @ignore_warnings((DeprecationWarning, RuntimeWarning))
+    @ignore_warnings((DeprecationWarning, RuntimeWarning, UserWarning))
     def test_function_regressor_embedded_float32(self):
         self.common_test_function_regressor_embedded(
             numpy.float32, DecisionTreeRegressor(max_depth=3))
 
-    @ignore_warnings((DeprecationWarning, RuntimeWarning))
+    @ignore_warnings((DeprecationWarning, RuntimeWarning, UserWarning))
     def test_function_regressor_embedded_float64(self):
         self.common_test_function_regressor_embedded(
             numpy.float64, DecisionTreeRegressor(max_depth=3))
@@ -215,12 +216,12 @@ class TestCustomEmbeddedModels(ExtTestCase):
         self.assertEqualArray(exp, got['label'].ravel())
         self.assertEqualArray(prob, got['scores'])
 
-    @ignore_warnings((DeprecationWarning, RuntimeWarning))
+    @ignore_warnings((DeprecationWarning, RuntimeWarning, UserWarning))
     def test_function_cluster_embedded_float32(self):
         self.common_test_function_cluster_embedded(
             numpy.float32, KMeans(n_clusters=2))
 
-    @ignore_warnings((DeprecationWarning, RuntimeWarning))
+    @ignore_warnings((DeprecationWarning, RuntimeWarning, UserWarning))
     def test_function_cluster_embedded_float64(self):
         self.common_test_function_cluster_embedded(
             numpy.float64, KMeans(n_clusters=2))
@@ -238,17 +239,17 @@ class TestCustomEmbeddedModels(ExtTestCase):
         self.assertEqual(dtype, tr.dtype)
         self.assertEqualArray(tr, got['variable'])
 
-    @ignore_warnings((DeprecationWarning, RuntimeWarning))
+    @ignore_warnings((DeprecationWarning, RuntimeWarning, UserWarning))
     def test_function_transformer_embedded_float32(self):
         self.common_test_function_transformer_embedded(
             numpy.float32, StandardScaler())
 
-    @ignore_warnings((DeprecationWarning, RuntimeWarning))
+    @ignore_warnings((DeprecationWarning, RuntimeWarning, UserWarning))
     def test_function_transformer_embedded_float64(self):
         self.common_test_function_transformer_embedded(
             numpy.float64, StandardScaler())
 
-    @ignore_warnings((DeprecationWarning, RuntimeWarning))
+    @ignore_warnings((DeprecationWarning, RuntimeWarning, UserWarning))
     def test_function_cluster_embedded_validation(self):
         est = KMeans(2)
         dtype = numpy.float32

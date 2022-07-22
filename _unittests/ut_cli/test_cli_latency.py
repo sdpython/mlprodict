@@ -1,5 +1,5 @@
 """
-@brief      test tree node (time=8s)
+@brief      test tree node (time=10s)
 """
 import os
 import unittest
@@ -38,7 +38,7 @@ class TestCliLatency(ExtTestCase):
 
         res = latency(outonnx)
         expected = ['average', 'context_size', 'deviation', 'max_exec', 'min_exec',
-                    'number', 'repeat', 'ttime']
+                    'number', 'repeat', 'shape(X)', 'ttime']
         self.assertEqual(list(sorted(res)), expected)
 
         res = latency(outonnx, max_time=0.5)
@@ -47,6 +47,8 @@ class TestCliLatency(ExtTestCase):
 
         res = latency(outonnx, max_time=0.5, fmt='csv')
         self.assertIn('average,deviation', res)
+        self.assertRaise(lambda: latency(outonnx, device="RR"), ValueError)
+        self.assertRaise(lambda: latency(outonnx, device="R,R"), ValueError)
 
     @ignore_warnings(ConvergenceWarning)
     def test_latency_linreg_profile(self):
@@ -65,7 +67,7 @@ class TestCliLatency(ExtTestCase):
         for runtime in ('onnxruntime', 'onnxruntime1'):
             for prof in ('name', 'type'):
                 with self.subTest(runtime=runtime, prof=prof):
-                    o = os.path.join(temp, 'prof_%s_%s.csv' % (runtime, prof))
+                    o = os.path.join(temp, f'prof_{runtime}_{prof}.csv')
                     res = latency(outonnx, max_time=0.5, fmt='csv',
                                   profiling=prof, runtime=runtime,
                                   profile_output=o)

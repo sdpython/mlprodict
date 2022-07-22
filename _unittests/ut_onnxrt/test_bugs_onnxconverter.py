@@ -14,7 +14,7 @@ from sklearn.datasets import load_iris
 from sklearn.model_selection import train_test_split
 from sklearn.ensemble import AdaBoostClassifier
 from sklearn.tree import DecisionTreeClassifier
-from skl2onnx import to_onnx
+from mlprodict.onnx_conv import to_onnx
 from mlprodict.onnxrt import OnnxInference
 
 
@@ -81,7 +81,7 @@ class TestBugsOnnxrtOnnxConverter(ExtTestCase):
                     self.assertRaise(
                         lambda rt=rt: self.fx_train(rt), RuntimeError)
                 else:
-                    raise ValueError("Unexpected runtime %r." % rt)
+                    raise ValueError(f"Unexpected runtime {rt!r}.")
 
     def fx_train_cls(self, runtime):
         data = os.path.join(os.path.abspath(os.path.dirname(__file__)),
@@ -124,7 +124,7 @@ class TestBugsOnnxrtOnnxConverter(ExtTestCase):
                     self.assertRaise(
                         lambda rt=rt: self.fx_train_cls(rt), RuntimeError)
                 else:
-                    raise ValueError("Unexpected runtime %r." % rt)
+                    raise ValueError(f"Unexpected runtime {rt!r}.")
 
 
 if __name__ == "__main__":

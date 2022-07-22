@@ -21,10 +21,10 @@ class TestZoo(ExtTestCase):
         try:
             link, data = download_model_data("mobilenet", cache=".")
         except ConnectionError as e:
-            warnings.warn("Unable to continue this test due to %r." % e)
+            warnings.warn(f"Unable to continue this test due to {e!r}.")
             return
         self.assertEndsWith("mobilenetv2-7.onnx", link)
-        self.assertEqual(len(data), 3)
+        self.assertEqual(len(data), 1)
         for k, data in data.items():
             self.assertIn("test_data_set", k)
             self.assertEqual(len(data), 2)
@@ -41,7 +41,7 @@ class TestZoo(ExtTestCase):
         try:
             link, data = download_model_data("mobilenet", cache=".")
         except ConnectionError as e:
-            warnings.warn("Unable to continue this test due to %r." % e)
+            warnings.warn(f"Unable to continue this test due to {e!r}.")
             return
         oinf2 = OnnxInference(link, runtime="python", inplace=False)
         oinf2 = oinf2.build_intermediate('474')['474']
@@ -62,13 +62,13 @@ class TestZoo(ExtTestCase):
                             break
             if len(keep) > 0:
                 raise AssertionError(
-                    "Mismatch\n%s" % pprint.pformat(keep))
+                    f"Mismatch\n{pprint.pformat(keep)}")
 
     def test_verify_model_mobilenet(self):
         try:
             link, data = download_model_data("mobilenet", cache=".")
         except ConnectionError as e:
-            warnings.warn("Unable to continue this test due to %r." % e)
+            warnings.warn(f"Unable to continue this test due to {e!r}.")
             return
         for rt in ['onnxruntime', 'onnxruntime1', 'python']:
             with self.subTest(runtime=rt):
@@ -78,15 +78,16 @@ class TestZoo(ExtTestCase):
         try:
             link, data = download_model_data("squeezenet", cache=".")
         except ConnectionError as e:
-            warnings.warn("Unable to continue this test due to %r." % e)
+            warnings.warn(f"Unable to continue this test due to {e!r}.")
             return
         for rt in ['onnxruntime', 'onnxruntime1', 'python']:
             with self.subTest(runtime=rt):
                 try:
                     verify_model(link, data, runtime=rt)
                 except ConnectionError as e:
-                    warnings.warn("Issue with runtime %r - %r." % (rt, e))
+                    warnings.warn(f"Issue with runtime {rt!r} - {e!r}.")
 
 
 if __name__ == "__main__":
+    # TestZoo().test_verify_model_squeezenet()
     unittest.main()

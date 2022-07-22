@@ -6,9 +6,11 @@ import unittest
 from logging import getLogger
 import numpy
 from pyquickhelper.pycode import ExtTestCase, skipif_circleci
+from pyquickhelper.texthelper.version_helper import compare_module_version
 from skl2onnx.common.data_types import FloatTensorType
 from mlprodict.onnxrt import OnnxInference
 from mlprodict.onnx_conv import register_converters, to_onnx
+from mlprodict import __max_supported_opsets__ as TARGET_OPSETS
 
 
 class TestOnnxrtRuntimeLightGbmBug(ExtTestCase):
@@ -29,6 +31,12 @@ class TestOnnxrtRuntimeLightGbmBug(ExtTestCase):
     @skipif_circleci('stuck')
     @unittest.skipIf(sys.platform == 'darwin', 'stuck')
     def test_xgboost_regressor(self):
+        try:
+            from onnxmltools import __version__
+        except ImportError:
+            return
+        if compare_module_version(__version__, '1.11') <= 0:
+            return
         from xgboost import XGBRegressor
         try:
             from onnxmltools.convert import convert_xgboost
@@ -75,7 +83,7 @@ class TestOnnxrtRuntimeLightGbmBug(ExtTestCase):
         from lightgbm import LGBMRegressor
         regressor = LGBMRegressor(
             objective="regression", min_data_in_bin=1, min_data_in_leaf=1,
-            n_estimators=1, learning_rate=1)
+            n_estimators=1, learning_rate=1, verbosity=-1)
 
         y = numpy.array([0, 0, 1, 1, 1])
         X_train = numpy.array(
@@ -94,6 +102,12 @@ class TestOnnxrtRuntimeLightGbmBug(ExtTestCase):
     @skipif_circleci('stuck')
     @unittest.skipIf(sys.platform == 'darwin', 'stuck')
     def test_lightgbm_regressor(self):
+        try:
+            from onnxmltools import __version__
+        except ImportError:
+            return
+        if compare_module_version(__version__, '1.11') <= 0:
+            return
         from lightgbm import LGBMRegressor
         try:
             from onnxmltools.convert import convert_lightgbm
@@ -107,7 +121,7 @@ class TestOnnxrtRuntimeLightGbmBug(ExtTestCase):
                     break
                 model = LGBMRegressor(
                     max_depth=mx, n_estimators=ne, min_child_samples=1,
-                    learning_rate=0.0000001)
+                    learning_rate=0.0000001, verbosity=-1)
                 model.fit(X, y)
                 expected = model.predict(X)
 
@@ -152,12 +166,14 @@ class TestOnnxrtRuntimeLightGbmBug(ExtTestCase):
                     break
                 model = LGBMRegressor(
                     max_depth=mx, n_estimators=ne, min_child_samples=1,
-                    learning_rate=0.0000001)
+                    learning_rate=0.0000001, verbosity=-1)
                 model.fit(X, y)
                 expected = model.predict(X)
-                model_onnx = to_onnx(model, X, rewrite_ops=True)
-                model_onnx2 = to_onnx(model, X.astype(numpy.float64),
-                                      rewrite_ops=True)
+                model_onnx = to_onnx(
+                    model, X, rewrite_ops=True, target_opset=TARGET_OPSETS)
+                model_onnx2 = to_onnx(
+                    model, X.astype(numpy.float64), rewrite_ops=True,
+                    target_opset=TARGET_OPSETS)
 
                 for i, mo in enumerate([model_onnx, model_onnx2]):
                     for rt in ['python', 'onnxruntime1']:
@@ -182,4 +198,4 @@ class TestOnnxrtRuntimeLightGbmBug(ExtTestCase):
 
 
 if __name__ == "__main__":
-    unittest.main()
+    unittest.main(verbosity=2)

@@ -17,7 +17,7 @@ class Flatten(OpRunUnary):
                             expected_attributes=Flatten.atts,
                             **options)
 
-    def _run(self, x):  # pylint: disable=W0221
+    def _run(self, x, attributes=None, verbose=0, fLOG=None):  # pylint: disable=W0221
         i = self.axis
         shape = x.shape
         new_shape = ((1, -1) if i == 0 else
@@ -26,7 +26,6 @@ class Flatten(OpRunUnary):
 
     def to_python(self, inputs):
         lines = ['new_shape = ((1, -1) if axis == 0 else',
-                 '    (numpy.prod({0}.shape[:axis]).astype(int), -1))'.format(
-                     inputs[0]),
-                 'return %s.reshape(new_shape)' % inputs[0]]
+                 f'    (numpy.prod({inputs[0]}.shape[:axis]).astype(int), -1))',
+                 f'return {inputs[0]}.reshape(new_shape)']
         return 'import numpy', '\n'.join(lines)

@@ -13,7 +13,8 @@ from pyquickhelper.pycode import ExtTestCase, ignore_warnings
 from skl2onnx import update_registered_converter
 from skl2onnx.algebra.onnx_ops import (  # pylint: disable=E0611
     OnnxIdentity, OnnxMatMul, OnnxArgMax)
-from skl2onnx.common.data_types import guess_numpy_type, Int64TensorType
+from skl2onnx.common.data_types import Int64TensorType
+from mlprodict.npy.xop_variable import guess_numpy_type
 from mlprodict.onnx_conv import to_onnx
 from mlprodict.onnxrt import OnnxInference
 from mlprodict.npy import onnxsklearn_cluster, onnxsklearn_class
@@ -72,7 +73,7 @@ def custom_cluster_converter3(X, op_=None):
     if X.dtype is None:
         raise AssertionError("X.dtype cannot be None.")
     if isinstance(X, numpy.ndarray):
-        raise TypeError("Unexpected type %r." % X)
+        raise TypeError(f"Unexpected type {X!r}.")
     if op_ is None:
         raise AssertionError("op_ cannot be None.")
     clusters = op_.clusters_.astype(X.dtype)
@@ -96,7 +97,7 @@ class CustomClusterOnnx(ClusterMixin, BaseEstimator):
         if X.dtype is None:
             raise AssertionError("X.dtype cannot be None.")
         if isinstance(X, numpy.ndarray):
-            raise TypeError("Unexpected type %r." % X)
+            raise TypeError(f"Unexpected type {X!r}.")
         clusters = self.clusters_.astype(X.dtype)
         dist = X @ clusters
         label = nxnp.argmax(dist, axis=1)

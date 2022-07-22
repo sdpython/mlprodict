@@ -20,12 +20,11 @@ class LinearRegressor(OpRunUnaryNum):
                                **options)
         if not isinstance(self.coefficients, numpy.ndarray):
             raise TypeError(  # pragma: no cover
-                "coefficient must be an array not {}.".format(
-                    type(self.coefficients)))
+                f"coefficient must be an array not {type(self.coefficients)}.")
         n = self.coefficients.shape[0] // self.targets
         self.coefficients = self.coefficients.reshape(self.targets, n).T
 
-    def _run(self, x):  # pylint: disable=W0221
+    def _run(self, x, attributes=None, verbose=0, fLOG=None):  # pylint: disable=W0221
         score = numpy_dot_inplace(self.inplaces, x, self.coefficients)
         if self.intercepts is not None:
             score += self.intercepts
@@ -33,6 +32,5 @@ class LinearRegressor(OpRunUnaryNum):
             pass
         else:
             raise NotImplementedError(  # pragma: no cover
-                "Unknown post_transform: '{}'.".format(
-                    self.post_transform))
+                f"Unknown post_transform: '{self.post_transform}'.")
         return (score, )

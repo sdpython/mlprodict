@@ -4,12 +4,17 @@
 """
 import copy
 import hashlib
-from onnx.helper import make_graph
+import logging
+from onnx import FunctionProto
+from onnx.helper import make_graph, make_function
 from ._onnx_optimisation_common import (  # pylint: disable=E0611
     _rename_node_input,
     _rename_node_output,
     _apply_optimisation_on_graph,
     _apply_remove_node_fct_node)
+
+
+logger = logging.getLogger('onnx:optim')
 
 
 def _hash_obj_content(obj, max_size=1000):
@@ -81,22 +86,28 @@ def onnx_remove_node_redundant(onnx_model, recursive=True, debug_info=None,
             yield False, i, node
 
     graph = onnx_model
+    logger.debug("onnx_remove_node_redundant:begin with %d nodes.",
+                 len(graph.node))
+    is_function = isinstance(graph, FunctionProto)
 
     # Detects duplicated initializers.
     hashes = {}
     names = []
     rename = {}
-    for init in graph.initializer:
-        hs = _hash_obj_content(init, max_size=max_hash_size)
-        if hs in hashes:
-            # Already seen.
-            rename[init.name] = hashes[hs]  # pragma: no cover
-        else:
-            # New.
-            hashes[hs] = init.name
-            names.append(init.name)
-
-    new_inits = [init for init in graph.initializer if init.name in set(names)]
+    if is_function:
+        new_inits = []
+    else:
+        for init in graph.initializer:
+            hs = _hash_obj_content(init, max_size=max_hash_size)
+            if hs in hashes:
+                # Already seen.
+                rename[init.name] = hashes[hs]  # pragma: no cover
+            else:
+                # New.
+                hashes[hs] = init.name
+                names.append(init.name)
+        new_inits = [init for init in graph.initializer
+                     if init.name in set(names)]
 
     # Renames node inputs.
     new_nodes = []
@@ -105,7 +116,10 @@ def onnx_remove_node_redundant(onnx_model, recursive=True, debug_info=None,
         _[2] for _ in _enumerate_rename_list_nodes_inputs(new_nodes, rename))
 
     # Detects duplicated operators.
-    graph_outputs = set(o.name for o in graph.output)
+    if is_function:
+        graph_outputs = set(graph.output)
+    else:
+        graph_outputs = set(o.name for o in graph.output)
     node_hashes = {}
     changed = 1
     replace = {}
@@ -166,9 +180,21 @@ def onnx_remove_node_redundant(onnx_model, recursive=True, debug_info=None,
 
     # Finally create the new graph.
     nodes = list(filter(lambda n: n is not None, new_nodes))
+    if is_function:
+        logger.debug("onnx_remove_node_redundant:end function with %d nodes.",
+                     len(nodes))
+        return make_function(
+            onnx_model.domain, onnx_model.name,
+            onnx_model.input, onnx_model.output, nodes,
+            opset_imports=onnx_model.opset_import,
+            attributes=onnx_model.attribute,
+            doc_string=onnx_model.doc_string)
+
     graph = make_graph(nodes, onnx_model.name,
                        onnx_model.input, onnx_model.output,
                        new_inits)
 
     graph.value_info.extend(onnx_model.value_info)  # pylint: disable=E1101
+    logger.debug("onnx_remove_node_redundant:end graph with %d nodes.",
+                 len(nodes))
     return graph

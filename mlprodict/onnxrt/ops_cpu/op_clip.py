@@ -20,8 +20,8 @@ class Clip_6(OpRunUnaryNum):
                                expected_attributes=Clip_6.atts,
                                **options)
 
-    def _run(self, data):  # pylint: disable=W0221
-        if self.inplaces.get(0, False):
+    def _run(self, data, attributes=None, verbose=0, fLOG=None):  # pylint: disable=W0221
+        if self.inplaces.get(0, False) and data.flags['WRITEABLE']:
             return self._run_inplace(data)
         res = numpy.clip(data, self.min, self.max)
         return (res, ) if res.dtype == data.dtype else (res.astype(data.dtype), )
@@ -31,7 +31,7 @@ class Clip_6(OpRunUnaryNum):
 
     def to_python(self, inputs):
         return ("import numpy",
-                "return numpy.clip(%s, min_, max_)" % inputs[0])
+                f"return numpy.clip({inputs[0]}, min_, max_)")
 
 
 class Clip_11(OpRunUnaryNum):
@@ -47,24 +47,27 @@ class Clip_11(OpRunUnaryNum):
         OpRunUnaryNum.__init__(self, onnx_node, desc=desc,
                                **options)
 
-    def run(self, x, *minmax):  # pylint: disable=E0202,W0221
+    def run(self, x, *minmax, attributes=None, verbose=0, fLOG=None):  # pylint: disable=E0202,W0221
         """
         Calls method ``_run``.
         """
         try:
-            res = self._run(x, *minmax)
+            res = self._run(x, *minmax, attributes=attributes,
+                            verbose=verbose, fLOG=fLOG)
         except TypeError as e:  # pragma: no cover
             raise TypeError("Issues with types {} (binary operator {}).".format(
                 ", ".join(str(type(_)) for _ in [x]),
                 self.__class__.__name__)) from e
         return res
 
-    def _run(self, data, *minmax):  # pylint: disable=W0221
-        if self.inplaces.get(0, False):
+    def _run(self, data, *minmax, attributes=None, verbose=0, fLOG=None):  # pylint: disable=W0221
+        if self.inplaces.get(0, False) and data.flags['WRITEABLE']:
             return self._run_inplace(data, *minmax)
         le = len(minmax)
         amin = minmax[0] if le > 0 else None  # -3.4028234663852886e+38
         amax = minmax[1] if le > 1 else None  # 3.4028234663852886e+38
+        if amin is None and amax is None:
+            amin = -numpy.inf
         res = numpy.clip(data, amin, amax)
         return (res, ) if res.dtype == data.dtype else (res.astype(data.dtype), )
 
@@ -75,23 +78,9 @@ class Clip_11(OpRunUnaryNum):
         res = numpy.clip(data, amin, amax, out=data)
         return (res, )
 
-    def infer_shapes(self, x, *minmax):  # pylint: disable=E0202,W0221
-        try:
-            return self._infer_shapes(x)
-        except TypeError as e:  # pragma: no cover
-            raise TypeError("Issues with types {} (operator {}).".format(
-                x.dtype, self.__class__.__name__)) from e
-
-    def infer_types(self, x, *minmax):  # pylint: disable=E0202,W0221
-        try:
-            return self._infer_types(x)
-        except TypeError as e:  # pragma: no cover
-            raise TypeError("Issues with types {} (operator {}).".format(
-                x.dtype, self.__class__.__name__)) from e
-
     def to_python(self, inputs):
         return ("import numpy",
-                "return numpy.clip(%s, min_, max_)" % inputs[0])
+                f"return numpy.clip({inputs[0]}, min_, max_)")
 
 
 if onnx_opset_version() >= 11:

@@ -1,0 +1,84 @@
+"""
+@brief      test log(time=3s)
+"""
+import os
+import unittest
+from onnx.helper import __file__ as onnx_file
+from pyquickhelper.pycode import ExtTestCase
+from mlprodict.testing.onnx_backend import enumerate_onnx_tests
+from mlprodict.npy.xop_convert import OnnxSubOnnx
+
+
+class TestOnnxBackEndPyEval(ExtTestCase):
+
+    @staticmethod
+    def load_fct(obj):
+        return OnnxSubOnnx(obj)
+
+    @staticmethod
+    def run_fct(obj, *inputs):
+        names = obj.input_names
+        if len(names) < len(inputs):
+            raise AssertionError(
+                f"Got {len(inputs)} inputs but expecting {len(names)}.")
+        feeds = {names[i]: inputs[i] for i in range(len(inputs))}
+        got = obj.run(feeds)
+
+        names = obj.output_names
+        if names is None:
+            names = [n[0] for n in obj.expected_outputs]
+        return [got[n] for n in names]
+
+    def test_enumerate_onnx_tests_run_one(self):
+        done = 0
+        for te in enumerate_onnx_tests('node', lambda folder: folder == 'test_abs'):
+            self.assertIn(te.name, repr(te))
+            self.assertGreater(len(te), 0)
+            te.run(TestOnnxBackEndPyEval.load_fct,
+                   TestOnnxBackEndPyEval.run_fct)
+            done += 1
+        self.assertEqual(done, 1)
+
+    def test_enumerate_onnx_tests_run(self):
+
+        self.assertRaise(lambda: list(
+            enumerate_onnx_tests('NNN')), FileNotFoundError)
+        missed = []
+        failed = []
+        mismatch = []
+        for te in enumerate_onnx_tests('node'):
+            self.assertIn(te.name, repr(te))
+            self.assertGreater(len(te), 0)
+            try:
+                te.run(TestOnnxBackEndPyEval.load_fct,
+                       TestOnnxBackEndPyEval.run_fct)
+            except NotImplementedError as e:
+                missed.append((te, e))
+                continue
+            except (IndexError, RuntimeError, TypeError, ValueError,
+                    AttributeError, KeyError) as e:
+                failed.append((te, e))
+                continue
+            except AssertionError as e:
+                mismatch.append((te, e))
+                continue
+
+        if __name__ == '__main__':
+            path = os.path.dirname(onnx_file)
+            print(len(missed), len(failed), len(mismatch))
+            for t in failed:
+                print("failed",
+                      str(t[0]).replace('\\\\', '\\').replace(
+                          path, 'onnx').replace("\\", "/"))
+            for t in mismatch:
+                print("mismatch",
+                      str(t[0]).replace('\\\\', '\\').replace(
+                          path, 'onnx').replace("\\", "/"))
+            for t in missed:
+                print("missed",
+                      str(t[0]).replace('\\\\', '\\').replace(
+                          path, 'onnx').replace("\\", "/"))
+
+
+if __name__ == "__main__":
+    unittest.main()

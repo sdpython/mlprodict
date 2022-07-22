@@ -2,8 +2,16 @@
 @file
 @brief Investigate issues happening with float32.
 """
+from io import BytesIO
 import numpy
 from numpy.random import randint
+from onnx import ModelProto, FunctionProto, GraphProto, load
+from onnx.checker import check_model
+
+
+class MissingInputError(RuntimeError):
+    "Raised when an input is missing."
+    pass
 
 
 def astype_range(arr, dtype=numpy.float32, force=1):
@@ -80,10 +88,80 @@ def onnx_shaker(oinf, inputs, output_fct, n=100, dtype=numpy.float32, force=1):
         sq = numpy.squeeze(res)
         if len(sq.shape) != 1:
             raise ValueError(  # pragma: no cover
-                "The function only works with shape={}".format(sq.shape))
+                f"The function only works with shape={sq.shape}")
         if results is None:
             results = numpy.empty((sq.shape[0], n), dtype=sq.dtype)
         results[:, i] = sq
 
     results.sort(axis=1)
     return results
+
+
+def check_onnx(model, use_onnx=False, known_results=None,
+               path=None):
+    """
+    Checks consistency of the model.
+
+    :param model: onnx graph
+    :param use_onnx: calls `onnx.checker.check_model`
+    :param known_results: known results
+    :param path: path to a node (through subgraphs)
+    """
+    if isinstance(model, bytes):
+        model = load(BytesIO(model))
+
+    def raise_missing(name, node, p, kn):
+        raise MissingInputError(
+            "Missing input %r in node type=%r and name=%r "
+            "path=%r, known=\n%s\n--ONNX--\n%s" % (
+                name, node.op_type, node.name,
+                [n.name for n in p], "\n".join(sorted(kn)),
+                str(model)))
+
+    if isinstance(model, ModelProto):
+        try:
+            check_onnx(model.graph, known_results=known_results)
+        except MissingInputError as e:
+            raise MissingInputError(
+                f"Wrong ONNX model\n--ONNX\n{str(model)}") from e
+        for f in model.functions:
+            check_onnx(f)
+        return
+    if known_results is None:
+        known_results = {}
+    else:
+        known_results = known_results.copy()
+    if isinstance(model, FunctionProto):
+        for i in model.input:
+            known_results[i] = i
+    elif isinstance(model, GraphProto):
+        for i in model.input:
+            known_results[i.name] = i
+        for i in model.initializer:
+            known_results[i.name] = i
+    else:
+        raise TypeError(  # pragma: no cover
+            f"Unexpected type {type(model)!r}.")
+
+    if path is None:
+        path = []
+    else:
+        path = path.copy()
+
+    for node in model.node:
+        for i in node.input:
+            if i == '':
+                # optional input
+                continue
+            if i not in known_results:
+                raise_missing(i, node, path + [node], known_results)
+            for att in node.attribute:
+                if hasattr(att, 'g') and att.g is not None:
+                    check_onnx(att.g, use_onnx=use_onnx,
+                               known_results=known_results,
+                               path=path + [att, node])
+        for o in node.output:
+            known_results[o] = node
+
+    if use_onnx:
+        check_model(model)

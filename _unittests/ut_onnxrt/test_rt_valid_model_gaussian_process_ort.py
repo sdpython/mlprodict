@@ -7,6 +7,7 @@ import numpy
 from pyquickhelper.loghelper import fLOG
 from pyquickhelper.pycode import ExtTestCase, skipif_circleci
 from pyquickhelper.texthelper.version_helper import compare_module_version
+from onnxruntime import __version__ as ort_version
 from sklearn.exceptions import ConvergenceWarning
 try:
     from sklearn.utils._testing import ignore_warnings
@@ -18,8 +19,7 @@ from skl2onnx import __version__ as skl2onnx_version
 from skl2onnx.common.data_types import FloatTensorType
 from mlprodict.onnxrt.validate import enumerate_validated_operator_opsets
 from mlprodict.onnxrt import OnnxInference
-from mlprodict.tools.asv_options_helper import get_ir_version_from_onnx
-from mlprodict.tools.ort_wrapper import onnxrt_version as ort_version
+from mlprodict import __max_supported_opset__ as TARGET_OPSET, get_ir_version
 
 
 threshold = "0.4.0"
@@ -37,7 +37,7 @@ class TestRtValidateGaussianProcessOrt(ExtTestCase):
                              op_version=10)
         model_onnx = onx.to_onnx(
             inputs=[('X', FloatTensorType([None, None]))])
-        model_onnx.ir_version = get_ir_version_from_onnx()
+        model_onnx.ir_version = get_ir_version(TARGET_OPSET)
         sess = OnnxInference(model_onnx, runtime='onnxruntime1')
         Xtest_ = numpy.arange(6).reshape((3, 2))
         res = sess.run({'X': Xtest_.astype(numpy.float32)})
@@ -55,7 +55,7 @@ class TestRtValidateGaussianProcessOrt(ExtTestCase):
                              op_version=10)
         model_onnx = onx.to_onnx(
             inputs=[('X', FloatTensorType([None, None]))])
-        model_onnx.ir_version = get_ir_version_from_onnx()
+        model_onnx.ir_version = get_ir_version(TARGET_OPSET)
         sess = OnnxInference(model_onnx, runtime='onnxruntime1')
         Xtest_ = numpy.arange(6).reshape((3, 2))
         res = sess.run({'X': Xtest_.astype(numpy.float32)})

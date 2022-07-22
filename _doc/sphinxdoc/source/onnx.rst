@@ -1,8 +1,8 @@
 
 .. _l-onnx-pyrun:
 
-ONNX Converters and Runtime
-===========================
+ONNX, Runtime, Backends
+=======================
 
 *mlprodict* implements two runtimes.
 The first uses :epkg:`numpy` and implements
@@ -13,18 +13,12 @@ compute the output of every node using
 logic. A last one just wraps :epkg:`onnxruntime` to compute
 predictions, it handles the graph and operators runtimes.
 
-:epkg:`sklearn-onnx` converts many :epkg:`scikit-learn` models
-to :epkg:`ONNX`, it rewrites the prediction
-function using :epkg:`ONNX Operators` and :epkg:`ONNX ML Operators`.
-The current package *mlprodict* implements a
-:ref:`l-onnx-runtime-operators`.
-
 .. toctree::
     :maxdepth: 1
 
+    onnxops/index
     onnx_runtime
-    onnx_conv
-    skl_converters/index
+    backends/index
 
 All results were obtained using out the following versions
 of modules below:

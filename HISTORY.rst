@@ -5,14 +5,137 @@
 History
 =======
 
-current - 2021-12-29 - 0.00Mb
+current - 2022-07-20 - 0.00Mb
 =============================
 
-* #322: Add tokenizers with onnxruntime-extensions (2021-12-29)
+* #453: Uses f strings (2022-07-19)
+* #452: Extends code coverage (2022-07-18)
+* #451: Adds a table for all versions and all operators (2022-07-13)
+* #450: Implements node Expression to compress graph (2022-07-12)
+* #449: Improves code coverage (2022-07-11)
+* #448: Fixes template to export an onnx graph to python (2022-07-06)
+* #447: Adds an example to check export issues (2022-07-05)
+* #446: Creates an exporter to python (2022-07-05)
+* #445: Removes ShapeObject, replaces by OnnxShapeInference (2022-07-02)
+* #444: Fixes a bug in to_onnx when as_function=True (2022-07-01)
+* #442: Converts onnx with functions to code based on XOP API (2022-06-30)
+* #443: Add compiled dynamic libraries to .gitignore (2022-06-30)
+* #433: Converts a sklearn model into multiple functions (2022-06-29)
+* #441: Renames check_model into check_onnx (2022-06-25)
+* #439: Drops support for python 3.6 (2022-06-22)
+* #440: Update azure-pipelines.yml (2022-06-22)
+* #438: Fixes xgboost converter when base_score is specified (2022-06-22)
+* #437: Renders vector attributes in onnx_simple_text_plot (2022-06-21)
+* #436: Supports for attributes in onnx functions (2022-06-21)
+* #435: Extends documentation to onnxruntime (2022-06-13)
+
+0.8.1826 - 2022-05-29 - 0.71Mb
+==============================
+
+* #432: None and [] should be different function get_tensor_shape (2022-05-25)
+* #431: Adds functions to change the shape of inputs and outputs (2022-05-25)
+* #430: Adds function to rename inputs or outputs (2022-05-23)
+* #429: Adds more functions to manipulate graphs (2022-05-20)
+* #428: Investigates SVC discrepancies (2022-05-20)
+* #427: Adds function to inline function on onnx graph (2022-05-12)
+* #426: Adds support for operator RoiAlign for python runtime (2022-04-25)
+* #425: Adds support for operator GridSample for python runtime (2022-04-22)
+* #424: Adds support for operator GRU in python runtime (2022-04-19)
+* #423: Adds support for Momentum for python runtime (2022-04-15)
+* #422: Adds support for NonMaxSuppression for python runtime (2022-04-14)
+* #421: Adds support for Adagrad, Adam in python runtime (2022-04-12)
+* #420: Adds support for operator Resize for python runtime (2022-04-10)
+* #419: Adds support for ThresholdedRelu for python runtime (2022-04-09)
+* #418: Adds support for operator OneHot, ScatterND for python runtime (2022-04-09)
+* #417: C++ implementation for Im2col and Col2Im in 2D (2022-04-09)
+* #416: Adds support for DepthToSpace and SpaceToDepth for python runtime (2022-04-08)
+* #415: Implements experimentation im2col (used in image convolution) (2022-04-08)
+* #414: Adds support for operator NonZero in python runtime (2022-04-06)
+* #413: Adds support for operator Shink for python runtime (2022-04-06)
+* #412: Adds support for DynamicQuantizeLinear for python runtime (2022-04-05)
+* #411: Adds support for operators Unique, SoftPlus, SoftSign for python runtime (2022-04-05)
+* #410: Supports operator GatherND for python runtime (2022-04-05)
+* #409: Fixes bug with EyeLike in python runtime (2022-04-04)
+* #408: Improves backtest coverage, update documentation (2022-04-03)
+* #407: Supports operator Hardmax for python runtime (2022-03-30)
+* #406: Supports operator Bernoulli for python runtime (2022-03-30)
+* #405: Supports operator PRelu for python runtime (2022-03-30)
+* #404: Fixes Trilu (2022-03-30)
+* #403: Supports ReduceLogSum for python runtime (2022-03-30)
+* #402: Supports operator Xor for python runtime (2022-03-30)
+* #401: Removes parameter device, adds parameter provider (2022-03-30)
+* #400: Supports local functions calling local functions for python runtime (2022-03-28)
+* #399: Supports function SoftmaxCrossEntropyLoss for python runtime (2022-03-28)
+* #397: Implements method f in OnnxOperatorItem (2022-03-27)
+* #396: Move grammar_sklearn to subfolder. (2022-03-27)
+* #395: Supports eager evaluation in XOP API (2022-03-27)
+* #394: Enables expression OnnxCos[15](...) (2022-03-26)
+* #393: Adds domain in function onnx_simple_text_plot (2022-03-25)
+* #392: Supports random operators for python runtime (2022-03-25)
+* #391: Adds support for onnx predefined functions for python runtime (2022-03-24)
+* #390: Adds support for operator HardSigmoid for python runtime (2022-03-23)
+* #389: Adds support for operator Selu for python runtime (2022-03-23)
+* #388: Adds support for operator Trilu in python runtime (2022-03-23)
+* #387: Supports operator Elu for python runtime (2022-03-23)
+* #386: Supports operator BitShift for python runtime (2022-03-23)
+* #384: Supports FunctionProto in XOP API. (2022-03-21)
+* #383: Improves python runtime for ONNX (2022-03-19)
+* #382: Adds one unit test to check lightgbm conversion with opsetml==3 (2022-03-18)
+* #381: Documentation, more notebooks on FFT (2022-03-17)
+* #380: Removes method get_output in xop API (2022-03-16)
+* #379: Improves python runtime coverage (2022-03-14)
+* #378: Adds function export2xop, exports onnx graph to XOP API (2022-03-12)
+
+0.8.1762 - 2022-03-10 - 2.01Mb
+==============================
+
+* #377: Implements TreeEnsemble* for opsetml==3 (2022-03-10)
+* #376: Avoids one circular import. (2022-03-07)
+* #375: Adds code to turn onnx example into python unit test (2022-03-05)
+* #374: Implements onnx backend with python runtime (2022-03-05)
+* #372: Improves importing time (2022-03-05)
+* #373: Adds support for Expand in python runtime (2022-03-04)
+* #371: Support for ONNX functions (2022-03-04)
+* #370: Refactors numpy API to use Xop API (2022-03-03)
+* #369: Supports recursive display in onnx_simple_text_plot (2022-02-28)
+* #368: Updates requirements, skl2onnx>=1.11 (2022-02-28)
+* #367: Refactors results name in Xop API (2022-02-27)
+* #366: Adds python runtime for CategoryMapper (2022-02-24)
+* #365: Adds command line benchmark_doc (2022-02-24)
+* #364: Runs onnx backend test with python runtime (2022-02-23)
+* #363: Refactoring, moving files testing.experimental_c (2022-02-23)
+* #362: Adds command line plot_onnx (2022-02-23)
+* #361: Introduces __max_supported_opset__ and refactors the library (2022-02-23)
+* #360: Xop API, adds class OnnxSubOnnx to insert ONNX graph (2022-02-22)
+* #359: Supports domains in Xop API (2022-02-21)
+* #358: Extends supported operator by OnnxShapeInference (2022-02-21)
+* #357: Modifies OnnxShapeInference to deal with untyped outputs (2022-02-19)
+* #356: Supports multiple affectations (xop) (2022-02-18)
+* #355: Fixes for onnx==1.11 (2022-02-18)
+* #353: Experimentations with a new API to create ONNX graphs (2022-02-18)
+* #352: Supports for shape inference on unary operators (2022-02-14)
+
+0.8.1697 - 2022-02-11 - 1.97Mb
+==============================
+
+* #351: Adds name in ShapeResult, fixes zoo links (2022-02-11)
+* #350: First version of runtime OnnxShapeInference (2022-02-09)
+* #348: Moves OnnxMicroRuntime to onnxrt (2022-02-05)
+* #346: Adds runtime for operator CastLike (2022-02-05)
+* #347: numpy API for onnx: wrapped function can call other wrapped functions (2022-02-04)
+* #345: Improves command line to measure latency for a model (2022-02-03)
+* #344: Adds a method to_onnx to easily retrieve the onnx graph from numpy onnx function (2022-02-03)
+* #343: Shows links in onnx_simple_text_plot (2022-02-03)
+* #342: Displays small arrays in onnx_simple_text_plot (2022-01-22)
+
+0.8.1674 - 2021-12-30 - 1.94Mb
+==============================
+
 * #340: Implements tokenizer following scikit-learn's API using onnxruntime-extensions (2021-12-29)
-* #335: op_label_encoder support for keys_strings & values_floats  (2021-12-29)
-* #338: Updated to support key_strings and values_floats combo (2021-12-29)
 * #339: op_label_encoder support for keys_strings & values_floats (2) (replaces #335) (2021-12-29)
+* #338: Updated to support key_strings and values_floats combo (2021-12-29)
+* #335: op_label_encoder support for keys_strings & values_floats (2021-12-29)
+* #322: Add tokenizers with onnxruntime-extensions (2021-12-29)
 * #337: Supports operator Scan when exporting an onnx graph to onnx code (2021-12-21)
 * #336: Enables GPU with OnnxInference and onnxruntime (2021-12-21)
 
@@ -248,10 +371,6 @@ current - 2021-12-29 - 0.00Mb
 * #142: Implement python runtime for operator BatchNormalization (2020-07-21)
 * #141: Fixes #140, add runtime for QuantizeLinear, DequantizeLinear (2020-07-20)
 * #140: Implement runtime for QuantizeLinear, DequantizeLinear (2020-07-20)
-
-0.4.1204 - 2020-07-09 - 0.31Mb
-==============================
-
 * #139: Add runtime for operator EyeLike (2020-07-08)
 * #138: Add code to register custom python operator (2020-07-08)
 * #137: Remove parameter dtype (onnx conversion) (2020-07-08)
@@ -264,41 +383,21 @@ current - 2021-12-29 - 0.00Mb
 * #129: Add operator Einsum (ONNX) (2020-06-11)
 * #128: Fixes #127, implements OnnxPipeline, train, convert at each step (2020-06-08)
 * #127: Implements a pipeline which replaces early stages by onnx (2020-06-08)
-
-0.3.1129 - 2020-06-04 - 0.29Mb
-==============================
-
 * #123: Enables opset 12 (ONNX) (2020-06-04)
 * #117: Support for op_version in onnx grammar (2020-06-04)
-
-0.3.1108 - 2020-05-20 - 0.29Mb
-==============================
-
 * #126: Fix xgboost converter for xgboost >= 1.0 (2020-05-18)
 * #125: Refactor rewritten sklearn operators (2020-05-18)
 * #124: Fixes #122, capture standard C ouptput with dump_data_model, first step for #123 (2020-05-16)
 * #122: Captures C output when calling dump_data_and_model (2020-05-16)
-
-0.3.1082 - 2020-05-01 - 2.84Mb
-==============================
-
 * #121: Add function to convert array to bytes and bytes to array (onnx tensor) (2020-04-30)
 * #120: Fix discrepencies for SVM classifier (ONNX) (2020-04-30)
 * #119: Keep order in topk implementation (2020-04-17)
 * #118: opset is not propagated in OnnxTransformer (2020-04-09)
-
-0.3.1070 - 2020-04-07 - 0.29Mb
-==============================
-
 * #115: Add a function to replay a benchmark when this one was dumped (more accurate) (2020-04-06)
 * #116: Makes ZipMapDictionary picklable (2020-03-30)
 * #114: Add more parameters to specify benchmark time (2020-03-30)
 * #113: Add operators for opset 12 (2020-03-26)
 * #112: Number of feature is wrong for problem num-tr-clus (2020-03-20)
-
-0.3.1029 - 2020-03-17 - 0.28Mb
-==============================
-
 * #111: Reduce the number of allocation in TreeEnsemble when it is parallelized (cache) (2020-03-13)
 * #110: Implements runtime for operator Constant-12 (2020-03-06)
 * #109: Generate a benchmark with asv to compare different runtime. Update modules in asv. (2020-03-06)
@@ -310,10 +409,6 @@ current - 2021-12-29 - 0.00Mb
 * #104: Enable / disable parallelisation in topk (2020-02-23)
 * #103: Implements plot benchmark ratio depending on two parameters (2020-02-22)
 * #102: Fix conversion for xgboost 1.0 (2020-02-21)
-
-0.3.975 - 2020-02-19 - 0.28Mb
-=============================
-
 * #100: add notebook on TreeEnsemble (2020-02-19)
 * #99: Fixes #93, use same code for TreeEnsembleClassifier and TreeEnsembleRegression (2020-02-19)
 * #93: Use pointer for TreeClassifier (2020-02-19)

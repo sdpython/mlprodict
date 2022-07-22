@@ -3,12 +3,143 @@
 @brief Command line about validation of prediction runtime.
 """
 import os
+from io import StringIO
 from logging import getLogger
 import warnings
 import json
 from multiprocessing import Pool
-from pandas import DataFrame
+from pandas import DataFrame, read_csv, concat
 from sklearn.exceptions import ConvergenceWarning
+
+
+def benchmark_doc(runtime, black_list=None, white_list=None,
+                  out_raw='bench_raw.xlsx', out_summary="bench_summary.xlsx",
+                  dump_dir='dump', fLOG=print, verbose=0):
+    """
+    Runs the benchmark published into the documentation
+    (see :ref:`l-onnx-bench-onnxruntime1` and
+    :ref:`l-onnx-bench-python_compiled`).
+
+    :param runtime: runtime (python, python_compiled,
+        onnxruntime1, onnxruntime2)
+    :param black_list: models to skip, None for none
+        (comma separated list)
+    :param white_list: models to benchmark, None for all
+        (comma separated list)
+    :param out_raw: all results are saved in that file
+    :param out_summary: all results are summarized in that file
+    :param dump_dir: folder where to dump intermediate results
+    :param fLOG: logging function
+    :param verbose: verbosity
+    :return: list of created files
+    """
+    def _save(df, name):
+        ext = os.path.splitext(name)[-1]
+        if ext == '.xlsx':
+            df.to_excel(name, index=False)
+        elif ext == '.csv':
+            df.to_csv(name, index=False)
+        else:
+            raise ValueError(  # pragma: no cover
+                f"Unexpected extension in {name!r}.")
+        if verbose > 1:
+            fLOG(  # pragma: no cover
+                f"[mlprodict] wrote '{name}'")
+
+    from pyquickhelper.loghelper import run_cmd
+    from pyquickhelper.loghelper.run_cmd import get_interpreter_path
+    from tqdm import tqdm
+    from ..onnxrt.validate.validate_helper import sklearn_operators
+    from ..onnx_conv import register_converters, register_rewritten_operators
+    register_converters()
+    try:
+        register_rewritten_operators()
+    except KeyError:  # pragma: no cover
+        warnings.warn("converter for HistGradientBoosting* not not exist. "
+                      "Upgrade sklearn-onnx")
+
+    if black_list is None:
+        black_list = []
+    else:
+        black_list = black_list.split(',')
+    if white_list is None:
+        white_list = []
+    else:
+        white_list = white_list.split(',')
+
+    filenames = []
+    skls = sklearn_operators(extended=True)
+    skls = [_['name'] for _ in skls]
+    if white_list:
+        skls = [_ for _ in skls if _ in white_list]
+    skls.sort()
+    if verbose > 0:
+        pbar = tqdm(skls)
+    else:
+        pbar = skls
+    for op in pbar:
+        if black_list is not None and op in black_list:
+            continue
+        if verbose > 0:
+            pbar.set_description(  # pragma: no cover
+                f"[{op + ' ' * (25 - len(op))}]")
+
+        loop_out_raw = os.path.join(
+            dump_dir, f"bench_raw_{runtime}_{op}.csv")
+        loop_out_sum = os.path.join(
+            dump_dir, f"bench_sum_{runtime}_{op}.csv")
+        cmd = ('{0} -m mlprodict validate_runtime --verbose=0 --out_raw={1} --out_summary={2} '
+               '--benchmark=1 --dump_folder={3} --runtime={4} --models={5}'.format(
+                   get_interpreter_path(), loop_out_raw, loop_out_sum, dump_dir, runtime, op))
+        if verbose > 1:
+            fLOG(f"[mlprodict] cmd '{cmd}'.")  # pragma: no cover
+        out, err = run_cmd(cmd, wait=True, fLOG=None)
+        if not os.path.exists(loop_out_sum):  # pragma: no cover
+            if verbose > 2:
+                fLOG(f"[mlprodict] unable to find '{loop_out_sum}'.")
+            if verbose > 1:
+                fLOG(f"[mlprodict] cmd '{cmd}'")
+                fLOG(f"[mlprodict] unable to find '{loop_out_sum}'")
+            msg = "Unable to find '{}'\n--CMD--\n{}\n--OUT--\n{}\n--ERR--\n{}".format(
+                loop_out_sum, cmd, out, err)
+            if verbose > 1:
+                fLOG(msg)
+            rows = [{'name': op, 'scenario': 'CRASH',
+                     'ERROR-msg': msg.replace("\n", " -- ")}]
+            df = DataFrame(rows)
+            df.to_csv(loop_out_sum, index=False)
+        filenames.append((loop_out_raw, loop_out_sum))
+
+    # concatenate summaries
+    dfs_raw = [read_csv(name[0])
+               for name in filenames if os.path.exists(name[0])]
+    dfs_sum = [read_csv(name[1])
+               for name in filenames if os.path.exists(name[1])]
+    df_raw = concat(dfs_raw, sort=False)
+    piv = concat(dfs_sum, sort=False)
+
+    opset_cols = [(int(oc.replace("opset", "")), oc)
+                  for oc in piv.columns if 'opset' in oc]
+    opset_cols.sort(reverse=True)
+    opset_cols = [oc[1] for oc in opset_cols]
+    new_cols = opset_cols[:1]
+    bench_cols = ["RT/SKL-N=1", "N=10", "N=100",
+                  "N=1000", "N=10000"]
+    new_cols.extend(["ERROR-msg", "name", "problem", "scenario", 'optim'])
+    new_cols.extend(bench_cols)
+    new_cols.extend(opset_cols[1:])
+    for c in bench_cols:
+        new_cols.append(c + '-min')
+        new_cols.append(c + '-max')
+    for c in piv.columns:
+        if c.startswith("skl_") or c.startswith("onx_"):
+            new_cols.append(c)
+    new_cols = [_ for _ in new_cols if _ in piv.columns]
+    piv = piv[new_cols]
+
+    _save(piv, out_summary)
+    _save(df_raw, out_raw)
+    return filenames
 
 
 def validate_runtime(verbose=1, opset_min=-1, opset_max="",
@@ -171,8 +302,7 @@ def validate_runtime(verbose=1, opset_min=-1, opset_max="",
         os.mkdir(dump_folder)  # pragma: no cover
     if dump_folder and not os.path.exists(dump_folder):
         raise FileNotFoundError(  # pragma: no cover
-            "Cannot find dump_folder '{0}'.".format(
-                dump_folder))
+            f"Cannot find dump_folder '{dump_folder}'.")
 
     # handling parameters
     if opset_max == "":
@@ -198,8 +328,7 @@ def validate_runtime(verbose=1, opset_min=-1, opset_max="",
             n_jobs = None
     if time_kwargs is not None and not isinstance(time_kwargs, dict):
         raise ValueError(  # pragma: no cover
-            "time_kwargs must be a dictionary not {}\n{}".format(
-                type(time_kwargs), time_kwargs))
+            f"time_kwargs must be a dictionary not {type(time_kwargs)}\n{time_kwargs}")
     if not isinstance(n_features, list):
         if n_features in (None, ""):
             n_features = None
@@ -214,7 +343,7 @@ def validate_runtime(verbose=1, opset_min=-1, opset_max="",
         cl = m.__name__
         if cl in skip_models:
             return False
-        pair = "%s[%s]" % (cl, s)
+        pair = f"{cl}[{s}]"
         if pair in skip_models:
             return False
         return True
@@ -231,7 +360,7 @@ def validate_runtime(verbose=1, opset_min=-1, opset_max="",
         fct_filter = fct_filter_exp3
     else:
         raise ValueError(  # pragma: no cover
-            "dtype must be empty, 32, 64 not '{}'.".format(dtype))
+            f"dtype must be empty, 32, 64 not '{dtype}'.")
 
     # time_kwargs
 
@@ -243,7 +372,7 @@ def validate_runtime(verbose=1, opset_min=-1, opset_max="",
             v['number'] *= number
             v['repeat'] *= repeat
         if verbose > 0:
-            fLOG("time_kwargs=%r" % time_kwargs)
+            fLOG(f"time_kwargs={time_kwargs!r}")
 
     # body
 
@@ -292,7 +421,7 @@ def _finalize(rows, out_raw, out_summary, verbose, models, out_graph, fLOG):
 
     if out_raw:
         if verbose > 0:
-            fLOG("Saving raw_data into '{}'.".format(out_raw))
+            fLOG(f"Saving raw_data into '{out_raw}'.")
         if os.path.splitext(out_raw)[-1] == ".xlsx":
             df.to_excel(out_raw, index=False)
         else:
@@ -303,12 +432,11 @@ def _finalize(rows, out_raw, out_summary, verbose, models, out_graph, fLOG):
     piv = summary_report(df)
     if 'optim' not in piv:
         raise RuntimeError(  # pragma: no cover
-            "Unable to produce a summary. Missing column in \n{}".format(
-                piv.columns))
+            f"Unable to produce a summary. Missing column in \n{piv.columns}")
 
     if out_summary:
         if verbose > 0:
-            fLOG("Saving summary into '{}'.".format(out_summary))
+            fLOG(f"Saving summary into '{out_summary}'.")
         if os.path.splitext(out_summary)[-1] == ".xlsx":
             piv.to_excel(out_summary, index=False)
         else:
@@ -318,7 +446,7 @@ def _finalize(rows, out_raw, out_summary, verbose, models, out_graph, fLOG):
         fLOG(piv.T)
     if out_graph is not None:
         if verbose > 0:
-            fLOG("Saving graph into '{}'.".format(out_graph))
+            fLOG(f"Saving graph into '{out_graph}'.")
         from ..plotting.plotting import plot_validate_benchmark
         fig = plot_validate_benchmark(piv)[0]
         fig.savefig(out_graph)
@@ -357,7 +485,7 @@ def _validate_runtime_separate_process(**kwargs):
 
     for op in pbar:
         if not isinstance(pbar, list):
-            pbar.set_description("[%s]" % (op + " " * (25 - len(op))))
+            pbar.set_description(f"[{op + ' ' * (25 - len(op))}]")
 
         if kwargs['out_raw']:
             out_raw = os.path.splitext(kwargs['out_raw'])
@@ -393,3 +521,95 @@ def _validate_runtime_separate_process(**kwargs):
 
     return _finalize(all_rows, kwargs['out_raw'], kwargs['out_summary'],
                      verbose, models, kwargs.get('out_graph', None), fLOG)
+
+
+def latency(model, law='normal', size=1, number=10, repeat=10, max_time=0,
+            runtime="onnxruntime", device='cpu', fmt=None,
+            profiling=None, profile_output='profiling.csv'):
+    """
+    Measures the latency of a model (python API).
+
+    :param model: ONNX graph
+    :param law: random law used to generate fake inputs
+    :param size: batch size, it replaces the first dimension
+        of every input if it is left unknown
+    :param number: number of calls to measure
+    :param repeat: number of times to repeat the experiment
+    :param max_time: if it is > 0, it runs as many time during
+        that period of time
+    :param runtime: available runtime
+    :param device: device, `cpu`, `cuda:0` or a list of providers
+        `CPUExecutionProvider, CUDAExecutionProvider
+    :param fmt: None or `csv`, it then
+        returns a string formatted like a csv file
+    :param profiling: if True, profile the execution of every
+        node, if can be sorted by name or type,
+        the value for this parameter should e in `(None, 'name', 'type')`
+    :param profile_output: output name for the profiling
+        if profiling is specified
+
+    .. cmdref::
+        :title: Measures model latency
+        :cmd: -m mlprodict latency --help
+        :lid: l-cmd-latency
+
+        The command generates random inputs and call many times the
+        model on these inputs. It returns the processing time for one
+        iteration.
+
+        Example::
+
+            python -m mlprodict latency --model "model.onnx"
+    """
+    from ..onnxrt.validate.validate_latency import latency as _latency  # pylint: disable=E0402
+
+    if not os.path.exists(model):
+        raise FileNotFoundError(  # pragma: no cover
+            f"Unable to find model {model!r}.")
+    if profiling not in (None, '', 'name', 'type'):
+        raise ValueError(  # pragma: no cover
+            f"Unexpected value for profiling: {profiling!r}.")
+    size = int(size)
+    number = int(number)
+    repeat = int(repeat)
+    if max_time in (None, 0, ""):
+        max_time = None
+    else:
+        max_time = float(max_time)
+        if max_time <= 0:
+            max_time = None
+
+    if law != "normal":
+        raise ValueError(  # pragma: no cover
+            f"Only law='normal' is supported, not {law!r}.")
+
+    if profiling in ('name', 'type') and profile_output in (None, ''):
+        raise ValueError(  # pragma: no cover
+            f'profiling is enabled but profile_output is wrong ({profile_output!r}).')
+
+    res = _latency(
+        model, law=law, size=size, number=number, repeat=repeat,
+        max_time=max_time, runtime=runtime, device=device,
+        profiling=profiling)
+
+    if profiling not in (None, ''):
+        res, gr = res
+        ext = os.path.splitext(profile_output)[-1]
+        gr = gr.reset_index(drop=False)
+        if ext == '.csv':
+            gr.to_csv(profile_output, index=False)
+        elif ext == '.xlsx':  # pragma: no cover
+            gr.to_excel(profile_output, index=False)
+        else:
+            raise ValueError(  # pragma: no cover
+                f"Unexpected extension for profile_output={profile_output!r}.")
+
+    if fmt == 'csv':
+        st = StringIO()
+        df = DataFrame([res])
+        df.to_csv(st, index=False)
+        return st.getvalue()
+    if fmt in (None, ''):
+        return res
+    raise ValueError(  # pragma: no cover
+        f"Unexpected value for fmt: {fmt!r}.")

@@ -4,6 +4,7 @@
 import unittest
 import numpy
 from numpy.linalg import eig, eigvals
+from onnx import TensorProto  # pylint: disable=W0611
 from pyquickhelper.pycode import ExtTestCase
 from sklearn.datasets import load_iris
 from sklearn.base import TransformerMixin, BaseEstimator
@@ -14,7 +15,7 @@ from skl2onnx import to_onnx
 from skl2onnx import update_registered_converter
 from skl2onnx.algebra.onnx_ops import (  # pylint: disable=E0611
     OnnxAdd,
-    OnnxCast,
+    OnnxCast, OnnxCastLike,
     OnnxDiv,
     OnnxGatherElements,
     OnnxEyeLike,
@@ -28,7 +29,6 @@ from skl2onnx.algebra.onnx_ops import (  # pylint: disable=E0611
 )
 from mlprodict.onnxrt import OnnxInference
 from mlprodict.onnxrt.ops_cpu import OpRunCustom, register_operator
-from mlprodict.onnxrt.shape_object import ShapeObject
 
 
 class LiveDecorrelateTransformer(TransformerMixin, BaseEstimator):
@@ -145,9 +145,8 @@ def live_decorrelate_transformer_converter(scope, operator, container):
 
     # diag = numpy.diag(Linv)
     diag = OnnxMul(
-        OnnxEyeLike(
-            numpy.array([op.nf_, op.nf_], dtype=numpy.int64),
-            k=0, op_version=opv),
+        OnnxCastLike(OnnxEyeLike(Linv, k=0, op_version=opv), V,
+                     op_version=opv),
         Linv, op_version=opv)
     diag.set_onnx_name_prefix('diag')
 
@@ -174,25 +173,10 @@ class OpEig(OpRunCustom):  # pylint: disable=W0223
                              expected_attributes=OpEig.atts,
                              **options)
 
-    def run(self, x):  # pylint: disable=W0221
+    def run(self, x, attributes=None, verbose=0, fLOG=None):  # pylint: disable=W0221
         if self.eigv:  # pylint: disable=E1101
             return eig(x)
         return (eigvals(x), )
-
-    def _infer_shapes(self, x):  # pylint: disable=W0221
-        if self.eigv:  # pylint: disable=E1101
-            return (
-                ShapeObject(
-                    x.shape, dtype=x.dtype,
-                    name=self.__class__.__name__ + 'Values'),
-                ShapeObject(
-                    x.shape, dtype=x.dtype,
-                    name=self.__class__.__name__ + 'Vectors'))
-        return (ShapeObject(x.shape, dtype=x.dtype,
-                            name=self.__class__.__name__), )
-
-    def _infer_types(self, x):  # pylint: disable=W0221
-        return (x, x)
 
 
 class TestCustomRuntimeOps(ExtTestCase):
@@ -206,7 +190,6 @@ class TestCustomRuntimeOps(ExtTestCase):
 
         data = load_iris()
         X = data.data
-
         dec = LiveDecorrelateTransformer()
         dec.fit(X)
 
@@ -215,14 +198,18 @@ class TestCustomRuntimeOps(ExtTestCase):
         self.assertRaise(lambda: OnnxInference(onx), RuntimeError)
 
         register_operator(OpEig, name='Eig', overwrite=False)
-
-        oinf = OnnxInference(onx, runtime='python_compiled')
-        oinf = OnnxInference(onx)
-
         exp = dec.transform(X.astype(numpy.float32))
-        got = oinf.run({'X': X.astype(numpy.float32)})['variable']
 
-        self.assertEqualArray(exp, got)
+        for rt in ['python', 'python_compiled']:
+            with self.subTest(runtime=rt):
+                oinf = OnnxInference(onx, runtime=rt)
+                try:
+                    got = oinf.run({'X': X.astype(numpy.float32)})['variable']
+                except NotImplementedError as e:
+                    if rt == 'python_compiled':
+                        continue
+                    raise e
+                self.assertEqualArray(exp, got)
 
 
 if __name__ == "__main__":

@@ -18,7 +18,7 @@ from mlprodict.onnx_conv import to_onnx
 from mlprodict.onnxrt import OnnxInference
 from mlprodict.onnx_tools.optim.sklearn_helper import (
     enumerate_fitted_arrays, pairwise_array_distances)
-from mlprodict.tools import get_opset_number_from_onnx
+from mlprodict import __max_supported_opset__ as TARGET_OPSET
 
 
 class TestOnnxrtSwitchTypes(ExtTestCase):
@@ -30,7 +30,7 @@ class TestOnnxrtSwitchTypes(ExtTestCase):
     def test_onnxt_add(self):
         idi = numpy.identity(2, dtype=numpy.float32)
         onx = OnnxAdd('X', idi, output_names=['Y'],
-                      op_version=get_opset_number_from_onnx())
+                      op_version=TARGET_OPSET)
         model_def = onx.to_onnx({'X': idi.astype(numpy.float32)})
         oinf = OnnxInference(model_def, runtime="python")
         res = oinf.switch_initializers_dtype()
@@ -54,7 +54,7 @@ class TestOnnxrtSwitchTypes(ExtTestCase):
             for j in range(dist.shape[1]):
                 d = dist[i, j]
                 if (0 < d < 1e9 and i == j) or d > 1e9:
-                    mes = "dist={}\n--\n{}\n--\n{}".format(d, l1[i], l2[j])
+                    mes = f"dist={d}\n--\n{l1[i]}\n--\n{l2[j]}"
                     raise AssertionError(mes)
 
     @ignore_warnings(FutureWarning)

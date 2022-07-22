@@ -38,11 +38,12 @@
         from sklearn.datasets import make_classification
         from mlprodict.npy import onnxsklearn_class
         from mlprodict.onnx_conv import to_onnx
+        from mlprodict.plotting.text_plot import onnx_simple_text_plot
         import mlprodict.npy.numpy_onnx_impl as nxnp
         import mlprodict.npy.numpy_onnx_impl_skl as nxnpskl
 
         X, y = make_classification(200, n_classes=2, n_features=2, n_informative=2,
-                                   n_redundant=0, n_clusters_per_class=2, hypercube=False)
+                                n_redundant=0, n_clusters_per_class=2, hypercube=False)
 
         X_train, X_test, y_train, y_test = train_test_split(X, y)
 
@@ -70,6 +71,9 @@
         print(model.transform(X_test[:5]))
 
         onx = to_onnx(model, X_test[:5], target_opset=14)  # opset=13, 14, ...
+        print()
+        print(onnx_simple_text_plot(onx))
+        print()
         print(onx)
 
     The tutorial :ref:`l-numpy-api-for-onnx` extends this example

@@ -6,7 +6,6 @@
 """
 import numpy
 from ._op import OpRun
-from ..shape_object import ShapeObject
 
 
 class Scan(OpRun):
@@ -26,8 +25,7 @@ class Scan(OpRun):
                        **options)
         if not hasattr(self.body, 'run'):
             raise RuntimeError(  # pragma: no cover
-                "Parameter 'body' must have a method 'run', "
-                "type {}.".format(type(self.body)))
+                f"Parameter 'body' must have a method 'run', type {type(self.body)}.")
         self.input_directions_ = [0 if i >= len(self.scan_input_directions) else self.scan_input_directions[i]
                                   for i in range(self.num_scan_inputs)]
         max_dir_in = max(self.input_directions_)
@@ -76,7 +74,7 @@ class Scan(OpRun):
                 state_names_out, scan_names_in, scan_names_out,
                 scan_values, states)
 
-    def _run(self, *args):  # pylint: disable=W0221
+    def _run(self, *args, attributes=None, verbose=0, fLOG=None):  # pylint: disable=W0221
         (num_loop_state_vars, num_scan_outputs, output_directions,  # pylint: disable=W0612
          max_dir_out, output_axes, max_axe_out, state_names_in,  # pylint: disable=W0612
          state_names_out, scan_names_in, scan_names_out,  # pylint: disable=W0612
@@ -96,8 +94,7 @@ class Scan(OpRun):
                 outputs = self._run_meth(inputs)
             except TypeError as e:  # pragma: no cover
                 raise TypeError(
-                    "Unable to call 'run' for type '{}'.".format(
-                        type(self.body))) from e
+                    f"Unable to call 'run' for type '{type(self.body)}'.") from e
 
             states = [outputs[name] for name in state_names_out]
             for i, name in enumerate(scan_names_out):
@@ -107,24 +104,3 @@ class Scan(OpRun):
             conc = numpy.vstack(res)
             states.append(conc)
         return tuple(states)
-
-    def _infer_shapes(self, *args):  # pylint: disable=W0221
-        (num_loop_state_vars, num_scan_outputs, output_directions,  # pylint: disable=W0612
-         max_dir_out, output_axes, max_axe_out, state_names_in,  # pylint: disable=W0612
-         state_names_out, scan_names_in, scan_names_out,  # pylint: disable=W0612
-         scan_values, states) = self._common_run_shape(*args)  # pylint: disable=W0612
-
-        shapes = list(states)
-
-        shape = args[num_loop_state_vars].shape
-        if shape is None:
-            for sout in scan_values:
-                shapes.append(ShapeObject(None, dtype=sout.dtype))
-        else:
-            max_iter = shape[self.input_axes_[0]]
-            for sout in scan_values:
-                sc = sout.copy()
-                sc[0] = max_iter
-                shapes.append(sc)
-
-        return tuple(shapes)

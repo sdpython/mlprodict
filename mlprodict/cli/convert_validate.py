@@ -7,7 +7,6 @@ import pickle
 from logging import getLogger
 import warnings
 from pandas import read_csv
-from skl2onnx.common.data_types import FloatTensorType, DoubleTensorType
 from ..onnx_conv import to_onnx
 from ..onnxrt import OnnxInference
 from ..onnx_tools.optim import onnx_optimisations
@@ -53,7 +52,7 @@ def convert_validate(pkl, data=None, schema=None,
     :param optim: applies optimisations on the first ONNX graph,
         use 'onnx' to reduce the number of node Identity and
         redundant subgraphs
-    :param rewrite_ops: rewrites some converters from skl2onnx
+    :param rewrite_ops: rewrites some converters from :epkg:`sklearn-onnx`
     :param options: additional options for conversion,
         dictionary as a string
     :param verbose: verbose level
@@ -100,6 +99,7 @@ def convert_validate(pkl, data=None, schema=None,
                              --name output_label,output_probability
                              --verbose 1
     """
+    from skl2onnx.common.data_types import FloatTensorType, DoubleTensorType  # delayed
     if fLOG is None:
         verbose = 0  # pragma: no cover
     if use_double not in (None, 'float64', 'switch'):
@@ -114,11 +114,11 @@ def convert_validate(pkl, data=None, schema=None,
         logger.disabled = True
     if not os.path.exists(pkl):
         raise FileNotFoundError(  # pragma: no cover
-            "Unable to find model '{}'.".format(pkl))
+            f"Unable to find model '{pkl}'.")
     if os.path.exists(outonnx):
-        warnings.warn("File '{}' will be overwritten.".format(outonnx))
+        warnings.warn(f"File '{outonnx}' will be overwritten.")
     if verbose > 0:
-        fLOG("[convert_validate] load model '{}'".format(pkl))
+        fLOG(f"[convert_validate] load model '{pkl}'")
     with open(pkl, "rb") as f:
         model = pickle.load(f)
 
@@ -133,7 +133,7 @@ def convert_validate(pkl, data=None, schema=None,
             interpret_options_from_string)
         options = interpret_options_from_string(options)
         if verbose > 0:
-            fLOG("[convert_validate] options={}".format(repr(options)))
+            fLOG(f"[convert_validate] options={repr(options)}")
 
     if register:
         from ..onnx_conv import (
@@ -146,11 +146,11 @@ def convert_validate(pkl, data=None, schema=None,
         if schema is None:
             schema = guess_schema_from_model(model, tensor_type)
         if verbose > 0:
-            fLOG("[convert_validate] model schema={}".format(schema))
+            fLOG(f"[convert_validate] model schema={schema}")
         df = None
     else:
         if verbose > 0:
-            fLOG("[convert_validate] load data '{}'".format(data))
+            fLOG(f"[convert_validate] load data '{data}'")
         df = read_csv(data)
         if verbose > 0:
             fLOG("[convert_validate] convert data into matrix")
@@ -162,7 +162,7 @@ def convert_validate(pkl, data=None, schema=None,
         if len(schema) == 1:
             df = df.values  # pylint: disable=E1101
         if verbose > 0:
-            fLOG("[convert_validate] data schema={}".format(schema))
+            fLOG(f"[convert_validate] data schema={schema}")
 
     if noshape:
         if verbose > 0:
@@ -181,10 +181,10 @@ def convert_validate(pkl, data=None, schema=None,
 
     if optim is not None:
         if verbose > 0:
-            fLOG("[convert_validate] run optimisations '{}'".format(optim))
+            fLOG(f"[convert_validate] run optimisations '{optim}'")
         onx = onnx_optimisations(onx, optim=optim)
     if verbose > 0:
-        fLOG("[convert_validate] saves to '{}'".format(outonnx))
+        fLOG(f"[convert_validate] saves to '{outonnx}'")
     memory = onx.SerializeToString()
     with open(outonnx, 'wb') as f:
         f.write(memory)
@@ -213,20 +213,19 @@ def convert_validate(pkl, data=None, schema=None,
 
     if len(names) != len(methods):
         raise ValueError(
-            "Number of methods and outputs do not match: {}, {}".format(
-                names, methods))
+            f"Number of methods and outputs do not match: {names}, {methods}")
 
     if metric != 'l1med':
         raise ValueError(  # pragma: no cover
-            "Unknown metric '{}'".format(metric))
+            f"Unknown metric '{metric}'")
 
     if df is None:
         # no test on data
         return dict(onnx=memory)
 
     if verbose > 0:
-        fLOG("[convert_validate] compute predictions from ONNX with name '{}'"
-             "".format(name))
+        fLOG(
+            f"[convert_validate] compute predictions from ONNX with name '{name}'")
 
     ort_preds = sess.run(
         {'X': df}, verbose=max(verbose - 1, 0), fLOG=fLOG)
@@ -236,22 +235,21 @@ def convert_validate(pkl, data=None, schema=None,
     out_ort_preds = []
     for method_, name_ in zip(methods, names):
         if verbose > 0:
-            fLOG("[convert_validate] compute predictions with method '{}'".format(
-                method_))
+            fLOG(
+                f"[convert_validate] compute predictions with method '{method_}'")
         meth = getattr(model, method_)
         skl_pred = meth(df)
         out_skl_preds.append(df)
 
         if name_ not in ort_preds:
             raise KeyError(
-                "Unable to find output name '{}' in {}".format(
-                    name_, list(sorted(ort_preds))))
+                f"Unable to find output name '{name_}' in {list(sorted(ort_preds))}")
 
         ort_pred = ort_preds[name_]
         out_ort_preds.append(ort_pred)
         diff = measure_relative_difference(skl_pred, ort_pred)
         if verbose > 0:
-            fLOG("[convert_validate] {}={}".format(metric, diff))
+            fLOG(f"[convert_validate] {metric}={diff}")
         metrics.append(diff)
 
     return dict(skl_pred=out_skl_preds, ort_pred=out_ort_preds,

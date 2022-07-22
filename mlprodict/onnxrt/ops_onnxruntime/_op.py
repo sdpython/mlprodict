@@ -7,22 +7,10 @@ import numpy
 import onnx.defs
 from onnx.helper import make_tensor
 from onnx.onnx_cpp2py_export.shape_inference import InferenceError  # pylint: disable=E0401,E0611
-from skl2onnx.common.data_types import (
-    DictionaryType, FloatTensorType, Int64TensorType, StringTensorType)
-import skl2onnx.algebra.onnx_ops as alg
-try:
-    import skl2onnx.algebra.custom_ops as alg2
-except ImportError:  # pragma: no cover
-    # older version of skl2onnx
-    alg2 = alg
-from ...tools.ort_wrapper import (
-    InferenceSession, SessionOptions, RunOptions,
-    GraphOptimizationLevel, OrtInvalidArgument,
-    OrtNotImplemented, OrtInvalidGraph, OrtFail)
+from ...tools.ort_wrapper import InferenceSession
 from ...onnx_tools.onnx2py_helper import guess_proto_dtype
 from ...onnx_tools.optim.graph_schema_helper import (
     get_defined_inputs, get_defined_outputs, proto2vars)
-from ...onnx_conv import onnx_ops as alg3
 
 
 _schemas = {
@@ -36,29 +24,35 @@ class OpRunOnnxRuntime:
     """
 
     def __init__(self, onnx_node, desc=None, variables=None,
-                 dtype=None, **options):
+                 dtype=None, runtime=None, **options):
         """
-        @param      onnx_node               :epkg:`onnx` node
-        @param      desc                    internal representation
-        @param      variables               registered variables created by previous operators
-        @param      dtype                   float computation type
-        @param      options                 runtime options
+        :param onnx_node: :epkg:`onnx` node
+        :param desc: internal representation
+        :param variables: registered variables created by previous operators
+        :param dtype: float computation type
+        :param options: runtime options
+        :param runtime: `onnxruntime1`, `onnxruntime1-cuda`, ...
         """
         self._provider = 'onnxruntime'
         self.onnx_node = onnx_node
         self.desc = desc
+        self.runtime = runtime
         self._schema = _schemas.get(onnx_node.op_type, None)
         if desc is not None:
             if 'atts' in desc:
                 for a, b in desc['atts'].items():
                     if not isinstance(b, dict) or 'value' not in b:
                         raise ValueError(  # pragma: no cover
-                            "Unexpected value {}.".format(b))
+                            f"Unexpected value {b}.")
                     options[a] = b['value']
 
         self.options = options
         self.dtype = dtype
         self._init(variables)
+
+        from onnxruntime.capi._pybind_state import (  # pylint: disable=E0611
+            InvalidArgument as OrtInvalidArgument)
+        self.OrtInvalidArgument = OrtInvalidArgument
 
     def _name_mapping(self, inputs):
         mapping = {}
@@ -66,10 +60,10 @@ class OpRunOnnxRuntime:
         for name in inputs:
             if name in mapping:
                 i = 0
-                new_name = "{}_{}".format(name, i)
+                new_name = f"{name}_{i}"
                 while new_name in mapping:
                     i += 1  # pragma: no cover
-                    new_name = "{}_{}".format(name, i)  # pragma: no cover
+                    new_name = f"{name}_{i}"  # pragma: no cover
                 mapping[new_name] = name
                 new_inputs.append(new_name)
             else:
@@ -95,14 +89,17 @@ class OpRunOnnxRuntime:
             self.alg_class = custom_nodes[self.onnx_node.op_type]
         else:
             try:
-                self.alg_class = getattr(alg2, 'Onnx' + self.onnx_node.op_type)
+                import mlprodict.onnx_conv.onnx_ops as alg0
+                self.alg_class = getattr(alg0, 'Onnx' + self.onnx_node.op_type)
             except AttributeError:
+                import skl2onnx.algebra.custom_ops as alg2  # delayed
                 try:
                     self.alg_class = getattr(
-                        alg, 'Onnx' + self.onnx_node.op_type)
+                        alg2, 'Onnx' + self.onnx_node.op_type)
                 except AttributeError:
+                    import skl2onnx.algebra.onnx_ops as alg  # delayed
                     self.alg_class = getattr(
-                        alg3, 'Onnx' + self.onnx_node.op_type)
+                        alg, 'Onnx' + self.onnx_node.op_type)
 
         inputs = list(self.onnx_node.input)
         self.mapping, self.inputs = self._name_mapping(inputs)
@@ -122,6 +119,8 @@ class OpRunOnnxRuntime:
             pass
 
         if self.onnx_node.op_type == 'ZipMap':
+            from skl2onnx.common.data_types import (  # delayed
+                DictionaryType, FloatTensorType, Int64TensorType, StringTensorType)
             self.inst_ = self.alg_class(*self.inputs, output_names=self.outputs,
                                         op_version=target_opset, **options)
             inputs = get_defined_inputs(
@@ -131,6 +130,17 @@ class OpRunOnnxRuntime:
             otype = (Int64TensorType if 'classlabels_int64s' in options
                      else StringTensorType)
             outvar = [(name, DictionaryType(otype([1]), FloatTensorType([1])))]
+            self.onnx_ = self.inst_.to_onnx(inputs, outputs=outvar)
+            forced = True
+        elif self.onnx_node.op_type == 'ArrayFeatureExtractor':
+            self.inst_ = self.alg_class(*self.inputs, output_names=self.outputs,
+                                        op_version=target_opset, **options)
+            inputs = get_defined_inputs(
+                self.inputs, variables, dtype=self.dtype)
+            name = (self.outputs[0] if len(self.outputs) == 1
+                    else self.inst_.expected_outputs[0][0])
+            otype = inputs[0][1].__class__
+            outvar = [(name, otype())]
             self.onnx_ = self.inst_.to_onnx(inputs, outputs=outvar)
             forced = True
         elif self.onnx_node.op_type == 'ConstantOfShape':
@@ -150,8 +160,7 @@ class OpRunOnnxRuntime:
                                                 domain=domain)
                 if "dim_value: 0" in str(self.onnx_):
                     raise RuntimeError(  # pragma: no cover
-                        "Probable issue as one dimension is null.\n--\n{}".format(
-                            self.onnx_))
+                        f"Probable issue as one dimension is null.\n--\n{self.onnx_}")
             except AttributeError as e:  # pragma: no cover
                 # older version of skl2onnx
                 self.onnx_ = self.inst_.to_onnx(inputs)
@@ -178,8 +187,7 @@ class OpRunOnnxRuntime:
                                             domain=domain)
             if "dim_value: 0" in str(self.onnx_):
                 raise RuntimeError(  # pragma: no cover
-                    "Probable issue as one dimension is null.\n--\n{}".format(
-                        self.onnx_))
+                    f"Probable issue as one dimension is null.\n--\n{self.onnx_}")
             forced = True
         else:
             self.inst_ = self.alg_class(*self.inputs, output_names=self.outputs,
@@ -231,11 +239,16 @@ class OpRunOnnxRuntime:
                                             domain=domain)
             if "dim_value: 0" in str(self.onnx_):
                 raise RuntimeError(  # pragma: no cover
-                    "Probable issue as one dimension is null.\n--\n{}".format(
-                        self.onnx_))
+                    f"Probable issue as one dimension is null.\n--\n{self.onnx_}")
         else:
             lo = list(self.onnx_.graph.output)
             outputs = proto2vars(lo)
+
+        from onnxruntime import (  # pylint: disable=E0611
+            SessionOptions, RunOptions, GraphOptimizationLevel)
+        from onnxruntime.capi._pybind_state import (  # pylint: disable=E0611
+            Fail as OrtFail, InvalidGraph as OrtInvalidGraph,
+            NotImplemented as OrtNotImplemented)
 
         sess_options = session_options or SessionOptions()
         self.run_options = RunOptions()
@@ -265,7 +278,8 @@ class OpRunOnnxRuntime:
             self.onnx_.ir_version = ir_version
         try:
             self.sess_ = InferenceSession(
-                self.onnx_.SerializeToString(), sess_options=sess_options)
+                self.onnx_.SerializeToString(), sess_options=sess_options,
+                runtime=self.runtime)
         except (RuntimeError, OrtNotImplemented, OrtInvalidGraph, OrtFail) as e:
             raise RuntimeError(
                 "Unable to load node '{}' (output type was {}) inputs={} "
@@ -288,7 +302,7 @@ class OpRunOnnxRuntime:
 
         try:
             res = self.sess_.run(None, inputs, self.run_options)
-        except (RuntimeError, OrtInvalidArgument) as e:  # pragma: no cover
+        except (RuntimeError, self.OrtInvalidArgument) as e:  # pragma: no cover
             dtypes = {k: v.dtype for k, v in inputs.items()}
             shapes = {k: v.shape for k, v in inputs.items()}
             exp = [_.name for _ in self.sess_.get_inputs()]

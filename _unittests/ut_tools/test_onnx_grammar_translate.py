@@ -11,7 +11,7 @@ from mlprodict.onnx_tools.onnx_grammar import (
     CodeNodeVisitor, translate_fct2onnx)
 from mlprodict.onnx_tools.onnx_grammar.onnx_translation import py_mul
 from mlprodict.onnxrt import OnnxInference
-from mlprodict.tools import get_opset_number_from_onnx
+from mlprodict import __max_supported_opset__ as TARGET_OPSET
 
 
 class TestOnnxGrammarTranslate(ExtTestCase):
@@ -308,7 +308,7 @@ class TestOnnxGrammarTranslate(ExtTestCase):
             trs, context={'numpy.transpose': numpy.transpose},
             cpl=True, context_cpl=ctx, output_names=['Z'])
 
-        r = fct('x', 'y', op_version=get_opset_number_from_onnx())
+        r = fct('x', 'y', op_version=TARGET_OPSET)
         self.assertIsInstance(r, OnnxIdentity)
 
         inputs = {'x': numpy.array([[1, 2]], dtype=numpy.float32),
@@ -347,7 +347,7 @@ class TestOnnxGrammarTranslate(ExtTestCase):
             trs, context={'numpy.transpose': numpy.transpose},
             cpl=True, context_cpl=ctx, output_names=['Z'])
 
-        r = fct('x', 'y', op_version=get_opset_number_from_onnx())
+        r = fct('x', 'y', op_version=TARGET_OPSET)
         self.assertIsInstance(r, OnnxIdentity)
 
         inputs = {'x': numpy.array([[1, 2]], dtype=numpy.float32)}

@@ -18,17 +18,13 @@ class Transpose(OpRunUnaryNum):
                                **options)
         self.perm_ = None if len(self.perm) == 0 else self.perm
 
-    def _run(self, data):  # pylint: disable=W0221
+    def _run(self, data, attributes=None, verbose=0, fLOG=None):  # pylint: disable=W0221
         if self.perm_ is None:
             return (numpy.transpose(data), )
         if len(self.perm_) != len(data.shape):
             raise RuntimeError(  # pragma: no cover
-                "Inconsistent permutation %r with shape %r." % (
-                    self.perm_, data.shape))
+                f"Inconsistent permutation {self.perm_!r} with shape {data.shape!r}.")
         return (numpy.transpose(data, axes=self.perm_), )
-
-    def _infer_shapes(self, x):  # pylint: disable=W0221
-        return (x.transpose(perm=self.perm), )
 
     def to_python(self, inputs):
         """
@@ -39,7 +35,7 @@ class Transpose(OpRunUnaryNum):
         """
         lines = [
             "if perm is None:",
-            "    return numpy.transpose(%s)" % inputs[0],
-            "return numpy.transpose(%s, axes=perm)" % inputs[0]
+            f"    return numpy.transpose({inputs[0]})",
+            f"return numpy.transpose({inputs[0]}, axes=perm)"
         ]
         return "import numpy", "\n".join(lines)

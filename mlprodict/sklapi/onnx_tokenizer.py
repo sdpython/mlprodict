@@ -10,11 +10,51 @@ from scipy.sparse import csr_matrix
 from sklearn.base import BaseEstimator, TransformerMixin
 from onnx import helper, TensorProto, load
 from onnx.defs import onnx_opset_version
-from onnxruntime import InferenceSession, SessionOptions
-from onnxruntime_extensions import get_library_path
+try:
+    from onnxruntime_extensions import get_library_path
+except ImportError:  # pragma: no cover
+    get_library_path = None
+from mlprodict import __max_supported_opset__
 
 
-class SentencePieceTokenizerTransformer(BaseEstimator, TransformerMixin):
+class TokenizerTransformerBase(BaseEstimator, TransformerMixin):
+    """
+    Base class for @see cl SentencePieceTokenizerTransformer and
+    @see cl GPT2TokenizerTransformer.
+    """
+
+    def __init__(self):
+        BaseEstimator.__init__(self)
+        TransformerMixin.__init__(self)
+        from onnxruntime import InferenceSession, SessionOptions  # delayed
+        self._InferenceSession = InferenceSession
+        self._SessionOptions = SessionOptions
+
+    def __getstate__(self):
+        state = BaseEstimator.__getstate__(self)
+        del state['sess_']
+        del state['_InferenceSession']
+        del state['_SessionOptions']
+        state['onnx_'] = state['onnx_'].SerializeToString()
+        return state
+
+    def __setstate__(self, state):
+        if get_library_path is None:
+            raise ImportError(  # pragma: no cover
+                "onnxruntime_extensions is not installed.")
+        from onnxruntime import InferenceSession, SessionOptions  # delayed
+        state['onnx_'] = load(BytesIO(state['onnx_']))
+        BaseEstimator.__setstate__(self, state)
+        self._InferenceSession = InferenceSession
+        self._SessionOptions = SessionOptions
+        so = SessionOptions()
+        so.register_custom_ops_library(get_library_path())
+        self.sess_ = InferenceSession(self.onnx_.SerializeToString(), so,
+                                      providers=['CPUExecutionProvider'])
+        return self
+
+
+class SentencePieceTokenizerTransformer(TokenizerTransformerBase):
     """
     Wraps `SentencePieceTokenizer
     <https://github.com/microsoft/onnxruntime-extensions/blob/
@@ -39,14 +79,14 @@ class SentencePieceTokenizerTransformer(BaseEstimator, TransformerMixin):
     :param opset: main opset to use
 
     Method *fit* produces the following attributes:
+
     * `onnx_`: onnx graph
     * `sess_`: :epkg:`InferenceSession` used to compute the inference
     """
 
     def __init__(self, model, nbest_size=1, alpha=0.5, reverse=False,
                  add_bos=False, add_eos=False, opset=None):
-        BaseEstimator.__init__(self)
-        TransformerMixin.__init__(self)
+        TokenizerTransformerBase.__init__(self)
         if isinstance(model, bytes):
             self.model_b64 = model
         else:
@@ -59,20 +99,9 @@ class SentencePieceTokenizerTransformer(BaseEstimator, TransformerMixin):
         self.add_bos = add_bos
         self.add_eos = add_eos
         self.opset = opset
-
-    def __getstate__(self):
-        state = BaseEstimator.__getstate__(self)
-        del state['sess_']
-        state['onnx_'] = state['onnx_'].SerializeToString()
-        return state
-
-    def __setstate__(self, state):
-        state['onnx_'] = load(BytesIO(state['onnx_']))
-        BaseEstimator.__setstate__(self, state)
-        so = SessionOptions()
-        so.register_custom_ops_library(get_library_path())
-        self.sess_ = InferenceSession(self.onnx_.SerializeToString(), so)
-        return self
+        if get_library_path is None:
+            raise ImportError(  # pragma: no cover
+                "onnxruntime_extensions is not installed.")
 
     def fit(self, X, y=None, sample_weight=None):
         """
@@ -86,9 +115,9 @@ class SentencePieceTokenizerTransformer(BaseEstimator, TransformerMixin):
         """
         self.onnx_ = self._create_model(
             self.model_b64, opset=self.opset)
-        so = SessionOptions()
+        so = self._SessionOptions()
         so.register_custom_ops_library(get_library_path())
-        self.sess_ = InferenceSession(self.onnx_.SerializeToString(), so)
+        self.sess_ = self._InferenceSession(self.onnx_.SerializeToString(), so)
         return self
 
     @staticmethod
@@ -115,7 +144,7 @@ class SentencePieceTokenizerTransformer(BaseEstimator, TransformerMixin):
                 mkv('out0', TensorProto.INT32, [None]),
                 mkv('out1', TensorProto.INT64, [None])])
         if opset is None:
-            opset = onnx_opset_version()
+            opset = min(__max_supported_opset__, onnx_opset_version())
         model = helper.make_model(graph, opset_imports=[
             helper.make_operatorsetid('', opset)])
         model.opset_import.extend([helper.make_operatorsetid(domain, 1)])
@@ -136,7 +165,7 @@ class SentencePieceTokenizerTransformer(BaseEstimator, TransformerMixin):
         return csr_matrix((values, out0, out1))
 
 
-class GPT2TokenizerTransformer(BaseEstimator, TransformerMixin):
+class GPT2TokenizerTransformer(TokenizerTransformerBase):
     """
     Wraps `GPT2Tokenizer
     <https://github.com/microsoft/onnxruntime-extensions/blob/
@@ -158,31 +187,20 @@ class GPT2TokenizerTransformer(BaseEstimator, TransformerMixin):
     :param opset: main opset to use
 
     Method *fit* produces the following attributes:
+
     * `onnx_`: onnx graph
     * `sess_`: :epkg:`InferenceSession` used to compute the inference
     """
 
     def __init__(self, vocab, merges, padding_length=-1, opset=None):
-        BaseEstimator.__init__(self)
-        TransformerMixin.__init__(self)
+        TokenizerTransformerBase.__init__(self)
         self.vocab = vocab
         self.merges = merges
         self.padding_length = padding_length
         self.opset = opset
-
-    def __getstate__(self):
-        state = BaseEstimator.__getstate__(self)
-        del state['sess_']
-        state['onnx_'] = state['onnx_'].SerializeToString()
-        return state
-
-    def __setstate__(self, state):
-        state['onnx_'] = load(BytesIO(state['onnx_']))
-        BaseEstimator.__setstate__(self, state)
-        so = SessionOptions()
-        so.register_custom_ops_library(get_library_path())
-        self.sess_ = InferenceSession(self.onnx_.SerializeToString(), so)
-        return self
+        if get_library_path is None:
+            raise ImportError(  # pragma: no cover
+                "onnxruntime_extensions is not installed.")
 
     def fit(self, X, y=None, sample_weight=None):
         """
@@ -196,9 +214,9 @@ class GPT2TokenizerTransformer(BaseEstimator, TransformerMixin):
         """
         self.onnx_ = self._create_model(
             self.vocab, self.merges, self.padding_length, opset=self.opset)
-        so = SessionOptions()
+        so = self._SessionOptions()
         so.register_custom_ops_library(get_library_path())
-        self.sess_ = InferenceSession(self.onnx_.SerializeToString(), so)
+        self.sess_ = self._InferenceSession(self.onnx_.SerializeToString(), so)
         return self
 
     @staticmethod
@@ -220,9 +238,9 @@ class GPT2TokenizerTransformer(BaseEstimator, TransformerMixin):
                 mkv('input_ids', TensorProto.INT64, [None, None]),
                 mkv('attention_mask', TensorProto.INT64, [None, None])])
         if opset is None:
-            opset = onnx_opset_version()
-        model = helper.make_model(graph, opset_imports=[
-            helper.make_operatorsetid('', opset)])
+            opset = min(__max_supported_opset__, onnx_opset_version())
+        model = helper.make_model(
+            graph, opset_imports=[helper.make_operatorsetid('', opset)])
         model.opset_import.extend([helper.make_operatorsetid(domain, 1)])
         return model
 

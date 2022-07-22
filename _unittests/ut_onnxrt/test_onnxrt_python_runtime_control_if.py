@@ -12,7 +12,7 @@ from skl2onnx.algebra.onnx_ops import (  # pylint: disable=E0611
 from skl2onnx.common.data_types import FloatTensorType
 from skl2onnx import __version__ as skl2onnx_version
 from mlprodict.onnxrt import OnnxInference
-from mlprodict.tools import get_opset_number_from_onnx
+from mlprodict import __max_supported_opset__ as TARGET_OPSET
 
 
 class TestOnnxrtPythonRuntimeControlIf(ExtTestCase):
@@ -25,7 +25,7 @@ class TestOnnxrtPythonRuntimeControlIf(ExtTestCase):
     def test_if(self):
 
         tensor_type = FloatTensorType
-        op_version = get_opset_number_from_onnx()
+        op_version = TARGET_OPSET
         bthen = OnnxConstant(
             value_floats=numpy.array([0], dtype=numpy.float32),
             op_version=op_version, output_names=['res_then'])
@@ -55,7 +55,7 @@ class TestOnnxrtPythonRuntimeControlIf(ExtTestCase):
         y = numpy.array([1, 3], dtype=numpy.float32)
         model_def = onx.to_onnx({'X': x.astype(numpy.float32),
                                  'Y': y.astype(numpy.float32)},
-                                target_opset=get_opset_number_from_onnx())
+                                target_opset=TARGET_OPSET)
         got = OnnxInference(model_def).run({'X': x, 'Y': y})
         self.assertEqualArray(numpy.array([0.], dtype=numpy.float32),
                               got['Z'])
@@ -64,7 +64,7 @@ class TestOnnxrtPythonRuntimeControlIf(ExtTestCase):
         y = numpy.array([-1, -3], dtype=numpy.float32)
         model_def = onx.to_onnx({'X': x.astype(numpy.float32),
                                  'Y': y.astype(numpy.float32)},
-                                target_opset=get_opset_number_from_onnx())
+                                target_opset=TARGET_OPSET)
         got = OnnxInference(model_def).run({'X': x, 'Y': y})
         self.assertEqualArray(numpy.array([1.], dtype=numpy.float32),
                               got['Z'])
@@ -72,7 +72,7 @@ class TestOnnxrtPythonRuntimeControlIf(ExtTestCase):
     @ignore_warnings(DeprecationWarning)
     def test_if2(self):
 
-        opv = get_opset_number_from_onnx()
+        opv = TARGET_OPSET
         x1 = numpy.array([[0, 3], [7, 0]], dtype=numpy.float32)
         x2 = numpy.array([[1, 0], [2, 0]], dtype=numpy.float32)
 

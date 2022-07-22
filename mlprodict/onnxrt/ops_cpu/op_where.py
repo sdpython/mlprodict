@@ -14,19 +14,11 @@ class Where(OpRun):
         OpRun.__init__(self, onnx_node, desc=desc,
                        **options)
 
-    def _run(self, condition, x, y):  # pylint: disable=W0221
+    def _run(self, condition, x, y, attributes=None, verbose=0, fLOG=None):  # pylint: disable=W0221
         if x.dtype != y.dtype and x.dtype not in (numpy.object_, ):
             raise RuntimeError(  # pragma: no cover
-                "x and y should share the same dtype {} != {}".format(
-                    x.dtype, y.dtype))
+                f"x and y should share the same dtype {x.dtype} != {y.dtype}")
         if x.shape != y.shape and x.shape != (1, ) and y.shape != (1, ):
             raise RuntimeError(  # pragma: no cover
-                "x and y should share the same shape {} != {}".format(
-                    x.shape, y.shape))
+                f"x and y should share the same shape {x.shape} != {y.shape}")
         return (numpy.where(condition, x, y).astype(x.dtype), )
-
-    def _infer_shapes(self, condition, x, y):  # pylint: disable=W0221
-        return (x, )
-
-    def _infer_types(self, condition, x, y):  # pylint: disable=W0221
-        return (x, )

@@ -7,7 +7,8 @@ from logging import getLogger
 from pandas import DataFrame, read_excel, read_csv, concat, Series
 from sklearn.exceptions import ConvergenceWarning
 from sklearn.utils._testing import ignore_warnings
-from sklearn.ensemble import AdaBoostRegressor, HistGradientBoostingRegressor
+from sklearn.ensemble import (
+    AdaBoostRegressor, HistGradientBoostingRegressor)
 from sklearn.gaussian_process import GaussianProcessClassifier
 import sphinx
 from tqdm import tqdm
@@ -18,8 +19,7 @@ from pyquickhelper.loghelper import run_cmd
 from pyquickhelper.loghelper.run_cmd import get_interpreter_path
 from mlprodict.onnxrt.validate.validate_helper import sklearn_operators
 from mlprodict.onnxrt.doc.doc_write_helper import (
-    split_columns_subsets, build_key_split, filter_rows, _make_opset
-)
+    split_columns_subsets, build_key_split, filter_rows, _make_opset)
 from mlprodict.onnxrt.validate.validate_summary import _clean_values_optim
 from mlprodict.onnx_conv import register_converters, register_rewritten_operators
 register_converters()
@@ -38,52 +38,16 @@ def write_page_onnxrt_ops(app):
     logger = getLogger('mlprodict')
     srcdir = app.builder.srcdir if app is not None else ".."
     whe = os.path.join(os.path.abspath(srcdir), "api", "onnxrt_ops.rst")
-    logger.info("[mlprodict] create page '{}'.".format(whe))
-    print("[mlprodict-sphinx] create page '{}'.".format(whe))
+    logger.info(f"[mlprodict] create page '{whe}'.")
+    print(f"[mlprodict-sphinx] create page '{whe}'.")
     page = compose_page_onnxrt_ops()
     with open(whe, "w", encoding='utf-8') as f:
         f.write(page)
-    print("[mlprodict-sphinx] done page '{}'.".format(whe))
-
-
-def run_benchmark(runtime, srcdir, logger, skip, white_list=None):
-    filenames = []
-    skls = sklearn_operators(extended=True)
-    skls = [_['name'] for _ in skls]
-    if white_list:
-        skls = [_ for _ in skls if _ in white_list]
-    skls.sort()
-    pbar = tqdm(skls)
-    for op in pbar:
-        if skip is not None and op in skip:
-            continue
-        pbar.set_description("[%s]" % (op + " " * (25 - len(op))))
-
-        out_raw = os.path.join(srcdir, "bench_raw_%s_%s.csv" % (runtime, op))
-        out_sum = os.path.join(srcdir, "bench_sum_%s_%s.csv" % (runtime, op))
-        cmd = ('{0} -m mlprodict validate_runtime --verbose=0 --out_raw={1} --out_summary={2} '
-               '--benchmark=1 --dump_folder={3} --runtime={4} --models={5}'.format(
-                   get_interpreter_path(), out_raw, out_sum, srcdir, runtime, op))
-        logger.info("[mlprodict] cmd '{}'.".format(cmd))
-        out, err = run_cmd(cmd, wait=True, fLOG=None)
-        if not os.path.exists(out_sum):
-            logger.warning("[mlprodict] unable to find '{}'.".format(out_sum))
-            print("[mlprodict-sphinx] cmd '{}'".format(cmd))
-            print("[mlprodict-sphinx] unable to find '{}'".format(out_sum))
-            msg = "Unable to find '{}'\n--CMD--\n{}\n--OUT--\n{}\n--ERR--\n{}".format(
-                out_sum, cmd, out, err)
-            print(msg)
-            rows = [{'name': op, 'scenario': 'CRASH',
-                     'ERROR-msg': msg.replace("\n", " -- ")}]
-            df = DataFrame(rows)
-            df.to_csv(out_sum, index=False)
-        filenames.append((out_raw, out_sum))
-    return filenames
+    print(f"[mlprodict-sphinx] done page '{whe}'.")
 
 
 def write_page_onnxrt_benches(app, runtime, skip=None, white_list=None):
 
-    from mlprodict.onnxrt.validate.validate import enumerate_validated_operator_opsets
     logger = getLogger('mlprodict')
     srcdir = app.builder.srcdir if app is not None else ".."
 
@@ -97,51 +61,21 @@ def write_page_onnxrt_benches(app, runtime, skip=None, white_list=None):
         whe = os.path.join(os.path.abspath(srcdir),
                            "skl_converters", "bench_onnxrt1.rst")
     else:
-        raise RuntimeError("Unsupported runtime '{}'.".format(runtime))
+        raise RuntimeError(f"Unsupported runtime '{runtime}'.")
 
-    logger.info("[mlprodict] create page '{}'.".format(whe))
-    print("[mlprodict-sphinx] create page runtime '{}' - '{}'.".format(runtime, whe))
+    logger.info(f"[mlprodict] create page '{whe}'.")
+    print(f"[mlprodict-sphinx] create page runtime '{runtime}' - '{whe}'.")
 
-    filenames = run_benchmark(runtime, srcdir, logger, skip,
-                              white_list=white_list)
-    dfs_raw = [read_csv(name[0])
-               for name in filenames if os.path.exists(name[0])]
-    dfs_sum = [read_csv(name[1])
-               for name in filenames if os.path.exists(name[1])]
-    df_raw = concat(dfs_raw, sort=False)
-    piv = concat(dfs_sum, sort=False)
+    out_sum = os.path.join(
+        srcdir, "skl_converters", f"bench_sum_{runtime}.xlsx")
+    if not os.path.exists(out_sum):
+        raise FileNotFoundError(f"Unable to find {out_sum!r}.")
+    piv = read_excel(out_sum)
+    logger.info(f"[mlprodict] read '{out_sum}'.")
+    print(f"[mlprodict-sphinx] read '{out_sum}'")
 
-    opset_cols = [(int(oc.replace("opset", "")), oc)
-                  for oc in piv.columns if 'opset' in oc]
-    opset_cols.sort(reverse=True)
-    opset_cols = [oc[1] for oc in opset_cols]
-    new_cols = opset_cols[:1]
-    bench_cols = ["RT/SKL-N=1", "N=10", "N=100",
-                  "N=1000", "N=10000"]
-    new_cols.extend(["ERROR-msg", "name", "problem", "scenario", 'optim'])
-    new_cols.extend(bench_cols)
-    new_cols.extend(opset_cols[1:])
-    for c in bench_cols:
-        new_cols.append(c + '-min')
-        new_cols.append(c + '-max')
-    for c in piv.columns:
-        if c.startswith("skl_") or c.startswith("onx_"):
-            new_cols.append(c)
-    new_cols = [_ for _ in new_cols if _ in piv.columns]
-    piv = piv[new_cols]
-
-    out_sum = os.path.join(srcdir, "bench_sum_%s.xlsx" % runtime)
-    piv.to_excel(out_sum, index=False)
-    logger.info("[mlprodict] wrote '{}'.".format(out_sum))
-    print("[mlprodict-sphinx] wrote '{}'".format(out_sum))
-
-    out_raw = os.path.join(srcdir, "bench_raw_%s.xlsx" % runtime)
-    df_raw.to_excel(out_raw, index=False)
-    logger.info("[mlprodict] wrote '{}'.".format(out_raw))
-    print("[mlprodict-sphinx] wrote '{}'".format(out_raw))
-
-    logger.info("[mlprodict] shape '{}'.".format(piv.shape))
-    print("[mlprodict-sphinx] shape '{}'".format(piv.shape))
+    logger.info(f"[mlprodict] shape '{piv.shape}'.")
+    print(f"[mlprodict-sphinx] shape '{piv.shape}'")
 
     def make_link(row):
         link = ":ref:`{name} <l-{name}-{problem}-{scenario}-{optim}-{opset}>`"
@@ -169,12 +103,11 @@ def write_page_onnxrt_benches(app, runtime, skip=None, white_list=None):
 
         piv["ERROR-msg"] = piv["ERROR-msg"].apply(shorten)
 
-    logger.info("[mlprodict] write '{}'.".format(whe))
-    print("[mlprodict-sphinx] write '{}'".format(whe))
+    logger.info(f"[mlprodict] write '{whe}'.")
+    print(f"[mlprodict-sphinx] write '{whe}'")
 
     with open(whe, 'w', encoding='utf-8') as f:
-        title = "Availability of scikit-learn model for runtime {0}".format(
-            runtime)
+        title = f"Availability of scikit-learn model for runtime {runtime}"
         f.write(dedent('''
         .. _l-onnx-bench-{0}:
 
@@ -238,8 +171,8 @@ def write_page_onnxrt_benches(app, runtime, skip=None, white_list=None):
                        column_size={'problem': 25},
                        label_pattern=".. _lpy-{section}:"))
     logger.info(
-        "[mlprodict] done page '{}'.".format(whe))
-    print("[mlprodict-sphinx] done page runtime '{}' - '{}'.".format(runtime, whe))
+        f"[mlprodict] done page '{whe}'.")
+    print(f"[mlprodict-sphinx] done page runtime '{runtime}' - '{whe}'.")
 
 
 def write_page_onnxrt_benches_python(app, white_list=None):
@@ -274,11 +207,9 @@ if __name__ == '__main__':
             # 'LGBMClassifier',
             # 'ARDRegression',
             # 'LogisticRegression'
-            'HistGradientBoostingRegressor'
-        })
+            'HistGradientBoostingRegressor'})
     write_page_onnxrt_benches_onnxruntime1(
         None, white_list={
             # 'LGBMClassifier',
             # 'ARDRegression',
-            'HistGradientBoostingRegressor'
-        })
+            'HistGradientBoostingRegressor'})

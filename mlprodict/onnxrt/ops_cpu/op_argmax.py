@@ -39,12 +39,12 @@ class _ArgMax(OpRunArg):
                           expected_attributes=expected_attributes,
                           **options)
 
-    def _run(self, data):  # pylint: disable=W0221
+    def _run(self, data, attributes=None, verbose=0, fLOG=None):  # pylint: disable=W0221
         return (_argmax(data, axis=self.axis, keepdims=self.keepdims), )
 
     def to_python(self, inputs):
         return ('import numpy\nfrom mlprodict.onnxrt.ops_cpu.op_argmax import _argmax',
-                'return _argmax(%s, axis=axis, keepdims=keepdims)' % inputs[0])
+                f'return _argmax({inputs[0]}, axis=axis, keepdims=keepdims)')
 
 
 class ArgMax_11(_ArgMax):
@@ -66,7 +66,7 @@ class ArgMax_12(_ArgMax):
                          expected_attributes=ArgMax_12.atts,
                          **options)
 
-    def _run(self, data):  # pylint: disable=W0221
+    def _run(self, data, attributes=None, verbose=0, fLOG=None):  # pylint: disable=W0221
         if self.select_last_index == 0:
             return _ArgMax._run(self, data)
         return (_argmax_use_numpy_select_last_index(

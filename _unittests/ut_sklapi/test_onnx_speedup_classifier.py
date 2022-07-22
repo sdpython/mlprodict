@@ -14,7 +14,7 @@ from sklearn.linear_model import LogisticRegression
 from sklearn.datasets import load_iris
 from pyquickhelper.pycode import ExtTestCase, ignore_warnings
 from mlprodict.sklapi import OnnxSpeedupClassifier
-from mlprodict.tools import get_opset_number_from_onnx
+from mlprodict import __max_supported_opset__ as TARGET_OPSET
 from mlprodict.onnx_conv import to_onnx
 from mlprodict.onnxrt import OnnxInference
 
@@ -26,7 +26,7 @@ class TestOnnxSpeedupClassifier(ExtTestCase):
         logger.disabled = True
 
     def opset(self):
-        return get_opset_number_from_onnx()
+        return TARGET_OPSET
 
     @ignore_warnings(ConvergenceWarning)
     def test_speedup_classifier32(self):
@@ -35,6 +35,16 @@ class TestOnnxSpeedupClassifier(ExtTestCase):
         spd = OnnxSpeedupClassifier(
             LogisticRegression(), target_opset=self.opset())
         spd.fit(X, y)
+        spd.assert_almost_equal(X, decimal=5)
+
+    @ignore_warnings(ConvergenceWarning)
+    def test_speedup_classifier32_weight(self):
+        data = load_iris()
+        X, y = data.data, data.target
+        spd = OnnxSpeedupClassifier(
+            LogisticRegression(), target_opset=self.opset())
+        w = numpy.ones(y.shape, dtype=X.dtype)
+        spd.fit(X, y, w)
         spd.assert_almost_equal(X, decimal=5)
 
     @ignore_warnings(ConvergenceWarning)

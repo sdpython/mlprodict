@@ -4,14 +4,7 @@
 @brief Shortcut to *ops_whole*.
 """
 import json
-from io import BytesIO
-import onnx
-from ...tools.ort_wrapper import (
-    InferenceSession, SessionOptions, RunOptions,
-    GraphOptimizationLevel, OrtFail,
-    OrtInvalidGraph, OrtInvalidArgument,
-    OrtNotImplemented, OrtRuntimeException)
-from ...tools.asv_options_helper import display_onnx
+import numpy
 
 
 class OnnxWholeSession:
@@ -29,9 +22,20 @@ class OnnxWholeSession:
     """
 
     def __init__(self, onnx_data, runtime, runtime_options=None, device=None):
-        if runtime != 'onnxruntime1':
+        if runtime not in ('onnxruntime1', 'onnxruntime1-cuda'):
             raise NotImplementedError(  # pragma: no cover
-                "runtime '{}' is not implemented.".format(runtime))
+                f"runtime '{runtime}' is not implemented.")
+
+        from onnxruntime import (  # delayed
+            InferenceSession, SessionOptions, RunOptions,
+            GraphOptimizationLevel)
+        from onnxruntime.capi._pybind_state import (  # pylint: disable=E0611
+            Fail as OrtFail, InvalidGraph as OrtInvalidGraph,
+            InvalidArgument as OrtInvalidArgument,
+            NotImplemented as OrtNotImplemented,
+            RuntimeException as OrtRuntimeException)
+
+        onnx_data0 = onnx_data
         if hasattr(onnx_data, 'SerializeToString'):
             onnx_data = onnx_data.SerializeToString()
         if isinstance(runtime_options, SessionOptions):
@@ -71,14 +75,19 @@ class OnnxWholeSession:
             raise RuntimeError(  # pragma: no cover
                 "session_options and log_severity_level cannot be defined at the "
                 "same time.")
+        providers = ['CPUExecutionProvider']
+        if runtime == 'onnxruntime1-cuda':
+            providers = ['CUDAExecutionProvider'] + providers
         try:
             self.sess = InferenceSession(onnx_data, sess_options=sess_options,
-                                         device=device)
+                                         device=device, providers=providers)
         except (OrtFail, OrtNotImplemented, OrtInvalidGraph,
                 OrtInvalidArgument, OrtRuntimeException, RuntimeError) as e:
+            from ...plotting.text_plot import onnx_simple_text_plot
             raise RuntimeError(
                 "Unable to create InferenceSession due to '{}'\n{}.".format(
-                    e, display_onnx(onnx.load(BytesIO(onnx_data))))) from e
+                    e, onnx_simple_text_plot(onnx_data0, recursive=True))) from e
+        self.output_names = [_.name for _ in self.sess.get_outputs()]
 
     def run(self, inputs):
         """
@@ -87,7 +96,24 @@ class OnnxWholeSession:
         @param      inputs      dictionary *{variable, value}*
         @return                 list of outputs
         """
-        return self.sess.run(None, inputs, self.run_options)
+        v = next(iter(inputs.values()))
+        if isinstance(v, (numpy.ndarray, dict)):
+            try:
+                return self.sess._sess.run(
+                    self.output_names, inputs, self.run_options)
+            except ValueError as e:
+                raise ValueError(
+                    "Issue running inference inputs=%r, expected inputs=%r."
+                    "" % (
+                        list(sorted(inputs)),
+                        [i.name for i in self.sess.get_inputs()])) from e
+        try:
+            return self.sess._sess.run_with_ort_values(
+                inputs, self.output_names, self.run_options)
+        except RuntimeError:
+            return self.sess._sess.run_with_ort_values(
+                {k: v._get_c_value() for k, v in inputs.items()},
+                self.output_names, self.run_options)
 
     @staticmethod
     def process_profiling(js):
@@ -101,7 +127,7 @@ class OnnxWholeSession:
         for row in js:
             if 'args' in row and isinstance(row['args'], dict):
                 for k, v in row['args'].items():
-                    row['args_%s' % k] = v
+                    row[f'args_{k}'] = v
                 del row['args']
             rows.append(row)
         return rows

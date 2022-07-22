@@ -25,6 +25,7 @@ script:
   - { CMD: "$PYINT -u setup.py unittests -e \".*LONG.*\"", NAME: "UT_LONG", TIMEOUT: 3600, SCHEDULER: "H H(1-2) 7 * *" }
   - { CMD: "$PYINT -u setup.py unittests -e \".*notebooks.*\"", NAME: "UT_NB", TIMEOUT: 7200, SCHEDULER: "H H(1-2) 7 * *" }
   - { CMD: "$PYINT -u setup.py unittests -e \".*code_style.*\"", NAME: "UT_STYLE", SCHEDULER: "H H(1-2) 7 * *" }
+  - { CMD: "bash bin/run_bench_documentation.sh", NAME: "UT_BENCH_DOC", TIMEOUT: 7200, CLEAN: "1", SCHEDULER: "H H(1-2) 4 * *" }
   - { CMD: "bash bin/run_asv.sh", NAME: "UT_BENCH", TIMEOUT: 7200, CLEAN: "0", SCHEDULER: "H H(1-2) 8 * *" }
   - { CMD: "bash bin/run_asv2.sh", NAME: "UT_BENCH2", TIMEOUT: 7200, CLEAN: "0", SCHEDULER: "H H(1-2) 9 * *" }
 
@@ -35,3 +36,4 @@ after_script:
 documentation:
   - if [ ${NAME} == "UT" ] then $PYINT -u setup.py build_sphinx fi
   - if [ ${NAME} == "UT" ] then cp -R -f _doc/sphinxdoc/build/html dist/html fi
+  - if [ ${NAME} == "UT" and ${VERSION} == "3.9" ] then zip doc.zip -r dist/html fi

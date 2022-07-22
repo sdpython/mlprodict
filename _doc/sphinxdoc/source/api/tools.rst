@@ -18,14 +18,20 @@ Accessor
 
 .. autosignature:: mlprodict.onnx_tools.onnx_tools.insert_node
 
-Export
-++++++
+.. _l-api-export-onnx:
+
+Export from onnx to...
+++++++++++++++++++++++
 
 .. autosignature:: mlprodict.onnx_tools.onnx_export.export2numpy
 
 .. autosignature:: mlprodict.onnx_tools.onnx_export.export2onnx
 
+.. autosignature:: mlprodict.onnx_tools.onnx_export.export2python
+
 .. autosignature:: mlprodict.onnx_tools.onnx_export.export2tf2onnx
+
+.. autosignature:: mlprodict.onnx_tools.onnx_export.export2xop
 
 Graphs helper, manipulations
 ++++++++++++++++++++++++++++
@@ -34,11 +40,31 @@ Functions to help understand models or modify them.
 
 .. autosignature:: mlprodict.tools.model_info.analyze_model
 
+.. autosignature:: mlprodict.onnx_tools.onnx_manipulations.change_input_type
+
+.. autosignature:: mlprodict.onnx_tools.onnx_manipulations.change_subgraph_io_type
+
+.. autosignature:: mlprodict.onnx_tools.compress.compress_proto
+
 .. autosignature:: mlprodict.onnx_tools.onnx_manipulations.insert_results_into_onnx
 
 .. autosignature:: mlprodict.onnx_tools.onnx_manipulations.enumerate_model_node_outputs
 
+.. autosignature:: mlprodict.onnx_tools.onnx_tools.enumerate_onnx_names
+
 .. autosignature:: mlprodict.tools.code_helper.make_callable
+
+.. autosignature:: mlprodict.onnx_tools.onnx_manipulations.onnx_function_to_model
+
+.. autosignature:: mlprodict.onnx_tools.onnx_manipulations.onnx_inline_function
+
+.. autosignature:: mlprodict.onnx_tools.onnx_manipulations.onnx_model_to_function
+
+.. autosignature:: mlprodict.onnx_tools.onnx_manipulations.onnx_rename_inputs_outputs
+
+.. autosignature:: mlprodict.onnx_tools.onnx_manipulations.onnx_rename_names
+
+.. autosignature:: mlprodict.onnx_tools.onnx_manipulations.onnx_replace_functions
 
 .. autosignature:: mlprodict.onnx_tools.model_checker.onnx_shaker
 
@@ -59,17 +85,20 @@ is left unchanged.
 
 .. autosignature:: mlprodict.onnx_tools.onnx_tools.ensure_topological_order
 
-.. autosignature:: mlprodict.onnx_tools.onnx_manipulations.onnx_rename_names
-
 .. autosignature:: mlprodict.onnx_tools.optim.onnx_optimisation.onnx_remove_node
 
-.. autosignature:: mlprodict.onnx_tools.optimisation._main_onnx_optim.onnx_optimisations
+.. autosignature:: mlprodict.onnx_tools.optim._main_onnx_optim.onnx_optimisations
 
 .. autosignature:: mlprodict.onnx_tools.optim.onnx_optimisation_identity.onnx_remove_node_identity
 
 .. autosignature:: mlprodict.onnx_tools.optim.onnx_optimisation_redundant.onnx_remove_node_redundant
 
-.. autosignature:: mlprodict.onnx_tools.optim.onnx_remove_unused.onnx_remove_node_unused
+.. autosignature:: mlprodict.onnx_tools.optim.onnx_optimisation_unused.onnx_remove_node_unused
+
+Onnx Schemas
+++++++++++++
+
+.. autosignature:: mlprodict.onnx_tools.onnx2py_helper.get_onnx_schema
 
 Profiling
 +++++++++
@@ -83,15 +112,8 @@ Serialization
 
 .. autosignature:: mlprodict.onnx_tools.onnx2py_helper.to_bytes
 
-Runtime
-=======
-
-.. autosignature:: mlprodict.onnxrt.onnx_inference.OnnxInference
-
-.. autosignature:: mlprodict.tools.onnx_micro_runtime.OnnxMicroRuntime
-
-Validation
-++++++++++
+Validation of scikit-learn models
++++++++++++++++++++++++++++++++++
 
 .. autosignature:: mlprodict.onnxrt.validate.validate.enumerate_validated_operator_opsets
 
@@ -101,10 +123,17 @@ Validation
 
 .. autosignature:: mlprodict.onnxrt.validate.validate_summary.summary_report
 
-.. autosignature:: mlprodict.onnxrt.validate.validate_graph.plot_validate_benchmark
+Testing
++++++++
+
+.. autosignature:: mlprodict.testing.onnx_backend.enumerate_onnx_tests
+
+.. autosignature:: mlprodict.testing.onnx_backend.OnnxBackendTest
 
 Visualization
 +++++++++++++
+
+.. index:: plotting, plot
 
 Many times I had to debug and I was thinking about a way to see
 a graph in a text editor. That's the goal of this function with
@@ -126,32 +155,42 @@ the possibility later to only show a part of a graph.
 
 :ref:`onnxview <l-NB2>`, see also :ref:`numpyapionnxftrrst`.
 
-Others
-======
+**benchmark**
 
-Plotting
-++++++++
+.. autosignature:: mlprodict.plotting.plot_validate_benchmark
 
 .. autosignature:: mlprodict.plotting.plotting_benchmark.plot_benchmark_metrics
 
-.. autosignature:: mlprodict.onnxrt.doc.nb_helper.onnxview
+**notebook**
 
-.. autosignature:: mlprodict.plotting.plotting_validate_graph.plot_validate_benchmark
+.. autosignature:: mlprodict.nb_helper.onnxview
+
+Others
+======
 
 scikit-learn
 ++++++++++++
 
-.. autosignature:: mlprodict.grammar_sklearn.g_sklearn_main.sklearn2graph
+.. autosignature:: mlprodict.grammar.grammar_sklearn.g_sklearn_main.sklearn2graph
 
 Versions
 ++++++++
 
-.. autosignature:: mlprodict.tools.asv_options_helper.get_ir_version_from_onnx
+.. autosignature:: mlprodict.get_ir_version
 
-.. autosignature:: mlprodict.tools.asv_options_helper.get_opset_number_from_onnx
+.. autosignature:: mlprodict.__max_supported_opset__
+
+.. autosignature:: mlprodict.__max_supported_opsets__
+
+skl2onnx
+========
+
+.. autosignature:: mlprodict.onnx_tools.exports.skl2onnx_helper.add_onnx_graph
 
 Type conversion
 ===============
+
+You should look into :epkg:`ONNX mappings`.
 
 .. autosignature:: mlprodict.onnx_conv.convert.guess_initial_types
 
@@ -250,8 +289,3 @@ The last example summarizes all the possibilities.
     print()
     for e in errors:
         print(e)
-
-skl2onnx
-========
-
-.. autosignature:: mlprodict.onnx_tools.exports.skl2onnx_helper.add_onnx_graph

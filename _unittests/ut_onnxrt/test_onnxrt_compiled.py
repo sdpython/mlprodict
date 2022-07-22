@@ -15,7 +15,7 @@ from sklearn.tree import DecisionTreeRegressor
 from skl2onnx import to_onnx
 from skl2onnx.algebra.onnx_ops import OnnxAdd  # pylint: disable=E0611
 from mlprodict.onnxrt import OnnxInference
-from mlprodict.tools import get_opset_number_from_onnx
+from mlprodict import __max_supported_opset__ as TARGET_OPSET
 
 
 class TestOnnxrtCompiled(ExtTestCase):
@@ -27,7 +27,7 @@ class TestOnnxrtCompiled(ExtTestCase):
     def test_onnxt_idi(self):
         idi = numpy.identity(2).astype(numpy.float32)
         onx = OnnxAdd('X', idi, output_names=['Y'],
-                      op_version=get_opset_number_from_onnx())
+                      op_version=TARGET_OPSET)
         model_def = onx.to_onnx({'X': idi.astype(numpy.float32)})
 
         oinf = OnnxInference(model_def, runtime="python_compiled")
@@ -37,15 +37,18 @@ class TestOnnxrtCompiled(ExtTestCase):
         self.assertIn('_run_compiled_code', oinf.__dict__)
         code = oinf._run_compiled_code  # pylint: disable=W0212,E1101
         self.assertIsInstance(code, str)
-        self.assertIn('def compiled_run(dict_inputs, yield_ops=None):', code)
+        self.assertIn(
+            'def compiled_run(dict_inputs, yield_ops=None, context=None, attributes=None):',
+            code)
         self.assertIn('(Y, ) = n0_add(X, Ad_Addcst)', code)
         self.assertIn(
-            ' def compiled_run(dict_inputs, yield_ops=None):', str(oinf))
+            ' def compiled_run(dict_inputs, yield_ops=None, context=None, attributes=None):',
+            str(oinf))
 
     def test_onnxt_idi_debug(self):
         idi = numpy.identity(2).astype(numpy.float32)
         onx = OnnxAdd('X', idi, output_names=['Y'],
-                      op_version=get_opset_number_from_onnx())
+                      op_version=TARGET_OPSET)
         model_def = onx.to_onnx({'X': idi.astype(numpy.float32)})
 
         oinf = OnnxInference(model_def, runtime="python_compiled_debug")
@@ -59,10 +62,13 @@ class TestOnnxrtCompiled(ExtTestCase):
         self.assertIn('_run_compiled_code', oinf.__dict__)
         code = oinf._run_compiled_code  # pylint: disable=W0212,E1101
         self.assertIsInstance(code, str)
-        self.assertIn('def compiled_run(dict_inputs, yield_ops=None):', code)
+        self.assertIn(
+            'def compiled_run(dict_inputs, yield_ops=None, context=None, attributes=None):',
+            code)
         self.assertIn('(Y, ) = n0_add(X, Ad_Addcst)', code)
         self.assertIn(
-            ' def compiled_run(dict_inputs, yield_ops=None):', str(oinf))
+            ' def compiled_run(dict_inputs, yield_ops=None, context=None, attributes=None):',
+            str(oinf))
 
     @skipif_circleci('fails to finish')
     def test_onnxt_iris_adaboost_regressor_dt(self):
@@ -100,12 +106,13 @@ class TestOnnxrtCompiled(ExtTestCase):
         # print(me1, me2)
         # print(oinf2._run_compiled_code)
         self.assertIn(
-            ' def compiled_run(dict_inputs, yield_ops=None):', str(oinf2))
+            ' def compiled_run(dict_inputs, yield_ops=None, context=None, attributes=None):',
+            str(oinf2))
 
     def test_onnxt_reduce_size(self):
         idi = numpy.identity(2).astype(numpy.float32)
         onx = OnnxAdd('X', idi, output_names=['Y'],
-                      op_version=get_opset_number_from_onnx())
+                      op_version=TARGET_OPSET)
         model_def = onx.to_onnx({'X': idi.astype(numpy.float32)})
 
         oinf = OnnxInference(model_def, runtime="python_compiled")

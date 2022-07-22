@@ -12,8 +12,8 @@ from skl2onnx.helpers.onnx_helper import (
     load_onnx_model, save_onnx_model, select_model_inputs_outputs,
     enumerate_model_node_outputs)
 from pyquickhelper.pycode import ExtTestCase
-from mlprodict.tools.asv_options_helper import get_ir_version_from_onnx
 from mlprodict.tools.ort_wrapper import InferenceSession
+from mlprodict import __max_supported_opset__ as TARGET_OPSET, get_ir_version
 
 
 class TestOnnxHelper(ExtTestCase):
@@ -32,7 +32,7 @@ class TestOnnxHelper(ExtTestCase):
         model.fit(X)
         model_onnx = convert_sklearn(
             model, 'binarizer', [('input', FloatTensorType([None, 2]))])
-        model_onnx.ir_version = get_ir_version_from_onnx()
+        model_onnx.ir_version = get_ir_version(TARGET_OPSET)
         filename = "temp_onnx_helper_load_save.onnx"
         save_onnx_model(model_onnx, filename)
         model = load_onnx_model(filename)
@@ -57,7 +57,7 @@ class TestOnnxHelper(ExtTestCase):
         model.fit(X)
         model_onnx = convert_sklearn(
             model, 'pipe3', [('input', FloatTensorType([None, 2]))])
-        model_onnx.ir_version = get_ir_version_from_onnx()
+        model_onnx.ir_version = get_ir_version(TARGET_OPSET)
         filename = "temp_onnx_helper_load_save.onnx"
         save_onnx_model(model_onnx, filename)
         model = load_onnx_model(filename)

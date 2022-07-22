@@ -26,9 +26,9 @@ def _dict2str(d):
     vals = []
     for k, v in d.items():
         if isinstance(v, dict):
-            vals.append("{}{}".format(k, _dict2str(v)))
+            vals.append(f"{k}{_dict2str(v)}")
         else:
-            vals.append("{}{}".format(k, v))
+            vals.append(f"{k}{v}")
     return "-".join(vals)
 
 
@@ -45,7 +45,7 @@ def _coor_to_str(cc):
                 d = json.loads(c)
             except JSONDecodeError as e:  # pragma: no cover
                 raise RuntimeError(
-                    "Unable to interpret '{}'.".format(c)) from e
+                    f"Unable to interpret '{c}'.") from e
 
             if len(d) == 1:
                 its = list(d.items())[0]
@@ -72,7 +72,7 @@ def _figures2dict(metrics, coor, baseline=None):
     if baseline is None:
         base_j = None
     else:
-        quoted_base = "'{}'".format(baseline)
+        quoted_base = f"'{baseline}'"
         base_j = None
         for i, base in enumerate(coor):
             if baseline in base:
@@ -136,7 +136,7 @@ def enumerate_export_asv_json(folder, as_df=False, last_one=False,
     if conf is not None:
         if not os.path.exists(conf):
             raise FileNotFoundError(  # pragma: no cover
-                "Unable to find '{}'.".format(conf))
+                f"Unable to find '{conf}'.")
         with open(conf, "r", encoding='utf-8') as f:
             meta = json.load(f)
         bdir = os.path.join(os.path.dirname(conf), meta['benchmark_dir'])
@@ -146,7 +146,7 @@ def enumerate_export_asv_json(folder, as_df=False, last_one=False,
     bench = os.path.join(folder, 'benchmarks.json')
     if not os.path.exists(bench):
         raise FileNotFoundError(  # pragma: no cover
-            "Unable to find '{}'.".format(bench))
+            f"Unable to find '{bench}'.")
     with open(bench, 'r', encoding='utf-8') as f:
         content = json.load(f)
 
@@ -190,8 +190,7 @@ def enumerate_export_asv_json(folder, as_df=False, last_one=False,
                         metrics, coord, hash = vv[:3]
                     except ValueError as e:  # pragma: no cover
                         raise ValueError(
-                            "Test '{}', unable to interpret: {}.".format(
-                                kk, vv)) from e
+                            f"Test '{kk}', unable to interpret: {vv}.") from e
 
                     obs = {}
                     for mk, mv in meta_res.items():
@@ -199,7 +198,7 @@ def enumerate_export_asv_json(folder, as_df=False, last_one=False,
                             continue
                         if isinstance(mv, dict):
                             for mk2, mv2 in mv.items():
-                                obs['{}_{}'.format(mk, mk2)] = mv2
+                                obs[f'{mk}_{mk2}'] = mv2
                         else:
                             obs[mk] = mv
                     spl = kk.split('.')

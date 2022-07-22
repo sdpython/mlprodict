@@ -9,11 +9,9 @@ import numpy
 from pyquickhelper.pycode import ExtTestCase, get_temp_folder
 from pyquickhelper.loghelper import run_script
 from skl2onnx.algebra.onnx_ops import (  # pylint: disable=E0611
-    OnnxAdd, OnnxTranspose
-)
+    OnnxAdd, OnnxTranspose)
 from mlprodict.onnxrt import OnnxInference
-from mlprodict.tools.asv_options_helper import (
-    get_ir_version_from_onnx, get_opset_number_from_onnx)
+from mlprodict import __max_supported_opset__ as TARGET_OPSET, get_ir_version
 
 
 class TestToPython(ExtTestCase):
@@ -25,9 +23,10 @@ class TestToPython(ExtTestCase):
     def test_code_add_except(self):
         idi = numpy.identity(2, dtype=numpy.float32)
         onx = OnnxAdd('X', idi, output_names=['Y'],
-                      op_version=get_opset_number_from_onnx())
-        model_def = onx.to_onnx({'X': idi.astype(numpy.float32)})
-        model_def.ir_version = get_ir_version_from_onnx()
+                      op_version=TARGET_OPSET)
+        model_def = onx.to_onnx({'X': idi.astype(numpy.float32)},
+                                target_opset=TARGET_OPSET)
+        model_def.ir_version = get_ir_version(TARGET_OPSET)
         oinf = OnnxInference(model_def, runtime='onnxruntime1')
         try:
             oinf.to_python()
@@ -57,8 +56,8 @@ class TestToPython(ExtTestCase):
     def test_code_add_transpose(self):
         idi = numpy.identity(2, dtype=numpy.float32)
         onx = OnnxTranspose(
-            OnnxAdd('X', idi, op_version=get_opset_number_from_onnx()),
-            output_names=['Y'], op_version=get_opset_number_from_onnx())
+            OnnxAdd('X', idi, op_version=TARGET_OPSET),
+            output_names=['Y'], op_version=TARGET_OPSET)
         model_def = onx.to_onnx({'X': idi.astype(numpy.float32)})
         oinf = OnnxInference(model_def, runtime='python')
         res = oinf.to_python(inline=False)

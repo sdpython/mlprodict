@@ -9,7 +9,10 @@ import urllib.request
 from collections import OrderedDict
 import numpy
 from onnx import TensorProto, numpy_helper
-from mlprodict.tools.ort_wrapper import InferenceSession
+try:
+    from .ort_wrapper import InferenceSession
+except ImportError:
+    from mlprodict.tools.ort_wrapper import InferenceSession
 
 
 def short_list_zoo_models():
@@ -28,28 +31,28 @@ def short_list_zoo_models():
     """
     return [
         dict(name="mobilenet",
-             model="https://github.com/onnx/models/raw/master/vision/"
+             model="https://github.com/onnx/models/raw/main/vision/"
                    "classification/mobilenet/model/mobilenetv2-7.tar.gz"),
         dict(name="resnet18",
-             model="https://github.com/onnx/models/raw/master/vision/"
+             model="https://github.com/onnx/models/raw/main/vision/"
                    "classification/resnet/model/resnet18-v1-7.tar.gz"),
         dict(name="squeezenet",
-             model="https://github.com/onnx/models/raw/master/vision/"
+             model="https://github.com/onnx/models/raw/main/vision/"
                    "classification/squeezenet/model/squeezenet1.0-9.tar.gz",
              folder="squeezenet"),
         dict(name="densenet121",
-             model="https://github.com/onnx/models/raw/master/vision/"
+             model="https://github.com/onnx/models/raw/main/vision/"
                    "classification/densenet-121/model/densenet-9.tar.gz",
              folder="densenet121"),
         dict(name="inception2",
-             model="https://github.com/onnx/models/raw/master/vision/"
+             model="https://github.com/onnx/models/raw/main/vision/"
                    "classification/inception_and_googlenet/inception_v2/"
                    "model/inception-v2-9.tar.gz"),
         dict(name="shufflenet",
-             model="https://github.com/onnx/models/raw/master/vision/"
+             model="https://github.com/onnx/models/raw/main/vision/"
                    "classification/shufflenet/model/shufflenet-9.tar.gz"),
         dict(name="efficientnet-lite4",
-             model="https://github.com/onnx/models/raw/master/vision/"
+             model="https://github.com/onnx/models/raw/main/vision/"
                    "classification/efficientnet-lite4/model/"
                    "efficientnet-lite4-11.tar.gz"),
     ]
@@ -99,7 +102,7 @@ def load_data(folder):
                 res['out'][noext] = numpy_helper.to_array(data)
             else:
                 raise ValueError(  # pragma: no cover
-                    "Unable to guess anything about %r." % noext)
+                    f"Unable to guess anything about {noext!r}.")
 
     return res
 
@@ -127,7 +130,7 @@ def download_model_data(name, model=None, cache=None, verbose=False):
                 break
         if model is None:
             raise ValueError(
-                "Unable to find a default value for name=%r." % name)
+                f"Unable to find a default value for name={name!r}.")
 
     # downloads
     last_name = model.split('/')[-1]
@@ -140,7 +143,7 @@ def download_model_data(name, model=None, cache=None, verbose=False):
     if size < 2 ** 20:  # pragma: no cover
         os.remove(dest)
         raise ConnectionError(
-            "Unable to download model from %r." % model)
+            f"Unable to download model from {model!r}.")
 
     outtar = os.path.splitext(dest)[0]
     if not os.path.exists(outtar):
@@ -152,24 +155,28 @@ def download_model_data(name, model=None, cache=None, verbose=False):
     if not os.path.exists(onnx_file):
         from pyquickhelper.filehelper.compression_helper import (
             untar_files)
-        untar_files(outtar, where_to=cache)
+        foldtar = [f for f in untar_files(outtar, where_to=cache)
+                   if os.path.isdir(f) and "test_data_" not in f]
+    else:
+        foldtar = []
 
     if suggested_folder is not None:
-        fold_onnx = [suggested_folder]
+        fold_onnx = [suggested_folder] + foldtar
     else:
-        fold_onnx = [onnx_file, onnx_file.split('-')[0],
-                     '-'.join(onnx_file.split('-')[:-1]),
-                     '-'.join(onnx_file.split('-')[:-1]).replace('-', '_')]
-    fold_onnx_ok = [_ for _ in fold_onnx if os.path.exists(_)]
+        fold_onnx = foldtar + [onnx_file, onnx_file.split('-')[0],
+                               '-'.join(onnx_file.split('-')[:-1]),
+                               '-'.join(onnx_file.split('-')[:-1]).replace('-', '_')]
+    fold_onnx_ok = set(
+        _ for _ in fold_onnx if os.path.exists(_) and os.path.isdir(_))
     if len(fold_onnx_ok) != 1:
         raise FileNotFoundError(  # pragma: no cover
-            "Unable to find an existing folder among %r." % fold_onnx)
-    onnx_file = fold_onnx_ok[0]
+            f"Unable to find an existing folder among {fold_onnx!r}.")
+    onnx_file = list(fold_onnx_ok)[0]
 
     onnx_files = [_ for _ in os.listdir(onnx_file) if _.endswith(".onnx")]
     if len(onnx_files) != 1:
         raise FileNotFoundError(  # pragma: no cover
-            "Unable to find any onnx file in %r." % onnx_files)
+            f"Unable to find any onnx file in {onnx_files!r}.")
     final_onnx = os.path.join(onnx_file, onnx_files[0])
 
     # data
@@ -196,8 +203,8 @@ def verify_model(onnx_file, examples, runtime=None, abs_tol=5e-4,
     :param fLOG: logging function when `verbose > 0`
     :return: errors for every sample
     """
-    if runtime == 'onnxruntime':
-        sess = InferenceSession(onnx_file)
+    if runtime in ('onnxruntime', 'onnxruntime-cuda'):
+        sess = InferenceSession(onnx_file, runtime=runtime)
         meth = lambda data, s=sess: s.run(None, data)
         names = [p.name for p in sess.get_inputs()]
         onames = list(range(len(sess.get_outputs())))

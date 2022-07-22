@@ -14,8 +14,7 @@ from skl2onnx import convert_sklearn
 from skl2onnx.algebra.onnx_ops import OnnxMul  # pylint: disable=E0611
 from pyquickhelper.pycode import ExtTestCase, skipif_appveyor, ignore_warnings
 from mlprodict.sklapi import OnnxTransformer
-from mlprodict.tools import get_opset_number_from_onnx
-from mlprodict.tools.ort_wrapper import OrtInvalidArgument
+from mlprodict import __max_supported_opset__ as TARGET_OPSET
 
 
 class TestOnnxTransformer(ExtTestCase):
@@ -26,7 +25,7 @@ class TestOnnxTransformer(ExtTestCase):
 
     def get_onnx_mul(self):
         mul = OnnxMul('X', 'X', output_names=[
-                      'Y'], op_version=get_opset_number_from_onnx())
+                      'Y'], op_version=TARGET_OPSET)
         onx = mul.to_onnx(inputs=[('X', FloatTensorType())])
         return onx.SerializeToString()
 
@@ -110,6 +109,8 @@ class TestOnnxTransformer(ExtTestCase):
     @ignore_warnings(DeprecationWarning)
     @skipif_appveyor("crashes")
     def test_pipeline_iris_change_dim(self):
+        from onnxruntime.capi._pybind_state import (  # pylint: disable=E0611
+            InvalidArgument as OrtInvalidArgument)
         iris = load_iris()
         X, y = iris.data, iris.target
         pipe = make_pipeline(PCA(n_components=2), LogisticRegression())

@@ -12,12 +12,12 @@ import sklearn
 from sklearn import __all__ as sklearn__all__, __version__ as sklearn_version
 from sklearn.exceptions import ConvergenceWarning
 from sklearn.utils._testing import ignore_warnings
-from ... import __version__ as ort_version
+from ... import (
+    __version__ as ort_version,
+    __max_supported_opset__, get_ir_version,
+    __max_supported_opsets__)
 from ...onnx_conv import to_onnx, register_converters, register_rewritten_operators
-from ...tools.ort_wrapper import onnxrt_version
 from ...tools.model_info import analyze_model, set_random_state
-from ...tools.asv_options_helper import (
-    get_opset_number_from_onnx, get_ir_version_from_onnx)
 from ..onnx_inference import OnnxInference
 from ...onnx_tools.optim.sklearn_helper import inspect_sklearn_model, set_n_jobs
 from ...onnx_tools.optim.onnx_helper import onnx_statistics
@@ -93,7 +93,7 @@ def _run_skl_prediction(obs, check_runtime, assume_finite, inst,
         obs['ort_version'] = ort_version
         try:
             meth = getattr(inst, method_name)
-        except AttributeError as e:
+        except AttributeError as e:  # pragma: no cover
             if debug:
                 raise  # pragma: no cover
             obs['_2skl_meth_exc'] = str(e)
@@ -102,7 +102,8 @@ def _run_skl_prediction(obs, check_runtime, assume_finite, inst,
             ypred, t4, ___ = _measure_time(
                 lambda: meth(X_test, **predict_kwargs))
             obs['lambda-skl'] = (lambda xo: meth(xo, **predict_kwargs), X_test)
-        except (ValueError, AttributeError, TypeError, MemoryError, IndexError) as e:
+        except (ValueError, AttributeError,  # pragma: no cover
+                TypeError, MemoryError, IndexError) as e:
             if debug:
                 raise  # pragma: no cover
             obs['_3prediction_exc'] = str(e)
@@ -137,11 +138,11 @@ def _retrieve_problems_extra(model, verbose, fLOG, extended_list):
 
             if verbose >= 2 and fLOG is not None:
                 fLOG(
-                    "[enumerate_compatible_opset] found custom for model={}".format(model))
+                    f"[enumerate_compatible_opset] found custom for model={model}")
                 extras = extra_parameters.get(model, None)
                 if extras is not None:
                     fLOG(
-                        "[enumerate_compatible_opset] found custom scenarios={}".format(extras))
+                        f"[enumerate_compatible_opset] found custom scenarios={extras}")
     else:
         problems = None
 
@@ -150,7 +151,7 @@ def _retrieve_problems_extra(model, verbose, fLOG, extended_list):
         extra_parameters = _extra_parameters
         try:
             problems = find_suitable_problem(model)
-        except RuntimeError as e:
+        except RuntimeError as e:  # pragma: no cover
             return {'name': model.__name__, 'skl_version': sklearn_version,
                     '_0problem_exc': e}, extras
     extras = extra_parameters.get(model, [('default', {})])
@@ -251,15 +252,15 @@ def enumerate_compatible_opset(model, opset_min=-1, opset_max=-1,  # pylint: dis
     is linear.
     """
     if opset_min == -1:
-        opset_min = get_opset_number_from_onnx()  # pragma: no cover
+        opset_min = __max_supported_opset__  # pragma: no cover
     if opset_max == -1:
-        opset_max = get_opset_number_from_onnx()  # pragma: no cover
+        opset_max = __max_supported_opset__  # pragma: no cover
     if verbose > 0 and fLOG is not None:
-        fLOG("[enumerate_compatible_opset] opset in [{}, {}].".format(
-            opset_min, opset_max))
+        fLOG(
+            f"[enumerate_compatible_opset] opset in [{opset_min}, {opset_max}].")
     if verbose > 1 and fLOG:
-        fLOG("[enumerate_compatible_opset] validate class '{}'.".format(
-            model.__name__))
+        fLOG(
+            f"[enumerate_compatible_opset] validate class '{model.__name__}'.")
         if verbose > 2:
             fLOG(model)
 
@@ -272,7 +273,7 @@ def enumerate_compatible_opset(model, opset_min=-1, opset_max=-1,  # pylint: dis
         problems = []  # pragma: no cover
 
     if opset_max is None:
-        opset_max = get_opset_number_from_onnx()  # pragma: no cover
+        opset_max = __max_supported_opset__  # pragma: no cover
         opsets = list(range(opset_min, opset_max + 1))  # pragma: no cover
         opsets.append(None)  # pragma: no cover
     else:
@@ -440,16 +441,15 @@ def _call_conv_runtime_opset(
 
     for opset in set_opsets:
         if verbose >= 2 and fLOG is not None:
-            fLOG("[enumerate_compatible_opset] opset={} init_types={}".format(
-                opset, init_types))
+            fLOG(
+                f"[enumerate_compatible_opset] opset={opset} init_types={init_types}")
         obs_op = obs.copy()
         if opset is not None:
             obs_op['opset'] = opset
 
         if len(init_types) != 1:
             raise NotImplementedError(  # pragma: no cover
-                "Multiple types are is not implemented: "
-                "{}.".format(init_types))
+                f"Multiple types are is not implemented: {init_types}.")
 
         if not isinstance(runtime, list):
             runtime = [runtime]
@@ -470,13 +470,18 @@ def _call_conv_runtime_opset(
             for rt in runtime:
                 def fct_conv(itt=inst, it=init_types[0][1], ops=opset,
                              options=all_conv_options):
-                    return to_onnx(itt, it, target_opset=ops, options=options,
+                    if isinstance(ops, int):
+                        ops_dict = __max_supported_opsets__.copy()
+                        ops_dict[''] = ops
+                    else:
+                        ops_dict = ops
+                    return to_onnx(itt, it, target_opset=ops_dict, options=options,
                                    rewrite_ops=rt in ('', None, 'python',
                                                       'python_compiled'))
 
                 if verbose >= 2 and fLOG is not None:
                     fLOG(
-                        "[enumerate_compatible_opset] conversion to onnx: {}".format(all_conv_options))
+                        f"[enumerate_compatible_opset] conversion to onnx: {all_conv_options}")
                 try:
                     conv, t4 = _measure_time(fct_conv)[:2]
                     obs_op["convert_time"] = t4
@@ -491,7 +496,7 @@ def _call_conv_runtime_opset(
 
                 if verbose >= 6 and fLOG is not None:
                     fLOG(  # pragma: no cover
-                        "[enumerate_compatible_opset] ONNX:\n{}".format(conv))
+                        f"[enumerate_compatible_opset] ONNX:\n{conv}")
 
                 if all_conv_options.get('optim', '') == 'cdist':  # pragma: no cover
                     check_cdist = [_ for _ in str(conv).split('\n')
@@ -500,8 +505,7 @@ def _call_conv_runtime_opset(
                                   if 'Scan' in _]
                     if len(check_cdist) == 0 and len(check_scan) > 0:
                         raise RuntimeError(
-                            "Operator CDist was not used in\n{}"
-                            "".format(conv))
+                            f"Operator CDist was not used in\n{conv}")
 
                 obs_op0 = obs_op.copy()
                 for optimisation in optimisations:
@@ -535,8 +539,7 @@ def _call_conv_runtime_opset(
 
                     # opset_domain
                     for op_imp in list(conv.opset_import):
-                        obs_op['domain_opset_%s' %
-                               op_imp.domain] = op_imp.version
+                        obs_op[f'domain_opset_{op_imp.domain}'] = op_imp.version
 
                     run_benchmark = _check_run_benchmark(
                         benchmark, stat_onnx, bench_memo, rt)
@@ -576,7 +579,7 @@ def _call_runtime(obs_op, conv, opset, debug, inst, runtime,
     """
     if 'onnxruntime' in runtime:
         old = conv.ir_version
-        conv.ir_version = get_ir_version_from_onnx()
+        conv.ir_version = get_ir_version(opset)
     else:
         old = None
 
@@ -606,8 +609,8 @@ def _call_runtime(obs_op, conv, opset, debug, inst, runtime,
     if store_models:
         obs_op['OINF'] = sess
     if verbose >= 2 and fLOG is not None:
-        fLOG("[enumerate_compatible_opset-R] compute batch with runtime "
-             "'{}'".format(runtime))
+        fLOG(
+            f"[enumerate_compatible_opset-R] compute batch with runtime '{runtime}'")
 
     def fct_batch(se=sess, xo=Xort_test, it=init_types):  # pylint: disable=W0102
         return se.run({it[0][0]: xo},
@@ -620,8 +623,8 @@ def _call_runtime(obs_op, conv, opset, debug, inst, runtime,
             {init_types[0][0]: xo}, node_time=node_time), Xort_test)
     except (RuntimeError, TypeError, ValueError, KeyError, IndexError) as e:
         if debug:
-            raise RuntimeError("Issue with {}.".format(
-                obs_op)) from e  # pragma: no cover
+            raise RuntimeError(
+                f"Issue with {obs_op}.") from e  # pragma: no cover
         obs_op['_6ort_run_batch_exc'] = e
     if (benchmark or node_time) and 'lambda-batch' in obs_op:
         try:
@@ -651,8 +654,7 @@ def _call_runtime(obs_op, conv, opset, debug, inst, runtime,
             except IndexError as e:  # pragma: no cover
                 if debug:
                     raise IndexError(
-                        "Issue with output_index={}/{}".format(
-                            output_index, len(opred))) from e
+                        f"Issue with output_index={output_index}/{len(opred)}") from e
                 obs_op['_8max_rel_diff_batch_exc'] = (
                     "Unable to fetch output {}/{} for model '{}'"
                     "".format(output_index, len(opred),
@@ -675,13 +677,13 @@ def _call_runtime(obs_op, conv, opset, debug, inst, runtime,
                 try:
                     max_rel_diff = measure_relative_difference(
                         ypred, opred[:, 1])
-                except AttributeError:
+                except AttributeError:  # pragma: no cover
                     max_rel_diff = numpy.nan
             else:
                 try:
                     max_rel_diff = measure_relative_difference(
                         ypred, opred)
-                except AttributeError:
+                except AttributeError:  # pragma: no cover
                     max_rel_diff = numpy.nan
 
             if max_rel_diff >= 1e9 and debug:  # pragma: no cover
@@ -744,8 +746,7 @@ def _enumerate_validated_operator_opsets_ops(extended_list, models, skip_models)
         ops_ = [_ for _ in ops if _['name'] in models]
         if len(ops) == 0:
             raise ValueError(  # pragma: no cover
-                "Parameter models is wrong: {}\n{}".format(
-                    models, ops[0]))
+                f"Parameter models is wrong: {models}\n{ops[0]}")
         ops = ops_
     if skip_models is not None:
         ops = [m for m in ops if m['name'] not in skip_models]
@@ -753,10 +754,11 @@ def _enumerate_validated_operator_opsets_ops(extended_list, models, skip_models)
 
 
 def _enumerate_validated_operator_opsets_version(runtime):
-    from numpy import __version__ as numpy_version
-    from onnx import __version__ as onnx_version
-    from scipy import __version__ as scipy_version
-    from skl2onnx import __version__ as skl2onnx_version
+    from numpy import __version__ as numpy_version  # delayed
+    from onnx import __version__ as onnx_version  # delayed
+    from scipy import __version__ as scipy_version  # delayed
+    from skl2onnx import __version__ as skl2onnx_version  # delayed
+    from onnxruntime import __version__ as onnxrt_version  # delayed
     add_versions = {'v_numpy': numpy_version, 'v_onnx': onnx_version,
                     'v_scipy': scipy_version, 'v_skl2onnx': skl2onnx_version,
                     'v_sklearn': sklearn_version, 'v_onnxruntime': ort_version}
@@ -786,8 +788,7 @@ def enumerate_validated_operator_opsets(verbose=0, opset_min=-1, opset_max=-1,
     :param opset_min: checks conversion starting from the opset, -1
         to get the last one
     :param opset_max: checks conversion up to this opset,
-        None means :func:`get_opset_number_from_onnx
-        <mlprodict.tools.asv_options_helper.get_opset_number_from_onnx>`
+        None means `__max_supported_opset__`
     :param check_runtime: checks the python runtime
     :param models: only process a small list of operators,
         set of model names
@@ -852,7 +853,7 @@ def enumerate_validated_operator_opsets(verbose=0, opset_min=-1, opset_max=-1,
 
         def iterate():
             for i, row in enumerate(ops):  # pragma: no cover
-                fLOG("{}/{} - {}".format(i + 1, len(ops), row))
+                fLOG(f"{i + 1}/{len(ops)} - {row}")
                 yield row
 
         if verbose >= 11:
@@ -867,7 +868,7 @@ def enumerate_validated_operator_opsets(verbose=0, opset_min=-1, opset_max=-1,
                         for i in t:
                             row = ops[i]
                             disp = row['name'] + " " * (28 - len(row['name']))
-                            t.set_description("%s" % disp)
+                            t.set_description(f"{disp}")
                             yield row
 
                 loop = iterate_tqdm()
@@ -882,11 +883,11 @@ def enumerate_validated_operator_opsets(verbose=0, opset_min=-1, opset_max=-1,
     else:
         add_versions = {}
 
-    current_opset = get_opset_number_from_onnx()
+    current_opset = __max_supported_opset__
     if opset_min == -1:
-        opset_min = get_opset_number_from_onnx()
+        opset_min = __max_supported_opset__
     if opset_max == -1:
-        opset_max = get_opset_number_from_onnx()
+        opset_max = __max_supported_opset__
     if verbose > 0 and fLOG is not None:
         fLOG("[enumerate_validated_operator_opsets] opset in [{}, {}].".format(
             opset_min, opset_max))
@@ -894,7 +895,7 @@ def enumerate_validated_operator_opsets(verbose=0, opset_min=-1, opset_max=-1,
 
         model = row['cl']
         if verbose > 1:
-            fLOG("[enumerate_validated_operator_opsets] - model='{}'".format(model))
+            fLOG(f"[enumerate_validated_operator_opsets] - model='{model}'")
 
         for obs in enumerate_compatible_opset(
                 model, opset_min=opset_min, opset_max=opset_max,
@@ -932,14 +933,14 @@ def enumerate_validated_operator_opsets(verbose=0, opset_min=-1, opset_max=-1,
             batch = 'max_rel_diff_batch' in obs and diff is not None
             op1 = obs.get('domain_opset_', '')
             op2 = obs.get('domain_opset_ai.onnx.ml', '')
-            op = '{}/{}'.format(op1, op2)
+            op = f'{op1}/{op2}'
 
             obs['available'] = "?"
             if diff is not None:
                 if diff < 1e-5:
                     obs['available'] = 'OK'
                 elif diff < 0.0001:
-                    obs['available'] = 'e<0.0001'
+                    obs['available'] = 'e<0.0001'  # pragma: no cover
                 elif diff < 0.001:
                     obs['available'] = 'e<0.001'
                 elif diff < 0.01:
@@ -947,13 +948,13 @@ def enumerate_validated_operator_opsets(verbose=0, opset_min=-1, opset_max=-1,
                 elif diff < 0.1:
                     obs['available'] = 'e<0.1'
                 else:
-                    obs['available'] = "ERROR->=%1.1f" % diff
+                    obs['available'] = f"ERROR->={diff:1.1f}"
                 obs['available'] += '-' + op
                 if not batch:
                     obs['available'] += "-NOBATCH"  # pragma: no cover
                 if fail_bad_results and 'e<' in obs['available']:
                     raise RuntimeBadResultsError(
-                        "Wrong results '{}'.".format(obs['available']), obs)  # pragma: no cover
+                        f"Wrong results '{obs['available']}'.", obs)  # pragma: no cover
 
             excs = []
             for k, v in sorted(obs.items()):
@@ -965,7 +966,7 @@ def enumerate_validated_operator_opsets(verbose=0, opset_min=-1, opset_max=-1,
                 obs['opset'] = current_opset
             if obs['opset'] == current_opset and len(excs) > 0:
                 k, v = excs[0]
-                obs['available'] = 'ERROR-%s' % k
+                obs['available'] = f'ERROR-{k}'
                 obs['available-ERROR'] = v
 
             if 'bench-skl' in obs:

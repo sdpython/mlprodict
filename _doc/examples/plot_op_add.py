@@ -26,7 +26,7 @@ from skl2onnx.common.data_types import FloatTensorType
 from skl2onnx.algebra.onnx_ops import OnnxAdd
 from cpyquickhelper.numbers import measure_time
 from tqdm import tqdm
-from mlprodict.testing.experimental_c import code_optimisation
+from mlprodict.testing.experimental_c_impl.experimental_c import code_optimisation
 print(code_optimisation())
 
 ###################################
@@ -146,8 +146,7 @@ def benchmark_op(repeat=5, number=2, name="Add", shape_fcts=None):
     # Graphs.
     fig, ax = plt.subplots(1, 2, figsize=(12, 4))
     piv.plot(logx=True, logy=True, ax=ax[0],
-             title="%s benchmark\n%s + %s"
-                   " lower better" % (name, shape1_name, shape2_name))
+             title=f"{name} benchmark\n{shape1_name} + {shape2_name} lower better")
     ax[0].legend(prop={"size": 9})
     rs.plot(logx=True, logy=True, ax=ax[1],
             title="%s Speedup, baseline=numpy\n%s + %s"
@@ -214,8 +213,8 @@ df.pivot("fct", "N", "average")
 
 merged = pandas.concat(dfs)
 name = "add"
-merged.to_csv("plot_%s.csv" % name, index=False)
-merged.to_excel("plot_%s.xlsx" % name, index=False)
-plt.savefig("plot_%s.png" % name)
+merged.to_csv(f"plot_{name}.csv", index=False)
+merged.to_excel(f"plot_{name}.xlsx", index=False)
+plt.savefig(f"plot_{name}.png")
 
 plt.show()

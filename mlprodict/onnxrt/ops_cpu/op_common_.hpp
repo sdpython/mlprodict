@@ -8,6 +8,7 @@
 #include <iostream> // cout
 #include <sstream>
 #include <math.h>
+#include <pybind11/pybind11.h>
 
 #if defined(_WIN32) || defined(WIN32)
 
@@ -41,6 +42,12 @@ inline bool _isnan_(float x) { return _isnan_((double)x); }
 #undef max
 #endif
 
+#if !defined(__APPLE__)
+#ifndef _SSIZE_T_DEFINED
+typedef int64_t ssize_t;
+#define _SSIZE_T_DEFINED
+#endif
+#endif
 
 enum class POST_EVAL_TRANSFORM {
     NONE,
@@ -437,6 +444,24 @@ void debug_print(const std::string& msg, size_t i, size_t j, size_t k, double pa
 template <typename T>
 inline void MakeStringInternal(std::ostringstream& ss, const T& t) noexcept {
     ss << t;
+}
+
+template <>
+inline void MakeStringInternal(std::ostringstream& ss, const std::vector<int32_t>& t) noexcept {
+    for(auto it: t)
+        ss << "x" << it;
+}
+
+template <>
+inline void MakeStringInternal(std::ostringstream& ss, const std::vector<uint32_t>& t) noexcept {
+    for(auto it: t)
+        ss << "x" << it;
+}
+
+template <>
+inline void MakeStringInternal(std::ostringstream& ss, const std::vector<pybind11::ssize_t>& t) noexcept {
+    for(auto it: t)
+        ss << "x" << it;
 }
 
 template <typename T, typename... Args>

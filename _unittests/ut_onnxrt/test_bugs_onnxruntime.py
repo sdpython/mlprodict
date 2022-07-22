@@ -1,5 +1,6 @@
+# pylint: disable=R1716
 """
-@brief      test log(time=2s)
+@brief      test log(time=10s)
 """
 import unittest
 from logging import getLogger
@@ -7,6 +8,8 @@ import numpy
 from pandas import DataFrame, concat
 from pyquickhelper.loghelper import fLOG
 from pyquickhelper.pycode import ExtTestCase
+from pyquickhelper.texthelper import compare_module_version
+import sklearn
 from sklearn.ensemble import GradientBoostingClassifier
 from sklearn.metrics import accuracy_score
 from sklearn.model_selection import train_test_split
@@ -19,7 +22,7 @@ from skl2onnx import __version__ as skl2onnx_version
 from skl2onnx.common.data_types import FloatTensorType, StringTensorType
 from mlprodict.onnxrt import OnnxInference
 from mlprodict.onnxrt.validate.data import load_audit
-from mlprodict.tools.asv_options_helper import get_ir_version_from_onnx
+from mlprodict import __max_supported_opset__, get_ir_version
 
 
 class TestBugsOnnxrtOnnxRuntime(ExtTestCase):
@@ -28,6 +31,10 @@ class TestBugsOnnxrtOnnxRuntime(ExtTestCase):
         logger = getLogger('skl2onnx')
         logger.disabled = True
 
+    @unittest.skipIf(
+        compare_module_version(skl2onnx_version, "1.11.1") <= 0 and
+        compare_module_version(sklearn.__version__, "1.1.0") >= 0,
+        "log_loss still not implemented")
     def test_gradient_boosting_regressor_pipeline(self):
         fLOG(__file__, self._testMethodName, OutputPrint=__name__ == "__main__")
 
@@ -49,9 +56,8 @@ class TestBugsOnnxrtOnnxRuntime(ExtTestCase):
         max_depth = 10
         predictor = Pipeline([
             ('prep', ColumnTransformer([
-                            ('num_prep', StandardScaler(), numerical_cols),
-                            ('cat_prep', OneHotEncoder(
-                                handle_unknown='ignore'), categorical_cols)
+                ('num_prep', StandardScaler(), numerical_cols),
+                ('cat_prep', OneHotEncoder(handle_unknown='ignore'), categorical_cols)
             ])),
 
             ('model', GradientBoostingClassifier(
@@ -101,7 +107,7 @@ class TestBugsOnnxrtOnnxRuntime(ExtTestCase):
                 continue
 
             if 'onnxruntime' in runtime:
-                model_onnx.ir_version = get_ir_version_from_onnx()
+                model_onnx.ir_version = get_ir_version(__max_supported_opset__)
             sess = OnnxInference(model_onnx, runtime=runtime)
 
             onnx_predictions = sess.run(data)

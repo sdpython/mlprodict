@@ -15,7 +15,7 @@ from skl2onnx.common.data_types import (
     BooleanTensorType, DoubleTensorType)
 from mlprodict.onnxrt import OnnxInference
 from mlprodict.onnx_conv import register_converters, to_onnx
-from mlprodict.tools.asv_options_helper import get_ir_version_from_onnx
+from mlprodict import __max_supported_opsets__ as TARGET_OPSET, get_ir_version
 
 
 class TestOnnxrtRuntimeLightGbm(ExtTestCase):
@@ -65,7 +65,7 @@ class TestOnnxrtRuntimeLightGbm(ExtTestCase):
         cat_cols_actual = ["A", "B", "C", "D"]
         X[cat_cols_actual] = X[cat_cols_actual].astype('category')
         X_test[cat_cols_actual] = X_test[cat_cols_actual].astype('category')
-        gbm0 = LGBMClassifier().fit(X, y)
+        gbm0 = LGBMClassifier(verbosity=-1).fit(X, y)
         exp = gbm0.predict(X_test, raw_scores=False)
         self.assertNotEmpty(exp)
 
@@ -77,7 +77,7 @@ class TestOnnxrtRuntimeLightGbm(ExtTestCase):
 
         X = X[['C']].values.astype(numpy.float32)
         X_test = X_test[['C']].values.astype(numpy.float32)
-        gbm0 = LGBMClassifier().fit(X, y, categorical_feature=[0])
+        gbm0 = LGBMClassifier(verbosity=-1).fit(X, y, categorical_feature=[0])
         exp = gbm0.predict_proba(X_test, raw_scores=False)
         model_def = to_onnx(gbm0, X)
         self.assertIn('ZipMap', str(model_def))
@@ -118,7 +118,7 @@ class TestOnnxrtRuntimeLightGbm(ExtTestCase):
         cat_cols_actual = ["A", "B", "C", "D"]
         X[cat_cols_actual] = X[cat_cols_actual].astype('category')
         X_test[cat_cols_actual] = X_test[cat_cols_actual].astype('category')
-        gbm0 = LGBMClassifier().fit(X, y)
+        gbm0 = LGBMClassifier(verbosity=-1).fit(X, y)
         exp = gbm0.predict(X_test, raw_scores=False)
         self.assertNotEmpty(exp)
 
@@ -132,9 +132,9 @@ class TestOnnxrtRuntimeLightGbm(ExtTestCase):
 
         X = X[['C']].values.astype(numpy.float32)
         X_test = X_test[['C']].values.astype(numpy.float32)
-        gbm0 = LGBMClassifier().fit(X, y, categorical_feature=[0])
+        gbm0 = LGBMClassifier(verbosity=-1).fit(X, y, categorical_feature=[0])
         exp = gbm0.predict_proba(X_test, raw_scores=False)
-        model_def = to_onnx(gbm0, X)
+        model_def = to_onnx(gbm0, X, target_opset=TARGET_OPSET)
         self.assertIn('ZipMap', str(model_def))
 
         oinf = OnnxInference(model_def)
@@ -167,11 +167,12 @@ class TestOnnxrtRuntimeLightGbm(ExtTestCase):
         y_train = y_train % 2
 
         # Classic
-        gbm = LGBMClassifier()
+        gbm = LGBMClassifier(verbosity=-1)
         gbm.fit(X_train, y_train)
         exp = gbm.predict_proba(X_test)
         onx = to_onnx(gbm, initial_types=[
-            ('X', Int64TensorType([None, X_train.shape[1]]))])
+            ('X', Int64TensorType([None, X_train.shape[1]]))],
+            target_opset=TARGET_OPSET)
         self.assertIn('ZipMap', str(onx))
         oif = OnnxInference(onx)
         got = oif.run({'X': X_test})
@@ -194,7 +195,8 @@ class TestOnnxrtRuntimeLightGbm(ExtTestCase):
         exp = booster.predict(X_test)
 
         onx = to_onnx(booster, initial_types=[
-            ('X', Int64TensorType([None, X_train.shape[1]]))])
+            ('X', Int64TensorType([None, X_train.shape[1]]))],
+            target_opset=TARGET_OPSET)
         self.assertIn('ZipMap', str(onx))
         oif = OnnxInference(onx)
         got = oif.run({'X': X_test})
@@ -221,11 +223,12 @@ class TestOnnxrtRuntimeLightGbm(ExtTestCase):
         self.assertEqual(y_train.shape, (X_train.shape[0], ))
 
         # Classic
-        gbm = LGBMClassifier()
+        gbm = LGBMClassifier(verbosity=-1)
         gbm.fit(X_train, y_train)
         exp = gbm.predict_proba(X_test)
         onx = to_onnx(gbm, initial_types=[
-            ('X', Int64TensorType([None, X_train.shape[1]]))])
+            ('X', Int64TensorType([None, X_train.shape[1]]))],
+            target_opset=TARGET_OPSET)
         self.assertIn('ZipMap', str(onx))
         oif = OnnxInference(onx)
         got = oif.run({'X': X_test})
@@ -248,7 +251,8 @@ class TestOnnxrtRuntimeLightGbm(ExtTestCase):
         exp = booster.predict(X_test)
 
         onx = to_onnx(booster, initial_types=[
-            ('X', Int64TensorType([None, X_train.shape[1]]))])
+            ('X', Int64TensorType([None, X_train.shape[1]]))],
+            target_opset=TARGET_OPSET)
         self.assertIn('ZipMap', str(onx))
         oif = OnnxInference(onx)
         got = oif.run({'X': X_test})
@@ -268,11 +272,12 @@ class TestOnnxrtRuntimeLightGbm(ExtTestCase):
             X, y, random_state=11)
 
         # Classic
-        gbm = LGBMClassifier()
+        gbm = LGBMClassifier(verbosity=-1)
         gbm.fit(X_train, y_train)
         exp = gbm.predict_proba(X_test)
         onx = to_onnx(gbm.booster_, initial_types=[
-            ('X', FloatTensorType([None, X_train.shape[1]]))])
+            ('X', FloatTensorType([None, X_train.shape[1]]))],
+            target_opset=TARGET_OPSET)
         self.assertIn('ZipMap', str(onx))
         oif = OnnxInference(onx)
         got = oif.run({'X': X_test})
@@ -295,7 +300,8 @@ class TestOnnxrtRuntimeLightGbm(ExtTestCase):
         exp = booster.predict(X_test)
 
         onx = to_onnx(booster, initial_types=[
-            ('X', FloatTensorType([None, X_train.shape[1]]))])
+            ('X', FloatTensorType([None, X_train.shape[1]]))],
+            target_opset=TARGET_OPSET)
         self.assertIn('ZipMap', str(onx))
         oif = OnnxInference(onx)
         got = oif.run({'X': X_test})
@@ -349,7 +355,7 @@ class TestOnnxrtRuntimeLightGbm(ExtTestCase):
         booster = lgb_train(params, train_data)
         exp = booster.predict(X_test)
 
-        onx = to_onnx(booster, df_train)
+        onx = to_onnx(booster, df_train, target_opset=TARGET_OPSET)
         self.assertIn('ZipMap', str(onx))
 
         oif = OnnxInference(onx)
@@ -357,14 +363,15 @@ class TestOnnxrtRuntimeLightGbm(ExtTestCase):
         values = pandas.DataFrame(got['output_probability']).values
         self.assertEqualArray(exp, values[:, 1], decimal=5)
 
-        onx.ir_version = get_ir_version_from_onnx()
+        onx.ir_version = get_ir_version(TARGET_OPSET)
         oif = OnnxInference(onx, runtime='onnxruntime1')
         got = oif.run(df_test)
         values = pandas.DataFrame(got['output_probability']).values
         self.assertEqualArray(exp, values[:, 1], decimal=5)
 
         onx = to_onnx(booster, df_train,
-                      options={booster.__class__: {'cast': True}})
+                      options={booster.__class__: {'cast': True}},
+                      target_opset=TARGET_OPSET)
         self.assertIn('op_type: "Cast"', str(onx))
         oif = OnnxInference(onx)
         got = oif.run(df_test)
@@ -383,9 +390,11 @@ class TestOnnxrtRuntimeLightGbm(ExtTestCase):
         model = lgb_train({'boosting_type': 'rf', 'objective': 'binary',
                            'n_estimators': 3, 'min_child_samples': 1,
                            'subsample_freq': 1, 'bagging_fraction': 0.5,
-                           'feature_fraction': 0.5},
+                           'feature_fraction': 0.5, 'average_output': True,
+                           'verbosity': -1},
                           data)
-        model_onnx = to_onnx(model, X, verbose=0, rewrite_ops=True)
+        model_onnx = to_onnx(model, X, verbose=0, rewrite_ops=True,
+                             target_opset=TARGET_OPSET)
         self.assertNotEmpty(model_onnx)
 
     # missing values
@@ -397,8 +406,7 @@ class TestOnnxrtRuntimeLightGbm(ExtTestCase):
         input_names = [s_input.name for s_input in session.get_inputs()]
         if len(input_names) > 1:
             raise RuntimeError(
-                "Test expects one input. Found multiple inputs: %r."
-                "" % input_names)
+                f"Test expects one input. Found multiple inputs: {input_names!r}.")
         input_name = input_names[0]
         return session.run(output_names, {input_name: X})[0][:, 0]
 
@@ -433,10 +441,11 @@ class TestOnnxrtRuntimeLightGbm(ExtTestCase):
 
         regressor = LGBMRegressor(
             objective="regression", min_data_in_bin=1, min_data_in_leaf=1,
-            n_estimators=1, learning_rate=1)
+            n_estimators=1, learning_rate=1, verbosity=-1)
         regressor.fit(_X_train, _y)
         regressor_onnx = to_onnx(
-            regressor, initial_types=_INITIAL_TYPES, rewrite_ops=True)
+            regressor, initial_types=_INITIAL_TYPES, rewrite_ops=True,
+            target_opset=TARGET_OPSET)
         y_pred = regressor.predict(_X_test)
         y_pred_onnx = self._predict_with_onnx(regressor_onnx, _X_test)
         self._assert_almost_equal(
@@ -462,11 +471,12 @@ class TestOnnxrtRuntimeLightGbm(ExtTestCase):
             ("input", FloatTensorType([None, _X_train.shape[1]]))]
 
         regressor = LGBMRegressor(
-            objective="regression", boosting_type='rf',
+            objective="regression", boosting_type='rf', verbosity=-2,
             n_estimators=10, bagging_freq=1, bagging_fraction=0.5)
         regressor.fit(_X_train, _y)
         regressor_onnx = to_onnx(
-            regressor, initial_types=_INITIAL_TYPES, rewrite_ops=True)
+            regressor, initial_types=_INITIAL_TYPES, rewrite_ops=True,
+            target_opset=TARGET_OPSET)
         y_pred = regressor.predict(_X_test)
         y_pred_onnx = self._predict_with_onnx(regressor_onnx, _X_test)
         self._assert_almost_equal(
@@ -483,7 +493,7 @@ class TestOnnxrtRuntimeLightGbm(ExtTestCase):
         dtypes = set(str(dtype) for dtype in X.dtypes)
         if len(dtypes) > 1:
             raise RuntimeError(
-                "Test expects homogenous input matrix. Found multiple dtypes: %r." % dtypes)
+                f"Test expects homogenous input matrix. Found multiple dtypes: {dtypes!r}.")
         dtype = dtypes.pop()
         tensor_type = _DTYPE_MAP[dtype]
         return [("input", tensor_type(X.shape))]
@@ -495,7 +505,7 @@ class TestOnnxrtRuntimeLightGbm(ExtTestCase):
         input_names = [s_input.name for s_input in session.get_inputs()]
         if len(input_names) > 1:
             raise RuntimeError(
-                "Test expects one input. Found multiple inputs: %r." % input_names)
+                f"Test expects one input. Found multiple inputs: {input_names!r}.")
         input_name = input_names[0]
         if hasattr(X, "values"):
             return session.run(output_names, {input_name: X.values})[0][:, 0]
@@ -521,16 +531,16 @@ class TestOnnxrtRuntimeLightGbm(ExtTestCase):
         for objective in _objectives:
             with self.subTest(X=_X, objective=objective):
                 initial_types = self._calc_initial_types(_X)
-                regressor = LGBMRegressor(objective=objective)
+                regressor = LGBMRegressor(objective=objective, verbosity=-1)
                 regressor.fit(_X, _Y)
                 regressor_onnx = to_onnx(
                     regressor, initial_types=initial_types,
-                    rewrite_ops=True)
+                    rewrite_ops=True, target_opset=TARGET_OPSET)
                 y_pred = regressor.predict(_X)
                 y_pred_onnx = self._predict_with_onnx(regressor_onnx, _X)
                 self._assert_almost_equal(
                     y_pred, y_pred_onnx, decimal=_N_DECIMALS, frac=_FRAC,
-                    msg="Objective=%r" % objective)
+                    msg=f"Objective={objective!r}")
 
     @skipif_circleci('stuck')
     @unittest.skipIf(sys.platform == 'darwin', 'stuck')
@@ -554,16 +564,17 @@ class TestOnnxrtRuntimeLightGbm(ExtTestCase):
                 initial_types = self._calc_initial_types(_X)
                 regressor = LGBMRegressor(
                     objective=objective, boosting='rf', bagging_freq=3,
-                    bagging_fraction=0.5, n_estimators=10)
+                    bagging_fraction=0.5, n_estimators=10,
+                    verbosity=-1)
                 regressor.fit(_X, _Y)
                 regressor_onnx = to_onnx(
                     regressor, initial_types=initial_types,
-                    rewrite_ops=True)
+                    rewrite_ops=True, target_opset=TARGET_OPSET)
                 y_pred = regressor.predict(_X)
                 y_pred_onnx = self._predict_with_onnx(regressor_onnx, _X) / 10
                 self._assert_almost_equal(
                     y_pred, y_pred_onnx, decimal=_N_DECIMALS, frac=_FRAC,
-                    msg="Objective=%r" % objective)
+                    msg=f"Objective={objective!r}")
 
     @ignore_warnings((RuntimeWarning, UserWarning))
     def test_lgbm_regressor10(self):
@@ -572,7 +583,7 @@ class TestOnnxrtRuntimeLightGbm(ExtTestCase):
         X, y = data.data, data.target
         X = X.astype(numpy.float32)
         X_train, X_test, y_train, _ = train_test_split(X, y, random_state=0)
-        reg = LGBMRegressor(max_depth=2, n_estimators=4, seed=0)
+        reg = LGBMRegressor(max_depth=2, n_estimators=4, seed=0, verbosity=-1)
         reg.fit(X_train, y_train)
         expected = reg.predict(X_test)
 
@@ -583,7 +594,7 @@ class TestOnnxrtRuntimeLightGbm(ExtTestCase):
 
         # float split
         onx = to_onnx(reg, X_train, options={'split': 2},
-                      rewrite_ops=True)
+                      rewrite_ops=True, target_opset=TARGET_OPSET)
         oinf = OnnxInference(onx)
         got2 = oinf.run({'X': X_test})['variable']
 
@@ -598,13 +609,14 @@ class TestOnnxrtRuntimeLightGbm(ExtTestCase):
         X, y = data.data, data.target
         X = X.astype(numpy.float32)
         X_train, X_test, y_train, _ = train_test_split(X, y, random_state=0)
-        reg = LGBMRegressor(max_depth=2, n_estimators=100, seed=0)
+        reg = LGBMRegressor(max_depth=2, n_estimators=100,
+                            seed=0, verbosity=-1)
         reg.fit(X_train, y_train)
         expected = reg.predict(X_test)
 
         # double
         onx = to_onnx(reg, X_train.astype(numpy.float64),
-                      rewrite_ops=True)
+                      rewrite_ops=True, target_opset=TARGET_OPSET)
         self.assertIn("TreeEnsembleRegressorDouble", str(onx))
         oinf = OnnxInference(onx)
         got0 = oinf.run(
@@ -612,14 +624,16 @@ class TestOnnxrtRuntimeLightGbm(ExtTestCase):
         self.assertEqualArray(expected, got0)
 
         # float
-        onx = to_onnx(reg, X_train, rewrite_ops=True)
+        onx = to_onnx(reg, X_train, rewrite_ops=True,
+                      target_opset=TARGET_OPSET)
         oinf = OnnxInference(onx)
         got1 = oinf.run({'X': X_test})['variable']
         self.assertEqualArray(expected, got1, decimal=5)
 
         # float split
         onx = to_onnx(reg, X_train, options={'split': 10},
-                      rewrite_ops=True)
+                      rewrite_ops=True,
+                      target_opset=TARGET_OPSET)
         oinf = OnnxInference(onx)
         got2 = oinf.run({'X': X_test})['variable']
         self.assertEqualArray(expected, got2, decimal=5)
@@ -636,4 +650,4 @@ class TestOnnxrtRuntimeLightGbm(ExtTestCase):
 
 
 if __name__ == "__main__":
-    unittest.main()
+    unittest.main(verbosity=2)

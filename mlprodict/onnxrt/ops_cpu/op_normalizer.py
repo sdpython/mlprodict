@@ -24,19 +24,20 @@ class Normalizer(OpRunUnaryNum):
             self._norm = Normalizer.norm_l2
         else:
             raise ValueError(  # pragma: no cover
-                "Unexpected value for norm='{}'.".format(self.norm))  # pylint: disable=E1101
+                f"Unexpected value for norm='{self.norm}'.")  # pylint: disable=E1101
 
     @staticmethod
     def norm_max(x, inplace):
         "max normalization"
         if inplace:
             return Normalizer._norm_max_inplace(x)
-        return x / numpy.abs(x).max(axis=1).reshape((x.shape[0], -1))
+        div = numpy.abs(x).max(axis=1).reshape((x.shape[0], -1))
+        return x / numpy.maximum(div, 1e-30)
 
     @staticmethod
     def _norm_max_inplace(x):
-        numpy.divide(x, numpy.abs(x).max(axis=1).reshape((x.shape[0], -1)),
-                     out=x)
+        div = numpy.abs(x).max(axis=1).reshape((x.shape[0], -1))
+        numpy.divide(x, numpy.maximum(div, 1e-30), out=x)
         return x
 
     @staticmethod
@@ -44,12 +45,13 @@ class Normalizer(OpRunUnaryNum):
         "L1 normalization"
         if inplace:
             return Normalizer._norm_L1_inplace(x)
-        return x / numpy.abs(x).sum(axis=1).reshape((x.shape[0], -1))
+        div = numpy.abs(x).sum(axis=1).reshape((x.shape[0], -1))
+        return x / numpy.maximum(div, 1e-30)
 
     @staticmethod
     def _norm_L1_inplace(x):
-        numpy.divide(x, numpy.abs(x).sum(axis=1).reshape((x.shape[0], -1)),
-                     out=x)
+        div = numpy.abs(x).sum(axis=1).reshape((x.shape[0], -1))
+        numpy.divide(x, numpy.maximum(div, 1e-30), out=x)
         return x
 
     @staticmethod
@@ -57,11 +59,12 @@ class Normalizer(OpRunUnaryNum):
         "L2 normalization"
         xn = numpy.square(x).sum(axis=1)
         numpy.sqrt(xn, out=xn)
-        norm = xn.reshape((x.shape[0], -1))
+        norm = numpy.maximum(xn.reshape((x.shape[0], -1)), 1e-30)
         if inplace:
             numpy.divide(x, norm, out=x)
             return x
         return x / norm
 
-    def _run(self, x):  # pylint: disable=W0221
-        return (self._norm(x, inplace=self.inplaces.get(0, False)), )
+    def _run(self, x, attributes=None, verbose=0, fLOG=None):  # pylint: disable=W0221
+        return (self._norm(
+            x, inplace=self.inplaces.get(0, False) and x.flags['WRITEABLE']), )

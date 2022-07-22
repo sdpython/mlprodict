@@ -12,7 +12,7 @@ from skl2onnx.algebra.onnx_ops import (  # pylint: disable=E0611
 from skl2onnx.common.data_types import FloatTensorType
 from skl2onnx import __version__ as skl2onnx_version
 from mlprodict.onnxrt import OnnxInference
-from mlprodict.tools import get_opset_number_from_onnx
+from mlprodict import __max_supported_opset__ as TARGET_OPSET
 
 
 class TestOnnxrtPythonRuntimeControlScan(ExtTestCase):
@@ -26,16 +26,16 @@ class TestOnnxrtPythonRuntimeControlScan(ExtTestCase):
         x = numpy.array([1, 2, 4, 5, 5, 4]).astype(
             numpy.float32).reshape((3, 2))
         cop = OnnxAdd('input', 'input',
-                      op_version=get_opset_number_from_onnx())
+                      op_version=TARGET_OPSET)
         cdist = onnx_squareform_pdist(
-            cop, dtype=numpy.float32, op_version=get_opset_number_from_onnx())
-        cop2 = OnnxIdentity(cdist, output_names=[
-                            'cdist'], op_version=get_opset_number_from_onnx())
+            cop, dtype=numpy.float32, op_version=TARGET_OPSET)
+        cop2 = OnnxIdentity(
+            cdist, output_names=['cdist'], op_version=TARGET_OPSET)
 
         model_def = cop2.to_onnx(
             {'input': FloatTensorType()},
             outputs=[('cdist', FloatTensorType())],
-            target_opset=get_opset_number_from_onnx())
+            target_opset=TARGET_OPSET)
 
         sess = OnnxInference(model_def)
         res = sess.run({'input': x})
@@ -56,16 +56,16 @@ class TestOnnxrtPythonRuntimeControlScan(ExtTestCase):
         x2 = numpy.array([1.1, 2.1, 4.01, 5.01, 5.001, 4.001, 0, 0]).astype(
             numpy.float32).reshape((4, 2))
         cop = OnnxAdd('input', 'input',
-                      op_version=get_opset_number_from_onnx())
+                      op_version=TARGET_OPSET)
         cop2 = OnnxIdentity(onnx_cdist(cop, x2, dtype=numpy.float32,
-                                       op_version=get_opset_number_from_onnx()),
+                                       op_version=TARGET_OPSET),
                             output_names=['cdist'],
-                            op_version=get_opset_number_from_onnx())
+                            op_version=TARGET_OPSET)
 
         model_def = cop2.to_onnx(
             inputs=[('input', FloatTensorType([None, None]))],
             outputs=[('cdist', FloatTensorType(None, None))],
-            target_opset=get_opset_number_from_onnx())
+            target_opset=TARGET_OPSET)
 
         sess = OnnxInference(model_def)
         res = sess.run({'input': x})
@@ -81,16 +81,16 @@ class TestOnnxrtPythonRuntimeControlScan(ExtTestCase):
                          [5.6, 2.9, 3.6, 1.3],
                          [6.9, 3.1, 5.1, 2.3]], dtype=numpy.float32)
         cop = OnnxAdd('input', 'input',
-                      op_version=get_opset_number_from_onnx())
+                      op_version=TARGET_OPSET)
         cop2 = OnnxIdentity(onnx_cdist(cop, x, dtype=numpy.float32,
-                                       op_version=get_opset_number_from_onnx()),
+                                       op_version=TARGET_OPSET),
                             output_names=['cdist'],
-                            op_version=get_opset_number_from_onnx())
+                            op_version=TARGET_OPSET)
 
         model_def = cop2.to_onnx(
             inputs=[('input', FloatTensorType([None, None]))],
             outputs=[('cdist', FloatTensorType())],
-            target_opset=get_opset_number_from_onnx())
+            target_opset=TARGET_OPSET)
 
         sess = OnnxInference(model_def)
         res = sess.run({'input': x})
@@ -109,15 +109,15 @@ class TestOnnxrtPythonRuntimeControlScan(ExtTestCase):
         # y_test = y[1::2]
         onx = OnnxIdentity(
             onnx_cdist(
-                OnnxIdentity('X', op_version=get_opset_number_from_onnx()),
+                OnnxIdentity('X', op_version=TARGET_OPSET),
                 X_train.astype(numpy.float32),
                 metric="euclidean", dtype=numpy.float32,
-                op_version=get_opset_number_from_onnx()),
+                op_version=TARGET_OPSET),
             output_names=['Y'],
-            op_version=get_opset_number_from_onnx())
+            op_version=TARGET_OPSET)
         final = onx.to_onnx(inputs=[('X', FloatTensorType([None, None]))],
                             outputs=[('Y', FloatTensorType())],
-                            target_opset=get_opset_number_from_onnx())
+                            target_opset=TARGET_OPSET)
 
         oinf = OnnxInference(final, runtime="python")
         res = oinf.run({'X': X_train.astype(numpy.float32)})['Y']

@@ -6,7 +6,6 @@
 """
 import numpy
 from numpy.fft import fft2
-from ..shape_object import ShapeObject
 from ._op import OpRun
 from ._new_ops import OperatorSchema
 
@@ -23,15 +22,15 @@ class FFT2D(OpRun):
             self.axes = tuple(self.axes)
             if len(self.axes) != 2:
                 raise ValueError(  # pragma: no cover
-                    "axes must a set of 1 integers not %r." % self.axes)
+                    f"axes must a set of 1 integers not {self.axes!r}.")
 
     def _find_custom_operator_schema(self, op_name):
         if op_name == "FFT2D":
             return FFT2DSchema()
         raise RuntimeError(  # pragma: no cover
-            "Unable to find a schema for operator '{}'.".format(op_name))
+            f"Unable to find a schema for operator '{op_name}'.")
 
-    def _run(self, a, fft_length=None):  # pylint: disable=W0221
+    def _run(self, a, fft_length=None, attributes=None, verbose=0, fLOG=None):  # pylint: disable=W0221
         if fft_length is None:
             y = fft2(a, axes=self.axes)
         else:
@@ -41,23 +40,7 @@ class FFT2D(OpRun):
         if a.dtype in (numpy.float64, numpy.complex128):
             return (y.astype(numpy.complex128), )
         raise TypeError(  # pragma: no cover
-            "Unexpected input type: %r." % a.dtype)
-
-    def _infer_shapes(self, a, b=None):  # pylint: disable=W0221,W0237
-        if a.dtype in (numpy.float32, numpy.complex64):
-            return (ShapeObject(a.shape, dtype=numpy.complex64), )
-        if a.dtype in (numpy.float64, numpy.complex128):
-            return (ShapeObject(a.shape, dtype=numpy.complex128), )
-        raise TypeError(  # pragma: no cover
-            "Unexpected input type: %r." % a.dtype)
-
-    def _infer_types(self, a, b=None):  # pylint: disable=W0221,W0237
-        if a.dtype in (numpy.float32, numpy.complex64):
-            return (numpy.complex64, )
-        if a.dtype in (numpy.float64, numpy.complex128):
-            return (numpy.complex128, )
-        raise TypeError(  # pragma: no cover
-            "Unexpected input type: %r." % a.dtype)
+            f"Unexpected input type: {a.dtype!r}.")
 
     def to_python(self, inputs):
         if self.axes is not None:
@@ -66,11 +49,9 @@ class FFT2D(OpRun):
             axes = None
         if len(inputs) == 1:
             return ('from numpy.fft import fft2',
-                    "return fft2({}, axes={})".format(
-                        inputs[0], axes))
+                    f"return fft2({inputs[0]}, axes={axes})")
         return ('from numpy.fft import fft2',
-                "return fft2({}, tuple({}), axes={})".format(
-                    inputs[0], inputs[1], axes))
+                f"return fft2({inputs[0]}, tuple({inputs[1]}), axes={axes})")
 
 
 class FFT2DSchema(OperatorSchema):

@@ -7,7 +7,6 @@
 import numpy
 from scipy.sparse import coo_matrix
 from ._op import OpRun, RuntimeTypeError
-from ..shape_object import ShapeObject
 
 
 class DictVectorizer(OpRun):
@@ -32,10 +31,10 @@ class DictVectorizer(OpRun):
             raise RuntimeError(  # pragma: no cover
                 "int64_vocabulary and string_vocabulary cannot be both empty.")
 
-    def _run(self, x):  # pylint: disable=W0221
+    def _run(self, x, attributes=None, verbose=0, fLOG=None):  # pylint: disable=W0221
         if not isinstance(x, (numpy.ndarray, list)):
             raise RuntimeTypeError(  # pragma: no cover
-                "x must be iterable not {}.".format(type(x)))
+                f"x must be iterable not {type(x)}.")
         values = []
         rows = []
         cols = []
@@ -48,10 +47,3 @@ class DictVectorizer(OpRun):
         rows = numpy.array(rows)
         cols = numpy.array(cols)
         return (coo_matrix((values, (rows, cols)), shape=(len(x), len(self.dict_labels))), )
-
-    def _infer_shapes(self, x):  # pylint: disable=W0221
-        pref = str(hex(id(self))[2:])
-        return (ShapeObject(["ndv%s_0" % pref, "N%s_1" % pref], dtype=x.dtype), )
-
-    def _infer_types(self, x):  # pylint: disable=W0221
-        return (x, )

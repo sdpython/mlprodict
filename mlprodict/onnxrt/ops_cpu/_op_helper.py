@@ -16,12 +16,14 @@ def _get_typed_class_attribute(self, k, atts):
     if isinstance(ty, bytes):
         return getattr(self, k).decode()
     if isinstance(ty, list):
+        v = getattr(self, k)
+        if isinstance(v, numpy.ndarray):
+            return v
         return [_.decode() for _ in getattr(self, k)]
     if isinstance(ty, int):
         return getattr(self, k)
     raise NotImplementedError(  # pragma: no cover
-        "Unable to convert '{}' ({}).".format(
-            k, getattr(self, k)))
+        f"Unable to convert '{k}' ({getattr(self, k)}).")
 
 
 def proto2dtype(proto_type):
@@ -47,11 +49,17 @@ def dtype_name(dtype):
         return "float16"
     if dtype == numpy.int32:
         return "int32"
+    if dtype == numpy.uint32:
+        return "uint32"
     if dtype == numpy.int64:
         return "int64"
+    if dtype == numpy.int8:
+        return "int8"
+    if dtype == numpy.uint8:
+        return "uint8"
     if dtype == numpy.str_:
         return "str"
     if dtype == numpy.bool_:
         return "bool"
     raise ValueError(
-        "Unexpected dtype {}.".format(dtype))
+        f"Unexpected dtype {dtype}.")

@@ -31,19 +31,6 @@ class TestOnnxrtPythonRuntimeMl(ExtTestCase):
 
     def common_expected_shapes_types(self, oinf, got, model_def,
                                      raise_shape=False):
-        expected_types = oinf.infer_types()
-        self.assertEqual(set(got) & set(expected_types), set(got))
-        for k, v in got.items():
-            if expected_types[k] in (str, numpy.str_):
-                # Type mismatch: dtype('<U32') != <class 'str'>
-                continue
-            if v.dtype != expected_types[k]:
-                raise AssertionError(
-                    "Type mismatch: %r != %r\nexpected_types=%r\ngot=%r"
-                    "\n----\n%r" % (
-                        v.dtype, expected_types[k], expected_types, got,
-                        model_def))
-
         try:
             expected_shapes = oinf.infer_shapes()
             self.assertEqual(set(got) & set(expected_shapes), set(got))
@@ -183,7 +170,7 @@ class TestOnnxrtPythonRuntimeMl(ExtTestCase):
                     exp.ravel(), y['variable'].ravel(), decimal=6)
             except AssertionError as e:
                 raise AssertionError(
-                    "Something is wrong with i={}".format(i)) from e
+                    f"Something is wrong with i={i}") from e
 
     @ignore_warnings(DeprecationWarning)
     def test_onnxrt_python_LinearRegression(self):
@@ -282,8 +269,11 @@ class TestOnnxrtPythonRuntimeMl(ExtTestCase):
         data = [{"amy": 1.0, "chin": 200.0}, {"nice": 3.0, "amy": 1.0}]
         model.fit_transform(data)
         exp = model.transform(data)
-        model_def = convert_sklearn(model, "dictionary vectorizer",
-                                    [("input", DictionaryType(StringTensorType([1]), FloatTensorType([1])))])
+        model_def = convert_sklearn(
+            model, "dictionary vectorizer",
+            [("input", DictionaryType(
+                StringTensorType([1]),
+                FloatTensorType([1])))])
         oinf = OnnxInference(model_def)
         array_data = numpy.array(data)
         got = oinf.run({'input': array_data})

@@ -8,12 +8,30 @@ Experimental implementations
 Helpers
 +++++++
 
-.. autosignature:: mlprodict.testing.experimental_c.code_optimisation
+.. autosignature:: mlprodict.testing.experimental_c_impl.experimental_c.code_optimisation
 
 Implementation of ONNX operators
 ++++++++++++++++++++++++++++++++
 
 Experimental implementations for algorithm.
+
+Conv
+^^^^
+
+Function `im2col` transforms an image in order to replace a convolution
+by a matrix multiplication.
+
+.. autosignature:: mlprodict.onnxrt.ops_cpu.op_conv_helper.im2col
+
+.. autosignature:: mlprodict.onnxrt.ops_cpu.op_conv_helper.im2col_naive_implementation
+
+.. autosignature:: mlprodict.onnxrt.ops_cpu.op_conv_helper.im2col_nn
+
+.. autosignature:: mlprodict.onnxrt.ops_cpu.op_conv_helper.im2col_recursive
+
+.. autosignature:: mlprodict.onnxrt.ops_cpu.op_conv_helper.nn_im2col_2d
+
+.. autosignature:: mlprodict.onnxrt.ops_cpu.op_conv_helper.nn_col2im_2d
 
 Einsum
 ^^^^^^
@@ -30,9 +48,9 @@ Einsum
 
 .. autosignature:: mlprodict.testing.einsum.einsum_impl.decompose_einsum_equation
 
-.. autosignature:: mlprodict.testing.experimental_c.custom_einsum_float
+.. autosignature:: mlprodict.testing.experimental_c_impl.experimental_c.custom_einsum_float
 
-.. autosignature:: mlprodict.testing.experimental_c.custom_einsum_double
+.. autosignature:: mlprodict.testing.experimental_c_impl.experimental_c.custom_einsum_double
 
 .. autosignature:: mlprodict.testing.einsum.einsum_bench.einsum_benchmark
 
@@ -54,6 +72,6 @@ Pad
 ReduceSum
 ^^^^^^^^^
 
-.. autosignature:: mlprodict.testing.experimental_c.custom_reducesum_rk_double
+.. autosignature:: mlprodict.testing.experimental_c_impl.experimental_c.custom_reducesum_rk_double
 
-.. autosignature:: mlprodict.testing.experimental_c.custom_reducesum_rk_float
+.. autosignature:: mlprodict.testing.experimental_c_impl.experimental_c.custom_reducesum_rk_float

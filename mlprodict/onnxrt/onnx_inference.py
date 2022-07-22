@@ -1,4 +1,4 @@
-# pylint: disable=C0302
+# pylint: disable=C0302,R0912
 """
 @file
 @brief Implements a class able to compute the predictions
@@ -10,22 +10,27 @@ from time import perf_counter
 import warnings
 import textwrap
 import pprint
+from keyword import iskeyword
 import numpy
 from scipy.sparse import coo_matrix
-from onnx import load, load_model, checker, shape_inference
-from onnx import onnx_pb as onnx_proto
+from onnx import (
+    load, load_model, shape_inference,
+    ModelProto, GraphProto, FunctionProto)
 from onnx.helper import make_model
 from ..tools.code_helper import make_callable, print_code
+from ..onnx_tools.model_checker import check_onnx
 from ..onnx_tools.onnx2py_helper import (
-    _var_as_dict, numpy_min, numpy_max, guess_numpy_type_from_string)
+    _var_as_dict, numpy_min, numpy_max)
 from ..onnx_tools.onnx_manipulations import (
     select_model_inputs_outputs, enumerate_model_node_outputs,
     overwrite_opset, insert_results_into_onnx)
 from ..onnx_tools.optim import onnx_remove_node_unused
 from .onnx_inference_node import OnnxInferenceNode
 from .onnx_inference_exports import OnnxInferenceExport
-from .shape_object import ShapeObject
-from .type_object import SequenceType
+from .onnx_shape_inference import OnnxShapeInference
+from .ops_shape.shape_excs import (
+    ShapeInferenceMissing, NotImplementedShapeInferenceError,
+    ShapeInferenceException, ShapeInferenceDimensionError)
 
 
 class OnnxInference:
@@ -41,7 +46,7 @@ class OnnxInference:
       one except every operator is called from a compiled function
       (@see me _build_compile_run) instead for a method going through
       the list of operator
-    * ``'onnxruntime1'``: uses :epkg:`onnxruntime`
+    * ``'onnxruntime1'``: uses :epkg:`onnxruntime` (or `onnxruntime1-cuda`, ...)
     * ``'onnxruntime2'``: this mode is mostly used to debug as
       python handles calling every operator but :epkg:`onnxruntime`
       is called for every of them, this process may fail due to
@@ -72,8 +77,9 @@ class OnnxInference:
         be cut to have these new_outputs as the final outputs
     :param new_opset: overwrite the main opset and replaces
         by this new one
-    :param device: device, a string `cpu`, `cuda`, `cuda:0`...,
-        this option is only available with runtime *onnxruntime1*
+    :param existing_functions: a model may contain several local functions,
+        this parameter is used when a local function is calling another
+        local function previously defined.
 
     Among the possible runtime_options, there are:
     * *enable_profiling*: enables profiling for :epkg:`onnxruntime`
@@ -81,11 +87,10 @@ class OnnxInference:
         :epkg:`onnxruntime`
     * *ir_version*: change ir_version
 
-    .. versionchanged:: 0.7
-        Parameters *new_outputs*, *new_opset* were added.
-
-    .. versionchanged:: 0.8
-        Parameters *static_inputs*, *device* were added.
+    .. versionchanged:: 0.9
+        Parameters *existing_functions* was added.
+        Removes *device* parameter. See runtime.
+        Runtime `onnxruntime1-cuda` was added.
     """
 
     def __init__(self, onnx_or_bytes_or_stream, runtime=None,
@@ -94,7 +99,7 @@ class OnnxInference:
                  target_opset=None, runtime_options=None,
                  session_options=None, inside_loop=False,
                  static_inputs=None, new_outputs=None, new_opset=None,
-                 device=None):
+                 existing_functions=None):
         if isinstance(onnx_or_bytes_or_stream, bytes):
             self.obj = load_model(BytesIO(onnx_or_bytes_or_stream))
         elif isinstance(onnx_or_bytes_or_stream, BytesIO):
@@ -103,9 +108,11 @@ class OnnxInference:
             self.obj = load(onnx_or_bytes_or_stream)
         elif hasattr(onnx_or_bytes_or_stream, 'graph'):
             self.obj = onnx_or_bytes_or_stream
-        elif isinstance(onnx_or_bytes_or_stream, onnx_proto.GraphProto):
+        elif isinstance(onnx_or_bytes_or_stream, GraphProto):
             self.obj = make_model(onnx_or_bytes_or_stream,
                                   producer_name='mlprodict')
+        elif isinstance(onnx_or_bytes_or_stream, FunctionProto):
+            self.obj = onnx_or_bytes_or_stream
         else:
             raise TypeError("Unable to handle type {}.".format(  # pragma: no cover
                 type(onnx_or_bytes_or_stream)))
@@ -116,10 +123,6 @@ class OnnxInference:
                 self.obj, outputs=new_outputs, infer_shapes=True)
         if new_opset is not None:
             self.obj = overwrite_opset(self.obj, new_opset)
-        if device is not None and runtime != 'onnxruntime1':
-            raise ValueError(
-                "Incompatible values, device can be specified with "
-                "runtime 'onnxruntime1', not %r." % runtime)
 
         self.runtime = runtime
         self.skip_run = skip_run
@@ -129,8 +132,7 @@ class OnnxInference:
         self.runtime_options = runtime_options
         self.inside_loop = inside_loop
         self.static_inputs = static_inputs
-        self.device = device
-        self._init()
+        self._init(existing_functions)
 
     def __getstate__(self):
         """
@@ -144,8 +146,7 @@ class OnnxInference:
                 'inplace': self.inplace,
                 'force_target_opset': self.force_target_opset,
                 'static_inputs': self.static_inputs,
-                'inside_loop': self.inside_loop,
-                'device': self.device}
+                'inside_loop': self.inside_loop}
 
     def __setstate__(self, state):
         """
@@ -161,30 +162,40 @@ class OnnxInference:
         self.force_target_opset = state['force_target_opset']
         self.static_inputs = state['static_inputs']
         self.inside_loop = state['inside_loop']
-        self.device = state['device']
         self._init()
 
-    def _init(self):
+    def _init(self, existing_functions=None):
         """
         Prepares the instance to deliver predictions.
         """
-        self.graph_ = self.to_sequence()
-        if len(self.graph_['sequence']) == 0:
-            raise RuntimeError(  # pragma: no cover
-                "No runnable nodes was found in the ONNX graph.")
+        self.graph_ = self.to_sequence(existing_functions)
+        self.functions_ = self.graph_['functions']
         self.outputs_ = self.graph_['outputs']
         self.inputs_ = self.graph_['inputs']
+        self.attributes_ = self.graph_['attributes']
+        is_function_proto = isinstance(self.obj, FunctionProto)
+        if is_function_proto:
+            obj_graph = self.obj
+        else:
+            obj_graph = self.obj.graph
 
-        for ino in [self.obj.graph.input, self.obj.graph.output]:
+        for ino in [obj_graph.input, obj_graph.output]:
             for xy in ino:
-                shape = xy.type.tensor_type.shape
-                for d in shape.dim:
-                    if d.dim_value == 0 and "0" in str(d) and 'dim_param' not in str(d):
-                        # d.dim_value returns 0 whether is is 0 or empty.
-                        # it may be a parameter as well
-                        raise RuntimeError(  # pragma: no cover
-                            "Wrong ONNX file, one input or output has an empty shape: "
-                            "{}.".format(xy))
+                if isinstance(xy, str):
+                    shape = None
+                else:
+                    shape = xy.type.tensor_type.shape
+                    for d in shape.dim:
+                        if (d.dim_value == 0 and "0" in str(d) and
+                                'dim_param' not in str(d)):
+                            if len(shape.dim) <= 1:
+                                shape = None
+                                break
+                            # d.dim_value returns 0 whether is is 0 or empty.
+                            # it may be a parameter as well
+                            raise RuntimeError(  # pragma: no cover
+                                "Wrong ONNX file, one input or output has "
+                                "an empty shape: {}.".format(xy))
 
         self.target_opset_ = self.graph_['targets']
         if self.force_target_opset is not None:
@@ -195,13 +206,12 @@ class OnnxInference:
         self.ir_version_ = self.graph_['ir_version']
 
         if not self.skip_run:
-            if self.runtime == 'onnxruntime1':
+            if self.runtime is not None and self.runtime.startswith('onnxruntime1'):
                 # Loads the onnx with onnxruntime as a single file.
                 del self.graph_
                 from .ops_whole.session import OnnxWholeSession
                 self._whole = OnnxWholeSession(
-                    self.obj, self.runtime, self.runtime_options,
-                    self.device)
+                    self.obj, self.runtime, self.runtime_options)
                 self._run = self._run_whole_runtime
             else:
                 self.sequence_ = self.graph_['sequence']
@@ -212,25 +222,52 @@ class OnnxInference:
                 for node in self.sequence_:
                     domain = node.onnx_node.domain
                     target_opset = self.target_opset_.get(domain, None)
-                    if self.runtime in ('onnxruntime2', 'empty'):
-                        node.setup_runtime(self.runtime, variables, self.__class__,
-                                           target_opset=target_opset, dtype=dtype,
-                                           domain=domain, ir_version=self.ir_version_,
-                                           runtime_options=self.runtime_options)
+                    keyf = domain, node.onnx_node.op_type
+                    if keyf in self.functions_:
+                        node.setup_runtime(self.graph_['functions'][keyf])
+                    elif self.runtime in ('onnxruntime2', 'empty'):
+                        node.setup_runtime(
+                            self.runtime, variables, self.__class__,
+                            target_opset=target_opset, dtype=dtype,
+                            domain=domain, ir_version=self.ir_version_,
+                            runtime_options=self.runtime_options,
+                            existing_functions=self.functions_,
+                            build_inference_node_function=lambda fct:
+                                OnnxInference(
+                                    fct, runtime=self.runtime,
+                                    skip_run=self.skip_run,
+                                    inplace=self.inplace,
+                                    runtime_options=self.runtime_options,
+                                    inside_loop=self.inside_loop,
+                                    static_inputs=self.static_inputs))
                     else:
-                        node.setup_runtime(self.runtime, variables, self.__class__,
-                                           target_opset=target_opset, domain=domain,
-                                           ir_version=self.ir_version_,
-                                           runtime_options=self.runtime_options)
+                        node.setup_runtime(
+                            self.runtime, variables, self.__class__,
+                            target_opset=target_opset, domain=domain,
+                            ir_version=self.ir_version_,
+                            runtime_options=self.runtime_options,
+                            existing_functions=self.functions_,
+                            build_inference_node_function=lambda fct:
+                                OnnxInference(
+                                    fct, runtime=self.runtime,
+                                    skip_run=self.skip_run,
+                                    inplace=self.inplace,
+                                    runtime_options=self.runtime_options,
+                                    inside_loop=self.inside_loop,
+                                    static_inputs=self.static_inputs))
                     if hasattr(node, 'ops_') and hasattr(node.ops_, 'typed_outputs_'):
                         for k, v in node.ops_.typed_outputs_:
                             variables[k] = v
                 self._run = self._run_sequence_runtime
 
         if not self.skip_run and self.runtime in ('python', None):
-            self.shapes_ = self._set_shape_inference_runtime()
+            if is_function_proto:
+                self.shapes_ = None
+            else:
+                self.shapes_ = self._set_shape_inference_runtime()
             if self.inplace:
                 self.inplaces_ = self._guess_inplace(self.input_inplace)
+
         self.exporters_ = OnnxInferenceExport(self)
         self.to_json = self.exporters_.to_json
         self.to_dot = self.exporters_.to_dot
@@ -247,7 +284,8 @@ class OnnxInference:
 
     def _run_sequence_runtime_compiled(
             self, inputs, clean_right_away=False, intermediate=False,
-            verbose=0, node_time=False, yield_ops=None, fLOG=None):
+            verbose=0, node_time=False, yield_ops=None, fLOG=None,
+            context=None, attributes=None):
         """
         Executes a compiled version of @see me _run_sequence_runtime,
         compiled with method @see me _build_compile_run.
@@ -256,7 +294,8 @@ class OnnxInference:
         """
         try:
             return self._run_compiled(  # pylint: disable=E1101
-                inputs, yield_ops=yield_ops)
+                inputs, yield_ops=yield_ops, context=context,
+                attributes=attributes)
         except NameError as e:
             raise RuntimeError(  # pragma: no cover
                 "Unable to compute prediction due to %r. Code:\n%s"
@@ -293,11 +332,11 @@ class OnnxInference:
         """
         return "OnnxInference(...)"  # pragma: no cover
 
-    def check_model(self):
+    def check_onnx(self):
         """
         Checks the model follow :epkg:`ONNX` conventions.
         """
-        checker.check_model(self.obj)
+        check_onnx(self.obj)
 
     def shape_inference(self):
         """
@@ -317,8 +356,10 @@ class OnnxInference:
         .. versionchanged:: 0.6
             The list does not include optional inputs anymore.
         """
-        inits = set(_.name for _ in self.obj.graph.initializer)
-        return [_.name for _ in self.obj.graph.input if _.name not in inits]
+        if hasattr(self.obj, 'graph'):
+            inits = set(_.name for _ in self.obj.graph.initializer)
+            return [_.name for _ in self.obj.graph.input if _.name not in inits]
+        return list(self.obj.input)
 
     @property
     def input_names_shapes(self):
@@ -341,9 +382,8 @@ class OnnxInference:
         if 'kind' in info and info['kind'] == 'sequence':
             if prop == 'shape':
                 return ('?', )
-        raise NotImplementedError(
-            "Unable to retrieve property %r from %r."
-            "" % (prop, info))
+        raise NotImplementedError(  # pragma: no cover
+            f"Unable to retrieve property {prop!r} from {info!r}.")
 
     @property
     def input_names_shapes_types(self):
@@ -357,8 +397,12 @@ class OnnxInference:
         """
         f = OnnxInference._get_type_property
         names = set(self.input_names)
+        if isinstance(self.obj, FunctionProto):
+            return [(_.name, f(_var_as_dict(_)['type'], 'shape'),
+                     f"tensor({f(_var_as_dict(_)['type'], 'elem')})")
+                    for _ in self.obj.input if _.name in names]
         return [(_.name, f(_var_as_dict(_)['type'], 'shape'),
-                 'tensor(%s)' % f(_var_as_dict(_)['type'], 'elem'))
+                 f"tensor({f(_var_as_dict(_)['type'], 'elem')})")
                 for _ in self.obj.graph.input if _.name in names]
 
     @property
@@ -366,6 +410,8 @@ class OnnxInference:
         """
         Returns the names of all outputs.
         """
+        if isinstance(self.obj, FunctionProto):
+            return [_ for _ in self.obj.output]
         return [_.name for _ in self.obj.graph.output]
 
     @property
@@ -375,6 +421,8 @@ class OnnxInference:
         This method assumes all inputs are tensors.
         """
         f = OnnxInference._get_type_property
+        if isinstance(self.obj, FunctionProto):
+            return [(_, None) for _ in self.obj.output]
         return [(_.name, f(_var_as_dict(_)['type'], 'shape'))
                 for _ in self.obj.graph.output]
 
@@ -389,8 +437,10 @@ class OnnxInference:
         """
         names = set(self.output_names)
         f = OnnxInference._get_type_property
+        if isinstance(self.obj, FunctionProto):
+            return [(_, None) for _ in self.obj.graph.output if _ in names]
         return [(_.name, f(_var_as_dict(_)['type'], 'shape'),
-                 'tensor(%s)' % f(_var_as_dict(_)['type'], 'elem'))
+                 f"tensor({f(_var_as_dict(_)['type'], 'elem')})")
                 for _ in self.obj.graph.output if _.name in names]
 
     def global_index(self, name):
@@ -408,7 +458,7 @@ class OnnxInference:
         self._global_index[name] = len(self._global_index)
         return self._global_index[name]
 
-    def to_sequence(self):
+    def to_sequence(self, existing_functions=None):
         """
         Produces a graph to facilitate the execution.
 
@@ -426,17 +476,21 @@ class OnnxInference:
 
                 import pprint
                 import numpy
-                from skl2onnx.algebra.onnx_ops import OnnxLinearRegressor
-                from skl2onnx.common.data_types import FloatTensorType
+                from mlprodict.npy.xop import loadop
                 from mlprodict.onnxrt import OnnxInference
+
+                OnnxAiOnnxMlLinearRegressor = loadop(
+                    ('ai.onnx.ml', 'LinearRegressor'))
 
                 pars = dict(coefficients=numpy.array([1., 2.]),
                             intercepts=numpy.array([1.]),
                             post_transform='NONE')
-                onx = OnnxLinearRegressor('X', output_names=['Y'], **pars)
-                model_def = onx.to_onnx({'X': pars['coefficients'].astype(numpy.float32)},
-                                        outputs=[('Y', FloatTensorType([1]))],
-                                        target_opset=12)
+                onx = OnnxAiOnnxMlLinearRegressor(
+                    'X', output_names=['Y'], **pars)
+                model_def = onx.to_onnx(
+                    {'X': pars['coefficients'].astype(numpy.float32)},
+                    outputs={'Y': numpy.float32},
+                    target_opset=12)
                 oinf = OnnxInference(model_def)
                 pprint.pprint(oinf.to_sequence())
 
@@ -449,8 +503,36 @@ class OnnxInference:
         nodes = {}
         statics = {}
         targets = {}
+        functions = {}
+        attributes = {}
+        if existing_functions is not None:
+            functions.update(existing_functions)
+        is_function_proto = isinstance(self.obj, FunctionProto)
+        if is_function_proto and self.obj.attribute:
+            for att in self.obj.attribute:
+                attributes[att] = None
+
         for o in self.obj.opset_import:
             targets[o.domain] = o.version
+
+        if (hasattr(self.obj, 'functions') and len(self.obj.functions) > 0 and
+                (self.runtime is None or not
+                    self.runtime.startswith('onnxruntime1'))):
+            for fct in self.obj.functions:
+                try:
+                    oinf = OnnxInference(
+                        fct, runtime=self.runtime,
+                        skip_run=self.skip_run,
+                        inplace=self.inplace,
+                        runtime_options=self.runtime_options,
+                        inside_loop=self.inside_loop,
+                        static_inputs=self.static_inputs,
+                        existing_functions=functions)
+                except RuntimeError as e:
+                    raise RuntimeError(  # pragma: no cover
+                        "Unable to instantiate function %r, %r." % (
+                            fct.domain, fct.name)) from e
+                functions[fct.domain, fct.name] = oinf
 
         # static variables
         if self.static_inputs is not None:
@@ -458,42 +540,56 @@ class OnnxInference:
                 statics[n] = {'name': n}
                 self.global_index(n)
 
+        obj_graph = (
+            self.obj if isinstance(self.obj, FunctionProto)
+            else self.obj.graph)
+
         # inputs
-        for obj in self.obj.graph.input:
-            variables[obj.name] = _var_as_dict(obj)
-            self.global_index(obj.name)
+        for obj in obj_graph.input:
+            if is_function_proto:
+                variables[obj] = {'name': obj}
+                self.global_index(obj)
+            else:
+                variables[obj.name] = _var_as_dict(obj)
+                self.global_index(obj.name)
 
         # outputs
-        for obj in self.obj.graph.output:
-            if hasattr(obj, 'type') and str(obj.type) != '':
-                outputs[obj.name] = _var_as_dict(obj)
+        for obj in obj_graph.output:
+            if is_function_proto:
+                outputs[obj] = {'name': obj}
+                self.global_index(obj)
             else:
-                outputs[obj.name] = {'name': obj.name}
-            self.global_index(obj.name)
+                if hasattr(obj, 'type') and str(obj.type) != '':
+                    outputs[obj.name] = _var_as_dict(obj)
+                else:
+                    outputs[obj.name] = {'name': obj.name}
+                self.global_index(obj.name)
 
         # initializer
-        for obj in self.obj.graph.initializer:
-            init_obj = _var_as_dict(obj)
-            if init_obj is None:
-                raise RuntimeError(  # pragma: no cover
-                    "Unable to convert an initializer\n{}".format(obj))
-            inits[obj.name] = init_obj
-            self.global_index(obj.name)
-            if 'value' not in inits[obj.name]:
-                raise RuntimeError(  # pragma: no cover
-                    "One initializer has no value: '{}'\n{}\n{}".format(
-                        obj.name, inits[obj.name], obj))
+        if not is_function_proto:
+            for obj in obj_graph.initializer:
+                init_obj = _var_as_dict(obj)
+                if init_obj is None:
+                    raise RuntimeError(  # pragma: no cover
+                        f"Unable to convert an initializer\n{obj}")
+                inits[obj.name] = init_obj
+                self.global_index(obj.name)
+                if 'value' not in inits[obj.name]:
+                    raise RuntimeError(  # pragma: no cover
+                        "One initializer has no value: '{}'\n{}\n{}".format(
+                            obj.name, inits[obj.name], obj))
 
         # nodes
-        for node in self.obj.graph.node:
+        for node in obj_graph.node:
             dobj = _var_as_dict(node)
             if dobj is None:
                 raise RuntimeError(  # pragma: no cover
-                    "Unable to convert a node\n{}".format(node))
+                    f"Unable to convert a node\n{node}")
             if 'atts' in dobj:
                 atts = dobj['atts']
                 for k, v in atts.items():
-                    if not isinstance(v, dict) or 'value' not in v:
+                    if not isinstance(v, dict) or (
+                            'value' not in v and 'ref_attr_name' not in v):
                         raise RuntimeError(  # pragma: no cover
                             "A parameter has no (sparse) value '{}' "
                             "for node '{}'\nv={}\ndobj=[{}]".format(
@@ -514,14 +610,12 @@ class OnnxInference:
         for k, v in statics.items():
             if (k, 0) in names:
                 raise RuntimeError(  # pragma: no cover
-                    "Static variables '{}' already exists (tag='{}').".format(
-                        k, names[k, 0][0]))
+                    f"Static variables '{k}' already exists (tag='{names[k, 0][0]}').")
             names[k, 0] = ('S', v)
         for k, v in inits.items():
             if (k, 0) in names:
                 raise RuntimeError(  # pragma: no cover
-                    "Initializer '{}' already exists (tag='{}').".format(
-                        k, names[k, 0][0]))
+                    f"Initializer '{k}' already exists (tag='{names[k, 0][0]}').")
             names[k, 0] = ('C', v)
         for k, v in variables.items():
             if (k, 0) in names:
@@ -529,15 +623,13 @@ class OnnxInference:
                     # Kind of default value for an input
                     continue
                 raise RuntimeError(  # pragma: no cover
-                    "Variable '{}' already exists (tag='{}').".format(
-                        k, names[k, 0][0]))
+                    f"Variable '{k}' already exists (tag='{names[k, 0][0]}').")
             names[k, 0] = ('I', v)
         for k, v in outputs.items():
-            if (k, 0) in names and self.runtime != 'empty':
+            if (k, 0) in names and (self.runtime != 'empty' and len(nodes) > 0):
                 if not self.inside_loop or names[k, 0][0] != 'I':
                     raise RuntimeError(  # pragma: no cover
-                        "Output '{}' already exists (tag='{}').".format(
-                            k, names[k, 0][0]))
+                        f"Output '{k}' already exists (tag='{names[k, 0][0]}').")
                 else:
                     # For input, output sharing the same name, we marked the name
                     # as an input.
@@ -568,7 +660,7 @@ class OnnxInference:
                     continue
                 if v[0] == 'O':
                     continue
-                if all((inp, 0) in order for inp in v[1].inputs):
+                if all((inp, 0) in order for inp in v[1].inputs if inp != ''):
                     # If all inputs are available,
                     # We tell the operator node is processed.
                     order[k, 1] = len(order)
@@ -600,17 +692,6 @@ class OnnxInference:
             node.set_order(len(sequence))
             sequence.append(node)
 
-        if len(sequence) == 0:
-            raise RuntimeError(  # pragma: no cover
-                "No runnable nodes was found in the ONNX graph"
-                "\n--rev--\n{}"
-                "\n--order--\n{}"
-                "\n--nodes--\n{}"
-                "\n---".format(
-                    "\n".join([str(_) for _ in names.items()]),
-                    "\n".join([str(_) for _ in order.items()]),
-                    "\n".join([str(_) for _ in nodes.items()])))
-
         # defines where an intermediare output is not needed
         last_used = {}
         for node in sequence:
@@ -620,9 +701,14 @@ class OnnxInference:
             sequence[ord].add_variable_to_clean(k)
 
         results = dict(inits=inits, inputs=variables, outputs=outputs,
+                       attributes=attributes,
                        nodes=nodes, sequence=sequence,
+                       functions=functions,
                        intermediate=intermediate,
-                       targets=targets, ir_version=self.obj.ir_version,
+                       targets=targets,
+                       ir_version=(
+                           None if is_function_proto
+                           else self.obj.ir_version),
                        statics=statics)
         if len(sequence) < len(nodes):
             # Not all node will be executed.
@@ -635,9 +721,14 @@ class OnnxInference:
                       pprint.pformat(list(statics))))
         return results
 
+    #############
+    # inference #
+    #############
+
     def run(self, inputs, clean_right_away=False,
             intermediate=False, verbose=0, node_time=False,
-            overwrite_types=None, yield_ops=None, fLOG=None):
+            overwrite_types=None, yield_ops=None, fLOG=None,
+            context=None, attributes=None):
         """
         Computes the predictions for this :epkg:`onnx` graph.
 
@@ -654,6 +745,9 @@ class OnnxInference:
         :param yield_ops: dictionary to overwrite the output of
             operator *YieldOp*
         :param fLOG: logging function if *verbose > 0*
+        :param context: local variables, needed when this object is a subgraph
+        :param attributes: this uses when this class runs a :epkg:`FunctionProto`
+            to store the values of the attributes of the function
         :return: outputs as dictionary
             and a second dictionary of the time spent
             in each node if *node_time* is True
@@ -698,8 +792,8 @@ class OnnxInference:
         to keep the one output and converted into
         *OnnxInference*.
 
-        .. versionchanged:: 0.8
-            Parameter *yield_ops* was added.
+        .. versionchanged:: 0.9
+            Parameter *attributes* was added.
         """
         def retype(col_array):
             if (hasattr(col_array, 'categories') and
@@ -718,23 +812,26 @@ class OnnxInference:
                 raise RuntimeError(  # pragma: no cover
                     "inplace must be False if intermediate is True, a container "
                     "might be used by several nodes.")
-            return self._run(inputs, clean_right_away=False,
+            return self._run(inputs, clean_right_away=False,  # pylint: disable=E1123
                              intermediate=intermediate,
                              verbose=verbose, node_time=node_time,
                              overwrite_types=overwrite_types,
-                             yield_ops=yield_ops, fLOG=fLOG)
+                             yield_ops=yield_ops, fLOG=fLOG,
+                             context=context, attributes=attributes)
         if overwrite_types is not None:
             raise RuntimeError(  # pragma: no cover
                 "overwrite_types is not used if intermediate is False.")
-        return self._run(inputs, clean_right_away=False,
+        return self._run(inputs, clean_right_away=False,  # pylint: disable=E1123
                          intermediate=intermediate,
                          verbose=verbose, node_time=node_time,
-                         yield_ops=yield_ops, fLOG=fLOG)
+                         yield_ops=yield_ops, fLOG=fLOG,
+                         context=context, attributes=attributes)
 
     def run2onnx(self, inputs, verbose=0, fLOG=None,
                  as_parameter=True, suffix='_DBG',
                  param_name=None, node_type='DEBUG',
-                 domain='DEBUG', domain_opset=1):
+                 domain='DEBUG', domain_opset=1,
+                 attributes=None):
         """
         Executes the graphs with the given inputs, then adds the intermediate
         results into ONNX nodes in the original graph. Once saved, it can be
@@ -752,6 +849,8 @@ class OnnxInference:
         :param node_type: type of the new node
         :param domain: domain the new node
         :param domain_opset: opset for *domain*
+        :param attributes: values for attributes if this class runs a
+            :epkg:`FunctionProto`
         :return: outputs as dictionary
             and the onnx graph with new nodes
 
@@ -783,7 +882,7 @@ class OnnxInference:
         .. versionadded:: 0.7
         """
         intermediate = self.run(inputs, verbose=verbose, fLOG=fLOG,
-                                intermediate=True)
+                                intermediate=True, attributes=attributes)
         for name in self.input_names:
             del intermediate[name]
         new_onx = insert_results_into_onnx(
@@ -797,16 +896,16 @@ class OnnxInference:
         Shows the sequence of nodes to run if ``runtime=='python'``.
         """
         rows = []
-        rows.append("#node: {}".format(len(self.sequence_)))
+        rows.append(f"#node: {len(self.sequence_)}")
         for i, node in enumerate(self.sequence_):
             if verbose >= 1:
-                rows.append("{}: {}".format(i, str(node)))
+                rows.append(f"{i}: {str(node)}")
         return "\n".join(rows)
 
     def _run_sequence_runtime(self, inputs, clean_right_away=False,
                               intermediate=False, verbose=0, node_time=False,
                               overwrite_types=None, yield_ops=None,
-                              fLOG=None):
+                              fLOG=None, context=None, attributes=None):
         if overwrite_types is not None:
             raise NotImplementedError(  # pragma: no cover
                 "overwrite_types != None not implemented.")
@@ -816,27 +915,50 @@ class OnnxInference:
 
         if node_time:
             mtime = []
-        if verbose >= 1 and fLOG is not None:
+        if verbose != 0:
             printed = set()
+
+        if context is not None:
+            for k in context:
+                self.global_index(k)
 
         if hasattr(self, "_values_init"):
             values = self._values_init.copy()  # pylint: disable=E0203
+            if context is not None:
+                for k, v in context.items():
+                    values[self._global_index[k]] = v
         else:
             values = [None] * len(self._global_index)
             if verbose >= 1 and fLOG is not None:
+                if context is not None:
+                    for k, v in context.items():
+                        if v is None:
+                            continue
+                        values[self._global_index[k]] = v
+                        if verbose < 3:
+                            fLOG(  # pragma: no cover
+                                "+kI='{}': {} (dtype={} min={} max={})".format(
+                                    k, v.shape, v.dtype, numpy_min(v), numpy_max(v)))
+                        else:
+                            fLOG(  # pragma: no cover
+                                "+kI='{}': {} (dtype={} min={} max={}\n{}".format(
+                                    k, v.shape, v.dtype, numpy_min(v), numpy_max(v), v))
                 for k, v in self.inits_.items():
                     values[self._global_index[k]] = v['value']
                     if verbose < 3:
                         fLOG("+ki='{}': {} (dtype={} min={} max={})".format(
-                            k, v['value'].shape, v['value'].dtype,
-                            numpy_min(v['value']), numpy_max(v['value'])))
+                             k, v['value'].shape, v['value'].dtype,
+                             numpy_min(v['value']), numpy_max(v['value'])))
                     else:
                         fLOG("+ki='{}': {} (dtype={} min={} max={}\n{}".format(
-                            k, v['value'].shape, v['value'].dtype,
-                            numpy_min(v['value']), numpy_max(v['value']),
-                            v['value']))
+                             k, v['value'].shape, v['value'].dtype,
+                             numpy_min(v['value']), numpy_max(v['value']),
+                             v['value']))
                     printed.add(k)
             else:
+                if context is not None:
+                    for k, v in context.items():
+                        values[self._global_index[k]] = v
                 for k, v in self.inits_.items():
                     values[self._global_index[k]] = v['value']
             # stores the array to skip initialing a second time
@@ -859,14 +981,14 @@ class OnnxInference:
                             "yield_ops: %r (node=%r)." % (
                                 out, list(sorted(yield_ops)), node.onnx_node))
                     t = perf_counter()
-                    node.run(values)
+                    node.run(values, attributes=attributes)
                     t2 = perf_counter()
                     mtime.append(dict(i=i, name=node.onnx_node.name,
                                       op_type=node.onnx_node.op_type,
                                       time=t2 - t))
             else:
                 for node in self.sequence_:
-                    node.run(values)
+                    node.run(values, attributes=attributes)
         else:
             def dispsimple(arr):
                 if hasattr(arr, 'shape'):
@@ -903,23 +1025,23 @@ class OnnxInference:
                                 ' (sparse)' if isinstance(obj, coo_matrix) else ''))
                         elif (isinstance(obj, list) and len(obj) > 0 and
                                 not isinstance(obj[0], dict)):  # pragma: no cover
-                            fLOG("-kv='{}' list len={}".format(k, len(obj)))
+                            fLOG(f"-kv='{k}' list len={len(obj)}")
                             if verbose >= 3 and len(obj) > 0:
-                                fLOG("first={} last={}".format(
-                                    obj[0], obj[-1]))
+                                fLOG(f"first={obj[0]} last={obj[-1]}")
                         else:  # pragma: no cover
-                            fLOG("-kv='{}' type={}".format(k, type(obj)))
+                            fLOG(f"-kv='{k}' type={type(obj)}")
 
             keys = set(k for k in range(len(values)) if values[k] is not None)
             if verbose >= 1:
-                fLOG("-- OnnxInference: run {} nodes".format(len(self.sequence_)))
+                fLOG("-- OnnxInference: run {} nodes with {} inputs".format(
+                    len(self.sequence_), len(inputs)))
             for i, node in enumerate(self.sequence_):
                 if verbose >= 1:
                     fLOG(node)
                 if yield_ops is not None and node.onnx_node.op_type == 'YieldOp':
                     out = node.onnx_node.output[0]
                     if out in yield_ops:
-                        fLOG("+yo=%r" % out)
+                        fLOG(f"+yo={out!r}")
                         values[node.outputs_indices[0]] = yield_ops[out]
                     else:
                         raise RuntimeError(  # pragma: no cover
@@ -928,13 +1050,14 @@ class OnnxInference:
                                 out, list(sorted(yield_ops)), node.onnx_node))
                 elif node_time:
                     t = perf_counter()
-                    node.run(values)
+                    node.run(values, attributes=attributes)
                     t2 = perf_counter()
                     mtime.append(dict(i=i, name=node.onnx_node.name,
                                       op_type=node.onnx_node.op_type,
                                       time=t2 - t))
                 else:
-                    node.run(values)
+                    node.run(values, verbose=verbose, fLOG=fLOG,
+                             attributes=attributes)
                 added = 0
                 for k in range(len(values)):  # pylint: disable=C0200
                     if values[k] is None:
@@ -945,24 +1068,24 @@ class OnnxInference:
                         name = list(
                             name for name in self._global_index  # pylint: disable=C0206
                             if self._global_index[name] == k)
-                        if isinstance(values[k], (numpy.ndarray, coo_matrix)):
-                            name = name[0]
-                            mini = numpy_min(values[k])
-                            maxi = numpy_max(values[k])
-                            fLOG("+kr{}'{}': {} (dtype={} min={} max={}{})".format(
-                                "=" if len(values[k].shape) == 0 or min(
-                                    values[k].shape) > 0 else "*",
-                                name, values[k].shape, values[k].dtype,
-                                mini, maxi,
-                                ' sparse' if isinstance(values[k], coo_matrix) else ''))
-                            if verbose >= 3:
-                                dispsimple(values[k])
-                        else:
-                            fLOG("+kr='{}': {}".format(
-                                name, type(values[k])))
-                            if verbose >= 3:  # pragma: no cover
-                                dispsimple(values[k])
-                if added == 0:
+                        if verbose >= 1:
+                            if isinstance(values[k], (numpy.ndarray, coo_matrix)):
+                                name = name[0]
+                                mini = numpy_min(values[k])
+                                maxi = numpy_max(values[k])
+                                fLOG("+kr{}'{}': {} (dtype={} min={} max={}{})".format(
+                                    "=" if len(values[k].shape) == 0 or min(
+                                        values[k].shape) > 0 else "*",
+                                    name, values[k].shape, values[k].dtype,
+                                    mini, maxi,
+                                    ' sparse' if isinstance(values[k], coo_matrix) else ''))
+                                if verbose >= 3:
+                                    dispsimple(values[k])
+                            else:
+                                fLOG(f"+kr='{name}': {type(values[k])}")
+                                if verbose >= 3:  # pragma: no cover
+                                    dispsimple(values[k])
+                if added == 0 and verbose >= 1:
                     fLOG("? no new result")  # pragma: no cover
 
         if intermediate:
@@ -977,7 +1100,101 @@ class OnnxInference:
             raise RuntimeError("Unable to find one output [{}]\n in [{}]"
                                ".".format(", ".join(sorted(self.outputs_)),
                                           ", ".join(sorted(values)))) from e
+        if verbose != 0:
+            # check input and output have the expected type
+            self._validate_outputs(res, verbose=verbose, fLOG=fLOG)
         return (res, mtime) if node_time else res
+
+    def _validate_outputs(self, res, verbose=0, fLOG=None):
+        """
+        Checks the output have the expected type.
+        The function returns the list of mismatches.
+
+        :param res: results in a dictionary
+        :param verbose: verbosity
+        :param fLOG: logging function
+        :return: dictionary
+        """
+        if verbose >= 2:
+            fLOG(f'[VALIDATE] type {type(self.obj)!r}')
+        if isinstance(self.obj, ModelProto):
+            from mlprodict.onnx_tools.onnx2py_helper import (
+                guess_proto_dtype, get_tensor_elem_type, get_tensor_shape)
+            outputs = {o.name: o for o in self.obj.graph.output}
+            rows = []
+            mis = {}
+            for k, v in res.items():
+                if k not in outputs:
+                    rows.append(
+                        f"Result {k!r} cannot be found in {set(outputs)!r}.")
+                    continue
+                try:
+                    expected = get_tensor_elem_type(outputs[k])
+                except TypeError:
+                    expected = None
+                shape = get_tensor_shape(outputs[k])
+                if v is None:
+                    rows.append(
+                        f"Result {k!r} is None instead of {expected!r}.")
+                    continue
+                dtype = guess_proto_dtype(v.dtype)
+                if expected != dtype:
+                    mis[k] = f"dtype {dtype!r} != {expected!r}"
+                    rows.append(
+                        "Result %r have unexpected element type %r "
+                        "instead of %r." % (
+                            k, dtype, expected))
+                if shape is None or len(shape) == 0:
+                    continue
+                if len(shape) != len(v.shape):
+                    mis[k] = f"shape {v.shape!r} != {shape!r}"
+                    rows.append(
+                        "Result %r have unexpected shape length %r "
+                        "instead of %r." % (
+                            k, v.shape, shape))
+                    continue
+                for a, b in zip(v.shape, shape):
+                    if b is None or isinstance(b, str):
+                        continue
+                    if a != b:
+                        mis[k] = f"shape {v.shape!r} != {shape!r}"
+                        rows.append(
+                            "Result %r have unexpected shape %r "
+                            "instead of %r." % (
+                                k, v.shape, shape))
+                        break
+            if len(rows) > 0:
+                if verbose < 0:
+                    raise RuntimeError(  # pragma: no cover
+                        "Validation failed.\n- %s" % "\n- ".join(rows))
+                else:
+                    fLOG("[VALIDATE] validation failed.\n- %s" %
+                         "\n- ".join(rows))
+            if verbose >= 2:  # pragma: no cover
+                fLOG(f'[VALIDATE] mis={mis!r}')
+            return mis
+
+        if isinstance(self.obj, FunctionProto):
+            outputs = set(self.obj.output)
+            got = set(res)
+            if got != outputs:
+                if verbose < 0:  # pragma: no cover
+                    raise RuntimeError(
+                        "Unexpected mismatch between outputs %r and "
+                        "expected outputs %r." % (got, outputs))
+                else:  # pragma: no cover
+                    fLOG(
+                        f"CHECK: expected outputs {outputs!r} != outputs {got!r}")
+                mis = {k: None for k in set(got) - got & outputs}
+                if verbose >= 2:
+                    fLOG(f'[VALIDATE] mis={mis!r}')
+                return mis
+            if verbose >= 2:
+                fLOG('[VALIDATE] mis={}')
+            return {}
+
+        raise TypeError(  # pragma: no cover
+            f"Unexpected type {type(self.obj)!r} for self.obj.")
 
     def build_intermediate(self, outputs=None, verbose=0, overwrite_types=None,
                            fLOG=None):
@@ -998,14 +1215,14 @@ class OnnxInference:
         .. versionchanged: 0.6
         """
         if verbose > 0:
-            fLOG('[build_intermediate] BEGIN.')
+            fLOG('[build_intermediate] BEGIN.')  # pragma: no cover
         if outputs is not None:
             if isinstance(outputs, str):
                 outputs = [outputs]
             if not isinstance(outputs, set):
                 outputs = set(outputs)
         ord = OrderedDict()
-        for output in enumerate_model_node_outputs(self.obj, order=True):
+        for output in enumerate_model_node_outputs(self.obj, order=False):
             if outputs is not None and output not in outputs:
                 continue
             subonx = select_model_inputs_outputs(
@@ -1014,7 +1231,7 @@ class OnnxInference:
             subonx = onnx_remove_node_unused(subonx)
             if verbose > 0:
                 fLOG(  # pragma: no cover
-                    '[build_intermediate] + {}'.format(output))
+                    f'[build_intermediate] + {output}')
             ord[output] = OnnxInference(subonx, runtime=self.runtime,
                                         skip_run=self.skip_run,
                                         runtime_options=self.runtime_options,
@@ -1027,8 +1244,9 @@ class OnnxInference:
 
     def _run_whole_runtime(self, inputs, clean_right_away=False,
                            intermediate=False, verbose=0, node_time=False,
-                           overwrite_types=None, yield_ops=None, fLOG=None):
-        # node_time is unused
+                           overwrite_types=None, yield_ops=None, fLOG=None,
+                           context=None, attributes=None):
+        # node_time is unused, context is unused
         if clean_right_away:
             raise RuntimeError(  # pragma: no cover
                 "clean_right_away=true does not work with this runtime.")
@@ -1054,11 +1272,11 @@ class OnnxInference:
                 values[k] = v['value']
             if verbose >= 2:  # pragma: no cover
                 for k in sorted(values):
-                    fLOG("-k='{}' shape={} dtype={}".format(
-                        k, values[k].shape, values[k].dtype))
+                    fLOG(
+                        f"-k='{k}' shape={values[k].shape} dtype={values[k].dtype}")
             for node, oinf in self.intermediate_onnx_inference_.items():
                 if verbose >= 4:  # pragma: no cover
-                    fLOG('[intermediate] %r' % node)
+                    fLOG(f'[intermediate] {node!r}')
                     if verbose >= 5:  # pragma: no cover
                         fLOG(oinf.obj)
                 if yield_ops is not None and node.onnx_node.op_type == 'YieldOp':
@@ -1070,19 +1288,19 @@ class OnnxInference:
                         "YieldOp output %r could not be found in "
                         "yield_ops: %r (node=%r)." % (
                             out, list(sorted(yield_ops)), node.onnx_node))
-                output = oinf.run(inputs)[node]
+                output = oinf.run(inputs, attributes=attributes)[node]
                 values[node] = output
                 if verbose >= 1:
                     if verbose >= 4:  # pragma: no cover
                         for k, v in inputs.items():
                             if isinstance(output, numpy.ndarray):
                                 fLOG("-i='{}': {} (dtype={}) {}".format(
-                                    k, v.shape, v.dtype, v.ravel().tolist()))
+                                     k, v.shape, v.dtype, v.ravel().tolist()))
                             else:
-                                fLOG("-i='{}': {} (dtype={}) - ?".format(
-                                    k, v.shape, v.dtype))
+                                fLOG(
+                                    f"-i='{k}': {v.shape} (dtype={v.dtype}) - ?")
                     if isinstance(output, numpy.ndarray):
-                        fLOG("+k='{}': {} (dtype={})".format(
+                        fLOG("+k='{}': {} (dtype={})".format(  # pragma: no cover
                             node, output.shape, output.dtype))
                         if verbose >= 2:  # pragma: no cover
                             fLOG(output)
@@ -1128,8 +1346,7 @@ class OnnxInference:
                 return att
 
         raise IndexError(  # pragma: no cover
-            "Unable to find attribute '{}' from node "
-            "'{}'.".format(att_name, node_name))
+            f"Unable to find attribute '{att_name}' from node '{node_name}'.")
 
     def switch_initializers_dtype(self, model=None,
                                   dtype_in=numpy.float32,
@@ -1208,49 +1425,25 @@ class OnnxInference:
         relying on the runtime.
         The values are stored in every node.
         """
-        if not hasattr(self, 'sequence_') or not hasattr(self, 'inputs_'):
-            raise RuntimeError(  # pragma: no cover
-                "This method only works if the runtime is 'python' not "
-                "'{}'.".format(self.runtime))
-        values = OrderedDict()
-        for k, v in self.inputs_.items():
-            # The function assumes the first dimension is unknown
-            # and is the batch size.
-            try:
-                values[k] = ShapeObject(v, use_n1=True, name=k)
-            except TypeError as e:  # pragma: no cover
-                raise TypeError(
-                    "Unable to guess shape for %r (shape=%r)." % (k, v)) from e
-
-        impossible = False
-        for k, v in self.statics_.items():
-            # static inputs should be known.
-            if k not in values:
-                try:
-                    values[k] = ShapeObject(v)
-                except TypeError:
-                    # default value is wrong
-                    impossible = True
-                    values[k] = None
-
-        for k, v in self.inits_.items():
-            values[k] = ShapeObject(v['value'], name=k)
-        last = None
-        for i, node in enumerate(self.sequence_):
-            try:
-                s = node._set_shape_inference_runtime(values)
-                last = s
-            except (IndexError, TypeError, KeyError,
-                    AttributeError) as e:  # pragma: no cover
-                rows = []
-                if last is not None:
-                    for k, v in last.items():
-                        rows.append("{}: {}".format(k, v))
-                for k in range(i + 1):
-                    rows.append("{} --> {}".format(k, self.sequence_[k]))
-                if not impossible:
-                    raise RuntimeError("Unable to infer shape of node {}\n{}".format(
-                        i, '\n'.join(rows))) from e
+        try:
+            rt = OnnxShapeInference(self.obj)
+        except (ShapeInferenceMissing, NotImplementedShapeInferenceError,
+                ShapeInferenceDimensionError, NotImplementedError):
+            # an operator is missing, shape cannot be computed.
+            return {name: None for name in self.output_names}
+        except KeyError:
+            # subgraphs or functions are not yet handled.
+            # it should be removed later.
+            return {name: None for name in self.output_names}
+        except NameError:
+            # loop subgraphs or function are not yet handled.
+            # they may overwrite results.
+            return {name: None for name in self.output_names}
+        except (ShapeInferenceException, RuntimeError, IndexError) as e:
+            raise ShapeInferenceException(  # pragma: no cover
+                f"Unable to run ShapeInference for\n{str(self.obj)}") from e
+        out = rt.run()
+        values = out.get()
         return values
 
     def infer_shapes(self):
@@ -1260,101 +1453,6 @@ class OnnxInference:
         :return: dictionary of shapes
         """
         return self._set_shape_inference_runtime()
-
-    def _set_type_inference_runtime(self):
-        """
-        Set types based on type inference
-        relying on the runtime.
-        The values are stored in every node.
-        """
-        if not hasattr(self, 'sequence_') or not hasattr(self, 'inputs_'):
-            raise RuntimeError(  # pragma: no cover
-                "This method only works if the runtime is 'python' not "
-                "'{}'.".format(self.runtime))
-        values = OrderedDict()
-        for k, v in self.statics_.items():
-            values[k] = None
-        for k, v in self.inputs_.items():
-            # The function assumes the first dimension is unknown
-            # and is the batch size.
-            if isinstance(v['type']['elem'], dict):
-                # sequence
-                values[k] = SequenceType()
-            else:
-                values[k] = guess_numpy_type_from_string(v['type']['elem'])
-        for k, v in self.inits_.items():
-            values[k] = v['value'].dtype
-        last = None
-        for i, node in enumerate(self.sequence_):
-            try:
-                s = node._set_type_inference_runtime(values)
-                last = s
-            except IndexError as e:  # pragma: no cover
-                rows = []
-                if last is not None:
-                    for k, v in last.items():
-                        rows.append("{}: {}".format(k, v))
-                for k in range(i + 1):
-                    rows.append("{} --> {}".format(k, self.sequence_[k]))
-                raise RuntimeError("Unable to infer type of node {}\n{}".format(
-                    i, '\n'.join(rows))) from e
-        return values
-
-    def infer_types(self):
-        """
-        Computes expected shapes.
-
-        :return: dictionary of types
-        """
-        return self._set_type_inference_runtime()
-
-    def _set_size_inference_runtime(self, inputs, context=None):
-        """
-        Set sizes allocated during inference
-        relying on the runtime.
-        The values are stored in every node.
-        """
-        if not hasattr(self, 'sequence_') or not hasattr(self, 'inputs_'):
-            raise RuntimeError(  # pragma: no cover
-                "This method only works if the runtime is 'python' not "
-                "'{}'.".format(self.runtime))
-        values = OrderedDict()
-        for k, v in self.statics_.items():
-            if context is None:
-                raise RuntimeError(  # pragma: no cover
-                    "static variable but context is None.")
-            values[k] = context[k]
-        for k, v in self.inits_.items():
-            values[k] = v['value']
-        for k, v in self.inputs_.items():
-            if k in inputs:
-                values[k] = inputs[k]
-
-        last = None
-        for i, node in enumerate(self.sequence_):
-            try:
-                s = node._set_size_inference_runtime(values)
-                last = s
-            except IndexError as e:  # pragma: no cover
-                rows = []
-                if last is not None:
-                    for k, v in last.items():
-                        rows.append("{}: {}".format(k, v))
-                for k in range(i + 1):
-                    rows.append("{} --> {}".format(k, self.sequence_[k]))
-                raise RuntimeError("Unable to infer size of node {}\n{}".format(
-                    i, '\n'.join(rows))) from e
-        return values
-
-    def infer_sizes(self, inputs, context=None):
-        """
-        Computes expected sizes.
-
-        :param inputs: inputs as a dictionary
-        :return: dictionary of dictionary of sizes
-        """
-        res = self._set_size_inference_runtime(inputs, context=context)
-        return {k: v for k, v in res.items() if k.startswith('#')}
 
     def _guess_inplace(self, input_inplace=False):
         """
@@ -1378,7 +1476,7 @@ class OnnxInference:
             diagram {
                 A -> B -> C -> E;
                      B -> D;
-           }
+            }
 
         It does not handle specific case such node `B` being
         overwritten by node `C` but without changing its shape
@@ -1395,6 +1493,8 @@ class OnnxInference:
             values[k] = dict(inplace=False, to=[], fr=[])
         for node in self.sequence_:
             for n in node.inputs:
+                if n == '':
+                    continue
                 values[n]['to'].append(node)
             for n in node.outputs:
                 if node.op_type == 'Constant':
@@ -1456,7 +1556,7 @@ class OnnxInference:
                 from sklearn.model_selection import train_test_split
                 from sklearn.ensemble import AdaBoostClassifier
                 from sklearn.tree import DecisionTreeClassifier
-                from skl2onnx import to_onnx
+                from mlprodict.onnx_conv import to_onnx
                 from mlprodict.onnxrt import OnnxInference
 
                 iris = load_iris()
@@ -1478,15 +1578,20 @@ class OnnxInference:
                 # to the onnx graph
                 print(oinf2)
         """
+
         def clean_name(name):
-            return name.replace(":", "_").replace('.', '_').replace('/', '_')
+            res = name.replace(":", "_").replace('.', '_').replace('/', '_')
+            if iskeyword(res):
+                res += '_'
+            return res
 
         # inits
         inputs = self.input_names
-        code = ['def compiled_run(dict_inputs, yield_ops=None):']
+        code = [
+            'def compiled_run(dict_inputs, yield_ops=None, context=None, attributes=None):']
         code.append("    if yield_ops is not None:")
-        code.append(
-            "        raise NotImplementedError('yields_ops should be None.')")
+        code.append("        raise NotImplementedError"
+                    "('yields_ops should be None.')")
         if debug:
             code.append("    printed = {}")
 
@@ -1494,13 +1599,11 @@ class OnnxInference:
 
         # static variables
         for k in sorted(self.statics_):
-            code.append("    # static: {0}".format(k))
-            code.append("    {0} = dict_inputs['{1}']".format(
-                clean_name(k), k))
-            if debug:
+            code.append(f"    # static: {k}")
+            code.append(f"    {clean_name(k)} = dict_inputs['{k}']")
+            if debug:  # pragma: no cover
                 code.append(
-                    "    debug_print('i.{0}', {1}, printed)".format(
-                        clean_name(k), k))
+                    f"    debug_print('i.{clean_name(k)}', {k}, printed)")
 
         # initializers
         for k, v in sorted(self.inits_.items()):
@@ -1510,20 +1613,17 @@ class OnnxInference:
                     "starting with '_OPT_': '{}'.".format(k))
             if k in inputs:
                 context["_OPT_" + clean_name(k)] = v['value']
-                code.append("    # init: _OPT_{0} ({1})".format(
-                    clean_name(k), k))
-                if debug:
+                code.append(f"    # init: _OPT_{clean_name(k)} ({k})")
+                if debug:  # pragma: no cover
                     code.append(
                         "    debug_print('c.[_OPT_{0}]', _OPT_{1}, printed)".format(
                             clean_name(k), k))
             else:
                 context[clean_name(k)] = v['value']
-                code.append("    # init: {0} ({1})".format(
-                    clean_name(k), k))
+                code.append(f"    # init: {clean_name(k)} ({k})")
                 if debug:
                     code.append(
-                        "    debug_print('c.[{0}]', {1}, printed)".format(
-                            clean_name(k), k))
+                        f"    debug_print('c.[{clean_name(k)}]', {k}, printed)")
 
         # method signature
         code.append("    # inputs")
@@ -1534,43 +1634,45 @@ class OnnxInference:
                     "    {0} = dict_inputs.get('{1}', _OPT_{0})".format(
                         clean_name(inp), inp))
             else:
-                code.append("    {0} = dict_inputs['{1}']".format(
-                    clean_name(inp), inp))
+                code.append(f"    {clean_name(inp)} = dict_inputs['{inp}']")
             if debug:
                 code.append(
-                    "    debug_print('i.{0}', {1}, printed)".format(
-                        clean_name(inp), inp))
+                    f"    debug_print('i.{clean_name(inp)}', {inp}, printed)")
 
         # code
         for i, node in enumerate(self.sequence_):
-            name = "n{}_{}".format(i, node.ops_.__class__.__name__.lower())
-            context[name] = node.ops_._run
-            if (node.ops_.__class__.__name__ == 'Loop' and
-                    node.ops_.need_context()):
-                # Adding context.
-                ctx = "{%s}" % ", ".join(
-                    "'%s': %s" % (n, n) for n in node.ops_.additional_inputs)
-                code.append('    ({1}, ) = {2}({0}, context={3})'.format(
-                    ', '.join(map(clean_name, node.inputs)),
-                    ', '.join(map(clean_name, node.outputs)),
-                    name, ctx))
+            name = f"n{i}_{node.ops_.__class__.__name__.lower()}"
+            if node.ops_ is None:
+                context[name] = node.function_
+                # The code of the function should be added but only once.
+                raise NotImplementedError(
+                    "Not implemented for models including functions.")
             else:
-                code.append('    ({1}, ) = {2}({0})'.format(
-                    ', '.join(map(clean_name, node.inputs)),
-                    ', '.join(map(clean_name, node.outputs)),
-                    name))
-            if debug:
-                code.append("    print('''# {}''')".format(code[-1][4:]))
-                for o in node.outputs:
-                    code.append(
-                        "    debug_print('o.{0}', {1}, printed)".format(
-                            clean_name(o), o))
+                context[name] = node.ops_._run
+                if (node.ops_.__class__.__name__ == 'Loop' and
+                        node.ops_.need_context()):
+                    # Adding context.
+                    ctx = "{%s}" % ", ".join(
+                        "'%s': %s" % (n, n) for n in node.ops_.additional_inputs)
+                    code.append('    ({1}, ) = {2}({0}, context={3})'.format(
+                        ', '.join(map(clean_name, node.inputs)),
+                        ', '.join(map(clean_name, node.outputs)),
+                        name, ctx))
+                else:
+                    code.append('    ({1}, ) = {2}({0})'.format(
+                        ', '.join(map(clean_name, node.inputs)),
+                        ', '.join(map(clean_name, node.outputs)),
+                        name))
+                if debug:
+                    code.append(f"    print('''# {code[-1][4:]}''')")
+                    for o in node.outputs:
+                        code.append(
+                            f"    debug_print('o.{clean_name(o)}', {o}, printed)")
 
         # return
         code.append('    return {')
         for out in self.output_names:
-            code.append("        '{1}': {0},".format(
-                clean_name(out), out))
+            code.append(f"        '{out}': {clean_name(out)},")
         code.append('    }')
         final_code = '\n'.join(code)
 
@@ -1580,7 +1682,7 @@ class OnnxInference:
             obj = compile(final_code, "<string>", 'exec')
         except SyntaxError as e:  # pragma: no cover
             raise SyntaxError(
-                "Unable to compile\n#####\n{}".format(final_code)) from e
+                f"Unable to compile\n#####\n{final_code}") from e
         fcts_obj = [_ for _ in obj.co_consts
                     if _ is not None and not isinstance(_, (bool, str, int))]
         fct = make_callable(

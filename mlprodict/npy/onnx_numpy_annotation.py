@@ -136,19 +136,19 @@ class _NDArrayAlias:
 
         if not isinstance(self.dtypes, tuple):
             raise TypeError(  # pragma: no cover
-                "self.dtypes must be a tuple not {}.".format(self.dtypes))
+                f"self.dtypes must be a tuple not {self.dtypes}.")
         if (len(self.dtypes) == 0 or
                 not isinstance(self.dtypes[0], tuple)):
             raise TypeError(  # pragma: no cover
-                "Type mismatch in self.dtypes: {}.".format(self.dtypes))
+                f"Type mismatch in self.dtypes: {self.dtypes}.")
         if (len(self.dtypes[0]) == 0 or
                 isinstance(self.dtypes[0][0], tuple)):
             raise TypeError(  # pragma: no cover
-                "Type mismatch in self.dtypes: {}.".format(self.dtypes))
+                f"Type mismatch in self.dtypes: {self.dtypes}.")
 
         if not isinstance(self.dtypes_out, tuple):
             raise TypeError(  # pragma: no cover
-                "self.dtypes_out must be a tuple not {}.".format(self.dtypes_out))
+                f"self.dtypes_out must be a tuple not {self.dtypes_out}.")
         if (len(self.dtypes_out) == 0 or
                 not isinstance(self.dtypes_out[0], tuple)):
             raise TypeError(  # pragma: no cover
@@ -157,7 +157,7 @@ class _NDArrayAlias:
         if (len(self.dtypes_out[0]) == 0 or
                 isinstance(self.dtypes_out[0][0], tuple)):
             raise TypeError(  # pragma: no cover
-                "Type mismatch in self.dtypes_out: {}.".format(self.dtypes_out))
+                f"Type mismatch in self.dtypes_out: {self.dtypes_out}.")
 
         if self.n_variables and self.n_optional > 0:
             raise RuntimeError(  # pragma: no cover
@@ -204,7 +204,7 @@ class _NDArrayAlias:
                 dtypes = (numpy.float64, )
             elif dtypes not in mapped_types:
                 raise ValueError(  # pragma: no cover
-                    "Unexpected shortcut for dtype %r." % dtypes)
+                    f"Unexpected shortcut for dtype {dtypes!r}.")
             elif not isinstance(dtypes, tuple):
                 dtypes = (dtypes, )
             return dtypes
@@ -218,19 +218,13 @@ class _NDArrayAlias:
             return dtypes
 
         raise NotImplementedError(  # pragma: no cover
-            "Unexpected input dtype %r." % dtypes)
+            f"Unexpected input dtype {dtypes!r}.")
 
     def __repr__(self):
         "usual"
         return "%s(%r, %r, %r)" % (
             self.__class__.__name__, self.dtypes, self.dtypes_out,
             self.n_optional)
-
-    def _to_onnx_dtype(self, dtype, shape):
-        from skl2onnx.common.data_types import _guess_numpy_type
-        if dtype == numpy.bool_:
-            dtype = numpy.bool_
-        return _guess_numpy_type(dtype, shape)
 
     def _get_output_types(self, key):
         """
@@ -273,12 +267,11 @@ class _NDArrayAlias:
                             "%s, version=%s." % (type(version), version))
         if args == ['args', 'kwargs']:
             raise RuntimeError(  # pragma: no cover
-                "Issue with signature %r." % args)
+                f"Issue with signature {args!r}.")
         for k, v in kwargs.items():
             if isinstance(v, type):
                 raise RuntimeError(  # pragma: no cover
-                    "Default value for argument %r must not be of type %r"
-                    "." % (k, v))
+                    f"Default value for argument {k!r} must not be of type {v!r}.")
         if (not self.n_variables and
                 len(args) > len(self.dtypes)):
             raise RuntimeError(
@@ -307,29 +300,17 @@ class _NDArrayAlias:
                         optional, self.n_optional, version, args, self.dtypes))
             optional = self.n_optional - optional
 
-        onnx_types = []
-        for k in version.args:
-            try:
-                o = self._to_onnx_dtype(k, None)
-            except NotImplementedError as e:
-                raise NotImplementedError(
-                    "Unable to extract type from [{}] in version {}, "
-                    "optional={} self.n_optional={} len(args)={} "
-                    "args={} kwargs={}.".format(
-                        k, version, optional, self.n_optional,
-                        len(args), args, kwargs)) from e
-            onnx_types.append(o)
-
+        onnx_types = [k for k in version.args]
         inputs = list(zip(args[:len(version.args)], onnx_types))
         if self.n_variables and len(inputs) < len(version.args):
             # Complete the list of inputs
             last_name = inputs[-1][0]
             while len(inputs) < len(onnx_types):
-                inputs.append(('%s%d' % (last_name, len(inputs)),
+                inputs.append((f'{last_name}{len(inputs)}',
                                onnx_types[len(inputs)]))
 
         key_out = self._get_output_types(version.args)
-        onnx_types_out = [self._to_onnx_dtype(k, None) for k in key_out]
+        onnx_types_out = key_out
 
         names_out = []
         names_in = set(inp[0] for inp in inputs)
@@ -437,8 +418,7 @@ class NDArraySameType(NDArrayType):
 
     def __repr__(self):
         "usual"
-        return "%s(%r)" % (
-            self.__class__.__name__, self.dtypes)
+        return f"{self.__class__.__name__}({self.dtypes!r})"
 
 
 class NDArraySameTypeSameShape(NDArraySameType):

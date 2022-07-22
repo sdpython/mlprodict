@@ -13,10 +13,12 @@ class Identity(OpRunUnaryNum):
         OpRunUnaryNum.__init__(self, onnx_node, desc=desc,
                                **options)
 
-    def _run(self, a):  # pylint: disable=W0221
+    def _run(self, a, attributes=None, verbose=0, fLOG=None):  # pylint: disable=W0221
+        if a is None:
+            return (None, )
         if self.inplaces.get(0, False):
             return (a, )
         return (a.copy(), )
 
     def to_python(self, inputs):
-        return "", "return %s.copy()" % inputs[0]
+        return "", f"return {inputs[0]}.copy()"

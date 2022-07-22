@@ -23,16 +23,13 @@ def pygemm(transA, transB, M, N, K, alpha, A, lda, B, ldb, beta, C, ldc):
             "C must be a vector.")
     if A.shape[0] != M * K:
         raise ValueError(
-            "Dimension mismatch for A.shape=%r M=%r N=%r K=%r." % (
-                A.shape, M, N, K))
+            f"Dimension mismatch for A.shape={A.shape!r} M={M!r} N={N!r} K={K!r}.")
     if B.shape[0] != N * K:
         raise ValueError(
-            "Dimension mismatch for B.shape=%r M=%r N=%r K=%r." % (
-                B.shape, M, N, K))
+            f"Dimension mismatch for B.shape={B.shape!r} M={M!r} N={N!r} K={K!r}.")
     if C.shape[0] != N * M:
         raise ValueError(  # pragma: no cover
-            "Dimension mismatch for C.shape=%r M=%r N=%r K=%r." % (
-                C.shape, M, N, K))
+            f"Dimension mismatch for C.shape={C.shape!r} M={M!r} N={N!r} K={K!r}.")
 
     if transA:
         a_i_stride = lda
@@ -99,14 +96,13 @@ def gemm_dot(A, B, transA=False, transB=False):
     """
     if A.dtype != B.dtype:
         raise TypeError(  # pragma: no cover
-            "Matrices A and B must have the same dtype not "
-            "%r, %r." % (A.dtype, B.dtype))
+            f"Matrices A and B must have the same dtype not {A.dtype!r}, {B.dtype!r}.")
     if len(A.shape) != 2:
         raise ValueError(  # pragma: no cover
-            "Matrix A does not have 2 dimensions but %d." % len(A.shape))
+            f"Matrix A does not have 2 dimensions but {len(A.shape)}.")
     if len(B.shape) != 2:
         raise ValueError(  # pragma: no cover
-            "Matrix B does not have 2 dimensions but %d." % len(B.shape))
+            f"Matrix B does not have 2 dimensions but {len(B.shape)}.")
 
     def _make_contiguous_(A, B):
         if not A.flags['C_CONTIGUOUS']:

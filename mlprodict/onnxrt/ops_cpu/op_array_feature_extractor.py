@@ -6,7 +6,6 @@
 """
 import numpy
 from ._op import OpRun
-from ..shape_object import ShapeObject
 from ._op_onnx_numpy import (  # pylint: disable=E0611,E0401
     array_feature_extractor_double,
     array_feature_extractor_int64,
@@ -46,7 +45,7 @@ def sizeof_dtype(dty):
     if dty == numpy.int64:
         return 8
     raise ValueError(
-        "Unable to get bytes size for type {}.".format(numpy.dtype))
+        f"Unable to get bytes size for type {numpy.dtype}.")
 
 
 class ArrayFeatureExtractor(OpRun):
@@ -55,7 +54,7 @@ class ArrayFeatureExtractor(OpRun):
         OpRun.__init__(self, onnx_node, desc=desc,
                        **options)
 
-    def _run(self, data, indices):  # pylint: disable=W0221
+    def _run(self, data, indices, attributes=None, verbose=0, fLOG=None):  # pylint: disable=W0221
         """
         Runtime for operator *ArrayFeatureExtractor*.
 
@@ -78,22 +77,3 @@ class ArrayFeatureExtractor(OpRun):
             # for strings, still not C++
             res = _array_feature_extrator(data, indices)
         return (res, )
-
-    def _infer_shapes(self, data, indices):  # pylint: disable=W0221
-        """
-        Infer the shapes for the output.
-        """
-        add = indices.product()
-
-        if len(data) == 1:
-            dim = ShapeObject((1, add), dtype=data.dtype)
-        else:
-            dim = data.copy()
-            dim.append(add)
-        return (dim, )
-
-    def _infer_types(self, data, indices):  # pylint: disable=W0221
-        """
-        Returns the type of the output.
-        """
-        return (data, )

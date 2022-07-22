@@ -9,6 +9,7 @@ from numpy.linalg import det as npy_det  # pylint: disable=E0611
 from scipy.spatial.distance import cdist  # pylint: disable=E0611
 from scipy.special import expit, erf  # pylint: disable=E0611
 from scipy.linalg import solve  # pylint: disable=E0611
+from onnx.mapping import TENSOR_TYPE_TO_NP_TYPE
 from ...tools.code_helper import make_callable
 
 
@@ -53,15 +54,19 @@ def validate_python_inference(oinf, inputs, tolerance=0.):
     exp = oinf.run(inputs)
     if not isinstance(exp, dict):
         raise TypeError(  # pragma: no cover
-            "exp is not a dictionary by '{}'.".format(type(exp)))
+            f"exp is not a dictionary by '{type(exp)}'.")
     if len(exp) == 0:
         raise ValueError(  # pragma: no cover
             "No result to compare.")
     inps = ['{0}={0}'.format(k) for k in sorted(inputs)]
     code += "\n".join(['', '', 'opi = OnnxPythonInference()',
-                       'res = opi.run(%s)' % ', '.join(inps)])
+                       f"res = opi.run({', '.join(inps)})"])
 
-    cp = compile(code, "<string>", mode='exec')
+    try:
+        cp = compile(code, "<string>", mode='exec')
+    except SyntaxError as e:
+        raise SyntaxError(
+            f"Error {str(e)} in code\n{code}") from e
     pyrt_fcts = [_ for _ in cp.co_names if _.startswith("pyrt_")]
     fcts_local = {}
 
@@ -72,7 +77,9 @@ def validate_python_inference(oinf, inputs, tolerance=0.):
           'fft': numpy.fft.fft, 'rfft': numpy.fft.rfft,
           'fft2': numpy.fft.fft2,
           'npy_det': npy_det, 'ndarray': numpy.ndarray,
-          '_leaky_relu': _leaky_relu}
+          '_leaky_relu': _leaky_relu,
+          'nan': numpy.nan,
+          'TENSOR_TYPE_TO_NP_TYPE': TENSOR_TYPE_TO_NP_TYPE}
 
     for fct in pyrt_fcts:
         for obj in cp.co_consts:
@@ -86,9 +93,10 @@ def validate_python_inference(oinf, inputs, tolerance=0.):
     loc = inputs
     try:
         exec(cp, gl, loc)  # pylint: disable=W0122
-    except (NameError, TypeError, SyntaxError, IndexError) as e:  # pragma: no cover
+    except (NameError, TypeError, SyntaxError,  # pragma: no cover
+            IndexError, ValueError) as e:
         raise RuntimeError(
-            "Unable to execute code\n-----\n{}".format(code)) from e
+            f"Unable to execute code.\n{e}\n-----\n{code}") from e
 
     got = loc['res']
     keys = list(sorted(exp))
@@ -97,17 +105,17 @@ def validate_python_inference(oinf, inputs, tolerance=0.):
 
     if not isinstance(got, dict):
         raise TypeError(  # pragma: no cover
-            "got is not a dictionary by '{}'\n--\n{}\n---\n{}.".format(
-                type(got), dir(got), pprint.pformat(str(loc))))
+            "got is not a dictionary by '{}'\n--\n{}\n---\n{}\n--code--\n{}".format(
+                type(got), dir(got), pprint.pformat(str(loc)), code))
     if len(got) != len(exp):
         raise RuntimeError(  # pragma: no cover
-            "Different number of results.\nexp: {}\ngot: {}".format(
-                ", ".join(sorted(exp)), ", ".join(sorted(got))))
+            "Different number of results.\nexp: {}\ngot: {}\n--code--\n{}".format(
+                ", ".join(sorted(exp)), ", ".join(sorted(got)), code))
 
     if keys != list(sorted(got)):
         raise RuntimeError(  # pragma: no cover
-            "Different result names.\nexp: {}\ngot: {}".format(
-                ", ".join(sorted(exp)), ", ".join(sorted(got))))
+            "Different result names.\nexp: {}\ngot: {}\n--code--\n{}".format(
+                ", ".join(sorted(exp)), ", ".join(sorted(got)), code))
 
     for k in keys:
         e = exp[k]
@@ -115,8 +123,7 @@ def validate_python_inference(oinf, inputs, tolerance=0.):
         if isinstance(e, numpy.ndarray):
             if e.shape != g.shape:
                 raise ValueError(  # pragma: no cover
-                    "Shapes are different {} != {}\n---\n{}\n{}.".format(
-                        e.shape, g.shape, e, g))
+                    f"Shapes are different {e.shape} != {g.shape}\n---\n{e}\n{g}.")
             diff = 0
             for a, b in zip(e.ravel(), g.ravel()):
                 if a == b:
@@ -125,10 +132,10 @@ def validate_python_inference(oinf, inputs, tolerance=0.):
                         numpy.isnan(a) and numpy.isnan(b)):
                     continue  # pragma: no cover
                 diff = max(diff, abs(a - b))
-            if diff > tolerance:
+            if tolerance != 'random' and diff > tolerance:
                 raise ValueError(  # pragma: no cover
                     "Values are different (max diff={}>{})\n--EXP--\n{}\n--GOT--"
                     "\n{}\n--\n{}".format(diff, tolerance, e, g, code))
         else:
             raise NotImplementedError(  # pragma: no cover
-                "Unable to compare values of type '{}'.".format(type(e)))
+                f"Unable to compare values of type '{type(e)}'.")

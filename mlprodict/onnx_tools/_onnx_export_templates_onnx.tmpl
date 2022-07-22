@@ -2,7 +2,7 @@ import numpy
 from onnx import numpy_helper, TensorProto
 from onnx.helper import (
     make_model, make_node, set_model_props, make_tensor, make_graph,
-    make_tensor_value_info)
+    make_tensor_value_info, make_opsetid, make_function)
 
 
 def {{ function_name }}():
@@ -27,6 +27,7 @@ def {{ function_name }}():
     nodes = []
     inputs = []
     outputs = []
+    functions = []
 
     {% if ir_version %}
     # opsets
@@ -41,31 +42,55 @@ def {{ function_name }}():
     {{ name }} = subgraph_{{ name }}
     {%- endfor %}
 
+    {% for domain, name, fct in functions: %}
+    # function: '{{ domain }}', '{{ name }}'
+    print("[functions] domain='{{ domain }}', name='{{ name }}")  # verbose
+    nodes_fct = []
+    {% for node in fct['nodes']: -%}
+    node = make_node(
+        '{{ node['op_type'] }}',
+        {{ node['inputs'] }},
+        {{ node['outputs'] }},
+        {% if node['name']: %}name='{{ node['name'] }}',{% endif %}
+        {%- for name, value in node['attributes']: -%}
+        {{ name }}={{ value }},
+        {%- endfor -%}
+        domain='{{ node['domain'] }}')
+    nodes_fct.append(node)
+    {% endfor %}
+    opset_imports_fct = [make_opsetid(domain, 1 if version is None else version)
+                         for domain, version in opsets.items()]
+    fct = make_function(
+        '{{ domain }}', '{{ name }}', {{ fct['proto'].input }}, {{ fct['proto'].output }},
+        nodes_fct, opset_imports_fct, doc_string="""{{ fct['proto'].doc_string }}""")
+    functions.append(fct)
+    {% endfor %}
+
     # initializers
     print('[initializers]')   # verbose
     {% for name, value in initializers: %}
     {% if len(value.shape) == 0: %}
-    value = numpy.array({{ value }}, dtype=numpy.{{ value.dtype }})
-    {% else %}
+    tensor = numpy_helper.from_array(numpy.array({{ value }}, dtype=numpy.{{ value.dtype }}), name='{{ name }}')
+    {% else %}{% if value.size < 6: %}
+    tensor = numpy_helper.from_array(numpy.array({{ value.ravel().tolist() }}, dtype=numpy.{{ value.dtype }}){% if len(value.shape) > 1: %}.reshape({{ value.shape }}){% endif %}, name='{{ name }}')
+    {%- else %}
     list_value = {{ value.ravel().tolist() }}
     value = numpy.array(list_value, dtype=numpy.{{ value.dtype }}){% if len(value.shape) > 1: %}.reshape({{ value.shape }}){% endif %}
-    {% endif %}
     tensor = numpy_helper.from_array(value, name='{{ name }}')
+    {% endif %}{% endif %}
     initializers.append(tensor)
     {% endfor %}
 
     # inputs
     print('[inputs]')   # verbose
     {% for name, type, shape in inputs: %}
-    value = make_tensor_value_info('{{ name }}', {{ type }}, {{ shape }})
-    inputs.append(value)
+    inputs.append(make_tensor_value_info('{{ name }}', {{ type }}, {{ shape }}))
     {% endfor %}
 
     # outputs
     print('[outputs]')   # verbose
     {% for name, type, shape in outputs: %}
-    value = make_tensor_value_info('{{ name }}', {{ type }}, {{ shape }})
-    outputs.append(value)
+    outputs.append(make_tensor_value_info('{{ name }}', {{ type }}, {{ shape }}))
     {% endfor %}
 
     # nodes
@@ -83,6 +108,11 @@ def {{ function_name }}():
     nodes.append(node)
     {% endfor %}
 
+    # opsets
+    print('[opset]')   # verbose
+    opset_imports = [make_opsetid(domain, 1 if version is None else version)
+                     for domain, version in opsets.items()]
+
     # graph
     print('[graph]')   # verbose
     graph = make_graph(nodes, '{{ name }}', inputs, outputs, initializers)
@@ -90,7 +120,7 @@ def {{ function_name }}():
     {% if not ir_version %}
     return graph
     {% else %}
-    onnx_model = make_model(graph)
+    onnx_model = make_model(graph, opset_imports=opset_imports, functions=functions)
     onnx_model.ir_version = {{ ir_version }}
     onnx_model.producer_name = '{{ producer_name }}'
     onnx_model.producer_version = '{{ producer_version }}'
@@ -98,14 +128,6 @@ def {{ function_name }}():
     onnx_model.model_version = {{ model_version }}
     onnx_model.doc_string = '{{ doc_string }}'
     set_model_props(onnx_model, {{ metadata }})
-
-    # opsets
-    print('[opset]')   # verbose
-    del onnx_model.opset_import[:]  # pylint: disable=E1101
-    for dom, value in opsets.items():
-        op_set = onnx_model.opset_import.add()
-        op_set.domain = dom
-        op_set.version = value
 
     return onnx_model
     {% endif %}

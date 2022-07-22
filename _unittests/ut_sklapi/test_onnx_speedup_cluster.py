@@ -14,7 +14,7 @@ from sklearn.cluster import KMeans
 from sklearn.datasets import load_iris
 from pyquickhelper.pycode import ExtTestCase, ignore_warnings
 from mlprodict.sklapi import OnnxSpeedupCluster
-from mlprodict.tools import get_opset_number_from_onnx
+from mlprodict import __max_supported_opset__ as TARGET_OPSET
 from mlprodict.onnx_conv import to_onnx
 from mlprodict.onnxrt import OnnxInference
 
@@ -26,7 +26,7 @@ class TestOnnxSpeedupCluster(ExtTestCase):
         logger.disabled = True
 
     def opset(self):
-        return get_opset_number_from_onnx()
+        return TARGET_OPSET
 
     @ignore_warnings(ConvergenceWarning)
     def test_speedup_kmeans32(self):
@@ -35,6 +35,16 @@ class TestOnnxSpeedupCluster(ExtTestCase):
         spd = OnnxSpeedupCluster(
             KMeans(n_clusters=3), target_opset=self.opset())
         spd.fit(X, y)
+        spd.assert_almost_equal(X, decimal=4)
+
+    @ignore_warnings(ConvergenceWarning)
+    def test_speedup_kmeans32_weight(self):
+        data = load_iris()
+        X, y = data.data, data.target
+        spd = OnnxSpeedupCluster(
+            KMeans(n_clusters=3), target_opset=self.opset())
+        w = numpy.ones(y.shape, dtype=X.dtype)
+        spd.fit(X, y, w)
         spd.assert_almost_equal(X, decimal=4)
 
     @ignore_warnings(ConvergenceWarning)

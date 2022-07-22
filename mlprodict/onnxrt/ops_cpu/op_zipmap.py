@@ -6,7 +6,6 @@
 """
 import numpy
 from ._op import OpRun
-from ..shape_object import ShapeObject
 
 
 class ZipMapDictionary(dict):
@@ -34,11 +33,10 @@ class ZipMapDictionary(dict):
         if mat is not None:
             if not isinstance(mat, numpy.ndarray):
                 raise TypeError(  # pragma: no cover
-                    'matrix is expected, got {}.'.format(type(mat)))
+                    f'matrix is expected, got {type(mat)}.')
             if len(mat.shape) not in (2, 3):
                 raise ValueError(  # pragma: no cover
-                    "matrix must have two or three dimensions but got {}"
-                    ".".format(mat.shape))
+                    f"matrix must have two or three dimensions but got {mat.shape}.")
         dict.__init__(self)
         self._rev_keys = rev_keys
         self._values = values
@@ -114,7 +112,7 @@ class ZipMapDictionary(dict):
         return res
 
     def __str__(self):
-        return "ZipMap(%r)" % str(self.asdict())
+        return f"ZipMap({str(self.asdict())!r})"
 
 
 class ArrayZipMapDictionary(list):
@@ -136,11 +134,10 @@ class ArrayZipMapDictionary(list):
         if mat is not None:
             if not isinstance(mat, numpy.ndarray):
                 raise TypeError(  # pragma: no cover
-                    'matrix is expected, got {}.'.format(type(mat)))
+                    f'matrix is expected, got {type(mat)}.')
             if len(mat.shape) not in (2, 3):
                 raise ValueError(  # pragma: no cover
-                    "matrix must have two or three dimensions but got {}"
-                    ".".format(mat.shape))
+                    f"matrix must have two or three dimensions but got {mat.shape}.")
         list.__init__(self)
         self._rev_keys = rev_keys
         self._mat = mat
@@ -161,7 +158,7 @@ class ArrayZipMapDictionary(list):
 
     def __setitem__(self, pos, value):
         raise RuntimeError(
-            "Changing an element is not supported (pos=[{}]).".format(pos))
+            f"Changing an element is not supported (pos=[{pos}]).")
 
     @property
     def values(self):
@@ -198,7 +195,7 @@ class ArrayZipMapDictionary(list):
         return True
 
     def __str__(self):
-        return 'ZipMaps[%s]' % ', '.join(map(str, self))
+        return f"ZipMaps[{', '.join(map(str, self))}]"
 
 
 class ZipMap(OpRun):
@@ -225,15 +222,6 @@ class ZipMap(OpRun):
         else:
             self.rev_keys_ = {}
 
-    def _run(self, x):  # pylint: disable=W0221
+    def _run(self, x, attributes=None, verbose=0, fLOG=None):  # pylint: disable=W0221
         res = ArrayZipMapDictionary(self.rev_keys_, x)
         return (res, )
-
-    def _infer_shapes(self, x):  # pylint: disable=W0221
-        return (ShapeObject((x[0], ), dtype='map'), )
-
-    def _infer_types(self, x):  # pylint: disable=W0221
-        """
-        Returns the same shape by default.
-        """
-        return ('map', )

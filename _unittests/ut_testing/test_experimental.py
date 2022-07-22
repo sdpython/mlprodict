@@ -6,11 +6,11 @@ import numpy
 from onnx import helper, TensorProto
 from pyquickhelper.pycode import ExtTestCase, is_travis_or_appveyor
 from mlprodict.testing.experimental import custom_pad, custom_einsum
-from mlprodict.testing.experimental_c import (  # pylint: disable=E0611,E0401
+from mlprodict.testing.experimental_c_impl.experimental_c import (  # pylint: disable=E0611,E0401
     custom_einsum_double, custom_einsum_int64, custom_einsum_float,
     code_optimisation, custom_reducesum_rk_double,
     custom_reducesum_rk_float)
-from mlprodict.tools import get_opset_number_from_onnx
+from mlprodict import __max_supported_opset__ as TARGET_OPSET
 from mlprodict.tools.ort_wrapper import InferenceSession
 
 
@@ -30,7 +30,7 @@ class TestExperimental(ExtTestCase):
         model = helper.make_model(
             graph, producer_name='mlprodict', ir_version=6, producer_version='0.1')
         op_set = model.opset_import[0]  # pylint: disable=E1101
-        op_set.version = get_opset_number_from_onnx()
+        op_set.version = TARGET_OPSET
         sess = InferenceSession(model.SerializeToString())
         return numpy.squeeze(sess.run(['Y'], {'X': x, 'P': npads}))
 

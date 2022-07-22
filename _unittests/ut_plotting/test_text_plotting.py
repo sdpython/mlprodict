@@ -3,11 +3,16 @@
 @brief      test log(time=2s)
 """
 import unittest
+import os
 import textwrap
 import numpy
-from pyquickhelper.pycode import ExtTestCase
+from onnx import TensorProto, load
+from onnx.helper import (
+    make_model, make_node, make_function,
+    make_graph, make_tensor_value_info, make_opsetid)
+from pyquickhelper.pycode import ExtTestCase, ignore_warnings
 from sklearn.datasets import load_iris
-from sklearn.tree import DecisionTreeRegressor
+from sklearn.tree import DecisionTreeRegressor, DecisionTreeClassifier
 from sklearn.cluster import KMeans
 from sklearn.neighbors import RadiusNeighborsRegressor
 from skl2onnx.common.data_types import FloatTensorType
@@ -15,18 +20,20 @@ from skl2onnx.algebra.onnx_ops import (  # pylint: disable=E0611
     OnnxAdd, OnnxSub, OnnxDiv, OnnxAbs, OnnxLeakyRelu, OnnxGreater,
     OnnxReduceSum, OnnxIf)
 from mlprodict.onnx_conv import to_onnx
-from mlprodict.tools.asv_options_helper import get_opset_number_from_onnx
+from mlprodict import __max_supported_opset__ as TARGET_OPSET
 from mlprodict.plotting.plotting import (
     onnx_text_plot, onnx_text_plot_tree, onnx_simple_text_plot,
     onnx_text_plot_io)
 from mlprodict.onnxrt import OnnxInference
+from mlprodict.npy.xop_variable import Variable
+from mlprodict.npy.xop import loadop, OnnxOperatorFunction
 
 
 class TestPlotTextPlotting(ExtTestCase):
 
     def test_onnx_text_plot(self):
         idi = numpy.identity(2).astype(numpy.float32)
-        opv = get_opset_number_from_onnx()
+        opv = TARGET_OPSET
         A = OnnxAdd('X', idi, op_version=opv)
         B = OnnxSub(A, 'W', output_names=['Y'], op_version=opv)
         onx = B.to_onnx({'X': idi.astype(numpy.float32),
@@ -34,7 +41,7 @@ class TestPlotTextPlotting(ExtTestCase):
         res = onnx_text_plot(onx)
         self.assertIn("Init", res)
 
-    def test_onnx_text_plot_tree(self):
+    def test_onnx_text_plot_tree_reg(self):
         iris = load_iris()
         X, y = iris.data.astype(numpy.float32), iris.target
         clr = DecisionTreeRegressor(max_depth=3)
@@ -44,6 +51,18 @@ class TestPlotTextPlotting(ExtTestCase):
         self.assertIn("treeid=0", res)
         self.assertIn("         T y=", res)
 
+    def test_onnx_text_plot_tree_cls(self):
+        iris = load_iris()
+        X, y = iris.data.astype(numpy.float32), iris.target
+        clr = DecisionTreeClassifier(max_depth=3)
+        clr.fit(X, y)
+        onx = to_onnx(clr, X)
+        res = onnx_text_plot_tree(onx.graph.node[0])
+        self.assertIn("treeid=0", res)
+        self.assertIn("         T y=", res)
+        self.assertIn("n_classes=3", res)
+
+    @ignore_warnings(UserWarning)
     def test_onnx_simple_text_plot_kmeans(self):
         x = numpy.random.randn(10, 3)
         model = KMeans(3)
@@ -81,7 +100,7 @@ class TestPlotTextPlotting(ExtTestCase):
         if (expected1 not in text and expected2 not in text and
                 expected3 not in text):
             raise AssertionError(
-                "Unexpected value:\n%s" % text)
+                f"Unexpected value:\n{text}")
 
     def test_onnx_simple_text_plot_knnr(self):
         x = numpy.random.randn(10, 3)
@@ -150,7 +169,7 @@ class TestPlotTextPlotting(ExtTestCase):
 
     def test_onnx_simple_text_plot_if(self):
 
-        opv = get_opset_number_from_onnx()
+        opv = TARGET_OPSET
         x1 = numpy.array([[0, 3], [7, 0]], dtype=numpy.float32)
         x2 = numpy.array([[1, 0], [2, 0]], dtype=numpy.float32)
 
@@ -182,11 +201,138 @@ class TestPlotTextPlotting(ExtTestCase):
         input:
         """).strip(" \n")
         self.assertIn(expected, text)
-        self.assertIn("If(Gr_C0) -> y", text)
+        self.assertIn("If(Gr_C0, else_branch=G1, then_branch=G2)", text)
         oinf = OnnxInference(model_def)
         text2 = oinf.to_text(kind="seq")
         self.assertEqual(text, text2)
 
+    @ignore_warnings(UserWarning)
+    def test_onnx_simple_text_plot_kmeans_links(self):
+        x = numpy.random.randn(10, 3)
+        model = KMeans(3)
+        model.fit(x)
+        onx = to_onnx(model, x.astype(numpy.float32),
+                      target_opset=15)
+        text = onnx_simple_text_plot(onx, add_links=True)
+        self.assertIn("Sqrt(Ad_C0) -> scores  <------", text)
+        self.assertIn("|-+-|", text)
+
+    def test_scan_plot(self):
+        (OnnxSub, OnnxIdentity, OnnxReduceSumSquare, OnnxScan,  # pylint: disable=W0621
+         OnnxAdd) = loadop('Sub', 'Identity',  # pylint: disable=W0621
+                           'ReduceSumSquare', 'Scan', 'Add')
+
+        def onnx_squareform_pdist(X, dtype=None, op_version=None, **kwargs):
+            diff = OnnxSub('next_in', 'next',
+                           op_version=op_version)
+            id_next = OnnxIdentity('next_in', output_names=['next_out'],
+                                   op_version=op_version)
+            flat = OnnxReduceSumSquare(diff, axes=[1], op_version=op_version,
+                                       output_names=['scan_out'], keepdims=0)
+            scan_body = id_next.to_onnx(
+                [Variable('next_in', numpy.float32, (None, None)),  # tensor_type([None, None])),
+                 Variable('next', numpy.float32, (None, ))],  # tensor_type([None]))]),
+                outputs=[Variable('next_out', numpy.float32, (None, None)),  # ([None, None])),
+                         Variable('scan_out', numpy.float32, (None, ))],  # tensor_type([None]))],
+                other_outputs=[flat],
+                target_opset=op_version)
+            node = OnnxScan(X, X, output_names=['S1', 'S2'],
+                            num_scan_inputs=1,
+                            body=(scan_body.graph, [id_next, flat]),
+                            op_version=op_version, **kwargs)
+            return node[1]
+
+        cop = OnnxAdd('input', 'input')
+        cdist = onnx_squareform_pdist(cop, dtype=numpy.float32)
+        cop2 = OnnxIdentity(cdist, output_names=['cdist'])
+
+        model_def = cop2.to_onnx(
+            {'input': numpy.float32},
+            outputs=[Variable('cdist', numpy.float32)])
+
+        text = onnx_simple_text_plot(model_def, recursive=True)
+        self.assertIn("----- subgraph", text)
+
+    def test_function_plot(self):
+        new_domain = 'custom'
+        opset_imports = [make_opsetid("", 14), make_opsetid(new_domain, 1)]
+
+        node1 = make_node('MatMul', ['X', 'A'], ['XA'])
+        node2 = make_node('Add', ['XA', 'B'], ['Y'])
+
+        linear_regression = make_function(
+            new_domain,            # domain name
+            'LinearRegression',     # function name
+            ['X', 'A', 'B'],        # input names
+            ['Y'],                  # output names
+            [node1, node2],         # nodes
+            opset_imports,          # opsets
+            [])                     # attribute names
+
+        X = make_tensor_value_info('X', TensorProto.FLOAT, [None, None])
+        A = make_tensor_value_info('A', TensorProto.FLOAT, [None, None])
+        B = make_tensor_value_info('B', TensorProto.FLOAT, [None, None])
+        Y = make_tensor_value_info('Y', TensorProto.FLOAT, None)
+
+        graph = make_graph(
+            [make_node('LinearRegression', ['X', 'A', 'B'], ['Y1'],
+                       domain=new_domain),
+             make_node('Abs', ['Y1'], ['Y'])],
+            'example',
+            [X, A, B], [Y])
+
+        onnx_model = make_model(
+            graph, opset_imports=opset_imports,
+            functions=[linear_regression])  # functions to add)
+
+        text = onnx_simple_text_plot(onnx_model)
+        self.assertIn("function name=LinearRegression domain=custom", text)
+        self.assertIn("MatMul(X, A) -> XA", text)
+        self.assertIn("type=? shape=?", text)
+        self.assertIn("LinearRegression[custom]", text)
+
+    def test_onnx_function_init(self):
+        OnnxAbs, OnnxAdd, OnnxDiv = loadop(  # pylint: disable=W0621
+            "Abs", "Add", "Div")
+        ov = OnnxAbs('X')
+        ad = OnnxAdd('X', ov, output_names=['Y'])
+        proto = ad.to_onnx(function_name='AddAbs')
+
+        op = OnnxDiv(OnnxOperatorFunction(proto, 'X'),
+                     numpy.array([2], dtype=numpy.float32),
+                     output_names=['Y'])
+        onx = op.to_onnx(numpy.float32, numpy.float32)
+        text = onnx_simple_text_plot(onx)
+        self.assertIn("----- function name=AddAbs domain=mlprodict", text)
+
+    def test_onnx_text_plot_fft(self):
+        data = os.path.join(os.path.dirname(__file__),
+                            '..', 'ut_tools', 'data', 'fft')
+        model = os.path.join(data, 'dft_last_axis.onnx')
+        with open(model, "rb") as f:
+            onx = load(f)
+        text1 = onnx_simple_text_plot(onx)
+        self.assertIn('input:', text1)
+        onnx_simple_text_plot(onx, recursive=True)
+        try:
+            onnx_simple_text_plot(onx, recursive=True)
+        except RuntimeError as e:
+            raise AssertionError(
+                "Unable to display a graph\n%s" % onnx_simple_text_plot(
+                    onx, recursive=True, raise_exc=False)) from e
+
+    def test_onnx_text_plot_tree_simple(self):
+        iris = load_iris()
+        X, y = iris.data.astype(numpy.float32), iris.target
+        clr = DecisionTreeRegressor(max_depth=3)
+        clr.fit(X, y)
+        onx = to_onnx(clr, X)
+        res = onnx_simple_text_plot(onx)
+        self.assertIn("nodes_featureids=9:[", res)
+        self.assertIn("nodes_modes=9:[b'", res)
+        self.assertIn("target_weights=5:[", res)
+
 
 if __name__ == "__main__":
+    # TestPlotTextPlotting().test_onnx_text_plot_tree_cls()
     unittest.main()

@@ -13,8 +13,9 @@ from skl2onnx.sklapi import CastTransformer
 from skl2onnx import convert_sklearn, to_onnx
 from skl2onnx.common.data_types import (
     Int64TensorType, FloatTensorType, DoubleTensorType)
-from mlprodict.testing.test_utils import dump_data_and_model, TARGET_OPSET
+from mlprodict.testing.test_utils import dump_data_and_model
 from mlprodict.tools.ort_wrapper import InferenceSession
+from mlprodict import __max_supported_opset__ as TARGET_OPSET
 
 
 class TestSklearnCastTransformerConverter(unittest.TestCase):
@@ -35,8 +36,7 @@ class TestSklearnCastTransformerConverter(unittest.TestCase):
         self.assertTrue(model_onnx is not None)
         dump_data_and_model(
             data, model, model_onnx,
-            basename="SklearnCastTransformer{}".format(
-                input_type.__class__.__name__))
+            basename=f"SklearnCastTransformer{input_type.__class__.__name__}")
 
     def test_cast_transformer_float(self):
         self.common_test_cast_transformer(

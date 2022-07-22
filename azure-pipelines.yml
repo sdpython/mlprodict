@@ -43,7 +43,7 @@ jobs:
     displayName: 'Install Requirements'
   - script: python -u setup.py build_ext --inplace
     displayName: 'Build package inplace'
-  - script: python -u setup.py unittests -g ".*((LONG)|(SKIP)|(notebooks)).*"
+  - script: python -u setup.py unittests -g ".*((LONG)|(SKIP)|(notebooks)|(asv_benchmark)|(test_onnx_helper)|(test_onnx_speedup_cluster)).*"
     displayName: 'Runs Unit Tests'
   - script: python -u setup.py bdist_wheel
     displayName: 'Build wheel'
@@ -105,7 +105,7 @@ jobs:
       python -m pip install cibuildwheel
       export CIBW_BEFORE_BUILD="pip install pybind11 cython numpy scipy pyquickhelper scikit-learn pandas pandas_streaming onnx pyquicksetup"
       export CIBW_MANYLINUX_X86_64_IMAGE=quay.io/pypa/manylinux2014_x86_64:latest
-      export CIBW_BUILD="cp36-manylinux_x86_64 cp37-manylinux_x86_64 cp38-manylinux_x86_64 cp39-manylinux_x86_64"
+      export CIBW_BUILD="cp37-manylinux_x86_64 cp38-manylinux_x86_64 cp39-manylinux_x86_64"
       python -m cibuildwheel --output-dir dist/wheelhouse --platform linux
     displayName: 'Build Package many'
   - task: PublishPipelineArtifact@0
@@ -139,8 +139,8 @@ jobs:
   - script: brew upgrade p7zip
     continueOnError: true
     displayName: 'Install p7zip'
-  - script: brew install pandoc
-    displayName: 'Install Pandoc'
+#  - script: brew install pandoc
+#    displayName: 'Install Pandoc'
   - script: brew install graphviz
     continueOnError: true
     displayName: 'Install Graphviz'
@@ -170,7 +170,7 @@ jobs:
   - script: |
       python -m pip install cibuildwheel
       export CIBW_BEFORE_BUILD="pip install pybind11 cython numpy scipy pyquickhelper scikit-learn pandas pandas_streaming onnx pyquicksetup"
-      export CIBW_BUILD="cp38-macosx_x86_64"
+      export CIBW_BUILD="cp38-macosx_x86_64 cp39-macosx_x86_64 cp310-macosx_x86_64"
       export CIBW_ENVIRONMENT="MACOSX_DEPLOYMENT_TARGET=10.13"
       python -m cibuildwheel --output-dir dist/wheelhouse
     displayName: 'Build Package many'
@@ -192,9 +192,13 @@ jobs:
     inputs:
       versionSpec: '$(python.version)'
       architecture: 'x64'
-  - script: python -m pip install --upgrade pip setuptools wheel
+  - script: python -m pip install --upgrade pip setuptools wheel versioneer
     displayName: 'Install tools'
-  - script: pip install -r requirements.txt
+  - script: python -m pip install --upgrade pip numpy pandas matplotlib scipy scikit-learn matplotlib
+    displayName: 'Install tools'
+  - script: python -m pip install onnxruntime onnxruntime-extensions --no-deps
+    displayName: 'Install onnx'
+  - script: pip install -r requirements-win.txt --upgrade-strategy eager
     displayName: 'Install Requirements'
   - script: python -c "import platform;print(platform.version())"
     displayName: 'Platform'
@@ -205,9 +209,9 @@ jobs:
   - script: |
       python -m pip install cibuildwheel
       set CIBW_BEFORE_BUILD=pip install pybind11 cython numpy scipy pyquickhelper scikit-learn pandas pandas_streaming onnx pyquicksetup
-      set CIBW_BUILD=cp36-win_amd64 cp37-win_amd64 cp38-win_amd64 cp39-win_amd64 cp310-win_amd64
+      set CIBW_BUILD=cp37-win_amd64 cp38-win_amd64 cp39-win_amd64 cp310-win_amd64
       python -m cibuildwheel --output-dir dist/wheelhouse
-    displayName: 'Build Package python 3.6, 3.7, 3.8, 3.9, 310'
+    displayName: 'Build Package python 3.7, 3.8, 3.9, 310'
   - task: PublishPipelineArtifact@0
     inputs:
       artifactName: 'wheel-windows'

@@ -52,7 +52,16 @@ class wrapper_onnxnumpy:
         """
         Calls the compiled function with arguments `args`.
         """
-        return self.compiled(*args, **kwargs)
+        from .onnx_variable import OnnxVar
+        try:
+            return self.compiled(*args, **kwargs)
+        except (TypeError, RuntimeError, ValueError) as e:
+            if any(map(lambda a: isinstance(a, OnnxVar), args)):
+                return self.__class__.__fct__(  # pylint: disable=E1101
+                    *args, **kwargs)
+            raise RuntimeError(
+                "Unable to call the compiled version, args is %r. "
+                "kwargs=%r." % ([type(a) for a in args], kwargs)) from e
 
     def __getstate__(self):
         """
@@ -68,6 +77,16 @@ class wrapper_onnxnumpy:
         """
         self.compiled = state['compiled']
 
+    def to_onnx(self, **kwargs):
+        """
+        Returns the ONNX graph for the wrapped function.
+        It takes additional arguments to distinguish between multiple graphs.
+        This happens when a function needs to support multiple type.
+
+        :return: ONNX graph
+        """
+        return self.compiled.to_onnx(**kwargs)
+
 
 def onnxnumpy(op_version=None, runtime=None, signature=None):
     """
@@ -76,7 +95,8 @@ def onnxnumpy(op_version=None, runtime=None, signature=None):
     operators.
 
     :param op_version: :epkg:`ONNX` opset version
-    :param runtime: `'onnxruntime'` or one implemented by @see cl OnnxInference
+    :param runtime: `'onnxruntime'` or one implemented by
+        @see cl OnnxInference
     :param signature: it should be used when the function
         is not annoatated.
 
@@ -88,10 +108,10 @@ def onnxnumpy(op_version=None, runtime=None, signature=None):
         compiled = OnnxNumpyCompiler(
             fct, op_version=op_version, runtime=runtime,
             signature=signature)
-        name = "onnxnumpy_%s_%s_%s" % (fct.__name__, str(op_version), runtime)
+        name = f"onnxnumpy_{fct.__name__}_{str(op_version)}_{runtime}"
         newclass = type(
             name, (wrapper_onnxnumpy,),
-            {'__doc__': fct.__doc__, '__name__': name})
+            {'__doc__': fct.__doc__, '__name__': name, '__fct__': fct})
         _created_classes_inst.append(name, newclass)
         return newclass(compiled)
     return decorator_fct
@@ -157,8 +177,7 @@ class wrapper_onnxnumpy_np:
         """
         if not isinstance(dtype, FctVersion):
             raise TypeError(  # pragma: no cover
-                "dtype must be of type 'FctVersion' not %s: %s." % (
-                    type(dtype), dtype))
+                f"dtype must be of type 'FctVersion' not {type(dtype)}: {dtype}.")
         if dtype not in self.signed_compiled:
             self._populate(dtype)
             key = dtype
@@ -172,15 +191,24 @@ class wrapper_onnxnumpy_np:
         tensor in *args* defines the templated version of the function
         to convert into *ONNX*.
         """
+        from .onnx_variable import OnnxVar
         if len(self.kwargs) == 0:
             others = None
         else:
             others = tuple(kwargs.get(k, self.kwargs[k]) for k in self.kwargs)
-        key = FctVersion(  # pragma: no cover
-            tuple(a if (a is None or hasattr(a, 'fit'))
-                  else a.dtype.type for a in args),
-            others)
-        return self[key](*args)
+        try:
+            key = FctVersion(  # pragma: no cover
+                tuple(a if (a is None or hasattr(a, 'fit'))
+                      else a.dtype.type for a in args),
+                others)
+            return self[key](*args)
+        except AttributeError as e:
+            if any(map(lambda a: isinstance(a, OnnxVar), args)):
+                return self.__class__.__fct__(  # pylint: disable=E1101
+                    *args, **kwargs)
+            raise RuntimeError(
+                "Unable to call the compiled version, args is %r. "
+                "kwargs=%r." % ([type(a) for a in args], kwargs)) from e
 
     def _populate(self, version):
         """
@@ -202,6 +230,46 @@ class wrapper_onnxnumpy_np:
     def _validate_onnx_data(self, X):
         return X
 
+    def to_onnx(self, **kwargs):
+        """
+        Returns the ONNX graph for the wrapped function.
+        It takes additional arguments to distinguish between multiple graphs.
+        This happens when a function needs to support multiple type.
+
+        :return: ONNX graph
+        """
+        if len(self.signed_compiled) == 0:
+            raise RuntimeError(  # pragma: no cover
+                "No ONNX graph was compiled.")
+        if len(kwargs) == 0 and len(self.signed_compiled) == 1:
+            # We take the only one.
+            key = list(self.signed_compiled)[0]
+            cpl = self.signed_compiled[key]
+            return cpl.to_onnx()
+        if len(kwargs) == 0:
+            raise ValueError(
+                "There are multiple compiled ONNX graphs associated "
+                "with keys %r (add key=...)." % list(self.signed_compiled))
+        if list(kwargs) != ['key']:
+            raise ValueError(
+                f"kwargs should contain one parameter key=... but it is {kwargs!r}.")
+        key = kwargs['key']
+        if key in self.signed_compiled:
+            return self.signed_compiled[key].compiled.onnx_
+        found = []
+        for k, v in self.signed_compiled.items():
+            if k.args == key:
+                found.append((k, v))
+            elif isinstance(key, tuple) and k.args == key:
+                found.append((k, v))
+            elif k.args == (key, ) * len(k.args):
+                found.append((k, v))
+        if len(found) == 1:
+            return found[0][1].compiled.onnx_
+        raise ValueError(
+            "Unable to find signature with key=%r among %r found=%r." % (
+                key, list(self.signed_compiled), found))
+
 
 def onnxnumpy_np(op_version=None, runtime=None, signature=None):
     """
@@ -219,14 +287,14 @@ def onnxnumpy_np(op_version=None, runtime=None, signature=None):
     .. versionadded:: 0.6
     """
     def decorator_fct(fct):
-        name = "onnxnumpy_nb_%s_%s_%s" % (
-            fct.__name__, str(op_version), runtime)
+        name = f"onnxnumpy_nb_{fct.__name__}_{str(op_version)}_{runtime}"
         newclass = type(
             name, (wrapper_onnxnumpy_np,), {
                 '__doc__': fct.__doc__,
                 '__name__': name,
                 '__getstate__': wrapper_onnxnumpy_np.__getstate__,
-                '__setstate__': wrapper_onnxnumpy_np.__setstate__})
+                '__setstate__': wrapper_onnxnumpy_np.__setstate__,
+                '__fct__': fct})
         _created_classes_inst.append(name, newclass)
         return newclass(
             fct=fct, op_version=op_version, runtime=runtime,

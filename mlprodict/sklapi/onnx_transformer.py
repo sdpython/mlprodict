@@ -9,12 +9,8 @@ import pandas
 import onnx
 from sklearn.base import BaseEstimator, TransformerMixin
 from skl2onnx.algebra.onnx_operator_mixin import OnnxOperatorMixin
-from skl2onnx.helpers.onnx_helper import (
-    load_onnx_model, enumerate_model_node_outputs)
-from skl2onnx.helpers.onnx_helper import select_model_inputs_outputs
-from skl2onnx.common.data_types import (
-    FloatTensorType, DoubleTensorType,
-    Int64TensorType)
+from mlprodict.onnx_tools.onnx_manipulations import (
+    select_model_inputs_outputs, enumerate_model_node_outputs)
 from ..onnx_tools.onnx2py_helper import _var_as_dict, onnx_model_opsets
 from ..onnx_tools.exports.skl2onnx_helper import add_onnx_graph
 from ..onnxrt import OnnxInference
@@ -118,8 +114,7 @@ class OnnxTransformer(BaseEstimator, TransformerMixin, OnnxOperatorMixin):
         sht = self.inputs_shape_types_ if has else None
         if sht is not None and len(sht) < len(inputs):
             raise RuntimeError(  # pragma: no cover
-                "Unexpected number of inputs {} > {} (expected).".format(
-                    len(inputs), len(sht)))
+                f"Unexpected number of inputs {len(inputs)} > {len(sht)} (expected).")
         for i, k in enumerate(inputs):
             v = inputs[k]
             if isinstance(v, numpy.ndarray):
@@ -207,15 +202,14 @@ class OnnxTransformer(BaseEstimator, TransformerMixin, OnnxOperatorMixin):
                     colnames.extend("%s%d" % (k, i) for i in range(v.shape[1]))
                 else:
                     raise RuntimeError(  # pragma: no cover
-                        "Unexpected shape for results %r: %r." % (k, v.shape))
+                        f"Unexpected shape for results {k!r}: {v.shape!r}.")
             if isinstance(v, list):
                 if len(v) == 0:
                     raise RuntimeError(  # pragma: no cover
-                        "Output %r is empty." % k)
+                        f"Output {k!r} is empty.")
                 if not isinstance(v[0], dict):
                     raise RuntimeError(  # pragma: no cover
-                        "Unexpected type for output %r - value=%r."
-                        "" % (k, v[0]))
+                        f"Unexpected type for output {k!r} - value={v[0]!r}.")
                 df = pandas.DataFrame(v)
                 cols = list(sorted(df.columns))
                 v = df[cols].copy().values
@@ -257,7 +251,7 @@ class OnnxTransformer(BaseEstimator, TransformerMixin, OnnxOperatorMixin):
         :return: iterator on OnnxTransformer *('output name', OnnxTransformer)*
         """
         selected = None if output_names is None else set(output_names)
-        model = load_onnx_model(onnx_bytes)
+        model = onnx.load(BytesIO(onnx_bytes))
         for out in enumerate_model_node_outputs(model):
             m = select_model_inputs_outputs(model, out)
             if selected is None or out in selected:
@@ -271,13 +265,11 @@ class OnnxTransformer(BaseEstimator, TransformerMixin, OnnxOperatorMixin):
         """
         def parser(scope=None, inputs=None):
             if scope is None:
-                raise RuntimeError(
-                    "scope cannot be None (parser of class %r)."
-                    "" % type(self))
+                raise RuntimeError(  # pragma: no cover
+                    f"scope cannot be None (parser of class {type(self)!r}).")
             if inputs is None:
-                raise RuntimeError(
-                    "inputs cannot be None (parser of class %r)."
-                    "" % type(self))
+                raise RuntimeError(  # pragma: no cover
+                    f"inputs cannot be None (parser of class {type(self)!r}).")
             if (not hasattr(self, 'onnxrt_') or
                     not hasattr(self.onnxrt_, 'output_names')):
                 raise RuntimeError(  # pragma: no cover
@@ -291,6 +283,8 @@ class OnnxTransformer(BaseEstimator, TransformerMixin, OnnxOperatorMixin):
 
     def onnx_shape_calculator(self):
         def shape_calculator(operator):
+            from skl2onnx.common.data_types import (  # delayed
+                FloatTensorType, DoubleTensorType, Int64TensorType)
             cout = self.onnxrt_.output_names
             if len(operator.outputs) != len(cout):
                 raise RuntimeError(  # pragma: no cover
@@ -300,7 +294,7 @@ class OnnxTransformer(BaseEstimator, TransformerMixin, OnnxOperatorMixin):
                 var = _var_as_dict(out)
                 if var['type']['kind'] != 'tensor':
                     raise NotImplementedError(  # pragma: no cover
-                        "Noy yet implemented for output:\n{}".format(out))
+                        f"Noy yet implemented for output:\n{out}")
                 shape = var['type']['shape']
                 if shape[0] == 0:
                     shape = (None,) + tuple(shape[1:])
@@ -313,7 +307,7 @@ class OnnxTransformer(BaseEstimator, TransformerMixin, OnnxOperatorMixin):
                     out_op.type = DoubleTensorType(shape=shape)
                 else:
                     raise NotImplementedError(  # pragma: no cover
-                        "Not yet implemented for elem_type:\n{}".format(elem))
+                        f"Not yet implemented for elem_type: {elem!r}")
         return shape_calculator
 
     def onnx_converter(self):
@@ -338,7 +332,7 @@ class OnnxTransformer(BaseEstimator, TransformerMixin, OnnxOperatorMixin):
         if hasattr(self, 'onnxrt_'):
             model = self.onnxrt_.obj
         else:
-            model = load_onnx_model(self.onnx_bytes)
+            model = onnx.load(BytesIO(self.onnx_bytes))
         res = {}
         for oimp in model.opset_import:
             res[oimp.domain] = oimp.version

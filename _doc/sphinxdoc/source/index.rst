@@ -93,7 +93,7 @@ when the execution fails.
     from sklearn.datasets import load_iris
     from mlprodict.onnxrt import OnnxInference
     from mlprodict.onnxrt.validate.validate_difference import measure_relative_difference
-    from mlprodict.tools import get_ir_version_from_onnx
+    from mlprodict import get_ir_version
 
     iris = load_iris()
     X = iris.data[:, :2]
@@ -108,11 +108,12 @@ when the execution fails.
     # Conversion into ONNX.
     from mlprodict.onnx_conv import to_onnx
     model_onnx = to_onnx(lr, X.astype(numpy.float32),
-                         black_op={'LinearRegressor'})
+                         black_op={'LinearRegressor'},
+                         target_opset=15)
     print("ONNX:", str(model_onnx)[:200] + "\n...")
 
     # Predictions with onnxruntime
-    model_onnx.ir_version = get_ir_version_from_onnx()
+    model_onnx.ir_version = get_ir_version(15)
     oinf = OnnxInference(model_onnx, runtime='onnxruntime1')
     ypred = oinf.run({'X': X[:5].astype(numpy.float32)})
     print("ONNX output:", ypred)
@@ -197,10 +198,16 @@ them:
   a code based on ONNX API which replicates the ONNX graph
   (see :func:`export2onnx
   <mlprodict.onnx_tools.onnx_export.export2onnx>`)
-* **Export ONNX graph to :epkg:`tf2onnx`**: still a function which
+* **Export ONNX graph to** :epkg:`tf2onnx`: still a function which
   creates an ONNX graph but based on :epkg:`tf2onnx` API
   (see :func:`export2tf2onnx
   <mlprodict.onnx_tools.onnx_export.export2tf2onnx>`)
+* **Xop API:** (ONNX operators API), see :ref:`l-xop-api`,
+  most of the converting libraries uses :epkg:`onnx` to create ONNX graphs.
+  The API is quite verbose and that is why most of them implement a second
+  API wrapping the first one. They are not necessarily meant to be used
+  by users to create ONNX graphs as they are specialized for the training
+  framework they are developped for.
 * **Numpy API for ONNX:** many functions doing computation are
   written with :epkg:`numpy` and converting them to ONNX may take
   quite some time for users not familiar with ONNX. This API implements
@@ -217,6 +224,28 @@ them:
 * **Profiling onnxruntime:** :epkg:`onnxruntime` can memorize the time
   spent in each operator. The following notebook shows how to retreive
   the results and display them :ref:`onnxprofileortrst`.
+
+This package supports ONNX opsets to the latest opset stored
+in `mlprodict.__max_supported_opset__` which is:
+
+.. runpython::
+    :showcode:
+
+    import mlprodict
+    print(mlprodict.__max_supported_opset__)
+
+Any opset beyond that value is not supported and could fail.
+That's for the main set of ONNX functions or domain.
+Converters for :epkg:`scikit-learn` requires another domain,
+`'ai.onnxml'` to implement tree. Latest supported options
+are defined here:
+
+.. runpython::
+    :showcode:
+
+    import pprint
+    import mlprodict
+    pprint.pprint(mlprodict.__max_supported_opsets__)
 
 +----------------------+---------------------+---------------------+--------------------+------------------------+------------------------------------------------+
 | :ref:`l-modules`     |  :ref:`l-functions` | :ref:`l-classes`    | :ref:`l-methods`   | :ref:`l-staticmethods` | :ref:`l-properties`                            |

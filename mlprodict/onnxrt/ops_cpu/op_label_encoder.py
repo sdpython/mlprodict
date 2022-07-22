@@ -5,7 +5,6 @@
 @brief Runtime operator.
 """
 import numpy
-from ..shape_object import ShapeObject
 from ._op import OpRun
 
 
@@ -77,24 +76,16 @@ class LabelEncoder(OpRun):
                 "operator LabelEncoder.")
         else:
             raise RuntimeError(
-                "No encoding was defined in {}.".format(onnx_node))
+                f"No encoding was defined in {onnx_node}.")
         if len(self.classes_) == 0:
             raise RuntimeError(  # pragma: no cover
                 "Empty classes for LabelEncoder, (onnx_node='{}')\n{}.".format(
                     self.onnx_node.name, onnx_node))
 
-    def _run(self, x):  # pylint: disable=W0221
+    def _run(self, x, attributes=None, verbose=0, fLOG=None):  # pylint: disable=W0221
         if len(x.shape) > 1:
             x = numpy.squeeze(x)
         res = numpy.empty((x.shape[0], ), dtype=self.dtype_)
         for i in range(0, res.shape[0]):
             res[i] = self.classes_.get(x[i], self.default_)
         return (res, )
-
-    def _infer_shapes(self, x):  # pylint: disable=W0221
-        nb = len(self.classes_.values())
-        return (ShapeObject((x[0], nb), dtype=self.dtype_,
-                            name="{}-1".format(self.__class__.__name__)), )
-
-    def _infer_types(self, x):  # pylint: disable=W0221
-        return (self.dtype_, )

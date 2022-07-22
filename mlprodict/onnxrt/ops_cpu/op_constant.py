@@ -6,8 +6,7 @@
 """
 import numpy
 from onnx.defs import onnx_opset_version
-from ._op import OpRun
-from ..shape_object import ShapeObject
+from ._op import OpRun, RefAttrName
 
 
 def _check_dtype(val):
@@ -18,8 +17,7 @@ def _check_dtype(val):
             numpy.uint16, numpy.uint32, numpy.bool_, numpy.str_,
             numpy.uint64, bool, str, }:
         raise TypeError(  # pragma: no cover
-            "Type ({}, {}) is not a numpy type (operator 'Constant')".format(
-                a, type(a)))
+            f"Type ({a}, {type(a)}) is not a numpy type (operator 'Constant')")
 
 
 class Constant_9(OpRun):
@@ -33,20 +31,8 @@ class Constant_9(OpRun):
         self.cst = self.value
         _check_dtype(self.cst)
 
-    def _run(self):  # pylint: disable=W0221
+    def _run(self, attributes=None, verbose=0, fLOG=None):  # pylint: disable=W0221
         return (self.cst, )
-
-    def _infer_shapes(self):  # pylint: disable=W0221
-        # pref = str(hex(id(self))[2:])
-        return (ShapeObject(self.cst.shape, self.cst.dtype), )
-
-    def _infer_types(self):  # pylint: disable=W0221
-        # pref = str(hex(id(self))[2:])
-        return (self.cst.dtype, )
-
-    def _infer_sizes(self, *args, **kwargs):
-        res = self.run(*args, **kwargs)
-        return (dict(temp=0), ) + res
 
 
 class Constant_11(OpRun):
@@ -64,20 +50,8 @@ class Constant_11(OpRun):
             self.cst = self.value
         _check_dtype(self.cst)
 
-    def _run(self):  # pylint: disable=W0221
+    def _run(self, attributes=None, verbose=0, fLOG=None):  # pylint: disable=W0221
         return (self.cst, )
-
-    def _infer_shapes(self):  # pylint: disable=W0221
-        # pref = str(hex(id(self))[2:])
-        return (ShapeObject(self.cst.shape, self.cst.dtype), )
-
-    def _infer_types(self):  # pylint: disable=W0221
-        # pref = str(hex(id(self))[2:])
-        return (self.cst.dtype, )
-
-    def _infer_sizes(self, *args, **kwargs):
-        res = self.run(*args, **kwargs)
-        return (dict(temp=0), ) + res
 
 
 class Constant_12(OpRun):
@@ -99,7 +73,7 @@ class Constant_12(OpRun):
         if hasattr(self, 'sparse_value') and self.sparse_value is not None:
             self.cst = self.sparse_value
         elif hasattr(self, 'value_float') and self.value_float is not None:
-            self.cst = self.value_float.astype(numpy.float32)
+            self.cst = numpy.array([self.value_float], dtype=numpy.float32)
         elif hasattr(self, 'value_floats') and self.value_floats is not None:
             self.cst = self.value_floats.astype(numpy.float32)
         elif hasattr(self, 'value_int') and self.value_int is not None:
@@ -115,22 +89,22 @@ class Constant_12(OpRun):
         else:
             raise AttributeError(  # pragma: no cover
                 "No constant is defined for operator 'Constant'.")
-        _check_dtype(self.cst)
+        if isinstance(self.cst, RefAttrName):
+            self.is_linked_attribute = True
+        else:
+            self.is_linked_attribute = False
+            _check_dtype(self.cst)
 
-    def _run(self):  # pylint: disable=W0221
+    def _run(self, attributes=None, verbose=0, fLOG=None):  # pylint: disable=W0221
+        if self.is_linked_attribute:
+            if attributes is None:
+                raise RuntimeError(  # pragma: no cover
+                    f"Attributes are empty, cannot retrieve value for {self.cst!r}.")
+            if self.cst.name not in attributes:
+                raise RuntimeError(  # pragma: no cover
+                    f"Cannot find attribute {self.cst!r} in {list(attributes)!r}.")
+            return (attributes[self.cst.name]['value'], )
         return (self.cst, )
-
-    def _infer_shapes(self):  # pylint: disable=W0221
-        # pref = str(hex(id(self))[2:])
-        return (ShapeObject(self.cst.shape, self.cst.dtype), )
-
-    def _infer_types(self):  # pylint: disable=W0221
-        # pref = str(hex(id(self))[2:])
-        return (self.cst.dtype, )
-
-    def _infer_sizes(self, *args, **kwargs):
-        res = self.run(*args, **kwargs)
-        return (dict(temp=0), ) + res
 
 
 if onnx_opset_version() >= 12:

@@ -1,0 +1,44 @@
+import numpy
+from onnx import TensorProto
+from onnx.helper import make_tensor
+
+class LocalDomain:
+    "Defines a custom domain."
+    def __init__(self, domain, version):
+        self.domain = domain
+        self.version = version
+
+
+{% for domain, name, fct in functions: %}
+
+def {{ python_make_node_name(fct['proto'].domain, 1, fct['proto'].name) }}({{ ", ".join(map(rename_var, fct['proto'].input)) }}):
+    {% if fct['proto'].doc_string %}"""
+    {{ fct['proto'].doc_string }}
+    """{%- endif %}
+    {%- for node in fct['nodes']: %}
+{{ python_make_node(node, opsets, 1) }}{% endfor %}
+    return {{ ", ".join(map(rename_var, fct['proto'].output)) }}
+
+{% endfor %}
+
+def {{ function_name }}({% if len(inputs) > 0 %}{{ rename_var(inputs[0][0]) }}{% for name in inputs[1:]: %}, {{ rename_var(name[0]) }}{% endfor %}{% endif %}):
+    {% if doc_string %}"""
+    {{ doc_string }}
+    """{%- endif %}
+    {%- for name, value in initializers: %}{% if len(value.shape) == 0: %}
+    {{ rename_var(name) }} = numpy.array({{ value }}, dtype=numpy.{{ value.dtype }})
+    {%- else %}{% if value.size < 6: -%}
+    {{ rename_var(name, empty='_') }} = numpy.array({{ value.tolist() }}, dtype=numpy.{{ value.dtype }}){% if len(value.shape) > 1: %}.reshape({{ value.shape }}){% endif %}
+    {%- else %}list_value = {{ value.ravel().tolist() }}
+    {{ rename_var(name, empty='_') }} = numpy.array(list_value, dtype=numpy.{{ value.dtype }}){% if len(value.shape) > 1: %}.reshape({{ value.shape }}){% endif %}
+    {% endif -%}{% endif %}
+    {% endfor %}
+    {%- for node in nodes: %}
+{{ python_make_node(node, opsets, 1) }}{% endfor %}
+    return {{ rename_var(outputs[0][0]) }}{% for name in outputs[1:]: %}, {{ rename_var(name[0]) }}{% endfor %}
+
+
+{% for domain, version in unique_function_domain_version: %}
+{{ domain }}{{ version }} = LocalDomain("{{ domain }}", {{ version }}){% endfor %}
+{%- for domain, name, fct in functions: %}
+{{ domain }}1.{{ python_make_node_name(fct['proto'].domain, 1, fct['proto'].name) }} = {{ python_make_node_name(fct['proto'].domain, 1, fct['proto'].name) }}{% endfor %}

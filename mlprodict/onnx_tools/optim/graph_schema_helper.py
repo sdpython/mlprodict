@@ -3,23 +3,11 @@
 @brief Functions to help guessing the final graph structure.
 """
 import numpy
-try:
-    from onnxconverter_common.data_types import Float16TensorType
-except ImportError:  # pragma: no cover
-    Float16TensorType = None
-from skl2onnx.common.data_types import (
-    DataType,
-    FloatTensorType, SequenceType, DictionaryType,
-    Int64Type, Int64TensorType, BooleanTensorType,
-    Int32TensorType, DoubleTensorType, FloatType,
-    StringTensorType)
-from skl2onnx.common.data_types import (
-    _guess_type_proto, _guess_type_proto_str)
-from skl2onnx.algebra.type_helper import _guess_type as skl2onnx__guess_type
-from skl2onnx.proto import TensorProto
+from onnx import TensorProto
 
 
 def _guess_type(var):
+    from skl2onnx.algebra.type_helper import _guess_type as skl2onnx__guess_type  # delayed
     if isinstance(var, dict) and 'value' in var:
         return skl2onnx__guess_type(var['value'])  # pragma: no cover
     return skl2onnx__guess_type(var)
@@ -36,9 +24,11 @@ def get_defined_inputs(input_names, variables=None, dtype=None,
                                 by previous operators
     @param      dtype           float computational type
     @param      schema          defined inputs by schema (*expected_inputs*)
-    @return                     typed inputs
-                                as ``tuple(name, type)``
+    @return                     typed inputs as ``tuple(name, type)``
     """
+    from skl2onnx.common.data_types import (  # delayed
+        DataType, FloatTensorType, DoubleTensorType)
+
     def guess_type_variable(name, schema):
         if variables is None:
             if (schema is None or
@@ -52,8 +42,7 @@ def get_defined_inputs(input_names, variables=None, dtype=None,
                 shape = ty.shape
                 if 0 in shape:
                     raise RuntimeError(  # pragma: no cover
-                        "Shape cannot be empty: name='{}', var={}".format(
-                            name, ty))
+                        f"Shape cannot be empty: name='{name}', var={ty}")
                 return variables[name]
             if isinstance(ty, dict) and 'value' in ty:
                 # constant
@@ -62,11 +51,9 @@ def get_defined_inputs(input_names, variables=None, dtype=None,
                     return _guess_type(arr)
                 except RuntimeError as e:  # pragma: no cover
                     raise RuntimeError(
-                        "Unable to guess type of variable '{}' - {}."
-                        "".format(name, arr)) from e
+                        f"Unable to guess type of variable '{name}' - {arr}.") from e
             raise NotImplementedError(  # pragma: no cover
-                "Unable to guess type for '{}' form '{}'.".format(
-                    name, variables[name]))
+                f"Unable to guess type for '{name}' form '{variables[name]}'.")
         if isinstance(schema, (DataType, tuple)):
             sch = schema if isinstance(schema, DataType) else schema[1]
             if not isinstance(sch, str):
@@ -99,11 +86,17 @@ def get_defined_outputs(outputs, onnx_node, typed_inputs=None, variables=None,
     :param schema_inputs: defined inputs by schema (*expected_inputs*)
     :return: typed outputs as ``tuple(name, type)``
     """
+    from skl2onnx.common.data_types import (  # delayed
+        DataType,
+        FloatTensorType, SequenceType, DictionaryType,
+        Int64Type, Int64TensorType, BooleanTensorType,
+        DoubleTensorType, _guess_type_proto, _guess_type_proto_str)
+
     if schema is None:
         ft = DoubleTensorType if dtype == numpy.float64 else FloatTensorType
     elif len(schema) != 1:
         raise ValueError(  # pragma: no cover
-            "schema should only contain one output not {}.".format(schema))
+            f"schema should only contain one output not {schema}.")
     else:
         if isinstance(schema, DataType):
             ft = schema[0].__class__
@@ -132,7 +125,7 @@ def get_defined_outputs(outputs, onnx_node, typed_inputs=None, variables=None,
             # TopK
             if len(typed_inputs) != 2:
                 raise RuntimeError(  # pragma: no cover
-                    "Wrong typed_inputs, got {}.".format(typed_inputs))
+                    f"Wrong typed_inputs, got {typed_inputs}.")
             outputs = [(outputs[0], typed_inputs[0][1]),
                        (outputs[1], Int64TensorType())]
         elif onnx_node.op_type == "Cast" and len(outputs) == 1:
@@ -143,7 +136,7 @@ def get_defined_outputs(outputs, onnx_node, typed_inputs=None, variables=None,
             # ArrayFeatureExtractor
             if len(typed_inputs) != 2:
                 raise RuntimeError(  # pragma: no cover
-                    "Wrong typed_inputs, got {}.".format(typed_inputs))
+                    f"Wrong typed_inputs, got {typed_inputs}.")
             outputs = [(outputs[0], typed_inputs[0][1])]
         elif onnx_node.op_type in ('Reshape', 'Transpose'):
             # Reshape
@@ -221,6 +214,14 @@ def proto2vars(values):
     """
     Converts proto values to Variables.
     """
+    from skl2onnx.common.data_types import (  # delayed
+        FloatTensorType, SequenceType, DictionaryType,
+        Int64Type, Int64TensorType, BooleanTensorType,
+        Int32TensorType, DoubleTensorType, FloatType,
+        StringTensorType, Float16TensorType)
+    from ..onnx2py_helper import (
+        get_tensor_elem_type, get_tensor_shape)
+
     def ptype2vttype(it, shape):
         if it == TensorProto.FLOAT:  # pylint: disable=E1101
             return FloatTensorType(shape)
@@ -238,7 +239,7 @@ def proto2vars(values):
             if it == TensorProto.FLOAT16:  # pylint: disable=E1101
                 return Float16TensorType(shape)
         raise NotImplementedError(  # pragma: no cover
-            "Unrecognized proto type {} with shape {}".format(it, shape))
+            f"Unrecognized proto type {it} with shape {shape}")
 
     def ptype2vtype(it):
         if it == TensorProto.FLOAT:  # pylint: disable=E1101
@@ -246,7 +247,7 @@ def proto2vars(values):
         if it == TensorProto.INT64:  # pylint: disable=E1101
             return Int64Type()
         raise NotImplementedError(  # pragma: no cover
-            "Unrecognized proto type {}".format(it))
+            f"Unrecognized proto type {it}")
 
     res = []
     for v_ in values:
@@ -259,15 +260,7 @@ def proto2vars(values):
             subtype = proto2vars([v.sequence_type.elem_type])[0][1]
             v = SequenceType(subtype)
         elif hasattr(v, 'tensor_type') and str(v.tensor_type) != '':
-            tt = v.tensor_type
-            el = tt.elem_type
-            shape = tt.shape
-            dim = shape.dim
-            if len(dim) == 0:
-                shape = []
-            else:
-                shape = [dim[i].dim_value for i in range(len(dim))]
-            v = ptype2vttype(el, shape)
+            v = ptype2vttype(get_tensor_elem_type(v), get_tensor_shape(v))
         elif hasattr(v, 'map_type') and str(v.map_type) != '':
             mt = v.map_type
             keyt = ptype2vtype(mt.key_type)
@@ -275,7 +268,7 @@ def proto2vars(values):
             v = DictionaryType(keyt, valt)
         else:
             raise RuntimeError(  # pragma: no cover
-                "Unable to build a variable from {}.".format(v))
+                f"Unable to build a variable from {v}.")
         if v.shape is not None and 0 in v.shape:
             # Replaces 0 by None
             new_shape = tuple(None if d == 0 else d for d in v.shape)
@@ -285,7 +278,6 @@ def proto2vars(values):
                 v = v.__class__(new_shape)
         if v.shape is not None and 0 in v.shape:
             raise RuntimeError(  # pragma: no cover
-                "Shape cannot be empty: '{}': {}.".format(
-                    name, v_))
+                f"Shape cannot be empty: '{name}': {v_}.")
         res.append((name, v))
     return res

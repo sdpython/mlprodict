@@ -59,7 +59,7 @@ def make_tf2onnx_code(opset, name=None, op_type=None, domain='',
                     "Unable to find init %r in %r value=%r." % (
                         name, list(sorted(inits)), value))
             value = inits[name]
-        if kind == 'list':
+        if kind == 'list':  # pragma: no cover
             if value is None:
                 return name
             if len(value.shape) == 0:
@@ -67,12 +67,12 @@ def make_tf2onnx_code(opset, name=None, op_type=None, domain='',
             return str(list(value))
         if kind == 'list_var':
             if value is None:
-                return "varx[%r]" % name
+                return f"varx[{name!r}]"
             if len(value.shape) == 0:
                 return str(value)
             return str(list(value))
-        raise NotImplementedError(
-            "Unknown scenario to simplify (%r)." % kind)
+        raise NotImplementedError(  # pragma: no cover
+            f"Unknown scenario to simplify ({kind!r}).")
 
     rows = []
     if op_type == 'Unsqueeze':
@@ -83,11 +83,10 @@ def make_tf2onnx_code(opset, name=None, op_type=None, domain='',
                 "" % (inputs[0], simplify(inputs[1], 'list_var')))
         else:
             raise NotImplementedError(  # pragma: no cover
-                "Unable to create code for operator %r (opset <= 12)"
-                "." % op_type)
+                f"Unable to create code for operator {op_type!r} (opset <= 12).")
     elif op_type == 'Squeeze':
         if len(inputs) == 1:
-            rows.append(
+            rows.append(  # pragma: no cover
                 "node = GraphBuilder(ctx).make_squeeze("
                 "{'data': varx[%r]}, return_node=True)"
                 "" % (inputs[0], ))
@@ -98,12 +97,11 @@ def make_tf2onnx_code(opset, name=None, op_type=None, domain='',
                 "" % (inputs[0], simplify(inputs[1], 'list_var')))
         else:
             raise NotImplementedError(  # pragma: no cover
-                "Unable to create code for operator %r (opset <= 12)"
-                "." % op_type)
+                f"Unable to create code for operator {op_type!r} (opset <= 12).")
     elif op_type == 'Slice':
         atts = dict(zip(['starts', 'ends', 'axes', 'steps'],
                         inputs[1:]))
-        text = ", ".join("'%s': %s" % (k, simplify(v, 'list_var'))
+        text = ", ".join(f"'{k}': {simplify(v, 'list_var')}"
                          for k, v in atts.items())
         if len(inputs) in (3, 4, 5):
             rows.append(
@@ -112,17 +110,16 @@ def make_tf2onnx_code(opset, name=None, op_type=None, domain='',
                 "" % (inputs[0], text))
         else:
             raise NotImplementedError(  # pragma: no cover
-                "Unable to create code for operator %r (opset <= 12)"
-                "." % op_type)
+                f"Unable to create code for operator {op_type!r} (opset <= 12).")
     else:
         if len(attributes) > 0:
-            attributes_str = ", ".join("%s=%s" % (k, v) for k, v in attributes)
-            attr = ", attr=dict(%s)" % attributes_str
+            attributes_str = ", ".join(f"{k}={v}" for k, v in attributes)
+            attr = f", attr=dict({attributes_str})"
         else:
             attr = ""
         rows.append(
-            "inputs = [%s]" % ", ".join("varx[%r]" % n for n in inputs))
-        sdomain = '' if domain == '' else ("domain=%r, " % domain)
+            f"inputs = [{', '.join('varx[%r]' % n for n in inputs)}]")
+        sdomain = '' if domain == '' else (f"domain={domain!r}, ")
         rows.append(
             "node = ctx.make_node(%r, inputs=inputs%s, %s"
             "name=make_name(%r))" % (
@@ -214,10 +211,10 @@ class Tf2OnnxConvert:
         self.verbose = verbose
         self.max_iter = max_iter
         if isinstance(target_opset, int):
-            self.target_opsets = {'': target_opset}
+            self.target_opsets = {'': target_opset}  # pragma: no cover
         elif isinstance(target_opset, dict):
             self.target_opsets = target_opset
-        elif target_opset is None:
+        elif target_opset is None:  # pragma: no cover
             opsets = {}
             for oimp in onnx_model.opset_import:
                 if oimp.domain == '':
@@ -228,7 +225,7 @@ class Tf2OnnxConvert:
             self.target_opsets = opsets
         else:
             raise ValueError(  # pragma: no cover
-                "Unexepected value for target_opset=%r." % target_opset)
+                f"Unexepected value for target_opset={target_opset!r}.")
         self._names = {}
         for node in onnx_model.graph.node:
             self._names[node.name] = node
@@ -240,9 +237,9 @@ class Tf2OnnxConvert:
             self.opset = self.target_opsets['']
         if not hasattr(self, 'opset'):
             raise RuntimeError(  # pragma: no cover
-                "Attribute opset is missing, target_opset=%r." % target_opset)
+                f"Attribute opset is missing, target_opset={target_opset!r}.")
 
-    def get_node_by_name(self, name):
+    def get_node_by_name(self, name):  # pragma: no cover
         """
         Retrieves a node by its name.
 
@@ -250,7 +247,7 @@ class Tf2OnnxConvert:
         :return: node name
         """
         if name not in self._names:
-            raise RuntimeError(  # pragma: no cover
+            raise RuntimeError(
                 "Unable to find node name %r among %r." % (
                     name, ", ".join(sorted(self._names))))
         return self._names[name]
@@ -262,7 +259,7 @@ class Tf2OnnxConvert:
         """
         if obj.name in self._forbidden_new_names:
             raise RuntimeError(  # pragma: no cover
-                "Name %r is already registered." % obj.name)
+                f"Name {obj.name!r} is already registered.")
         self._names[obj.name] = obj
         self._forbidden_new_names.add(obj.name)
 
@@ -286,8 +283,7 @@ class Tf2OnnxConvert:
         """
         if self.verbose:
             print(  # pragma: no cover
-                "[Tf2OnnxConvert.make_node] op_type=%r inputs=%r" % (
-                    op_type, inputs))
+                f"[Tf2OnnxConvert.make_node] op_type={op_type!r} inputs={inputs!r}")
 
         if attr is None:
             attr = {}
@@ -306,7 +302,7 @@ class Tf2OnnxConvert:
         onnx_attrs = []
         for a, v in attr.items():
             if isinstance(v, AttributeProto):
-                onnx_attrs.append(v)
+                onnx_attrs.append(v)  # pragma: no cover
             else:
                 raw_attr[a] = v
 
@@ -337,7 +333,7 @@ class Tf2OnnxConvert:
                     isinstance(np_val_flat[0], bytes))
         if raw and not is_bytes:
             onnx_tensor = from_array(np_val, name)
-        else:
+        else:  # pragma: no cover
             onnx_tensor = make_tensor(
                 name, guess_proto_dtype(np_val.dtype),
                 np_val.shape, np_val_flat, raw=False)
@@ -377,17 +373,17 @@ class Tf2OnnxConvert:
                 continue
             if old_name not in node.input:
                 continue
-            new_inputs = [new_name if i == old_name else i
-                          for i in node.input]
-            node.input[:] = new_inputs[:]
-            res.append(node)
-            if self.verbose:
-                print(  # pragma: no cover
+            new_inputs = [  # pragma: no cover
+                new_name if i == old_name else i for i in node.input]
+            node.input[:] = new_inputs[:]  # pragma: no cover
+            res.append(node)  # pragma: no cover
+            if self.verbose:  # pragma: no cover
+                print(
                     "[Tf2OnnxConvert.replace_all_inputs] replace %r by %r in node %r" % (
                         old_name, new_name, node.name))
         for o in self._onnx_model.graph.output:
             if o.name != old_name:
-                continue
+                continue  # pragma: no cover
             n = self.make_node("Identity", [new_name], outputs=[old_name],
                                name=make_name("IdOutputReplaced"))
             res.append(n)
@@ -407,11 +403,11 @@ class Tf2OnnxConvert:
         """
         if name not in self._names:
             raise RuntimeError(  # pragma: no cover
-                "Unable to delete name %r because it does not exists." % name)
+                f"Unable to delete name {name!r} because it does not exists.")
         del self._names[name]
         if self.verbose:
             print(  # pragma: no cover
-                "[Tf2OnnxConvert.remove_node] delete name %r" % name)
+                f"[Tf2OnnxConvert.remove_node] delete name {name!r}")
 
     def get_shape(self, input_name):
         """
@@ -453,10 +449,10 @@ class Tf2OnnxConvert:
                     # initializer
                     continue
                 if done.get(node.name, False):
-                    continue
+                    continue  # pragma: no cover
                 domain = node.domain
                 if domain not in self._tf_op._OPSETS:
-                    continue
+                    continue  # pragma: no cover
 
                 # look for a converter
                 rews = self._tf_op._OPSETS[domain]
@@ -503,7 +499,7 @@ class Tf2OnnxConvert:
                 "" % (len(nodes), len(inputs), len(outputs), len(inits)))
         graph = make_graph(nodes, self._onnx_model.graph.name,
                            inputs, outputs, inits)
-        onnx_model = make_model(graph)
+        onnx_model = make_model(graph, functions=self._onnx_model.functions)
         onnx_model.ir_version = self._onnx_model.ir_version
         onnx_model.producer_name = self._onnx_model.producer_name + "-mlprodict"
         onnx_model.producer_version = self._onnx_model.producer_version
@@ -552,13 +548,16 @@ class GraphBuilder:
             # "data" is string
             # "starts", "ends" and "axes" are attributes,
             # and "axes" is optional.
-            data = kwargs.pop("data")
-            starts = self._convert_to_attribute(kwargs.pop("starts"))
-            ends = self._convert_to_attribute(kwargs.pop("ends"))
-            axes = self._convert_to_attribute(
+            data = kwargs.pop("data")  # pragma: no cover
+            starts = self._convert_to_attribute(  # pragma: no cover
+                kwargs.pop("starts"))
+            ends = self._convert_to_attribute(  # pragma: no cover
+                kwargs.pop("ends"))
+            axes = self._convert_to_attribute(  # pragma: no cover
                 kwargs.pop("axes", None), is_optional=True)
-            attr = {"starts": starts, "ends": ends, "axes": axes}
-            inputs = [data]
+            attr = {"starts": starts, "ends": ends,
+                    "axes": axes}  # pragma: no cover
+            inputs = [data]  # pragma: no cover
         else:
             # slice-10 has 3 required inputs "data", "starts", "ends"l
             # and 2 optional inputs "axes", "steps"
@@ -583,7 +582,7 @@ class GraphBuilder:
 
         new_attr = {}
         for key, val in attr.items():
-            if val is not None:
+            if val is not None:  # pragma: no cover
                 new_attr[key] = val
         attr = new_attr
 
@@ -617,7 +616,7 @@ class GraphBuilder:
         """
         outputs = kwargs.pop("outputs", None)
 
-        if self.graph.opset < 13:
+        if self.graph.opset < 13:  # pragma: no cover
             data = kwargs.pop("data")
             axes = self._convert_to_attribute(
                 kwargs.pop("axes", None), is_optional=True)
@@ -635,16 +634,16 @@ class GraphBuilder:
 
         new_attr = {}
         for key, val in attr.items():
-            if val is not None:
+            if val is not None:  # pragma: no cover
                 new_attr[key] = val
         attr = new_attr
 
         for ind, val in enumerate(inputs):
-            if val is None:
+            if val is None:  # pragma: no cover
                 inputs[ind] = ""  # empty string means no connection in ONNX
         # remove tailing ""
         while inputs[-1] == "":
-            inputs = inputs[:-1]
+            inputs = inputs[:-1]  # pragma: no cover
 
         node = self.graph.make_node(
             op_type="Squeeze", inputs=inputs, attr=attr, name=name,
@@ -663,11 +662,11 @@ class GraphBuilder:
         outputs = kwargs.pop("outputs", None)
 
         if self.graph.opset < 13:
-            data = kwargs.pop("data")
-            axes = self._convert_to_attribute(
+            data = kwargs.pop("data")  # pragma: no cover
+            axes = self._convert_to_attribute(  # pragma: no cover
                 kwargs.pop("axes", None), is_optional=True)
-            attr = {"axes": axes}
-            inputs = [data]
+            attr = {"axes": axes}  # pragma: no cover
+            inputs = [data]  # pragma: no cover
         else:
             data = kwargs.pop("data")
             axes = self._convert_to_input(
@@ -680,16 +679,16 @@ class GraphBuilder:
 
         new_attr = {}
         for key, val in attr.items():
-            if val is not None:
+            if val is not None:  # pragma: no cover
                 new_attr[key] = val
         attr = new_attr
 
         for ind, val in enumerate(inputs):
-            if val is None:
+            if val is None:  # pragma: no cover
                 inputs[ind] = ""  # empty string means no connection in ONNX
         # remove tailing ""
         while inputs[-1] == "":
-            inputs = inputs[:-1]
+            inputs = inputs[:-1]  # pragma: no cover
 
         node = self.graph.make_node(
             op_type="Unsqueeze", inputs=inputs, attr=attr, name=name,
@@ -699,7 +698,8 @@ class GraphBuilder:
         raise NotImplementedError(  # pragma: no cover
             "return_node must be True")
 
-    def _convert_to_input(self, tensor, const_name, is_optional=False, dtype=None):
+    def _convert_to_input(self, tensor, const_name,  # pragma: no cover
+                          is_optional=False, dtype=None):
         """in ONNX, input shold come from node, so it must be a string"""
         if is_optional and tensor is None:
             return None

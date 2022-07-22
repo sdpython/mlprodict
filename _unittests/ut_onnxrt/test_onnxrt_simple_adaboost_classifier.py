@@ -44,8 +44,7 @@ class TestOnnxrtSimpleAdaboostClassifier(ExtTestCase):
         try:
             self.assertEqualArray(resp, probs)
         except AssertionError as e:
-            raise RuntimeError("Issue\n{}\n-----\n{}".format(
-                e, model_def)) from e
+            raise RuntimeError(f"Issue\n{e}\n-----\n{model_def}") from e
         self.assertEqualArray(res0, res1['output_label'].ravel())
 
 

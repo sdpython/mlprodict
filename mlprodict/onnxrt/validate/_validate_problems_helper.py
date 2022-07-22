@@ -5,8 +5,6 @@ The submodule relies on :epkg:`onnxconverter_common`,
 :epkg:`sklearn-onnx`.
 """
 import numpy
-from skl2onnx.common.data_types import (
-    FloatTensorType, DoubleTensorType)
 
 
 text_alpha_num = [
@@ -46,13 +44,17 @@ text_alpha_num = [
 def _guess_noshape(obj, shape):
     if isinstance(obj, numpy.ndarray):
         if obj.dtype == numpy.float32:
-            return FloatTensorType(shape)  # pragma: no cover
+            from skl2onnx.common.data_types import (  # delayed
+                FloatTensorType)
+            return FloatTensorType(shape)
         if obj.dtype == numpy.float64:
+            from skl2onnx.common.data_types import (  # delayed
+                DoubleTensorType)
             return DoubleTensorType(shape)
         raise NotImplementedError(  # pragma: no cover
-            "Unable to process object(1) [{}].".format(obj))
+            f"Unable to process object(1) [{obj}].")
     raise NotImplementedError(  # pragma: no cover
-        "Unable to process object(2) [{}].".format(obj))
+        f"Unable to process object(2) [{obj}].")
 
 
 def _noshapevar(fct):

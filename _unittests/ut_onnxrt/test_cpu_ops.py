@@ -1,5 +1,5 @@
 """
-@brief      test log(time=3s)
+@brief      test log(time=5s)
 """
 import unittest
 from logging import getLogger
@@ -13,10 +13,13 @@ from skl2onnx.algebra.onnx_ops import (  # pylint: disable=E0611
 from mlprodict.onnx_conv import to_onnx
 from mlprodict.onnxrt.ops_cpu.op_conv import Conv
 from mlprodict.onnx_tools.onnx2py_helper import _var_as_dict
-from mlprodict.tools.asv_options_helper import get_opset_number_from_onnx
 from mlprodict.onnxrt import OnnxInference
 from mlprodict.testing.test_utils.tests_helper import fit_multilabel_classification_model
-from mlprodict.testing.test_utils import TARGET_OPSET
+from mlprodict import __max_supported_opset__ as TARGET_OPSET
+from mlprodict.onnxrt.ops_cpu._op_helper import dtype_name
+from mlprodict.onnxrt.ops_cpu.op_conv_helper import (
+    im2col, im2col_indices, col2im_indices, im2col_recursive, im2col_nn,
+    im2col_naive_implementation, nn_im2col_2d, nn_col2im_2d, new_array)
 
 
 class TestCpuOps(ExtTestCase):
@@ -24,6 +27,19 @@ class TestCpuOps(ExtTestCase):
     def setUp(self):
         logger = getLogger('skl2onnx')
         logger.disabled = True
+
+    def test_dtype_name(self):
+        self.assertEqual(dtype_name(numpy.float32), "float32")
+        self.assertEqual(dtype_name(numpy.float64), "float64")
+        self.assertEqual(dtype_name(numpy.float16), "float16")
+        self.assertEqual(dtype_name(numpy.int64), "int64")
+        self.assertEqual(dtype_name(numpy.int32), "int32")
+        self.assertEqual(dtype_name(numpy.uint32), "uint32")
+        self.assertEqual(dtype_name(numpy.int8), "int8")
+        self.assertEqual(dtype_name(numpy.uint8), "uint8")
+        self.assertEqual(dtype_name(numpy.str_), "str")
+        self.assertEqual(dtype_name(numpy.bool_), "bool")
+        self.assertRaise(lambda: dtype_name(numpy.int16), ValueError)
 
     @ignore_warnings((DeprecationWarning, FutureWarning))
     def test_cpu_conv(self):
@@ -65,10 +81,10 @@ class TestCpuOps(ExtTestCase):
             'X', 'W', output_names=['Y'],
             auto_pad='NOTSET', group=1, dilations=[1, 1],
             kernel_shape=[1, 1], pads=[0, 0, 0, 0], strides=[1, 1],
-            op_version=get_opset_number_from_onnx())
+            op_version=TARGET_OPSET)
         model_def = onx.to_onnx({'X': x.astype(numpy.float32),
                                  'W': W.astype(numpy.float32)},
-                                target_opset=get_opset_number_from_onnx())
+                                target_opset=TARGET_OPSET)
         oinf = OnnxInference(model_def)
         oinfrt = OnnxInference(model_def, runtime='onnxruntime1')
         for _ in range(0, 3):
@@ -79,7 +95,7 @@ class TestCpuOps(ExtTestCase):
             diff = list(numpy.abs((gotrt['Y'] - got['Y']).ravel()))
             sdiff = list(sorted(diff))
             if sdiff[-1] > 3e-5:
-                raise AssertionError("runtimes disagree {}".format(sdiff[-5:]))
+                raise AssertionError(f"runtimes disagree {sdiff[-5:]}")
             for ii in range(len(diff)):  # pylint: disable=C0200
                 if numpy.isnan(diff[ii]):
                     raise AssertionError(
@@ -96,10 +112,10 @@ class TestCpuOps(ExtTestCase):
             'X', 'W', output_names=['Y'],
             auto_pad='NOTSET', group=3, dilations=[1, 1],
             kernel_shape=[3, 3], strides=[1, 1],
-            op_version=get_opset_number_from_onnx())
+            op_version=TARGET_OPSET)
         model_def = onx.to_onnx({'X': x.astype(numpy.float32),
                                  'W': W.astype(numpy.float32)},
-                                target_opset=get_opset_number_from_onnx())
+                                target_opset=TARGET_OPSET)
         oinf = OnnxInference(model_def)
         oinfrt = OnnxInference(model_def, runtime='onnxruntime1')
         d = oinf.sequence_[-1].ops_.atts_value
@@ -132,7 +148,7 @@ class TestCpuOps(ExtTestCase):
             diff = list(numpy.abs((gotrt['Y'] - got['Y']).ravel()))
             sdiff = list(sorted(diff))
             if sdiff[-1] > 1e-5:
-                raise AssertionError("runtimes disagree {}".format(sdiff[-5:]))
+                raise AssertionError(f"runtimes disagree {sdiff[-5:]}")
             for ii in range(len(diff)):  # pylint: disable=C0200
                 if numpy.isnan(diff[ii]):
                     raise AssertionError(
@@ -163,6 +179,180 @@ class TestCpuOps(ExtTestCase):
                     self.assertEqualArray(exp[0], got['label'])
                     self.assertEqualArray(exp[1], got['probabilities'])
 
+    def test_im2col_indices(self):
+        img = numpy.arange(35 * 3).reshape((1, 3, 5, 7)
+                                           ).astype(numpy.float32) + 101
+        res2 = im2col_indices(img, 3, 3, padding=0)
+        self.assertEqual(res2.shape, (27, 15))
+        img2 = col2im_indices(res2, x_shape=img.shape)
+        self.assertEqual(img.shape, img2.shape)
+
+        img = numpy.arange(35).reshape(
+            (1, 1, 5, 7)).astype(numpy.float32) + 101
+        res2 = im2col_indices(img, 3, 3, padding=0)
+        self.assertEqual(res2.shape, (9, 15))
+        img2 = col2im_indices(res2, x_shape=img.shape)
+        self.assertEqual(img.shape, img2.shape)
+
+    def test_im2col(self):
+        data = numpy.arange(5).astype(numpy.float32) + 10
+        res = im2col(data, fill_value=0)
+        self.assertEqual(res.shape, (5, 3))
+        expected = numpy.array([[11, 10, 0], [12, 11, 10], [13, 12, 11],
+                                [14, 13, 12], [0, 14, 13]], dtype=numpy.float32)
+        expected = expected[:, ::-1]
+        self.assertEqualArray(expected.astype(
+            numpy.int16), res.astype(numpy.int16))
+
+        data = numpy.arange(10).astype(numpy.float32) + 10
+        res = im2col(data, fill_value=0)
+        self.assertEqual(res.shape, (10, 3))
+        expected = im2col_naive_implementation(data, (3, ), fill_value=0)
+        self.assertEqualArray(expected.astype(
+            numpy.int16), res.astype(numpy.int16))
+
+        data = numpy.arange(6).astype(numpy.float32) + 10
+        res = im2col(data, kernel_shape=(5,), fill_value=0)
+        self.assertEqual(res.shape, (6, 5))
+        expected = numpy.array([[12, 11, 10, 0, 0], [13, 12, 11, 10, 0],
+                                [14, 13, 12, 11, 10], [15, 14, 13, 12, 11],
+                                [0, 15, 14, 13, 12], [0, 0, 15, 14, 13]],
+                               dtype=numpy.int16)
+        expected = expected[:, ::-1]
+        self.assertEqualArray(expected.astype(
+            numpy.int16), res.astype(numpy.int16))
+
+    def test_im2col_double(self):
+        data = numpy.arange(5).astype(numpy.float64) + 10
+        res = im2col(data, fill_value=0)
+        self.assertEqual(res.shape, (5, 3))
+        expected = numpy.array([[11, 10, 0], [12, 11, 10], [13, 12, 11],
+                                [14, 13, 12], [0, 14, 13]], dtype=numpy.float64)
+        expected = expected[:, ::-1]
+        self.assertEqualArray(expected, res)
+
+        data = numpy.arange(6).astype(numpy.float64) + 10
+        res = im2col(data, kernel_shape=(5,), fill_value=0)
+        self.assertEqual(res.shape, (6, 5))
+        expected = numpy.array([[12, 11, 10, 0, 0], [13, 12, 11, 10, 0],
+                                [14, 13, 12, 11, 10], [15, 14, 13, 12, 11],
+                                [0, 15, 14, 13, 12], [0, 0, 15, 14, 13]],
+                               dtype=numpy.int64)
+        expected = expected[:, ::-1]
+        self.assertEqualArray(expected, res.astype(numpy.int64))
+
+    def test_im2col_2d(self):
+        data = (numpy.arange(9).astype(numpy.float64) + 10).reshape((3, 3))
+        self.assertRaise(lambda: im2col(data, [6, 7]), TypeError)
+        self.assertRaise(lambda: im2col(data, (3, 3, 3)), ValueError)
+        res = im2col(data, (3, 3), fill_value=0)
+        self.assertEqual(res.shape, (3, 3, 3, 3))
+        data = (numpy.arange(25).astype(numpy.float64) + 10).reshape((5, 5))
+        res = im2col(data, (5, 5), fill_value=0)
+        self.assertEqual(res.shape, (5, 5, 5, 5))
+
+    def test_im2col_2d_recursive(self):
+        data = (numpy.arange(9).astype(numpy.float64) + 10).reshape((3, 3))
+        res = im2col_recursive(data, (3, 3), fill_value=0, fall_back_dim=1)
+        expected = im2col_naive_implementation(data, (3, 3), fill_value=0)
+        self.assertEqualArray(expected, res)
+
+        data = (numpy.arange(25).astype(numpy.float64) + 10).reshape((5, 5))
+        res = im2col_recursive(data, (3, 3), fill_value=0, fall_back_dim=1)
+        expected = im2col_naive_implementation(data, (3, 3), fill_value=0)
+        self.assertEqualArray(expected, res)
+
+        data = (numpy.arange(25).astype(numpy.float64) + 10).reshape((5, 5))
+        res = im2col_recursive(data, (5, 5), fill_value=0, fall_back_dim=1)
+        expected = im2col_naive_implementation(data, (5, 5), fill_value=0)
+        self.assertEqualArray(expected, res)
+
+        for i in range(0, 2):
+            kernel_shape = [3, 3]
+            kernel_shape[i] = 5
+            kernel_shape = tuple(kernel_shape)
+            data = (numpy.arange(25).astype(
+                numpy.float64) + 10).reshape((5, 5))
+            res = im2col_recursive(
+                data, kernel_shape, fill_value=0, fall_back_dim=1)
+            expected = im2col_naive_implementation(
+                data, kernel_shape, fill_value=0)
+            self.assertEqualArray(expected, res)
+
+    def test_im2col_3d_recursive(self):
+        data = (numpy.arange(27).astype(numpy.float64) + 10).reshape((3, 3, 3))
+        res = im2col_recursive(data, (3, 3, 3), fill_value=0)
+        expected = im2col_naive_implementation(data, (3, 3, 3), fill_value=0)
+        self.assertEqualArray(expected, res)
+
+        data = (numpy.arange(125).astype(
+            numpy.float64) + 10).reshape((5, 5, 5))
+        res = im2col_recursive(data, (3, 3, 3), fill_value=0)
+        expected = im2col_naive_implementation(data, (3, 3, 3), fill_value=0)
+        self.assertEqualArray(expected, res)
+
+        for i in range(0, 3):
+            kernel_shape = [3, 3, 3]
+            kernel_shape[i] = 5
+            kernel_shape = tuple(kernel_shape)
+            data = (numpy.arange(125).astype(
+                numpy.float64) + 10).reshape((5, 5, 5))
+            res = im2col_recursive(data, kernel_shape, fill_value=0)
+            expected = im2col_naive_implementation(
+                data, kernel_shape, fill_value=0)
+            self.assertEqualArray(expected, res)
+
+    def test_nn_im2col_2d(self):
+        data = (numpy.arange(13 * 19).astype(numpy.float32) + 10).reshape((13, 19))
+        res = im2col_naive_implementation(data, (3, 3), fill_value=0)
+        res_th = res.reshape((data.shape[0] * data.shape[1], -1)).T
+        res_th2 = im2col_nn(res)[0]
+        self.assertEqual(res_th, res_th2)
+
+        try:
+            import torch
+        except ImportError:
+            torch = None
+        if torch is not None:
+            unfold = torch.nn.Unfold(kernel_size=(3, 3), dilation=1, padding=1)
+            sh = torch.from_numpy(data.reshape((1, 1) + data.shape))
+            th = unfold(sh)
+            self.assertEqual(tuple(th.shape)[1:], res_th.shape)
+            self.assertEqualArray(th.numpy().reshape(res_th.shape), res_th)
+
+        res2 = nn_im2col_2d(data, (3, 3), (1, 1), (1, 1))
+        self.assertEqual(res_th.shape, res2.shape)
+        self.assertEqualArray(res_th, res2)
+
+    def test_new_array(self):
+        shape = (4, 5)
+        a = new_array(shape)
+        self.assertEqual(a.shape, shape)
+        self.assertEqual(a.strides, (20, 4))
+        a = numpy.empty((4, 5), dtype=numpy.float32)
+        self.assertEqual(a.shape, shape)
+        self.assertEqual(a.strides, (20, 4))
+
+    def test_nn_col2im_2d(self):
+        data = (numpy.arange(13 * 19).astype(numpy.float32) + 10).reshape((13, 19))
+        col = nn_im2col_2d(data, (3, 3), (1, 1), (1, 1))
+        res = nn_col2im_2d(col, (13, 19), (3, 3), (1, 1), (1, 1))
+        self.assertEqual(res.shape, data.shape)
+
+        try:
+            import torch
+        except ImportError:
+            torch = None
+        if torch is not None:
+            fold = torch.nn.Fold(output_size=(
+                13, 19), kernel_size=(3, 3), dilation=1, padding=1)
+            sh = torch.from_numpy(col.reshape((1, ) + col.shape))
+            th = fold(sh)
+            self.assertEqual(tuple(th.shape)[2:], data.shape)
+            self.assertEqualArray(th.numpy().reshape(data.shape).astype(numpy.int16),
+                                  res.astype(numpy.int16))
+
 
 if __name__ == "__main__":
+    TestCpuOps().test_nn_col2im_2d()
     unittest.main()

@@ -257,33 +257,34 @@ py::array_t<float> RuntimeTfIdfVectorizer::OutputResult(
     const auto& w = weights_;
     switch (weighting_criteria_) {
         case kTF: {
-            for (auto f : frequences)
-                *output_data++ = static_cast<float>(f);
-        } break;
-        case kIDF: {
-            if (!w.empty()) {
-                const auto* freqs = frequences.data();
-                for (size_t batch = 0; batch < B; ++batch)
-                    for (size_t i = 0; i < row_size; ++i)
-                        *output_data++ = (*freqs++ > 0) ? w[i] : 0;
-            }
-            else {
-                for (auto f : frequences)
-                    *output_data++ = (f > 0) ? 1.0f : 0;
-            }
-        } break;
-        case kTFIDF: {
-            if (!w.empty()) {
-                const auto* freqs = frequences.data();
-                for (size_t batch = 0; batch < B; ++batch)
-                    for (size_t i = 0; i < row_size; ++i)
-                        *output_data++ = *freqs++ * w[i];
-            }
-            else {
-                for (auto f : frequences)
+                for (auto f : frequences) {
                     *output_data++ = static_cast<float>(f);
-            }
-        } break;
+                }
+            } break;
+        case kIDF: {
+                if (!w.empty()) {
+                    const auto* freqs = frequences.data();
+                    for (size_t batch = 0; batch < B; ++batch)
+                        for (size_t i = 0; i < row_size; ++i)
+                            *output_data++ = (*freqs++ > 0) ? w[i] : 0;
+                }
+                else {
+                    for (auto f : frequences)
+                        *output_data++ = (f > 0) ? 1.0f : 0;
+                }
+            } break;
+        case kTFIDF: {
+                if (!w.empty()) {
+                    const auto* freqs = frequences.data();
+                    for (size_t batch = 0; batch < B; ++batch)
+                        for (size_t i = 0; i < row_size; ++i)
+                            *output_data++ = *freqs++ * w[i];
+                }
+                else {
+                    for (auto f : frequences)
+                        *output_data++ = static_cast<float>(f);
+                }
+            } break;
         case kNone:  // fall-through
         default:
             throw std::invalid_argument("Unexpected weighting_criteria.");
@@ -326,8 +327,9 @@ void RuntimeTfIdfVectorizer::ComputeImpl(
                 auto hit = int_map->find(val);
                 if (hit == int_map->end())
                     break;
-                if (ngram_size >= start_ngram_size && hit->second->id_ != 0)
+                if (ngram_size >= start_ngram_size && hit->second->id_ != 0) {
                     IncrementCount(hit->second->id_, row_num, frequencies);
+                }
                 int_map = &hit->second->leafs_;
             }
             // Sliding window shift

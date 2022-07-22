@@ -11,22 +11,29 @@ from pyquicksetup import read_version, read_readme, default_cmdclass
 #########
 
 project_var_name = "mlprodict"
-versionPython = "%s.%s" % (sys.version_info.major, sys.version_info.minor)
+versionPython = f"{sys.version_info.major}.{sys.version_info.minor}"
 path = "Lib/site-packages/" + project_var_name
 readme = 'README.rst'
 history = "HISTORY.rst"
 requirements = None
 
-KEYWORDS = project_var_name + ', Xavier Dupré'
+KEYWORDS = [project_var_name, 'Xavier Dupré', 'onnx', 'scikit-learn',
+            'production', 'machine learning']
+
 DESCRIPTION = ("Python Runtime for ONNX models, other helpers to convert "
                "machine learned models in C++.")
 CLASSIFIERS = [
     'Programming Language :: Python :: 3',
     'Intended Audience :: Developers',
+    'Intended Audience :: Science/Research',
+    'License :: OSI Approved :: MIT License',
+    "Operating System :: Microsoft :: Windows",
+    "Operating System :: Unix",
+    "Operating System :: MacOS",
+    'Topic :: Software Development',
     'Topic :: Scientific/Engineering',
     'Topic :: Education',
-    'License :: OSI Approved :: MIT License',
-    'Development Status :: 5 - Production/Stable'
+    'Development Status :: 5 - Production/Stable',
 ]
 
 
@@ -38,6 +45,8 @@ packages = find_packages()
 package_dir = {k: os.path.join('.', k.replace(".", "/")) for k in packages}
 package_data = {
     project_var_name + ".asv_benchmark": ["*.json"],
+    project_var_name + ".npy": ["ort_get_all_operator_schema.txt",
+                                "ort_get_all_operator_schema.tmpl"],
     project_var_name + ".onnxrt.ops_cpu": ["*.cpp", "*.hpp"],
     project_var_name + ".onnxrt.validate.data": ["*.csv"],
     project_var_name + ".onnx_tools": ["*.tmpl"],
@@ -93,6 +102,41 @@ def get_extensions():
     root = os.path.abspath(os.path.dirname(__file__))
     (libraries_thread, extra_compile_args,
      extra_link_args, define_macros) = get_compile_args()
+
+    ext_roi_align = Extension(
+        'mlprodict.onnxrt.ops_cpu.op_roi_align_',
+        [os.path.join(root, 'mlprodict/onnxrt/ops_cpu/op_roi_align_.cpp'),
+         os.path.join(root, 'mlprodict/onnxrt/ops_cpu/op_conv_matrices_.cpp'),
+         os.path.join(root, 'mlprodict/onnxrt/ops_cpu/op_common_.cpp'),
+         os.path.join(root, 'mlprodict/onnxrt/ops_cpu/op_common_num_.cpp')],
+        extra_compile_args=extra_compile_args,
+        extra_link_args=extra_link_args,
+        include_dirs=[
+            # Path to pybind11 headers
+            get_pybind_include(),
+            get_pybind_include(user=True),
+            os.path.join(root, 'mlprodict/onnxrt/ops_cpu')
+        ],
+        define_macros=define_macros,
+        language='c++')
+
+    ext_grid_sample = Extension(
+        'mlprodict.onnxrt.ops_cpu.op_grid_sample_',
+        [os.path.join(root, 'mlprodict/onnxrt/ops_cpu/op_grid_sample_.cpp'),
+         os.path.join(root, 'mlprodict/onnxrt/ops_cpu/op_conv_matrices_.cpp'),
+         os.path.join(root, 'mlprodict/onnxrt/ops_cpu/op_common_.cpp'),
+         os.path.join(root, 'mlprodict/onnxrt/ops_cpu/op_common_num_.cpp')],
+        extra_compile_args=extra_compile_args,
+        extra_link_args=extra_link_args,
+        include_dirs=[
+            # Path to pybind11 headers
+            get_pybind_include(),
+            get_pybind_include(user=True),
+            os.path.join(root, 'mlprodict/onnxrt/ops_cpu')
+        ],
+        define_macros=define_macros,
+        language='c++')
+
     ext_max_pool = Extension(
         'mlprodict.onnxrt.ops_cpu.op_max_pool_',
         [os.path.join(root, 'mlprodict/onnxrt/ops_cpu/op_max_pool_.cpp'),
@@ -289,6 +333,21 @@ def get_extensions():
         define_macros=define_macros,
         language='c++')
 
+    ext_conv_helper = Extension(
+        'mlprodict.onnxrt.ops_cpu.op_conv_helper_',
+        [os.path.join(root, 'mlprodict/onnxrt/ops_cpu/op_conv_helper_.cpp'),
+         os.path.join(root, 'mlprodict/onnxrt/ops_cpu/op_common_.cpp')],
+        extra_compile_args=extra_compile_args,
+        extra_link_args=extra_link_args,
+        include_dirs=[
+            # Path to pybind11 headers
+            get_pybind_include(),
+            get_pybind_include(user=True),
+            os.path.join(root, 'mlprodict/onnxrt/ops_cpu')
+        ],
+        define_macros=define_macros,
+        language='c++')
+
     ext_conv_transpose = Extension(
         'mlprodict.onnxrt.ops_cpu.op_conv_transpose_',
         [os.path.join(root, 'mlprodict/onnxrt/ops_cpu/op_conv_transpose_.cpp'),
@@ -306,15 +365,31 @@ def get_extensions():
         language='c++')
 
     ext_experimental_c = Extension(
-        'mlprodict.testing.experimental_c',
-        [os.path.join(root, 'mlprodict/testing/experimental_c.cpp')],
+        'mlprodict.testing.experimental_c_impl.experimental_c',
+        [os.path.join(
+            root, 'mlprodict/testing/experimental_c_impl/experimental_c.cpp')],
         extra_compile_args=extra_compile_args,
         extra_link_args=extra_link_args,
         include_dirs=[
             # Path to pybind11 headers
             get_pybind_include(),
             get_pybind_include(user=True),
-            os.path.join(root, 'mlprodict/testing')
+            os.path.join(root, 'mlprodict/testing/experimental_c_impl')
+        ],
+        define_macros=define_macros,
+        language='c++')
+
+    ext_non_max_suppression = Extension(
+        'mlprodict.onnxrt.ops_cpu.op_non_max_suppression_',
+        [os.path.join(
+            root, 'mlprodict/onnxrt/ops_cpu/op_non_max_suppression_.cpp')],
+        extra_compile_args=extra_compile_args,
+        extra_link_args=extra_link_args,
+        include_dirs=[
+            # Path to pybind11 headers
+            get_pybind_include(),
+            get_pybind_include(user=True),
+            os.path.join(root, 'mlprodict/onnxrt/ops_cpu')
         ],
         define_macros=define_macros,
         language='c++')
@@ -335,11 +410,15 @@ def get_extensions():
 
     ext_modules = [
         ext_conv,
+        ext_conv_helper,
         ext_conv_transpose,
         ext_experimental_c,
         ext_gather,
+        ext_grid_sample,
         ext_max_pool,
+        ext_non_max_suppression,
         ext_qlinearconv,
+        ext_roi_align,
         ext_svm_classifier,
         ext_svm_regressor,
         ext_tfidfvectorizer,
@@ -357,7 +436,7 @@ try:
     ext_modules = get_extensions()
 except ImportError as e:
     warnings.warn(
-        "Unable to build C++ extension with missing dependencies %r." % e)
+        f"Unable to build C++ extension with missing dependencies {e!r}.")
     ext_modules = None
 
 # setup
@@ -369,8 +448,8 @@ setup(
     author='Xavier Dupré',
     author_email='xavier.dupre@gmail.com',
     license="MIT",
-    url="http://www.xavierdupre.fr/app/%s/helpsphinx/index.html" % project_var_name,
-    download_url="https://github.com/sdpython/%s/" % project_var_name,
+    url=f"http://www.xavierdupre.fr/app/{project_var_name}/helpsphinx/index.html",
+    download_url=f"https://github.com/sdpython/{project_var_name}/",
     description=DESCRIPTION,
     long_description=read_readme(__file__),
     cmdclass=default_cmdclass(),
@@ -380,9 +459,9 @@ setup(
     package_dir=package_dir,
     package_data=package_data,
     setup_requires=["pybind11", "numpy", "onnx>=1.7.0", "scikit-learn>=0.23",
-                    "jinja2", 'cython', 'pyquicksetup'],
+                    'cython', 'pyquicksetup'],
     install_requires=["pybind11", "numpy>=1.17", "onnx>=1.7.0", 'scipy>=1.0.0',
-                      'jinja2', 'cython'],
+                      'cython'],
     extras_require={
         'npy': ['scikit-learn>=0.24', 'skl2onnx>=1.10.2'],
         'onnx_conv': [
@@ -395,7 +474,7 @@ setup(
             'scikit-learn>=0.24', 'joblib', 'threadpoolctl',
             'onnxruntime>=1.19.0', 'onnxruntime-extensions'],
         'all': [
-            'scikit-learn>=0.24', 'skl2onnx>=1.10.2',
+            'jinja2', 'scikit-learn>=0.24', 'skl2onnx>=1.10.2',
             'onnxruntime>=1.10.0', 'scipy' 'joblib', 'pandas',
             'threadpoolctl', 'mlinsights>=0.3', 'lightgbm',
             'xgboost', 'mlstatpy>=0.3.593', 'onnxruntime-extensions'],

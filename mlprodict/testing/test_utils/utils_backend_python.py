@@ -1,6 +1,6 @@
 """
 @file
-@brief Inspired from skl2onnx, handles two backends.
+@brief Inspired from sklearn-onnx, handles two backends.
 """
 from ...onnxrt import OnnxInference
 from .utils_backend_common_compare import compare_runtime_session
@@ -16,13 +16,13 @@ class MockVariableName:
     def shape(self):
         "returns shape"
         raise NotImplementedError(  # pragma: no cover
-            "No shape for '{}'.".format(self.name))
+            f"No shape for '{self.name}'.")
 
     @property
     def type(self):
         "returns type"
         raise NotImplementedError(  # pragma: no cover
-            "No type for '{}'.".format(self.name))
+            f"No type for '{self.name}'.")
 
 
 class MockVariableNameShape(MockVariableName):
@@ -62,7 +62,7 @@ class OnnxInference2(OnnxInference):
         if name in res:  # pragma: no cover
             return res[name]
         raise RuntimeError(  # pragma: no cover
-            "Unable to find output '{}'.".format(name))
+            f"Unable to find output '{name}'.")
 
     def get_inputs(self):
         "onnxruntime API"
@@ -72,9 +72,10 @@ class OnnxInference2(OnnxInference):
         "onnxruntime API"
         return [MockVariableNameShape(*n) for n in self.output_names_shapes]
 
-    def run_in_scan(self, inputs, verbose=0, fLOG=None):
+    def run_in_scan(self, inputs, attributes=None, verbose=0, fLOG=None):
         "Instance to run in operator scan."
-        return OnnxInference.run(self, inputs, verbose=verbose, fLOG=fLOG)
+        return OnnxInference.run(
+            self, inputs, attributes=attributes, verbose=verbose, fLOG=fLOG)
 
 
 def compare_runtime(test, decimal=5, options=None,

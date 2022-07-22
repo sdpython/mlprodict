@@ -6,6 +6,7 @@ from itertools import permutations
 import numpy
 from onnx import helper, TensorProto
 from cpyquickhelper.numbers import measure_time
+from ... import __max_supported_opset__, get_ir_version
 from ...tools.ort_wrapper import InferenceSession
 from ...onnxrt import OnnxInference
 from .einsum_impl import decompose_einsum_equation, apply_einsum_sequence
@@ -37,7 +38,7 @@ def _measure_time(stmt, *x, repeat=5, number=5, div_by_number=True,
         try:
             stmt(*x)
         except RuntimeError as e:  # pragma: no cover
-            raise RuntimeError("{}-{}".format(type(x), x.dtype)) from e
+            raise RuntimeError(f"{type(x)}-{getattr(x, 'dtype', '?')}") from e
 
     def fct():
         stmt(*x)
@@ -49,13 +50,12 @@ def _measure_time(stmt, *x, repeat=5, number=5, div_by_number=True,
                         div_by_number=div_by_number, max_time=max_time)
 
 
-def _make_einsum_model(equation, opset=15):  # opset=13, 14, ...
-    from skl2onnx.common._topology import OPSET_TO_IR_VERSION  # pylint: disable=E0611,E0001
+def _make_einsum_model(equation, opset=__max_supported_opset__):
     inputs = equation.split('->')[0].split(',')
 
     model = helper.make_model(
         opset_imports=[helper.make_operatorsetid('', opset)],
-        ir_version=OPSET_TO_IR_VERSION.get(opset, 7),
+        ir_version=get_ir_version(opset),
         producer_name='mlprodict',
         producer_version='0.1',
         graph=helper.make_graph(
@@ -87,15 +87,14 @@ def _make_inputs(equation, shapes):
     else:
         if len(shapes) != len(inputs):
             raise ValueError(  # pragma: no cover
-                "Unexpected number of shapes %r with equation %r."
-                "" % (shapes, equation))
+                f"Unexpected number of shapes {shapes!r} with equation {equation!r}.")
     inputs = [numpy.random.randn(*sh) for sh in shapes]
     return [i.astype(numpy.float32) for i in inputs]
 
 
 def einsum_benchmark(equation="abc,cd->abd", shape=30, perm=False,
                      runtime='python', use_tqdm=False,
-                     number=5, repeat=5, opset=15):  # opset=13, 14, ...
+                     number=5, repeat=5, opset=__max_supported_opset__):
     """
     Investigates whether or not the decomposing einsum is faster.
 
@@ -166,7 +165,8 @@ def einsum_benchmark(equation="abc,cd->abd", shape=30, perm=False,
                 onx = seq.to_onnx('Y', *["X%d" % i for i in range(len(inputs))],
                                   opset=opset)
             sess = InferenceSession(
-                onx.SerializeToString())  # pylint: disable=W0612
+                onx.SerializeToString(),
+                providers=['CPUExecutionProvider'])  # pylint: disable=W0612
             fct = lambda *x, se=sess: se.run(
                 None, {"X%d" % i: v for i, v in enumerate(x)})
         elif rt == 'python':
@@ -179,7 +179,7 @@ def einsum_benchmark(equation="abc,cd->abd", shape=30, perm=False,
             fct = lambda *x, oi=oinf: oi.run(
                 {"X%d" % i: v for i, v in enumerate(x)})
         else:
-            raise ValueError("Unexpected runtime %r." % rt)
+            raise ValueError(f"Unexpected runtime {rt!r}.")
 
         res = _measure_time(fct, *inputs, repeat=repeat, number=number)
         res['rt'] = rt

@@ -55,9 +55,9 @@ class AdjacencyGraphDisplay:
 
     def __str__(self):
         "usual"
-        rows = ["%s(" % self.__class__.__name__]
+        rows = [f"{self.__class__.__name__}("]
         for act in self:
-            rows.append("    %r" % act)
+            rows.append(f"    {act!r}")
         rows.append(")")
         return "\n".join(rows)
 
@@ -73,13 +73,13 @@ class AdjacencyGraphDisplay:
         """
         if kind not in {'cross', 'text'}:
             raise ValueError(  # pragma: no cover
-                "Unexpected value for kind %r." % kind)
+                f"Unexpected value for kind {kind!r}.")
         if kind == 'cross' and label[0] not in {'I', 'O'}:
             raise ValueError(  # pragma: no cover
                 "kind=='cross' and label[0]=%r not in {'I','O'}." % label)
         if not isinstance(label, str):
             raise TypeError(  # pragma: no cover
-                "Unexpected label type %r." % type(label))
+                f"Unexpected label type {type(label)!r}.")
         self.actions.append(
             AdjacencyGraphDisplay.Action(x, y, kind, label=label,
                                          orientation=orientation))
@@ -106,8 +106,7 @@ class AdjacencyGraphDisplay:
                     mat[act.x * 3 + 1, act.y] = act.label[1]
                 else:
                     raise NotImplementedError(
-                        "Unable to display long cross label (%r)."
-                        "" % act.label)
+                        f"Unable to display long cross label ({act.label!r}).")
             elif act.kind == 'text':
                 x = act.x * 3
                 y = act.y
@@ -120,7 +119,7 @@ class AdjacencyGraphDisplay:
                     y += orient[1]
             else:
                 raise ValueError(  # pragma: no cover
-                    "Unexpected kind value %r." % act.kind)
+                    f"Unexpected kind value {act.kind!r}.")
 
         min_i = min(k[0] for k in mat)
         min_j = min(k[1] for k in mat)
@@ -154,7 +153,7 @@ class BiGraph:
             self.kind = kind
 
         def __repr__(self):
-            return "A(%r)" % self.kind
+            return f"A({self.kind!r})"
 
     class B:
         "Additional information for a vertex or an edge."
@@ -162,13 +161,13 @@ class BiGraph:
         def __init__(self, name, content, onnx_name):
             if not isinstance(content, str):
                 raise TypeError(  # pragma: no cover
-                    "content must be str not %r." % type(content))
+                    f"content must be str not {type(content)!r}.")
             self.name = name
             self.content = content
             self.onnx_name = onnx_name
 
         def __repr__(self):
-            return "B(%r, %r, %r)" % (self.name, self.content, self.onnx_name)
+            return f"B({self.name!r}, {self.content!r}, {self.onnx_name!r})"
 
     def __init__(self, v0, v1, edges):
         """
@@ -188,7 +187,7 @@ class BiGraph:
         common = set(self.v0).intersection(set(self.v1))
         if len(common) > 0:
             raise ValueError(
-                "Sets v1 and v2 have common nodes (forbidden): %r." % common)
+                f"Sets v1 and v2 have common nodes (forbidden): {common!r}.")
         for a, b in edges:
             if a in v0 and b in v1:
                 continue
@@ -200,7 +199,7 @@ class BiGraph:
                 self.v0[a] = BiGraph.A('ERROR')
                 continue
             raise ValueError(
-                "Edges (%r, %r) not found among the vertices." % (a, b))
+                f"Edges ({a!r}, {b!r}) not found among the vertices.")
 
     def __str__(self):
         """
@@ -264,8 +263,7 @@ class BiGraph:
                 break
         if modif > 0:
             raise RuntimeError(
-                "The graph has a cycle.\n%s" % pprint.pformat(
-                    self.edges))
+                f"The graph has a cycle.\n{pprint.pformat(self.edges)}")
         return order
 
     def adjacency_matrix(self):
@@ -439,13 +437,13 @@ class BiGraph:
             for i, o in enumerate(n.input):
                 c = str(i) if i < 10 else "+"
                 nname = n.name if len(n.name) > 0 else "id%d" % id(n)
-                edges[o, nname] = BiGraph.A('I%s' % c)
+                edges[o, nname] = BiGraph.A(f'I{c}')
             for i, o in enumerate(n.output):
                 c = str(i) if i < 10 else "+"
                 if o not in v0:
                     v0[o] = BiGraph.A('inout')
                 nname = n.name if len(n.name) > 0 else "id%d" % id(n)
-                edges[nname, o] = BiGraph.A('O%s' % c)
+                edges[nname, o] = BiGraph.A(f'O{c}')
 
         return BiGraph(v0, v1, edges)
 
@@ -464,19 +462,19 @@ class BiGraph:
 
         # inputs
         for o in model_onnx.graph.input:
-            v0["I%d" % len(v0)] = BiGraph.B(
+            v0[f"I{len(v0)}"] = BiGraph.B(
                 'In', make_hash_bytes(o.type.SerializeToString(), 2), o.name)
         for o in model_onnx.graph.output:
-            v0["O%d" % len(v0)] = BiGraph.B(
+            v0[f"O{len(v0)}"] = BiGraph.B(
                 'Ou', make_hash_bytes(o.type.SerializeToString(), 2), o.name)
         for o in model_onnx.graph.initializer:
-            v0["C%d" % len(v0)] = BiGraph.B(
+            v0[f"C{len(v0)}"] = BiGraph.B(
                 'Cs', make_hash_bytes(o.raw_data, 10), o.name)
 
         names_v0 = {v.onnx_name: k for k, v in v0.items()}
 
         for n in model_onnx.graph.node:
-            key_node = "N%d" % len(v1)
+            key_node = f"N{len(v1)}"
             if len(n.attribute) > 0:
                 ats = []
                 for at in n.attribute:
@@ -491,7 +489,7 @@ class BiGraph:
                 edges[key_in, key_node] = BiGraph.A('I')
             for o in n.output:
                 if o not in names_v0:
-                    key = "R%d" % len(v0)
+                    key = f"R{len(v0)}"
                     v0[key] = BiGraph.B('Re', n.op_type, o)
                     names_v0[o] = key
                 edges[key_node, key] = BiGraph.A('O')
@@ -586,13 +584,14 @@ def onnx2bigraph(model_onnx, recursive=False, graph_type='basic'):
             :showcode:
 
             import numpy
-            from skl2onnx.algebra.onnx_ops import OnnxAdd, OnnxSub
             from mlprodict.onnx_conv import to_onnx
-            from mlprodict.tools import get_opset_number_from_onnx
+            from mlprodict import __max_supported_opset__ as opv
             from mlprodict.tools.graphs import onnx2bigraph
+            from mlprodict.npy.xop import loadop
+
+            OnnxAdd, OnnxSub = loadop('Add', 'Sub')
 
             idi = numpy.identity(2).astype(numpy.float32)
-            opv = get_opset_number_from_onnx()
             A = OnnxAdd('X', idi, op_version=opv)
             B = OnnxSub(A, 'W', output_names=['Y'], op_version=opv)
             onx = B.to_onnx({'X': idi, 'W': idi})
@@ -610,7 +609,7 @@ def onnx2bigraph(model_onnx, recursive=False, graph_type='basic'):
         return BiGraph._onnx2bigraph_simplified(
             model_onnx, recursive=recursive)
     raise ValueError(
-        "Unknown value for graph_type=%r." % graph_type)
+        f"Unknown value for graph_type={graph_type!r}.")
 
 
 def onnx_graph_distance(onx1, onx2, verbose=0, fLOG=print):

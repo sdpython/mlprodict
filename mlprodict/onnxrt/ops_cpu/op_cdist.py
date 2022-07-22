@@ -7,7 +7,6 @@
 from scipy.spatial.distance import cdist
 from ._op import OpRunBinaryNum
 from ._new_ops import OperatorSchema
-from ..shape_object import ShapeObject
 
 
 class CDist(OpRunBinaryNum):
@@ -19,7 +18,7 @@ class CDist(OpRunBinaryNum):
                                 expected_attributes=CDist.atts,
                                 **options)
 
-    def _run(self, a, b):  # pylint: disable=W0221
+    def _run(self, a, b, attributes=None, verbose=0, fLOG=None):  # pylint: disable=W0221
         metric = self.metric.decode('ascii')
         if metric == 'minkowski':
             res = cdist(a, b, metric=metric, p=self.p)
@@ -33,14 +32,7 @@ class CDist(OpRunBinaryNum):
         if op_name == "CDist":
             return CDistSchema()
         raise RuntimeError(  # pragma: no cover
-            "Unable to find a schema for operator '{}'.".format(op_name))
-
-    def _infer_shapes(self, a, b):  # pylint: disable=W0221,W0237
-        """
-        Returns the same for the labels and the probabilities.
-        """
-        return (ShapeObject((a[0], b[0]), dtype=a.dtype,
-                            name=self.__class__.__name__), )
+            f"Unable to find a schema for operator '{op_name}'.")
 
     def to_python(self, inputs):
         metric = self.metric.decode('ascii')
@@ -49,8 +41,7 @@ class CDist(OpRunBinaryNum):
                     "return cdist({}, {}, metric='{}', p={})".format(
                         inputs[0], inputs[1], metric, self.p))
         return ('from scipy.spatial.distance import cdist',
-                "return cdist({}, {}, metric='{}')".format(
-                    inputs[0], inputs[1], metric))
+                f"return cdist({inputs[0]}, {inputs[1]}, metric='{metric}')")
 
 
 class CDistSchema(OperatorSchema):

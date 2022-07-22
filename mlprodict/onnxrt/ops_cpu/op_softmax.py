@@ -18,18 +18,18 @@ class Softmax(OpRunUnaryNum):
                                expected_attributes=Softmax.atts,
                                **options)
 
-    def _run(self, X):  # pylint: disable=W0221
-        if self.inplaces.get(0, False):
+    def _run(self, X, attributes=None, verbose=0, fLOG=None):  # pylint: disable=W0221
+        if self.inplaces.get(0, False) and X.flags['WRITEABLE']:
             return self._run_inplace(X)
-        tmp = X - X.max(axis=self.axis)[:, numpy.newaxis]
+        tmp = X - X.max(axis=self.axis, keepdims=1)
         Y = numpy.exp(tmp)
-        Y /= Y.sum(axis=self.axis)[:, numpy.newaxis]
+        Y /= Y.sum(axis=self.axis, keepdims=1)
         return (Y, )
 
     def _run_inplace(self, X):
-        X -= X.max(axis=self.axis)[:, numpy.newaxis]
+        X -= X.max(axis=self.axis, keepdims=1)
         numpy.exp(X, out=X)
-        X /= X.sum(axis=self.axis)[:, numpy.newaxis]
+        X /= X.sum(axis=self.axis, keepdims=1)
         return (X, )
 
     def to_python(self, inputs):
@@ -66,9 +66,9 @@ class SoftmaxGrad_13(OpRunBinaryNum):
         if op_name in ("SoftmaxGrad_13", "SoftmaxGrad"):
             return SoftmaxGradSchema()
         raise RuntimeError(  # pragma: no cover
-            "Unable to find a schema for operator '{}'.".format(op_name))
+            f"Unable to find a schema for operator '{op_name}'.")
 
-    def _run(self, grad, prob):  # pylint: disable=W0221
+    def _run(self, grad, prob, attributes=None, verbose=0, fLOG=None):  # pylint: disable=W0221
         # softmax
         # tmp = X - X.max(axis=self.axis)[:, numpy.newaxis]
         # Y = numpy.exp(tmp)

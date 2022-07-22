@@ -31,7 +31,7 @@ class StringNormalizer(OpRunUnary):
         self.slocale = self.locale.decode('ascii')
         self.stops = set(self.stopwords)
 
-    def _run(self, x):  # pylint: disable=W0221
+    def _run(self, x, attributes=None, verbose=0, fLOG=None):  # pylint: disable=W0221
         """
         Normalizes strings.
         """
@@ -79,8 +79,7 @@ class StringNormalizer(OpRunUnary):
                 cout[i] = cout[i].upper()
         elif self.case_change_action != b'NONE':
             raise RuntimeError(
-                "Unknown option for case_change_action: {}.".format(
-                    self.case_change_action))
+                f"Unknown option for case_change_action: {self.case_change_action}.")
 
         if not self.is_case_sensitive and len(stops) > 0:
             for i in range(0, cin.shape[0]):
@@ -113,6 +112,3 @@ class StringNormalizer(OpRunUnary):
             s = ''.join(
                 [c for c in normalized if not unicodedata.combining(c)])
             return s
-
-    def _infer_shapes(self, x):  # pylint: disable=E0202,W0221
-        return (x, )

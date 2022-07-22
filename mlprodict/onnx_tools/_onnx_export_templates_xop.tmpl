@@ -1,0 +1,124 @@
+import numpy
+from onnx import TensorProto
+from onnx.helper import make_tensor
+from mlprodict.npy.xop_variable import Variable
+from mlprodict.npy.xop import loadop, OnnxOperatorFunction
+
+
+def {{ function_name }}():
+    '''
+    Converted ``{{ name }}``.
+
+    * producer: {{ producer_name }}
+    * version: {{ model_version }}
+    * description: {{ doc_string }}
+    {%- for key, val in sorted(metadata.items()): -%}
+    * {{ key }}: {{ val }}
+    {%- endfor %}
+    '''
+    
+    print('[operators]')   # verbose
+    OnnxConstant = loadop('Constant')
+    OnnxIdentity = loadop('Identity')
+    {% for op in unique_operators: -%}
+    {% if op['name'] != 'Identity': -%}{% if op['domain'] == '': %}{{ op['classname'] }} = loadop('{{ op['name'] }}')
+    {% else -%}{{ op['classname'] }} = loadop(('{{ op['domain'] }}', '{{ op['name'] }}'))
+    {% endif %}{% endif %}{% endfor %}
+
+    sub_functions = []
+    {% for domain, name, fct in functions: %}
+    # function: '{{ domain }}', '{{ name }}'
+    print("[functions] domain='{{ domain }}', name='{{ name }}")  # verbose
+    {% for name in fct['proto'].input: -%}
+    {{ name }} = '{{ name }}'
+    {%- endfor %}
+    {% for node in fct['nodes']: -%}
+    {{ ', '.join(node['outputs']) }} = {{ xop_make_node_name(node['domain'], node['op_type']) }}({{ ', '.join(node['inputs']) }}{% if len(node['inputs']) > 0 %},{% endif %}
+        {%- for name, value in node['attributes']: -%}
+        {{ name }}={{ value }},
+        {%- endfor -%}{%- if len(node['output_names']) > 0 -%}
+        output_names={{ repr(node['output_names']) }},
+        {%- endif -%}
+        {% if node['domain'] != '' %}domain='{{ node['domain'] }}', {% endif %}op_version={{ fct['opsets'][node['domain']] }})
+    {% endfor -%}
+    fp_{{ name }} = {{ fct['proto'].output[0] }}.to_onnx(function_name='{{ name }}', function_domain='{{ domain }}')
+    {{ xop_make_node_name(fct['proto'].domain, fct['proto'].name) }} = (
+        lambda *args, domain=None, op_version=None, sub_functions=sub_functions.copy(), **kwargs:
+            OnnxOperatorFunction(fp_{{ name }}, *args, sub_functions=sub_functions, **kwargs))
+    sub_functions.append(fp_{{ name }})
+    {% endfor %}
+
+    # inputs
+    print('[inputs]')   # verbose
+    var_inputs = []
+    {% for name, typ, shape in inputs: %}
+    {{ name }} = '{{ name }}'
+    var_inputs.append(Variable({{ name }}, numpy.{{ TENSOR_TYPE_TO_NP_TYPE[typ] }}, {{ shape }}))
+    {%- endfor %}
+
+    # outputs
+    print('[outputs]')   # verbose
+    var_outputs = []
+    {% for name, typ, shape in outputs: -%}
+    var_outputs.append(Variable('{{ name }}', numpy.{{ TENSOR_TYPE_TO_NP_TYPE[typ] }}, {{ shape }}))
+    {%- endfor %}
+
+    # subgraphs
+    {%- for code, name in subgraphs: -%}
+    {{ indent(code, '    ') }}
+    {%- endfor %}
+
+    # containers
+    print('[containers]')   # verbose
+
+    {% if ir_version %}
+    # opsets
+    print('[opsets]')   # verbose
+    opsets = {{ opsets }}
+    target_opset = {{ target_opset }}
+    {%- endif -%}
+
+    # subgraphs
+    print('[subgraphs]')   # verbose
+    {%- for code, name in subgraphs: -%}
+    {{ name }} = subgraph_{{ name }}
+    {%- endfor %}
+
+    # initializers
+    print('[initializers]')   # verbose
+    {% for name, value in initializers: %}{% if len(value.shape) == 0: %}
+    {{ name }} = OnnxIdentity(numpy.array({{ value }}, dtype=numpy.{{ value.dtype }}), op_version={{ target_opset }})
+    {%- else %}{% if value.size < 6: %}
+    {{ name }} = OnnxIdentity(numpy.array({{ value.tolist() }}, dtype=numpy.{{ value.dtype }}){% if len(value.shape) > 1: %}.reshape({{ value.shape }}){% endif %}, op_version={{ target_opset }})
+    {%- else %}
+    list_value = {{ value.ravel().tolist() }}
+    {{ name }} = OnnxIdentity(numpy.array(list_value, dtype=numpy.{{ value.dtype }}){% if len(value.shape) > 1: %}.reshape({{ value.shape }}){% endif %}, op_version={{ target_opset }})
+    {% endif %}{% endif %}{% endfor %}
+
+    # nodes
+    print('[nodes]')   # verbose
+    {% for node in nodes: -%}
+    {{ ', '.join(node['outputs']) }} = {{ xop_make_node_name(node['domain'], node['op_type']) }}({{ ', '.join(node['inputs']) }}{% if len(node['inputs']) > 0 %},{% endif %}
+        {%- for name, value in node['attributes']: -%}
+        {{ name }}={{ value }},
+        {%- endfor -%}{%- if len(node['output_names']) > 0 -%}
+        output_names={{ repr(node['output_names']) }},
+        {%- endif -%}
+        {% if node['domain'] != '' %}domain='{{ node['domain'] }}', {% endif %}op_version={{ opsets[node['domain']] }})
+    {% endfor %}
+
+    # graph
+    {% if len(outputs) == 1 %}
+    return {{ outputs[0][0] }}.to_onnx(
+        target_opset={{ opsets }},
+        inputs=var_inputs, outputs=var_outputs)
+    {% else %}
+    return {{ outputs[0][0] }}.to_onnx(
+        target_opset={{ opsets }},
+        inputs=var_inputs, outputs=var_outputs,
+        other_outputs=[{{ outputs[1][0] }}{% for o in outputs[2:] %}, {{ o[0] }}{% endfor %}])
+    {% endif %}
+
+{% if ir_version %}
+onnx_model = {{ function_name }}()
+{% endif %}

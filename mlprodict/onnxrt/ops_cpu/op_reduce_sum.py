@@ -18,7 +18,7 @@ class ReduceSum_1(OpRunReduceNumpy):
                                   expected_attributes=ReduceSum_1.atts,
                                   **options)
 
-    def _run(self, data):  # pylint: disable=W0221
+    def _run(self, data, attributes=None, verbose=0, fLOG=None):  # pylint: disable=W0221
         return (numpy.sum(data, axis=self.axes,
                           keepdims=self.keepdims,
                           dtype=data.dtype), )
@@ -39,11 +39,11 @@ class ReduceSum_13(OpRunReduceNumpy):
                                   expected_attributes=ReduceSum_13.atts,
                                   **options)
 
-    def run(self, data, axes=None):  # pylint: disable=E0202,W0221
+    def run(self, data, axes=None, attributes=None, verbose=0, fLOG=None):  # pylint: disable=E0202,W0221,W0237
         """
         Calls method ``_run``.
         """
-        res = self._run(data, axes=axes)
+        res = self._run(data, axes=axes, verbose=verbose, fLOG=fLOG)
         if not self.keepdims and not isinstance(res[0], numpy.ndarray):
             res = (numpy.array([res[0]], dtype=res[0].dtype), )
         if res[0].dtype != data.dtype:
@@ -53,10 +53,10 @@ class ReduceSum_13(OpRunReduceNumpy):
                     data.dtype, res[0].dtype, self.__class__.__name__))
         return res
 
-    def _run_no_checks_(self, x, axes=None):  # pylint: disable=W0221
-        return OpRun.run(self, x, axes)
+    def _run_no_checks_(self, x, axes=None, attributes=None, verbose=0, fLOG=None):  # pylint: disable=W0221,W0237
+        return OpRun.run(self, x, axes, attributes=attributes, verbose=verbose, fLOG=fLOG)
 
-    def _run(self, data, axes=None):  # pylint: disable=W0221
+    def _run(self, data, axes=None, attributes=None, verbose=0, fLOG=None):  # pylint: disable=W0221
         if ((axes is None or len(axes.shape) == 0 or axes.shape[0] == 0) and
                 self.noop_with_empty_axes):
             return (data, )
@@ -65,36 +65,14 @@ class ReduceSum_13(OpRunReduceNumpy):
             if isinstance(axes, numpy.ndarray) and len(axes.shape) == 0:
                 axes = int(axes)
             else:
-                axes = tuple(axes) if len(axes) > 0 else None
+                axes = tuple(axes.ravel().tolist()) if len(axes) > 0 else None
         try:
-            return (numpy.sum(data, axis=axes,
+            return (numpy.sum(data, axis=axes if axes else None,
                               keepdims=self.keepdims,
                               dtype=data.dtype), )
         except TypeError as e:  # pragma: no cover
             raise TypeError(
-                "Unable to reduce shape %r with axes=%r." % (
-                    data.shape, axes)) from e
-
-    def infer_shapes(self, data, axes=None):  # pylint: disable=E0202,W0221
-        return self._infer_shapes(data, axes=axes)
-
-    def _infer_shapes(self, data, axes=None):  # pylint: disable=W0221
-        """
-        Returns the same shape by default.
-        """
-        sh = data.reduce(axes, self.keepdims,  # pylint: disable=E1101
-                         dtype=numpy.int64)  # pylint: disable=E1101
-        return (sh, )
-
-    def infer_types(self, data, axes=None):  # pylint: disable=E0202,W0221
-        return self._infer_types(data, axes=axes)
-
-    def _infer_types(self, data, axes=None):  # pylint: disable=W0221
-        return (data, )
-
-    def _infer_sizes(self, *args, **kwargs):  # pylint: disable=W0221
-        res = self.run(*args, **kwargs)
-        return (dict(temp=0), ) + res
+                f"Unable to reduce shape {data.shape!r} with axes={axes!r}.") from e
 
 
 if onnx_opset_version() >= 13:

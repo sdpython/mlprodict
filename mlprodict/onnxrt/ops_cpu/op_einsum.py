@@ -6,7 +6,6 @@
 """
 import numpy
 from ._op import OpRun
-from ..shape_object import ShapeObject
 
 
 class Einsum(OpRun):
@@ -20,30 +19,16 @@ class Einsum(OpRun):
                        **options)
         if not isinstance(self.equation, (str, bytes)):
             raise TypeError(  # pragma: no cover
-                "equation must be string but is %r." % type(self.equation))
+                f"equation must be string but is {type(self.equation)!r}.")
         self.equation = self.equation.strip()
         if len(self.equation) == 0:
             raise TypeError("equation is empty.")  # pragma: no cover
 
-    def _run(self, *args):  # pylint: disable=W0221
+    def _run(self, *args, attributes=None, verbose=0, fLOG=None):  # pylint: disable=W0221
         try:
             return (numpy.einsum(self.equation, *args, optimize=True), )
         except TypeError:
             return (numpy.einsum(self.equation, *args), )
-
-    def _infer_shapes(self, *args):  # pylint: disable=W0221
-        try:
-            return (ShapeObject.einsum_shape(self.equation, *args), )
-        except RuntimeError:  # pragma: no cover
-            return (ShapeObject(None, dtype=args[0].dtype), )
-
-    def _infer_types(self, *args):  # pylint: disable=W0221
-        return (args[0], )
-
-    def _infer_sizes(self, *args):  # pylint: disable=W0221
-        res = self.run(*args)
-        maxi = max(a.size for a in args)
-        return (dict(temp=maxi * 3 * args[0].dtype.itemsize), ) + res
 
     def to_python(self, inputs):
         return ("import numpy",

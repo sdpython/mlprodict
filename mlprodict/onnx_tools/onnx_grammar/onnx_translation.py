@@ -92,8 +92,8 @@ def get_default_context():
     for k, v in numpy.__dict__.items():
         if k not in allow:
             continue
-        context['numpy.%s' % k] = v
-        context['np.%s' % k] = v
+        context[f'numpy.{k}'] = v
+        context[f'np.{k}'] = v
     return context
 
 
@@ -106,16 +106,16 @@ def get_default_context_cpl():
            'py_pow': py_pow, 'py_mul': py_mul, 'py_opp': py_opp,
            'numpy': numpy}
     try:
-        from skl2onnx.algebra.complex_functions import onnx_squareform_pdist
-        from skl2onnx.algebra.complex_functions import onnx_cdist
+        from skl2onnx.algebra.complex_functions import onnx_squareform_pdist  # delayed
+        from skl2onnx.algebra.complex_functions import onnx_cdist  # delayed
         ctx['onnx_squareform_pdist'] = onnx_squareform_pdist
         ctx['onnx_cdist'] = onnx_cdist
     except ImportError:  # pragma: no cover
         # Too old version for skl2onnx.
         pass
 
-    from skl2onnx.algebra import onnx_ops
-    from skl2onnx.algebra.onnx_operator import OnnxOperator
+    from skl2onnx.algebra import onnx_ops  # delayed
+    from skl2onnx.algebra.onnx_operator import OnnxOperator  # delayed
     d = onnx_ops.__dict__
     for k, v in d.items():
         try:
@@ -125,7 +125,7 @@ def get_default_context_cpl():
             if inspect.isfunction(v):
                 continue
             raise RuntimeError(  # pragma: no cover
-                "Issue with {}={} (type={})".format(k, v, type(v))) from e
+                f"Issue with {k}={v} (type={type(v)})") from e
     return ctx
 
 
@@ -197,22 +197,26 @@ def translate_fct2onnx(fct, context=None, cpl=False,
 
             import numpy
             from mlprodict.onnx_tools.onnx_grammar import translate_fct2onnx
+            from mlprodict.plotting.text_plot import onnx_simple_text_plot
             from mlprodict.onnxrt import OnnxInference
-            from skl2onnx.algebra.onnx_ops import (
-                OnnxAdd, OnnxTranspose, OnnxMul, OnnxIdentity
-            )
+            from mlprodict.npy.xop import loadop
+
+
+            OnnxAdd, OnnxTranspose, OnnxMul, OnnxIdentity = loadop(
+                'Add', 'Transpose', 'Mul', 'Identity')
+
 
             ctx = {'OnnxAdd': OnnxAdd,
-                   'OnnxTranspose': OnnxTranspose,
-                   'OnnxMul': OnnxMul,
-                   'OnnxIdentity': OnnxIdentity}
+                'OnnxTranspose': OnnxTranspose,
+                'OnnxMul': OnnxMul,
+                'OnnxIdentity': OnnxIdentity}
 
             def trs(x, y):
                 z = x + numpy.transpose(y, axes=[1, 0])
                 return x * z
 
             inputs = {'x': numpy.array([[1, 2]], dtype=numpy.float32),
-                      'y': numpy.array([[-0.3, 0.4]], dtype=numpy.float32).T}
+                    'y': numpy.array([[-0.3, 0.4]], dtype=numpy.float32).T}
 
             original = trs(inputs['x'], inputs['y'])
 
@@ -222,16 +226,17 @@ def translate_fct2onnx(fct, context=None, cpl=False,
                 trs, context={'numpy.transpose': numpy.transpose},
                 cpl=True, context_cpl=ctx, output_names=['Z'])
 
-            onnx_code = onnx_fct('x', 'y', opset_version=12)
-            print('ONNX code:', onnx_code)
+            onnx_code = onnx_fct('x', 'y', op_version=12)
 
             onnx_g = onnx_code.to_onnx(inputs, target_opset=12)
+            print("ONNX model")
+            print(onnx_simple_text_plot(onnx_g))
 
             oinf = OnnxInference(onnx_g)
             res = oinf.run(inputs)
 
+            print('-----------')
             print("ONNX inference:", res['Z'])
-            print("ONNX graph:", onnx_g)
 
     The function to be converted may include python functions
     which must not be converted. In that case, their name
@@ -268,7 +273,7 @@ def translate_fct2onnx(fct, context=None, cpl=False,
         try:
             obj = compile(code, "", "exec")
         except SyntaxError as e:  # pragma: no cover
-            raise SyntaxError("Unable to compile\n{}".format(code)) from e
+            raise SyntaxError(f"Unable to compile\n{code}") from e
         context_g = context.copy()
         context_l = context.copy()
         exec(obj, context_g, context_l)  # pylint: disable=W0122
@@ -280,7 +285,7 @@ def translate_fct2onnx(fct, context=None, cpl=False,
         code = inspect.getsource(fct)
     else:
         raise TypeError(  # pragma: no cover
-            "Unable to guess code from type {}.".format(type(fct)))
+            f"Unable to guess code from type {type(fct)}.")
     node = ast.parse(dedent(code))
     v = CodeNodeVisitor()
     v.visit(node)

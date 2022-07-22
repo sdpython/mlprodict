@@ -8,6 +8,8 @@ import numpy
 from pandas import DataFrame
 from scipy.spatial.distance import cdist as scipy_cdist
 from pyquickhelper.pycode import ExtTestCase, ignore_warnings as igw
+from onnxruntime.capi._pybind_state import (  # pylint: disable=E0611
+    InvalidArgument as OrtInvalidArgument)
 from sklearn.calibration import CalibratedClassifierCV
 from sklearn.datasets import load_iris, make_regression
 from sklearn.model_selection import train_test_split
@@ -24,10 +26,9 @@ from mlprodict.onnx_conv import (
     register_converters, to_onnx)
 from mlprodict.onnxrt import OnnxInference
 from mlprodict.onnxrt.ops_cpu.op_topk import topk_sorted_implementation
-from mlprodict.tools.asv_options_helper import (
-    get_opset_number_from_onnx, get_ir_version_from_onnx)
+from mlprodict import __max_supported_opset__ as TARGET_OPSET, get_ir_version
 from mlprodict.testing.test_utils import _capture_output
-from mlprodict.tools.ort_wrapper import OrtInvalidArgument
+from mlprodict.plotting.text_plot import onnx_simple_text_plot
 
 
 def old_topk_sorted_implementation(X, k, axis, largest):
@@ -77,7 +78,7 @@ class TestOnnxConvKNN(ExtTestCase):
     @igw((DeprecationWarning, FutureWarning))
     def test_onnx_example_cdist_in_euclidean(self):
         for metric in ['euclidean', 'minkowski']:
-            for opv in [11, get_opset_number_from_onnx()]:
+            for opv in [11, TARGET_OPSET]:
                 with self.subTest(metric=metric, opv=opv):
                     x = numpy.array([1, 2, 4, 5, 5, 4]).astype(
                         numpy.float32).reshape((3, 2))
@@ -143,13 +144,13 @@ class TestOnnxConvKNN(ExtTestCase):
         for pp in [1, 2]:
             with self.subTest(pp=pp):
                 cop = OnnxIdentity(
-                    'input', op_version=get_opset_number_from_onnx())
+                    'input', op_version=TARGET_OPSET)
                 cop2 = OnnxIdentity(
                     onnx_cdist(cop, x2, dtype=numpy.float32,
                                metric="minkowski", p=pp,
-                               op_version=get_opset_number_from_onnx()),
+                               op_version=TARGET_OPSET),
                     output_names=['cdist'],
-                    op_version=get_opset_number_from_onnx())
+                    op_version=TARGET_OPSET)
 
                 model_def = cop2.to_onnx(
                     inputs=[('input', FloatTensorType([None, None]))],
@@ -158,7 +159,7 @@ class TestOnnxConvKNN(ExtTestCase):
                 try:
                     sess = OnnxInference(model_def)
                 except RuntimeError as e:
-                    raise AssertionError("Issue\n{}".format(model_def)) from e
+                    raise AssertionError(f"Issue\n{model_def}") from e
                 res = sess.run({'input': x})['cdist']
                 exp = scipy_cdist(x, x2, metric="minkowski", p=pp)
                 self.assertEqualArray(exp, res, decimal=5)
@@ -174,11 +175,11 @@ class TestOnnxConvKNN(ExtTestCase):
                  [5.6, 2.9, 3.6, 1.3],
                  [6.9, 3.1, 5.1, 2.3]], dtype=numpy.float32)
             cop = OnnxAdd('input', 'input',
-                          op_version=get_opset_number_from_onnx())
+                          op_version=TARGET_OPSET)
             cop2 = OnnxIdentity(
                 onnx_cdist(cop, x, dtype=numpy.float32, metric="minkowski",
-                           p=3, op_version=get_opset_number_from_onnx()),
-                output_names=['cdist'], op_version=get_opset_number_from_onnx())
+                           p=3, op_version=TARGET_OPSET),
+                output_names=['cdist'], op_version=TARGET_OPSET)
 
             model_def = cop2.to_onnx(
                 inputs=[('input', FloatTensorType([None, None]))],
@@ -212,7 +213,7 @@ class TestOnnxConvKNN(ExtTestCase):
         elif kind == 'mcl':
             y = y.astype(numpy.int64)
         else:
-            raise AssertionError("unknown '{}'".format(kind))
+            raise AssertionError(f"unknown '{kind}'")
 
         if n_targets != 1:
             yn = numpy.empty((y.shape[0], n_targets), dtype=dtype)
@@ -244,12 +245,12 @@ class TestOnnxConvKNN(ExtTestCase):
 
         if target_opset is None:
             opsets = list(sorted(set([
-                9, 10, 11, 12, 13, 14, 15, get_opset_number_from_onnx()])))  # opset=13, 14, ...
+                9, 10, 11, 12, 13, 14, 15, TARGET_OPSET])))  # opset=13, 14, ...
         else:
             opsets = [target_opset]
         for ops in opsets:
             if ops is None:
-                raise AssertionError("Cannot happen: {}.".format(opsets))
+                raise AssertionError(f"Cannot happen: {opsets}.")
             with self.subTest(target_opset=ops):
                 try:
                     model_def = to_onnx(
@@ -259,7 +260,7 @@ class TestOnnxConvKNN(ExtTestCase):
                     if "Option 'largest0' not in" in str(e):
                         continue
                 if 'onnxruntime' in runtime:
-                    model_def.ir_version = get_ir_version_from_onnx()
+                    model_def.ir_version = get_ir_version(ops)
                 try:
                     if runtime == 'onnxruntime2':
                         oinf = _capture_output(
@@ -274,12 +275,12 @@ class TestOnnxConvKNN(ExtTestCase):
                     if debug:
                         raise AssertionError(
                             "Unable to create a model for target_opset={}\n----\n{}\n----".format(
-                                ops, str(model_def)[:100])) from e
+                                ops, onnx_simple_text_plot(model_def))) from e
                     if "Unknown model file format version." in str(e):
                         continue
                     raise AssertionError(
                         "Unable to create model for opset={} and runtime='{}'\n{}"
-                        "".format(ops, runtime, str(model_def)[:100])) from e
+                        "".format(ops, runtime, onnx_simple_text_plot(model_def))) from e
 
                 if debug:
                     y = oinf.run({'X': X_test}, verbose=level, fLOG=print)
@@ -324,6 +325,9 @@ class TestOnnxConvKNN(ExtTestCase):
 
     @igw((DeprecationWarning, FutureWarning))
     def test_onnx_test_knn_single_reg32_onnxruntime2(self):
+        self.onnx_test_knn_single_classreg(
+            numpy.float32, runtime="onnxruntime2", target_opset=10,
+            debug=False)
         try:
             self.onnx_test_knn_single_classreg(
                 numpy.float32, runtime="onnxruntime2", target_opset=10,
@@ -332,6 +336,8 @@ class TestOnnxConvKNN(ExtTestCase):
             if "Invalid rank for input: Ar_Z0 Got: 2 Expected: 1" in str(e):
                 return
             if "Got invalid dimensions for input:" in str(e):
+                return
+            if "Invalid rank for input: knny_Z0" in str(e):
                 return
             raise e
 
@@ -476,7 +482,7 @@ class TestOnnxConvKNN(ExtTestCase):
         clr.fit(X_train)
 
         for to in (10, 11, 12, 13, 14, 15):  # opset=13, 14, ...
-            if to > get_opset_number_from_onnx():
+            if to > TARGET_OPSET:
                 break
             try:
                 model_def = to_onnx(
@@ -552,4 +558,5 @@ class TestOnnxConvKNN(ExtTestCase):
 
 
 if __name__ == "__main__":
+    # TestOnnxConvKNN().test_onnx_test_knn_single_reg32_onnxruntime2()
     unittest.main(verbosity=2)

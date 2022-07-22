@@ -22,15 +22,15 @@ class YieldOp(OpRunUnaryNum):
         if op_name == "YieldOp":
             return YieldOpSchema()
         raise RuntimeError(  # pragma: no cover
-            "Unable to find a schema for operator '{}'.".format(op_name))
+            f"Unable to find a schema for operator '{op_name}'.")
 
-    def _run(self, a):  # pylint: disable=W0221
+    def _run(self, a, attributes=None, verbose=0, fLOG=None):  # pylint: disable=W0221
         if self.inplaces.get(0, False):
             return (a, )
         return (a.copy(), )
 
     def to_python(self, inputs):
-        return "", "return %s.copy()" % inputs[0]
+        return "", f"return {inputs[0]}.copy()"
 
 
 class YieldOpSchema(OperatorSchema):

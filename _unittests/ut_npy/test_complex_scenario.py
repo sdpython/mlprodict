@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 """
-@brief      test log(time=21s)
+@brief      test log(time=41s)
 """
 import unittest
 import warnings
@@ -97,6 +97,44 @@ def custom_atan2_ort(y: NDArray[Any, numpy.float32],
     return _custom_atan2(y, x)
 
 
+@onnxnumpy_default
+def fct_final_or_included(x: NDArray[Any, numpy.float32]
+                          ) -> NDArray[Any, numpy.float32]:
+    dim = x.shape[1]
+    n = nxnp.arange(0, dim).astype(numpy.float32)
+    k = n.reshape((-1, 1))
+    kn = (k * (n * numpy.float32(-numpy.pi * 2))) / dim.astype(numpy.float32)
+    kn3 = nxnp.expand_dims(kn, 0)
+    kn_cos = nxnp.cos(kn3)
+    kn_sin = nxnp.sin(kn3)
+    ekn = nxnp.vstack(kn_cos, kn_sin)
+    res = nxnp.dot(ekn, x.T)
+    tr = res ** 2
+    mod = tr[0, :, :] + tr[1, :, :]
+    return nxnp.sqrt(mod).T
+
+
+@onnxnumpy_default
+def fct_final(x: NDArray[Any, numpy.float32],
+              ) -> NDArray[Any, numpy.float32]:
+    "onnx fft + abs"
+    return fct_final_or_included(x)
+
+
+@onnxnumpy_np(runtime="onnxruntime1")
+def fct_final2(x: NDArray[Any, numpy.float32],
+               ) -> NDArray[Any, numpy.float32]:
+    "onnx fft + abs"
+    return fct_final_or_included(x)
+
+
+@onnxnumpy_np(runtime="onnxruntime1")
+def fct_final3(x: NDArray[Any, numpy.float32],
+               ) -> NDArray[Any, numpy.float32]:
+    "onnx fft + abs"
+    return fct_final2(x)
+
+
 class TestOnnxComplexScenario(ExtTestCase):
 
     def setUp(self):
@@ -109,7 +147,28 @@ class TestOnnxComplexScenario(ExtTestCase):
         self.assertIn('SklearnFunctionTransformer', res[0])
         self.assertIn('SklearnFunctionTransformer', res[1])
 
-    @ignore_warnings((DeprecationWarning, RuntimeWarning))
+    @ignore_warnings((DeprecationWarning, RuntimeWarning, UserWarning))
+    def test_fct_final(self):
+        x = numpy.array([[6.1, -5], [3.5, -7.8]], dtype=numpy.float32)
+        x1 = fct_final_or_included(x)
+        x2 = fct_final(x)
+        self.assertEqualArray(x1, x2)
+
+    @ignore_warnings((DeprecationWarning, RuntimeWarning, UserWarning))
+    def test_fct_final2(self):
+        x = numpy.array([[6.1, -5], [3.5, -7.8]], dtype=numpy.float32)
+        x1 = fct_final_or_included(x)
+        x2 = fct_final2(x)
+        self.assertEqualArray(x1, x2, decimal=6)
+
+    @ignore_warnings((DeprecationWarning, RuntimeWarning, UserWarning))
+    def test_fct_final3(self):
+        x = numpy.array([[6.1, -5], [3.5, -7.8]], dtype=numpy.float32)
+        x1 = fct_final_or_included(x)
+        x2 = fct_final3(x)
+        self.assertEqualArray(x1, x2, decimal=6)
+
+    @ignore_warnings((DeprecationWarning, RuntimeWarning, UserWarning))
     def test_function_transformer_fft_abs(self):
         for rt, fct in [('py', custom_fft_abs),
                         ('ort', custom_fft_abs_ort)]:
@@ -124,7 +183,7 @@ class TestOnnxComplexScenario(ExtTestCase):
                 y_onx = oinf.run({'X': x})
                 self.assertEqualArray(y_exp, y_onx['variable'], decimal=5)
 
-    @ignore_warnings((DeprecationWarning, RuntimeWarning))
+    @ignore_warnings((DeprecationWarning, RuntimeWarning, UserWarning))
     def test_futr_fft_abs(self):
         x = numpy.random.randn(3, 4).astype(numpy.float32)
         fft = custom_fft_abs_py(x)
@@ -136,20 +195,22 @@ class TestOnnxComplexScenario(ExtTestCase):
 
         def tf_fft(x):
             import tensorflow as tf  # pylint: disable=E0401
-            xc = tf.cast(x, tf.complex64)
-            xcf = tf.signal.fft(xc)
-            return tf.abs(xcf)
+            if tf.__file__ is None:
+                raise ImportError("tf.__file__ is None, something is wrong.")
+            xc = tf.cast(x, tf.complex64)  # pylint: disable=E1101
+            xcf = tf.signal.fft(xc)  # pylint: disable=E1101
+            return tf.abs(xcf)  # pylint: disable=E1101
 
         try:
             tfx = tf_fft(x)
-        except ImportError:
+        except (ImportError, AttributeError):
             # tensorflow not installed.
             tfx = None
 
         if tfx is not None:
             self.assertEqualArray(tfx, fft, decimal=5)
 
-    @ignore_warnings((DeprecationWarning, RuntimeWarning))
+    @ignore_warnings((DeprecationWarning, RuntimeWarning, UserWarning))
     def test_function_transformer_atan2(self):
         for rt, fct in [('py', custom_atan2),
                         ('ort', custom_atan2_ort)]:
@@ -168,4 +229,4 @@ class TestOnnxComplexScenario(ExtTestCase):
 
 
 if __name__ == "__main__":
-    unittest.main()
+    unittest.main(verbosity=2)

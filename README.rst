@@ -59,9 +59,15 @@ mlprodict
     :alt: size
 
 *mlprodict* was initially started to help implementing converters
-to *ONNX*. The main feature is a python runtime for
-*ONNX*. It gives feedback when the execution fails.
-The package provides tools to compare
+to *ONNX*. The main features is a python runtime for
+*ONNX* (class `OnnxInference
+<http://www.xavierdupre.fr/app/mlprodict/helpsphinx/mlprodict/onnxrt/onnx_inference.html>`_),
+visualization tools
+(see `Visualization
+<http://www.xavierdupre.fr/app/mlprodict/helpsphinx/api/tools.html#visualization>`_),
+and a `numpy API for ONNX
+<http://www.xavierdupre.fr/app/mlprodict/helpsphinx/tutorial/numpy_api_onnx.html>`_).
+The package also provides tools to compare
 predictions, to benchmark models converted with
 `sklearn-onnx <https://github.com/onnx/sklearn-onnx/tree/master/skl2onnx>`_.
 
@@ -72,7 +78,7 @@ predictions, to benchmark models converted with
     from sklearn.datasets import load_iris
     from mlprodict.onnxrt import OnnxInference
     from mlprodict.onnxrt.validate.validate_difference import measure_relative_difference
-    from mlprodict.tools import get_ir_version_from_onnx
+    from mlprodict import __max_supported_opset__, get_ir_version
 
     iris = load_iris()
     X = iris.data[:, :2]
@@ -87,11 +93,12 @@ predictions, to benchmark models converted with
     # Conversion into ONNX.
     from mlprodict.onnx_conv import to_onnx
     model_onnx = to_onnx(lr, X.astype(numpy.float32),
-                         black_op={'LinearRegressor'})
+                         black_op={'LinearRegressor'},
+                         target_opset=__max_supported_opset__)
     print("ONNX:", str(model_onnx)[:200] + "\n...")
 
     # Predictions with onnxruntime
-    model_onnx.ir_version = get_ir_version_from_onnx()
+    model_onnx.ir_version = get_ir_version(__max_supported_opset__)
     oinf = OnnxInference(model_onnx, runtime='onnxruntime1')
     ypred = oinf.run({'X': X[:5].astype(numpy.float32)})
     print("ONNX output:", ypred)
@@ -114,7 +121,7 @@ development features.
 
     pip install mlprodict
 
-The package includes a runtime for *onnx*. That's why there
+The package includes a runtime for *ONNX*. That's why there
 is a limited number of dependencies. However, some features
 relies on *sklearn-onnx*, *onnxruntime*, *scikit-learn*.
 They can be installed with the following instructions:

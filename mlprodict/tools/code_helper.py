@@ -3,22 +3,9 @@
 @brief A couple of tools unrelated to what the package does.
 """
 import pickle
-import keyword
 import re
 import types
 import numpy
-
-
-def change_style(name):
-    """
-    Switches from *AaBb* into *aa_bb*.
-
-    @param      name    name to convert
-    @return             converted name
-    """
-    s1 = re.sub('(.)([A-Z][a-z]+)', r'\1_\2', name)
-    s2 = re.sub('([a-z0-9])([A-Z])', r'\1_\2', s1).lower()
-    return s2 if not keyword.iskeyword(s2) else s2 + "_"
 
 
 def numpy_min_max(x, fct, minmax=False):
@@ -43,7 +30,7 @@ def numpy_min_max(x, fct, minmax=False):
         val = keep[0]
         if len(val) > 10:  # pragma: no cover
             val = val[:10] + '...'
-        return "%r" % val
+        return f"{val!r}"
     except (ValueError, TypeError, AttributeError):
         return '?'
 
@@ -98,12 +85,11 @@ def debug_dump(clname, obj, folder=None, ops=None):
                     print("NAN", prefix, i, name, o.shape)
             return None
         raise NotImplementedError(  # pragma: no cover
-            "Unable to debug object of type {}.".format(type(obj)))
+            f"Unable to debug object of type {type(obj)}.")
 
     dump = debug_print_(obj)
     if dump:
-        name = 'cpu-{}-{}-{}.pkl'.format(
-            clname, id(obj), id(ops))
+        name = f'cpu-{clname}-{id(obj)}-{id(ops)}.pkl'
         if folder is not None:
             name = "/".join([folder, name])
         with open(name, 'wb') as f:
@@ -129,10 +115,9 @@ def debug_print(k, obj, printed):
                   ' (sparse)' if 'coo_matrix' in str(type(obj)) else ''))
         elif (isinstance(obj, list) and len(obj) > 0 and
                 not isinstance(obj[0], dict)):  # pragma: no cover
-            print("-='{}' list len={} min={} max={}".format(
-                  k, len(obj), min(obj), max(obj)))
+            print(f"-='{k}' list len={len(obj)} min={min(obj)} max={max(obj)}")
         else:  # pragma: no cover
-            print("-='{}' type={}".format(k, type(obj)))
+            print(f"-='{k}' type={type(obj)}")
 
 
 def make_callable(fct, obj, code, gl, debug):
@@ -157,7 +142,7 @@ def make_callable(fct, obj, code, gl, debug):
             break
     if sig is None:  # pragma: no cover
         raise ValueError(
-            "Unable to find function '{}' in\n{}".format(fct, code))
+            f"Unable to find function '{fct}' in\n{code}")
     reg = re.compile(
         "([a-z][A-Za-z_0-9]*)=((None)|(False)|(True)|([0-9.e+-]+))")
     fall = reg.findall(sig)
@@ -198,7 +183,7 @@ def make_callable(fct, obj, code, gl, debug):
                      'co_varnames']:  # pragma: no cover
             v = getattr(res.__code__, name, None)  # pylint: disable=E1101
             if v is not None:
-                lines.append('%s=%r' % (name, v))
+                lines.append(f'{name}={v!r}')
         raise RuntimeError(  # pragma: no cover
             "Defaults values of function '{}' (defaults={}) are missing.\nDefault: "
             "{}\n{}\n----\n{}".format(

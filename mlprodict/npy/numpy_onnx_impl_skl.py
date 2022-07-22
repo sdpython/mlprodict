@@ -4,7 +4,7 @@
 
 .. versionadded:: 0.6
 """
-from skl2onnx.algebra.onnx_operator import OnnxSubEstimator
+from .xop_convert import OnnxSubEstimator
 from .onnx_variable import MultiOnnxVar, OnnxVar
 
 

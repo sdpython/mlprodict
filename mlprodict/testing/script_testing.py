@@ -61,12 +61,10 @@ def _try_onnx(loc, model_name, args_name, **options):
     from ..onnx_conv import to_onnx
     if model_name not in loc:
         raise MissingVariableError(  # pragma: no cover
-            "Unable to find model '{}' in {}".format(
-                model_name, ", ".join(sorted(loc))))
+            f"Unable to find model '{model_name}' in {', '.join(sorted(loc))}")
     if args_name[0] not in loc:
         raise MissingVariableError(  # pragma: no cover
-            "Unable to find data '{}' in {}".format(
-                args_name[0], ", ".join(sorted(loc))))
+            f"Unable to find data '{args_name[0]}' in {', '.join(sorted(loc))}")
     model = loc[model_name]
     X = loc[args_name[0]]
     dtype = options.get('dtype', numpy.float32)

@@ -6,7 +6,6 @@
 """
 import numpy
 from ._op import OpRun
-from ..shape_object import DimensionObject
 
 
 class OneHotEncoder(OpRun):
@@ -33,7 +32,7 @@ class OneHotEncoder(OpRun):
         else:
             raise RuntimeError("No encoding was defined.")  # pragma: no cover
 
-    def _run(self, x):  # pylint: disable=W0221
+    def _run(self, x, attributes=None, verbose=0, fLOG=None):  # pylint: disable=W0221
         shape = x.shape
         new_shape = shape + (len(self.classes_), )
         res = numpy.zeros(new_shape, dtype=numpy.float32)
@@ -50,7 +49,7 @@ class OneHotEncoder(OpRun):
                         res[a, i, j] = 1.
         else:
             raise RuntimeError(  # pragma: no cover
-                "This operator is not implemented for shape {}.".format(x.shape))
+                f"This operator is not implemented for shape {x.shape}.")
 
         if not self.zeros:
             red = res.sum(axis=len(res.shape) - 1)
@@ -68,14 +67,3 @@ class OneHotEncoder(OpRun):
                         res[:5], x[:5]))
 
         return (res, )
-
-    def _infer_shapes(self, x):  # pylint: disable=W0221
-        new_shape = x.copy()
-        dim = DimensionObject(len(self.classes_))
-        new_shape.append(dim)
-        new_shape._dtype = numpy.float32
-        new_shape.name = self.onnx_node.name
-        return (new_shape, )
-
-    def _infer_types(self, x):  # pylint: disable=W0221
-        return (numpy.float32, )

@@ -18,11 +18,12 @@ from skl2onnx import __version__ as sk2ver
 from skl2onnx.common.data_types import (
     StringTensorType, FloatTensorType, Int64TensorType)
 from skl2onnx.algebra.onnx_ops import (  # pylint: disable=E0611
-    OnnxStringNormalizer, OnnxTfIdfVectorizer, OnnxLabelEncoder)
+    OnnxStringNormalizer, OnnxTfIdfVectorizer, OnnxLabelEncoder,
+    OnnxCategoryMapper)
 from mlprodict.onnx_conv import to_onnx
 from mlprodict.onnx_conv.onnx_ops import OnnxTokenizer
 from mlprodict.onnxrt import OnnxInference
-from mlprodict.tools import get_opset_number_from_onnx
+from mlprodict import __max_supported_opset__ as TARGET_OPSET
 
 
 class TestOnnxrtPythonRuntimeMlText(ExtTestCase):
@@ -35,7 +36,7 @@ class TestOnnxrtPythonRuntimeMlText(ExtTestCase):
 
         corpus = numpy.array(['AA', 'BB', 'AA', 'CC'])
         op = OnnxLabelEncoder(
-            'text', op_version=get_opset_number_from_onnx(),
+            'text', op_version=TARGET_OPSET,
             keys_strings=['AA', 'BB', 'CC'],
             values_strings=['LEAA', 'LEBB', 'LECC'],
             output_names=['out'])
@@ -48,7 +49,7 @@ class TestOnnxrtPythonRuntimeMlText(ExtTestCase):
 
         corpus = numpy.array([0.1, 0.2, 0.3, 0.2], dtype=numpy.float32)
         op = OnnxLabelEncoder(
-            'text', op_version=get_opset_number_from_onnx(),
+            'text', op_version=TARGET_OPSET,
             keys_floats=[0.1, 0.2, 0.3],
             values_floats=[0.3, 0.4, 0.5],
             output_names=['out'])
@@ -61,7 +62,7 @@ class TestOnnxrtPythonRuntimeMlText(ExtTestCase):
     def test_onnxrt_label_encoder_string_floats(self):
 
         op = OnnxLabelEncoder(
-            'text', op_version=get_opset_number_from_onnx(),
+            'text', op_version=TARGET_OPSET,
             keys_strings=['AA', 'BB', 'CC'],
             values_floats=[0.1, 0.2, 0.3],
             output_names=['out'])
@@ -75,14 +76,14 @@ class TestOnnxrtPythonRuntimeMlText(ExtTestCase):
 
         self.assertRaise(
             lambda: OnnxLabelEncoder(
-                'text', op_version=get_opset_number_from_onnx(),
+                'text', op_version=TARGET_OPSET,
                 keys_strings=['AA', 'BB', 'CC'],
                 classes_strings=['LEAA', 'LEBB', 'LECC'],
                 output_names=['out']),
             TypeError)
 
         op = OnnxLabelEncoder(
-            'text', op_version=get_opset_number_from_onnx(),
+            'text', op_version=TARGET_OPSET,
             keys_strings=['AA', 'BB', 'CC'],
             values_strings=[],
             output_names=['out'])
@@ -98,7 +99,7 @@ class TestOnnxrtPythonRuntimeMlText(ExtTestCase):
             'Is this the first document?'])
 
         op = OnnxStringNormalizer(
-            'text', op_version=get_opset_number_from_onnx(),
+            'text', op_version=TARGET_OPSET,
             output_names=['out'])
         onx = op.to_onnx(inputs=[('text', StringTensorType())])
         oinf = OnnxInference(onx)
@@ -109,7 +110,7 @@ class TestOnnxrtPythonRuntimeMlText(ExtTestCase):
         self.assertEqual(res['out'].tolist(), corpus.reshape((2, 2)).tolist())
 
         op = OnnxStringNormalizer(
-            'text', op_version=get_opset_number_from_onnx(),
+            'text', op_version=TARGET_OPSET,
             output_names=['out'],
             case_change_action='LOWER')
         onx = op.to_onnx(inputs=[('text', StringTensorType())])
@@ -118,7 +119,7 @@ class TestOnnxrtPythonRuntimeMlText(ExtTestCase):
         self.assertEqual(list(res['out']), list(_.lower() for _ in corpus))
 
         op = OnnxStringNormalizer(
-            'text', op_version=get_opset_number_from_onnx(),
+            'text', op_version=TARGET_OPSET,
             output_names=['out'],
             case_change_action='UPPER')
         onx = op.to_onnx(inputs=[('text', StringTensorType())])
@@ -127,7 +128,7 @@ class TestOnnxrtPythonRuntimeMlText(ExtTestCase):
         self.assertEqual(list(res['out']), list(_.upper() for _ in corpus))
 
         op = OnnxStringNormalizer(
-            'text', op_version=get_opset_number_from_onnx(),
+            'text', op_version=TARGET_OPSET,
             output_names=['out'],
             case_change_action='UPPER2')
         onx = op.to_onnx(inputs=[('text', StringTensorType())])
@@ -142,7 +143,7 @@ class TestOnnxrtPythonRuntimeMlText(ExtTestCase):
             'Is this the first document?'])
 
         op = OnnxStringNormalizer(
-            'text', op_version=get_opset_number_from_onnx(),
+            'text', op_version=TARGET_OPSET,
             output_names=['out'], stopwords=['this'])
         onx = op.to_onnx(inputs=[('text', StringTensorType())])
         oinf = OnnxInference(onx)
@@ -151,7 +152,7 @@ class TestOnnxrtPythonRuntimeMlText(ExtTestCase):
             list(res['out']), list(_.replace("this ", "") for _ in corpus))
 
         op = OnnxStringNormalizer(
-            'text', op_version=get_opset_number_from_onnx(),
+            'text', op_version=TARGET_OPSET,
             output_names=['out'], stopwords=['this'],
             case_change_action='LOWER', is_case_sensitive=0)
         onx = op.to_onnx(inputs=[('text', StringTensorType())])
@@ -173,7 +174,7 @@ class TestOnnxrtPythonRuntimeMlText(ExtTestCase):
             'is a the first document?'])
 
         op = OnnxStringNormalizer(
-            'text', op_version=get_opset_number_from_onnx(),
+            'text', op_version=TARGET_OPSET,
             output_names=['out'], case_change_action='LOWER',
             locale='fr_FR')
         onx = op.to_onnx(inputs=[('text', StringTensorType())])
@@ -189,7 +190,7 @@ class TestOnnxrtPythonRuntimeMlText(ExtTestCase):
             'Is this the first document?'])
 
         op = OnnxStringNormalizer(
-            'text', op_version=get_opset_number_from_onnx(),
+            'text', op_version=TARGET_OPSET,
             output_names=['out'])
         onx = op.to_onnx(inputs=[('text', StringTensorType())])
         oinf = OnnxInference(onx)
@@ -205,7 +206,7 @@ class TestOnnxrtPythonRuntimeMlText(ExtTestCase):
              ['a', 'b', 'c', ' ', ' ', 'e']])
 
         op = OnnxTokenizer(
-            'text', op_version=get_opset_number_from_onnx(),
+            'text', op_version=TARGET_OPSET,
             output_names=['out'], tokenexp='.')
         onx = op.to_onnx(inputs=[('text', StringTensorType())],
                          outputs=[('out', StringTensorType())])
@@ -225,7 +226,7 @@ class TestOnnxrtPythonRuntimeMlText(ExtTestCase):
              ['#', 'a', 'b', 'c', ' ', ' ', 'e', '#']])
 
         op = OnnxTokenizer(
-            'text', op_version=get_opset_number_from_onnx(),
+            'text', op_version=TARGET_OPSET,
             output_names=['out'], tokenexp='.', mark=1)
         onx = op.to_onnx(inputs=[('text', StringTensorType())],
                          outputs=[('out', StringTensorType())])
@@ -243,7 +244,7 @@ class TestOnnxrtPythonRuntimeMlText(ExtTestCase):
              ['#', 'ab', 'e', '#', '#']])
 
         op = OnnxTokenizer(
-            'text', op_version=get_opset_number_from_onnx(),
+            'text', op_version=TARGET_OPSET,
             output_names=['out'], separators=[' ', ',', '/'], mark=1)
         onx = op.to_onnx(inputs=[('text', StringTensorType())],
                          outputs=[('out', StringTensorType())])
@@ -259,7 +260,7 @@ class TestOnnxrtPythonRuntimeMlText(ExtTestCase):
              ['ab', 'e', '#']])
 
         op = OnnxTokenizer(
-            'text', op_version=get_opset_number_from_onnx(),
+            'text', op_version=TARGET_OPSET,
             output_names=['out'], separators=[' ', ',', '/'], mark=0,
             stopwords=['d'])
         onx = op.to_onnx(inputs=[('text', StringTensorType())],
@@ -276,7 +277,7 @@ class TestOnnxrtPythonRuntimeMlText(ExtTestCase):
              ['#', '/e', '#']])
 
         op = OnnxTokenizer(
-            'text', op_version=get_opset_number_from_onnx(),
+            'text', op_version=TARGET_OPSET,
             output_names=['out'], mark=1, tokenexp='[a-c]+',
             tokenexpsplit=1)
         onx = op.to_onnx(inputs=[('text', StringTensorType())],
@@ -293,7 +294,7 @@ class TestOnnxrtPythonRuntimeMlText(ExtTestCase):
              ['#', 'ab', '#']])
 
         op = OnnxTokenizer(
-            'text', op_version=get_opset_number_from_onnx(),
+            'text', op_version=TARGET_OPSET,
             output_names=['out'], mark=1, tokenexp='[a-c]+',
             tokenexpsplit=0)
         onx = op.to_onnx(inputs=[('text', StringTensorType())],
@@ -314,7 +315,7 @@ class TestOnnxrtPythonRuntimeMlText(ExtTestCase):
                                    5, 6, 7, 8, 6, 7]).astype(numpy.int64)   # bigrams
 
         op = OnnxTfIdfVectorizer(
-            'tokens', op_version=get_opset_number_from_onnx(),
+            'tokens', op_version=TARGET_OPSET,
             mode='TF', min_gram_length=2, max_gram_length=2,
             max_skip_count=0, ngram_counts=ngram_counts,
             ngram_indexes=ngram_indexes, pool_int64s=pool_int64s,
@@ -337,7 +338,7 @@ class TestOnnxrtPythonRuntimeMlText(ExtTestCase):
                                    5, 6, 7, 8, 6, 7]).astype(numpy.int64)   # bigrams
 
         op = OnnxTfIdfVectorizer(
-            'tokens', op_version=get_opset_number_from_onnx(),
+            'tokens', op_version=TARGET_OPSET,
             mode='TF', min_gram_length=2, max_gram_length=2,
             max_skip_count=5, ngram_counts=ngram_counts,
             ngram_indexes=ngram_indexes, pool_int64s=pool_int64s,
@@ -360,7 +361,7 @@ class TestOnnxrtPythonRuntimeMlText(ExtTestCase):
                                    5, 6, 7, 8, 6, 7]).astype(numpy.int64)   # bigrams
 
         op = OnnxTfIdfVectorizer(
-            'tokens', op_version=get_opset_number_from_onnx(),
+            'tokens', op_version=TARGET_OPSET,
             mode='TF', min_gram_length=1, max_gram_length=2,
             max_skip_count=5, ngram_counts=ngram_counts,
             ngram_indexes=ngram_indexes, pool_int64s=pool_int64s,
@@ -383,7 +384,7 @@ class TestOnnxrtPythonRuntimeMlText(ExtTestCase):
                                    5, 6, 7, 8, 6, 7]).astype(numpy.int64)   # bigrams
 
         op = OnnxTfIdfVectorizer(
-            'tokens', op_version=get_opset_number_from_onnx(),
+            'tokens', op_version=TARGET_OPSET,
             mode='TF', min_gram_length=2, max_gram_length=2,
             max_skip_count=0, ngram_counts=ngram_counts,
             ngram_indexes=ngram_indexes, pool_int64s=pool_int64s,
@@ -405,7 +406,7 @@ class TestOnnxrtPythonRuntimeMlText(ExtTestCase):
             5, 6, 7, 8, 6, 7]).astype(numpy.int64)   # bigrams
 
         op = OnnxTfIdfVectorizer(
-            'tokens', op_version=get_opset_number_from_onnx(),
+            'tokens', op_version=TARGET_OPSET,
             mode='TF', min_gram_length=2, max_gram_length=2,
             max_skip_count=0, ngram_counts=ngram_counts,
             ngram_indexes=ngram_indexes, pool_int64s=pool_int64s,
@@ -426,7 +427,7 @@ class TestOnnxrtPythonRuntimeMlText(ExtTestCase):
         vect = CountVectorizer()
         vect.fit(corpus)
         exp = vect.transform(corpus)
-        onx = to_onnx(vect, corpus, target_opset=get_opset_number_from_onnx())
+        onx = to_onnx(vect, corpus, target_opset=TARGET_OPSET)
         oinf = OnnxInference(onx)
         got = oinf.run({'X': corpus})
         self.assertEqualArray(exp.todense(), got['variable'])
@@ -464,7 +465,7 @@ class TestOnnxrtPythonRuntimeMlText(ExtTestCase):
         inputs = {'CAT1': dfx['CAT1'].values.reshape((-1, 1)),
                   'CAT2': dfx['CAT2'].values.reshape((-1, 1)),
                   'TEXT': dfx['TEXT'].values.reshape((-1, 1))}
-        onx = to_onnx(rf_clf, dfx, target_opset=get_opset_number_from_onnx())
+        onx = to_onnx(rf_clf, dfx, target_opset=TARGET_OPSET)
         sess = OnnxInference(onx)
 
         got = sess.run(inputs)
@@ -473,6 +474,35 @@ class TestOnnxrtPythonRuntimeMlText(ExtTestCase):
         for e, g in zip(expected_proba, got['probabilities']):
             self.assertEqualArray(e, g, decimal=5)
 
+    def test_onnxrt_category_mapper_intstr(self):
+
+        op = OnnxCategoryMapper(
+            'cat', op_version=TARGET_OPSET,
+            cats_int64s=[1, 2], cats_strings=["cat1", "cat2"],
+            output_names=['out'])
+        onx = op.to_onnx(
+            inputs=[('cat', Int64TensorType())],
+            outputs=[('out', StringTensorType())])
+        oinf = OnnxInference(onx)
+        res = oinf.run({'cat': numpy.array([1, 2, 1, 5], dtype=numpy.int64)})
+        self.assertEqual(
+            res['out'].tolist(), ["cat1", "cat2", "cat1", ""])
+
+    def test_onnxrt_category_mapper_strint(self):
+
+        op = OnnxCategoryMapper(
+            'cat', op_version=TARGET_OPSET,
+            cats_int64s=[1, 2], cats_strings=["cat1", "cat2"],
+            output_names=['out'])
+        onx = op.to_onnx(
+            inputs=[('cat', StringTensorType())],
+            outputs=[('out', Int64TensorType())])
+        oinf = OnnxInference(onx)
+        res = oinf.run({'cat': numpy.array(["cat1", "cat2", "cat1", "R"],
+                                           dtype=numpy.str_)})
+        self.assertEqualArray(
+            res['out'], numpy.array([1, 2, 1, -1], dtype=numpy.int64))
+
 
 if __name__ == "__main__":
-    unittest.main()
+    unittest.main(verbosity=2)

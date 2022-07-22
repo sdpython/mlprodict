@@ -23,19 +23,13 @@ class Solve(OpRunBinaryNum):
         if op_name == "Solve":
             return SolveSchema()
         raise RuntimeError(  # pragma: no cover
-            "Unable to find a schema for operator '{}'.".format(op_name))
+            f"Unable to find a schema for operator '{op_name}'.")
 
-    def _run(self, a, b):  # pylint: disable=W0221
-        if self.inplaces.get(1, False):
+    def _run(self, a, b, attributes=None, verbose=0, fLOG=None):  # pylint: disable=W0221
+        if self.inplaces.get(1, False) and b.flags['WRITEABLE']:
             return (solve(a, b, overwrite_b=True, lower=self.lower,
                           transposed=self.transposed), )
         return (solve(a, b, lower=self.lower, transposed=self.transposed), )
-
-    def _infer_shapes(self, a, b):  # pylint: disable=W0221,W0237
-        return (b, )
-
-    def _infer_types(self, a, b):  # pylint: disable=W0221,W0237
-        return (b, )
 
     def to_python(self, inputs):
         return ('from scipy.linalg import solve',

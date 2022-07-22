@@ -9,6 +9,7 @@ from pprint import pformat
 import numpy
 from xgboost import XGBClassifier
 from skl2onnx.common.data_types import guess_numpy_type  # pylint: disable=C0411
+from ..sklconv.tree_converters import _fix_tree_ensemble
 
 
 class XGBConverter:
@@ -74,13 +75,13 @@ class XGBConverter:
                     feature_id = int(feature_id[1:])
                 except ValueError as e:  # pragma: no cover
                     raise RuntimeError(
-                        "Unable to interpret '{0}'".format(feature_id)) from e
+                        f"Unable to interpret '{feature_id}'") from e
             else:  # pragma: no cover
                 try:
                     feature_id = int(feature_id)
                 except ValueError:
                     raise RuntimeError(
-                        "Unable to interpret '{0}'".format(feature_id)) from e
+                        f"Unable to interpret '{feature_id}'") from e
 
         # Split condition for sklearn
         # * if X_ptr[X_sample_stride * i + X_fx_stride * node.feature] <= node.threshold:
@@ -137,7 +138,7 @@ class XGBConverter:
                         treeid, tree_weight, ch, attr_pairs, is_classifier, remap)
                 else:
                     raise RuntimeError(  # pragma: no cover
-                        "Unable to convert this node {0}".format(ch))
+                        f"Unable to convert this node {ch}")
 
         else:
             weights = [jsnode['leaf']]
@@ -193,6 +194,9 @@ class XGBRegressorConverter(XGBConverter):
         dtype = guess_numpy_type(operator.inputs[0].type)
         if dtype != numpy.float64:
             dtype = numpy.float32
+        opsetml = container.target_opset_all.get('ai.onnx.ml', None)
+        if opsetml is None:
+            opsetml = 3 if container.target_opset >= 16 else 1
         xgb_node = operator.raw_operator
         inputs = operator.inputs
         objective, base_score, js_trees = XGBConverter.common_members(
@@ -200,7 +204,7 @@ class XGBRegressorConverter(XGBConverter):
 
         if objective in ["reg:gamma", "reg:tweedie"]:
             raise RuntimeError(  # pragma: no cover
-                "Objective '{}' not supported.".format(objective))
+                f"Objective '{objective}' not supported.")
 
         booster = xgb_node.get_booster()
         if booster is None:
@@ -217,18 +221,21 @@ class XGBRegressorConverter(XGBConverter):
             js_trees, attr_pairs, [1 for _ in js_trees], False)
 
         # add nodes
-        if dtype == numpy.float64:
-            container.add_node('TreeEnsembleRegressorDouble', operator.input_full_names,
-                               operator.output_full_names,
-                               name=scope.get_unique_operator_name(
-                                   'TreeEnsembleRegressorDouble'),
-                               op_domain='mlprodict', **attr_pairs)
+        if dtype == numpy.float64 and opsetml < 3:
+            container.add_node(
+                'TreeEnsembleRegressorDouble', operator.input_full_names,
+                operator.output_full_names,
+                name=scope.get_unique_operator_name(
+                    'TreeEnsembleRegressorDouble'),
+                op_domain='mlprodict', op_version=1, **attr_pairs)
         else:
-            container.add_node('TreeEnsembleRegressor', operator.input_full_names,
-                               operator.output_full_names,
-                               name=scope.get_unique_operator_name(
-                                   'TreeEnsembleRegressor'),
-                               op_domain='ai.onnx.ml', **attr_pairs)
+            container.add_node(
+                'TreeEnsembleRegressor', operator.input_full_names,
+                operator.output_full_names,
+                name=scope.get_unique_operator_name('TreeEnsembleRegressor'),
+                op_domain='ai.onnx.ml', op_version=1, **attr_pairs)
+            if opsetml >= 3:
+                _fix_tree_ensemble(scope, container, opsetml, dtype)
 
 
 class XGBClassifierConverter(XGBConverter):
@@ -247,6 +254,9 @@ class XGBClassifierConverter(XGBConverter):
     @staticmethod
     def convert(scope, operator, container):
         "convert method"
+        opsetml = container.target_opset_all.get('ai.onnx.ml', None)
+        if opsetml is None:
+            opsetml = 3 if container.target_opset >= 16 else 1
         dtype = guess_numpy_type(operator.inputs[0].type)
         if dtype != numpy.float64:
             dtype = numpy.float32
@@ -280,12 +290,16 @@ class XGBClassifierConverter(XGBConverter):
                 "XGBoost model is empty.")
         if 'n_estimators' not in params:
             raise RuntimeError(  # pragma: no cover
-                "Parameters not found, existing:\n{}".format(
-                    pformat(params)))
+                f"Parameters not found, existing:\n{pformat(params)}")
         if ncl <= 1:
             ncl = 2
             # See https://github.com/dmlc/xgboost/blob/master/src/common/math.h#L23.
             attr_pairs['post_transform'] = "LOGISTIC"
+            if js_trees[0].get('leaf', None) == 0:
+                attr_pairs['base_values'] = [0.5]
+            elif base_score != 0.5:
+                cst = - numpy.log(1 / numpy.float32(base_score) - 1.)
+                attr_pairs['base_values'] = [cst]
             attr_pairs['class_ids'] = [0 for v in attr_pairs['class_treeids']]
         else:
             # See https://github.com/dmlc/xgboost/blob/master/src/common/math.h#L35.
@@ -302,7 +316,7 @@ class XGBClassifierConverter(XGBConverter):
             classes = numpy.array([s.encode('utf-8') for s in classes])
             attr_pairs['classlabels_strings'] = classes
 
-        if dtype == numpy.float64:
+        if dtype == numpy.float64 and opsetml < 3:
             op_name = "TreeEnsembleClassifierDouble"
         else:
             op_name = "TreeEnsembleClassifier"
@@ -317,23 +331,33 @@ class XGBClassifierConverter(XGBConverter):
                                op_domain='ai.onnx.ml', **attr_pairs)
         elif objective == "multi:softprob":
             ncl = len(js_trees) // params['n_estimators']
-            container.add_node(op_name, operator.input_full_names,
-                               operator.output_full_names,
-                               name=scope.get_unique_operator_name(
-                                   op_name),
-                               op_domain='ai.onnx.ml', **attr_pairs)
+            container.add_node(
+                op_name, operator.input_full_names,
+                operator.output_full_names,
+                name=scope.get_unique_operator_name(op_name),
+                op_domain='ai.onnx.ml', op_version=1, **attr_pairs)
+        elif objective == "multi:softmax":
+            ncl = len(js_trees) // params['n_estimators']
+            container.add_node(
+                op_name, operator.input_full_names,
+                operator.output_full_names,
+                name=scope.get_unique_operator_name(op_name),
+                op_domain='ai.onnx.ml', op_version=1, **attr_pairs)
         elif objective == "reg:logistic":
             ncl = len(js_trees) // params['n_estimators']
             if ncl == 1:
                 ncl = 2
-            container.add_node(op_name, operator.input_full_names,
-                               operator.output_full_names,
-                               name=scope.get_unique_operator_name(
-                                   op_name),
-                               op_domain='ai.onnx.ml', **attr_pairs)
+            container.add_node(
+                op_name, operator.input_full_names,
+                operator.output_full_names,
+                name=scope.get_unique_operator_name(op_name),
+                op_domain='ai.onnx.ml', op_version=1, **attr_pairs)
         else:
             raise RuntimeError(  # pragma: no cover
-                "Unexpected objective: {0}".format(objective))
+                f"Unexpected objective: {objective}")
+
+        if opsetml >= 3:
+            _fix_tree_ensemble(scope, container, opsetml, dtype)
 
 
 def convert_xgboost(scope, operator, container):

@@ -28,10 +28,9 @@ class FctVersion(namedtuple("_version_", ['args', 'kwargs'])):
             sa = "None"
         else:
             sa = ",".join(map(cl, self.args))
-            sa = ("(%s)" % sa) if len(self.args) > 1 else ("(%s,)" % sa)
+            sa = f"({sa})" if len(self.args) > 1 else (f"({sa},)")
 
-        return "%s(%s, %s)" % (
-            self.__class__.__name__, sa, self.kwargs)
+        return f"{self.__class__.__name__}({sa}, {self.kwargs})"
 
     def __len__(self):
         "Returns the sum of lengths."
@@ -50,7 +49,7 @@ class FctVersion(namedtuple("_version_", ['args', 'kwargs'])):
                 (tuple() if self.kwargs is None else self.kwargs))
 
     def as_string(self):
-        "Returns a single stirng identifier."
+        "Returns a single string identifier."
         val = "_".join(map(str, self.as_tuple_with_sep("_")))
         val = val.replace("<class 'numpy.", "").replace(
             '.', "_").replace("'>", "").replace(" ", "")

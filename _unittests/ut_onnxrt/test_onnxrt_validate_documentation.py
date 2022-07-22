@@ -20,6 +20,9 @@ from mlprodict.onnxrt.doc.doc_write_helper import enumerate_visual_onnx_represen
 class TestOnnxrtValidateDocumentation(ExtTestCase):
 
     @skipif_circleci('too long')
+    @ignore_warnings(category=(UserWarning, ConvergenceWarning,
+                               RuntimeWarning, SyntaxWarning,
+                               ConvergenceWarning))
     def test_validate_sklearn_store_models(self):
         fLOG(__file__, self._testMethodName, OutputPrint=__name__ == "__main__")
         logger = getLogger('skl2onnx')
@@ -38,7 +41,8 @@ class TestOnnxrtValidateDocumentation(ExtTestCase):
 
     @skipif_circleci('too long')
     @ignore_warnings(category=(UserWarning, ConvergenceWarning,
-                               RuntimeWarning, SyntaxWarning))
+                               RuntimeWarning, SyntaxWarning,
+                               ConvergenceWarning))
     def test_write_documentation_converters(self):
         fLOG(__file__, self._testMethodName, OutputPrint=__name__ == "__main__")
         subs = []
@@ -51,12 +55,12 @@ class TestOnnxrtValidateDocumentation(ExtTestCase):
                     rows.append(row)
                 if len(rows) == 0:
                     continue
-                rows = [".. _l-skl2onnx-%s:" % sub, "", "=" * len(sub),
+                rows = [f".. _l-skl2onnx-{sub}:", "", "=" * len(sub),
                         sub, "=" * len(sub), "", ".. contents::",
                         "    :local:", ""] + rows
                 rows.append('')
                 subs.append(sub)
-                fLOG("subfolder '{}' - {} scenarios.".format(sub, len(models)))
+                fLOG(f"subfolder '{sub}' - {len(models)} scenarios.")
                 if len(subs) > 2:
                     break
 

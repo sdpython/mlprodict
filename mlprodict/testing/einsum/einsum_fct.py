@@ -8,11 +8,9 @@ import time
 import math
 import numpy
 from onnx import helper
-from skl2onnx.common.data_types import FloatTensorType
 from ...onnx_tools.onnx2py_helper import guess_proto_dtype
-from ...tools.onnx_micro_runtime import OnnxMicroRuntime
-from ...tools.asv_options_helper import (
-    get_opset_number_from_onnx, get_ir_version_from_onnx)
+from ...onnxrt.onnx_micro_runtime import OnnxMicroRuntime
+from ... import __max_supported_opset__, get_ir_version
 from .einsum_impl import decompose_einsum_equation, apply_einsum_sequence
 from .einsum_ml import predict_transposition_cost
 
@@ -110,14 +108,14 @@ class CachedEinsum:
             self.equation_ = self._build_optimize_ml()
         else:
             raise ValueError(  # pragma error
-                "Unknown strategy %r." % self.strategy)
+                f"Unknown strategy {self.strategy!r}.")
         self.build_runtime()
 
     def _build_optimize(self):
         # loops over all permutations
         if self.equation.lower() != self.equation:
             raise RuntimeError(  # pragma: no cover
-                "Only lower equation can be optimized, %r is not." % self.equation)
+                f"Only lower equation can be optimized, {self.equation!r} is not.")
         letters = list(
             sorted(set(c for c in self.equation if "a" <= c <= "z")))
         possible = list(permutations(letters))
@@ -167,7 +165,7 @@ class CachedEinsum:
         # loops over all permutations
         if self.equation.lower() != self.equation:
             raise RuntimeError(  # pragma: no cover
-                "Only lower equation can be optimized, %r is not." % self.equation)
+                f"Only lower equation can be optimized, {self.equation!r} is not.")
         letters = list(
             sorted(set(c for c in self.equation if "a" <= c <= "z")))
         possible = list(permutations(letters))
@@ -196,6 +194,7 @@ class CachedEinsum:
             if hasattr(inst, 'onnx_'):
                 onx = inst.onnx_
             else:
+                from skl2onnx.common.data_types import FloatTensorType  # delayed
                 inits = [
                     ('X%d' % i, FloatTensorType(list(inputs[i].shape)))
                     for i in range(len(inputs))]
@@ -236,8 +235,8 @@ class CachedEinsum:
         Builds an ONNX graph with a single einsum operator.
         """
         opset = (self.opset if self.opset is not None
-                 else get_opset_number_from_onnx())
-        ir_version = get_ir_version_from_onnx()
+                 else __max_supported_opset__)
+        ir_version = get_ir_version(opset)
         proto_type = guess_proto_dtype(
             numpy.float32 if self.dtype is None else self.dtype)
 
@@ -285,7 +284,7 @@ class CachedEinsum:
                     {i: v for i, v in zip(self.onnx_names_, inputs)})['Y']
             else:
                 raise ValueError(  # pragma: no cover
-                    "Unexpected runtime %r." % self.runtime)
+                    f"Unexpected runtime {self.runtime!r}.")
         else:
             if self.runtime in ('python', 'onnxruntime1'):
                 from ...onnxrt import OnnxInference
@@ -303,7 +302,7 @@ class CachedEinsum:
                     {i: v for i, v in zip(self.onnx_names_, inputs)})['Y']
             else:
                 raise ValueError(  # pragma: no cover
-                    "Unexpected runtime %r." % self.runtime)
+                    f"Unexpected runtime {self.runtime!r}.")
 
     def __call__(self, *inputs):
         """

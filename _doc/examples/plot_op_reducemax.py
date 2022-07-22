@@ -25,7 +25,7 @@ from skl2onnx.common.data_types import FloatTensorType
 from skl2onnx.algebra.onnx_ops import OnnxReduceMax
 from cpyquickhelper.numbers import measure_time
 from tqdm import tqdm
-from mlprodict.testing.experimental_c import code_optimisation
+from mlprodict.testing.experimental_c_impl.experimental_c import code_optimisation
 print(code_optimisation())
 
 ###################################
@@ -143,8 +143,7 @@ def benchmark_op(axes, repeat=2, number=5, name="ReduceMax", shape_fct=None):
     # Graphs.
     fig, ax = plt.subplots(1, 2, figsize=(12, 4))
     piv.plot(logx=True, logy=True, ax=ax[0],
-             title="%s benchmark\n%r - %r"
-                   " lower better" % (name, shape_name, axes))
+             title=f"{name} benchmark\n{shape_name!r} - {axes!r} lower better")
     ax[0].legend(prop={"size": 9})
     rs.plot(logx=True, logy=True, ax=ax[1],
             title="%s Speedup, baseline=numpy\n%r - %r"
@@ -224,6 +223,19 @@ dfs.append(df)
 df.pivot("fct", "N", "average")
 
 ###################################
+# Reduction on a particular case RKR
+# ++++++++++++++++++++++++++++++++++
+#
+# (N, 64, 16, 16), axis=(0, 2, 3)
+# ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+axes = (0, 2, 3)
+df, piv, ax = benchmark_op(
+    axes, shape_fct=lambda dim: (dim, 64, 16, 16))
+dfs.append(df)
+df.pivot("fct", "N", "average")
+
+###################################
 # Reduction on a particular case RKRK
 # +++++++++++++++++++++++++++++++++++
 #
@@ -245,8 +257,8 @@ df.pivot("fct", "N", "average")
 
 merged = pandas.concat(dfs)
 name = "reducemax"
-merged.to_csv("plot_%s.csv" % name, index=False)
-merged.to_excel("plot_%s.xlsx" % name, index=False)
-plt.savefig("plot_%s.png" % name)
+merged.to_csv(f"plot_{name}.csv", index=False)
+merged.to_excel(f"plot_{name}.xlsx", index=False)
+plt.savefig(f"plot_{name}.png")
 
 plt.show()

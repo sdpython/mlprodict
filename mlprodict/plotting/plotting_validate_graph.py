@@ -45,9 +45,6 @@ def plot_validate_benchmark(df):
         from mlprodict.onnxrt.validate import enumerate_validated_operator_opsets, summary_report
         from mlprodict.tools.plotting import plot_validate_benchmark
 
-        logger = getLogger('skl2onnx')
-        logger.disabled = True
-
         rows = list(enumerate_validated_operator_opsets(
             verbose=0, models={"LinearRegression"}, opset_min=11,
             runtime=['python', 'onnxruntime1'], debug=False,

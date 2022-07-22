@@ -8,14 +8,11 @@
 """
 import numpy
 from ._op import OpRun
-from ..shape_object import ShapeObject
 
 
 class Loop(OpRun):
 
-    atts = {
-        'body': None,
-    }
+    atts = {'body': None}
 
     def __init__(self, onnx_node, desc=None, **options):
         OpRun.__init__(self, onnx_node, desc=desc,
@@ -23,8 +20,7 @@ class Loop(OpRun):
                        **options)
         if not hasattr(self.body, 'run'):
             raise RuntimeError(  # pragma: no cover
-                "Parameter 'body' must have a method 'run', "
-                "type {}.".format(type(self.body)))
+                f"Parameter 'body' must have a method 'run', type {type(self.body)}.")
 
         self._run_meth = (self.body.run_in_scan
                           if hasattr(self.body, 'run_in_scan')
@@ -40,7 +36,8 @@ class Loop(OpRun):
         """
         return len(self.additional_inputs) > 0
 
-    def _run(self, M, cond, v_initial, *args, callback=None, context=None):  # pylint: disable=W0221
+    def _run(self, M, cond, v_initial, *args, callback=None, context=None,  # pylint: disable=W0221
+             attributes=None, verbose=0, fLOG=None):
         loop_inputs = self.body.input_names
         inputs = {name: None for name in loop_inputs}
         inputs[loop_inputs[2]] = v_initial
@@ -71,8 +68,7 @@ class Loop(OpRun):
             cond = outputs[cond_name]
             if cond is None:
                 raise RuntimeError(
-                    "condition %r returned by the subgraph cannot be None."
-                    "" % cond_name)
+                    f"condition {cond_name!r} returned by the subgraph cannot be None.")
             for i, o in zip(self.body.input_names[2:],
                             self.body.output_names[1:]):
                 inputs[i] = outputs[o]
@@ -93,35 +89,3 @@ class Loop(OpRun):
             raise TypeError(  # pragma: no cover
                 "Operator Loop produces a None value.")
         return res
-
-    def _infer_shapes(self, M, cond, v_initial, *args):  # pylint: disable=W0221
-        res = self.body._set_shape_inference_runtime()
-        outputs = {k[0]: k[1:] for k in self.body.output_names_shapes_types}
-        ret = []
-        for name in self.body.output_names[1:]:
-            if name in res:
-                ret.append(res[name])
-            else:
-                find = outputs[name]
-                ret.append(ShapeObject(find[0], dtype=find[1]))
-        return tuple(ret)
-
-    def _infer_types(self, M, cond, v_initial, *args):  # pylint: disable=W0221
-        res = self.body._set_type_inference_runtime()
-        return tuple([res[name] for name in self.body.output_names[1:]])
-
-    def _infer_sizes(self, M, cond, v_initial, *args, context=None):  # pylint: disable=W0221
-        store = []
-
-        def callback_(inputs, context=None):
-            res = self.body.infer_sizes(inputs, context=context)
-            store.append(res)
-
-        res = self._run(M, cond, v_initial, *args, callback=callback_,
-                        context=context)
-
-        temp = 0
-        for v in store:
-            for vv in v.values():
-                temp += sum(vv.values())
-        return (dict(temp=temp), ) + res

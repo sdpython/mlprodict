@@ -3,8 +3,6 @@
 @file
 @brief Helpers for :epkg:`onnxruntime`.
 """
-from onnxruntime.capi._pybind_state import (  # pylint: disable=E0611,W0611
-    OrtDevice as C_OrtDevice)
 
 
 def get_ort_device(device):
@@ -23,6 +21,8 @@ def get_ort_device(device):
         get_ort_device('cuda')
         get_ort_device('cuda:0')
     """
+    from onnxruntime.capi._pybind_state import (  # pylint: disable=E0611,W0611
+        OrtDevice as C_OrtDevice)  # delayed
     if isinstance(device, C_OrtDevice):
         return device
     if isinstance(device, str):
@@ -40,11 +40,10 @@ def get_ort_device(device):
             idx = int(device[5:])
             return C_OrtDevice(
                 C_OrtDevice.cuda(), C_OrtDevice.default_memory(), idx)
-        raise ValueError(
-            "Unable to interpret string %r as a device." % device)
-    raise TypeError(
-        "Unable to interpret type %r, (%r) as de device." % (
-            type(device), device))
+        raise ValueError(  # pragma: no cover
+            f"Unable to interpret string {device!r} as a device.")
+    raise TypeError(  # pragma: no cover
+        f"Unable to interpret type {type(device)!r}, ({device!r}) as de device.")
 
 
 def device_to_providers(device):
@@ -59,6 +58,6 @@ def device_to_providers(device):
     if device.device_type() == device.cpu():
         return ['CPUExecutionProvider']
     if device.device_type() == device.cuda():
-        return ['CUDAExecutionProvider']
+        return ['CUDAExecutionProvider', 'CPUExecutionProvider']
     raise ValueError(  # pragma: no cover
-        "Unexpected device %r." % device)
+        f"Unexpected device {device!r}.")

@@ -1,0 +1,13 @@
+
+.. blogpost::
+    :title: ONNX Backend Scoreboard
+    :keywords: onnx, coverage, scoreboard
+    :date: 2022-05-29
+    :categories: benchmark
+
+    `ONNX Backend Scoreboard
+    <http://onnx.ai/backend-scoreboard/index.html>`_
+    shows how many operators a runtime supports.
+    Page :ref:`l-backend-python-coverage` computes the
+    same figure for the Python Runtime implemented
+    in this package, more than 90%.

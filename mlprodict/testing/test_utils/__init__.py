@@ -1,9 +1,8 @@
 """
 @file
-@brief Inspired from skl2onnx, handles two backends.
+@brief Inspired from sklearn-onnx, handles two backends.
 """
 import numpy
-from ...tools.asv_options_helper import get_opset_number_from_onnx
 from .utils_backend_onnxruntime import _capture_output
 
 
@@ -33,19 +32,13 @@ def create_tensor(N, C, H=None, W=None):
         'This function only produce 2-D or 4-D tensor.')
 
 
-def _get_ir_version(opv):
-    if opv >= 12:
-        return 7
-    if opv >= 11:  # pragma no cover
-        return 6
-    if opv >= 10:  # pragma no cover
-        return 5
-    if opv >= 9:  # pragma no cover
-        return 4
-    if opv >= 8:  # pragma no cover
-        return 4
-    return 3  # pragma no cover
+def ort_version_greater(ver):
+    """
+    Tells if onnxruntime version is greater than *ver*.
 
-
-TARGET_OPSET = get_opset_number_from_onnx()
-TARGET_IR = _get_ir_version(TARGET_OPSET)
+    :param ver: version as a string
+    :return: boolean
+    """
+    from onnxruntime import __version__
+    from pyquickhelper.texthelper.version_helper import compare_module_version
+    return compare_module_version(__version__, ver) >= 0

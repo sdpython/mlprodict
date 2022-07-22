@@ -5,16 +5,17 @@
 .. versionadded:: 0.6
 """
 import inspect
+import logging
 from typing import Any
 import numpy
-from skl2onnx.common.data_types import guess_numpy_type
-from skl2onnx import __max_supported_opset__
-from ..tools.ort_wrapper import InferenceSession
 from ..onnx_tools.optim._main_onnx_optim import onnx_optimisations
-from ..onnxrt import OnnxInference
 from .onnx_version import FctVersion
 from .onnx_numpy_annotation import get_args_kwargs
-from .onnx_variable import OnnxVar
+from .xop_variable import Variable
+from .xop import OnnxOperator, OnnxOperatorTuple
+
+
+logger = logging.getLogger('xop')
 
 
 class OnnxNumpyFunction:
@@ -27,6 +28,12 @@ class OnnxNumpyFunction:
 
     def __init__(self, compiler, rt, inputs, outputs,
                  n_optional, n_variables):
+        if any(map(lambda n: not isinstance(n, Variable), inputs)):
+            raise TypeError(  # pragma: no cover
+                f"All inputs must be of type Variable: {inputs!r}.")
+        if any(map(lambda n: not isinstance(n, Variable), outputs)):
+            raise TypeError(  # pragma: no cover
+                f"All outputs must be of type Variable: {outputs!r}.")
         self.compiler = compiler
         self.inputs = inputs
         self.outputs = outputs
@@ -35,8 +42,7 @@ class OnnxNumpyFunction:
         self.n_variables = n_variables
         if n_optional < 0:
             raise RuntimeError(  # pragma: no cover
-                "Wrong configuration, n_optional %r must be >= 0."
-                "" % n_optional)
+                f"Wrong configuration, n_optional {n_optional!r} must be >= 0.")
         if n_optional >= len(inputs):
             raise RuntimeError(  # pragma: no cover
                 "Wrong configuration, n_optional %r must be >= %r "
@@ -66,13 +72,13 @@ class OnnxNumpyFunctionOnnxInference(OnnxNumpyFunction):
 
     def __call__(self, *args, **kwargs):
         self._check_(*args, **kwargs)
-        inp = {k[0]: a for k, a in zip(self.inputs, args)}
+        inp = {k.name: a for k, a in zip(self.inputs, args)}
         out = self.rt.run(inp, **kwargs)
         if len(out) != len(self.outputs):
             raise RuntimeError(  # pragma: no cover
                 "Unexpected number of outputs %d instead of %d." % (
                     len(out), len(self.outputs)))
-        return tuple([out[o[0]] for o in self.outputs])
+        return tuple([out[o.name] for o in self.outputs])
 
 
 class OnnxNumpyFunctionInferenceSession(OnnxNumpyFunction):
@@ -87,8 +93,8 @@ class OnnxNumpyFunctionInferenceSession(OnnxNumpyFunction):
         self._check_(*args, **kwargs)
         if len(kwargs) > 0:
             raise RuntimeError(  # pragma: no cover
-                "kwargs is not used but it is not empty: %r." % kwargs)
-        inp = {k[0]: a for k, a in zip(self.inputs, args)}
+                f"kwargs is not used but it is not empty: {kwargs!r}.")
+        inp = {k.name: a for k, a in zip(self.inputs, args)}
         out = self.rt.run(None, inp)
 
         if len(out) != len(self.outputs):
@@ -127,6 +133,7 @@ class OnnxNumpyCompiler:
                 "." % (type(version), version))
         self.fctsig = fctsig
         if op_version is None:
+            from .. import __max_supported_opset__
             op_version = __max_supported_opset__
         if hasattr(fct, 'SerializeToString'):
             self.fct_ = None
@@ -135,8 +142,7 @@ class OnnxNumpyCompiler:
             self.fct_ = fct
             if not inspect.isfunction(fct):
                 raise TypeError(  # pragma: no cover
-                    "Unexpected type for fct=%r, it must be "
-                    "function." % type(fct))
+                    f"Unexpected type for fct={type(fct)!r}, it must be a function.")
             self.onnx_ = None
             self.onnx_ = self._to_onnx(
                 op_version=op_version, signature=signature,
@@ -179,9 +185,9 @@ class OnnxNumpyCompiler:
     def __repr__(self):
         "usual"
         if self.fct_ is not None:
-            return "%s(%s)" % (self.__class__.__name__, repr(self.fct_))
+            return f"{self.__class__.__name__}({repr(self.fct_)})"
         if self.onnx_ is not None:
-            return "%s(%s)" % (self.__class__.__name__, "... ONNX ... ")
+            return f"{self.__class__.__name__}({'... ONNX ... '})"
         raise NotImplementedError(  # pragma: no cover
             "fct_ and onnx_ are empty.")
 
@@ -193,12 +199,8 @@ class OnnxNumpyCompiler:
                      for s in shape]
         else:
             raise RuntimeError(  # pragma: no cover
-                "Unexpected annotated shape %r." % shape)
+                f"Unexpected annotated shape {shape!r}.")
         return shape
-
-    def _to_onnx_dtype(self, dtype, shape):
-        from skl2onnx.common.data_types import _guess_numpy_type
-        return _guess_numpy_type(dtype, shape)
 
     def _parse_annotation(self, signature, version):
         """
@@ -238,12 +240,13 @@ class OnnxNumpyCompiler:
         for k, v in kwargs.items():
             if isinstance(v, (type, numpy.dtype)):
                 raise RuntimeError(  # pragma: no cover
-                    "Unexpected value for argument %r: %r from %r." % (
-                        k, v, kwargs))
+                    f"Unexpected value for argument {k!r}: {v!r} from {kwargs!r}.")
 
         if signature is not None:
             inputs, kwargs, outputs, n_optional, n_variables = (
                 signature.get_inputs_outputs(args, kwargs, version))
+            inputs = [Variable(i[0], i[1]) for i in inputs]
+            outputs = [Variable(i[0], i[1]) for i in outputs]
             return inputs, outputs, kwargs, n_optional, n_variables
 
         def _possible_names():
@@ -270,11 +273,10 @@ class OnnxNumpyCompiler:
             ann = annotations[a]
             shape, dtype = ann.__args__
             shape = self._to_onnx_shape(shape)
-            dtype = self._to_onnx_dtype(dtype, shape)
-            inputs.append((a, dtype))
+            inputs.append(Variable(a, dtype, shape=shape))
 
         ret = annotations['return']
-        names_in = set(inp[0] for inp in inputs)
+        names_in = set(inp.name for inp in inputs)
 
         if isinstance(ret, tuple):
             # multiple outputs
@@ -282,13 +284,12 @@ class OnnxNumpyCompiler:
             for shape_dtype in ret:
                 shape, dtype = shape_dtype.__args__
                 shape = self._to_onnx_shape(shape)
-                dtype = self._to_onnx_dtype(dtype, shape)
                 name_out = None
                 for name in _possible_names():
                     if name not in names_in and name not in names_none:
                         name_out = name
                         break
-                outputs.append((name_out, dtype))
+                outputs.append(Variable(name_out, dtype, shape=shape))
                 names_none.add(name_out)
             return (inputs, outputs, kwargs, 0,
                     signature.n_variables if signature is not None else False)
@@ -296,13 +297,12 @@ class OnnxNumpyCompiler:
         # single outputs
         shape, dtype = ret.__args__
         shape = self._to_onnx_shape(shape)
-        dtype = self._to_onnx_dtype(dtype, shape)
         name_out = None
         for name in _possible_names():
             if name not in names_in:
                 name_out = name
                 break
-        outputs.append((name_out, dtype))
+        outputs.append(Variable(name_out, dtype, shape=shape))
         return (inputs, outputs, kwargs, 0,
                 signature.n_variables if signature is not None else False)
 
@@ -339,6 +339,10 @@ class OnnxNumpyCompiler:
         Returns the onnx graph produced by function `fct_`.
         """
         if self.onnx_ is None and self.fct_ is not None:
+            from .onnx_variable import OnnxVar
+            logger.debug('OnnxNumpyCompiler._to_onnx(op_version=%r, '
+                         'signature=%r, version=%r)',
+                         op_version, signature, version)
             inputs, outputs, kwargs, n_optional, n_variables = (  # pylint: disable=W0612
                 self._parse_annotation(
                     signature=signature, version=version))
@@ -350,10 +354,13 @@ class OnnxNumpyCompiler:
                     "(n_optional=%r) and version %r for function %r from %r."
                     "" % (kwargs, n_optional, version, self.fct_,
                           getattr(self.fct_, '__module__', None)))
-            names_in = [oi[0] for oi in inputs]
-            names_out = [oi[0] for oi in outputs]
-            names_var = [OnnxVar(n, dtype=guess_numpy_type(dt[1]))
+            names_in = [oi.name for oi in inputs]
+            names_out = [oi.name for oi in outputs]
+            names_var = [OnnxVar(n, dtype=dt.dtype)
                          for n, dt in zip(names_in, inputs)]
+
+            logger.debug('OnnxNumpyCompiler._to_onnx:names_in=%r', names_in)
+            logger.debug('OnnxNumpyCompiler._to_onnx:names_out=%r', names_out)
 
             if 'op_version' in self.fct_.__code__.co_varnames:
                 onx_var = None
@@ -367,32 +374,45 @@ class OnnxNumpyCompiler:
                         "OnnxVar but returns type %r." % (self.fct_, type(onx_var)))
                 onx_algebra = onx_var.to_algebra(op_version=op_version)
 
+            logger.debug('OnnxNumpyCompiler._to_onnx:onx_var=%r',
+                         type(onx_var))
+            logger.debug('OnnxNumpyCompiler._to_onnx:onx_algebra=%r',
+                         type(onx_algebra))
+
+            if not isinstance(onx_algebra, (OnnxOperator, OnnxOperatorTuple)):
+                raise TypeError(  # pragma: no cover
+                    "Unexpected type for onx_algebra %r "
+                    "(It should be OnnxOperator or OnnxOperatorItem), "
+                    "function is %r." % (type(onx_algebra), self.fct_))
             hidden_algebras, var_graphs = self._find_hidden_algebras(
                 onx_var, onx_algebra)
             if len(hidden_algebras) > 0:
+                logger.debug(  # pragma: no cover
+                    'OnnxNumpyCompiler._to_onnx:len(hidden_algebras)=%r',
+                    len(hidden_algebras))
+                # print('----1', len(var_graphs))
                 # for gr in var_graphs:
                 #     print(type(gr), dir(gr))
+                # print('----2', len(hidden_algebras))
                 # for k, v in hidden_algebras.items():
                 #     print("*", type(v.alg_), dir(v.alg_))
-                #     import pprint
+                #     #import pprint
                 #     #pprint.pprint(dir(v.alg_))
-                raise NotImplementedError(
-                    "Subgraph only supports constants (operator If, Loop, "
+                raise NotImplementedError(  # pragma: no cover
+                    "Subgraphs only support constants (operator If, Loop, "
                     "Scan). hidden_algebras=%r var_graphs=%r" % (
                         hidden_algebras, var_graphs))
 
             if isinstance(onx_algebra, str):
                 raise RuntimeError(  # pragma: no cover
-                    "Unexpected str type %r." % onx_algebra)
+                    f"Unexpected str type {onx_algebra!r}.")
             if isinstance(onx_algebra, tuple):
                 raise NotImplementedError(  # pragma: no cover
                     "Not implemented when the function returns multiple results.")
             if hasattr(onx_algebra, 'to_onnx'):
-                # skl2onnx algebra
-                onx_algebra.output_names = names_out
-                onx = onx_algebra.to_onnx(inputs=inputs,
-                                          target_opset=op_version,
-                                          outputs=outputs)
+                onx_algebra.output_names = [Variable(n) for n in names_out]
+                onx = onx_algebra.to_onnx(
+                    inputs=inputs, target_opset=op_version, outputs=outputs)
                 # optimisation
                 onx_optimized = onnx_optimisations(onx)
                 self.onnx_ = onx_optimized
@@ -402,6 +422,23 @@ class OnnxNumpyCompiler:
                 "Unable to get the ONNX graph (class %r, fct_=%r)" % (
                     type(self), self.fct_))
         return self.onnx_
+
+    def to_onnx(self, **kwargs):
+        """
+        Returns the ONNX graph for the wrapped function.
+        It takes additional arguments to distinguish between multiple graphs.
+        This happens when a function needs to support multiple type.
+
+        :return: ONNX graph
+        """
+        if len(kwargs) > 0:
+            raise NotImplementedError(  # pragma: no cover
+                "kwargs is not empty, this case is not implemented. "
+                "kwargs=%r." % kwargs)
+        if hasattr(self, 'onnx_'):
+            return self.onnx_
+        raise NotImplementedError(  # pragma: no cover
+            "Attribute 'onnx_' is missing.")
 
     def _build_runtime(self, op_version=None, runtime=None,
                        signature=None, version=None):
@@ -418,13 +455,15 @@ class OnnxNumpyCompiler:
                             version=version)
         inputs, outputs, _, n_optional, n_variables = self._parse_annotation(
             signature=signature, version=version)
-        if runtime != 'onnxruntime':
+        if runtime not in ('onnxruntime', 'onnxruntime-cuda'):
+            from ..onnxrt import OnnxInference
             rt = OnnxInference(onx, runtime=runtime)
             self.rt_fct_ = OnnxNumpyFunctionOnnxInference(
                 self, rt, inputs=inputs, outputs=outputs,
                 n_optional=n_optional, n_variables=n_variables)
         else:
-            rt = InferenceSession(onx.SerializeToString())
+            from ..tools.ort_wrapper import InferenceSession
+            rt = InferenceSession(onx.SerializeToString(), runtime=runtime)
             self.rt_fct_ = OnnxNumpyFunctionInferenceSession(
                 self, rt, inputs=inputs, outputs=outputs,
                 n_optional=n_optional, n_variables=n_variables)

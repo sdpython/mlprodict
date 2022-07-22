@@ -81,7 +81,7 @@ for suffix in ['_ref', '_new']:
                 piv[c] = ref / piv[c]
             piv.plot(ax=ax[i, j], logx=True)
             shape = list(sub['shape'])[0]
-            ax[i, j].set_title("%s - %s - %s" % (o, a, shape), fontsize=5)
+            ax[i, j].set_title(f"{o} - {a} - {shape}", fontsize=5)
             ax[i, j].legend(fontsize=5)
             plt.setp(ax[i, j].get_xticklabels(), fontsize=5)
             plt.setp(ax[i, j].get_yticklabels(), fontsize=5)

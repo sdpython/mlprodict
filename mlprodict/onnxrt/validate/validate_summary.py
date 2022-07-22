@@ -31,8 +31,7 @@ def _clean_values_optim(val):
 def _summary_report_indices(df, add_cols=None, add_index=None):
     if 'opset' not in df.columns:
         raise RuntimeError(  # pragma: no cover
-            "Unable to create summary (opset missing)\n{}\n--\n{}".format(
-                df.columns, df.head()))
+            f"Unable to create summary (opset missing)\n{df.columns}\n--\n{df.head()}")
 
     col_values = ["available"]
     for col in ['problem', 'scenario', 'opset', 'optim']:
@@ -144,7 +143,7 @@ def summary_report(df, add_cols=None, add_index=None):
                     return ""
                 if mi == ma:
                     return mi
-                return '[{},{}]'.format(mi, ma)
+                return f'[{mi},{ma}]'
             values = [str(_).replace("\n", " ").replace('\r', '').strip(" ")
                       for _ in values]
             values = [_ for _ in values if _]
@@ -188,7 +187,7 @@ def summary_report(df, add_cols=None, add_index=None):
 
     if "available-ERROR" in df.columns:
 
-        from skl2onnx.common.exceptions import MissingShapeCalculator
+        from skl2onnx.common.exceptions import MissingShapeCalculator  # delayed
 
         def replace_msg(text):
             if isinstance(text, MissingShapeCalculator):
@@ -267,7 +266,7 @@ def summary_report(df, add_cols=None, add_index=None):
             vals = set(filter(keep_values, df[c]))
             if len(vals) != 1:
                 raise RuntimeError(  # pragma: no cover
-                    "Columns '{}' has multiple values {}.".format(c, vals))
+                    f"Columns '{c}' has multiple values {vals}.")
             piv[c] = list(vals)[0]
 
     return piv
@@ -294,8 +293,7 @@ def merge_benchmark(dfs, column='runtime', baseline=None, suffix='-base'):
     for k, df in dfs.items():
         if column not in df.columns:
             raise ValueError(
-                "Unable to find column '{}' in {} (key='{}')".format(
-                    column, df.columns, k))
+                f"Unable to find column '{column}' in {df.columns} (key='{k}')")
         df = df.copy()
         df[column] = df[column].apply(lambda x: add_prefix(k, x))
         if 'inst' in df.columns:
@@ -339,7 +337,7 @@ def merge_benchmark(dfs, column='runtime', baseline=None, suffix='-base'):
                     n_rows, n_rows2, indices, gr.T, srows)) from e
         if bdata.shape[0] == 0:
             raise RuntimeError(  # pragma: no cover
-                "No result for baseline '{}'.".format(baseline))
+                f"No result for baseline '{baseline}'.")
         ratios = [c for c in merged.columns if c.startswith('time-ratio-')]
         indexed = {}
         for index in bdata.index:

@@ -29,8 +29,8 @@ class LeakyRelu(OpRunUnaryNum):
                                expected_attributes=LeakyRelu.atts,
                                **options)
 
-    def _run(self, x):  # pylint: disable=W0221
-        if self.inplaces.get(0, False):
+    def _run(self, x, attributes=None, verbose=0, fLOG=None):  # pylint: disable=W0221
+        if self.inplaces.get(0, False) and x.flags['WRITEABLE']:
             return self._run_inplace(x)
         return (_leaky_relu(x, self.alpha), )
 
@@ -46,4 +46,4 @@ class LeakyRelu(OpRunUnaryNum):
                 sign = (x > 0).astype(x.dtype)
                 sign -= ((sign - 1) * alpha).astype(x.dtype)
                 return x * sign
-            """), "return _leaky_relu(%s, alpha)" % inputs[0])
+            """), f"return _leaky_relu({inputs[0]}, alpha)")

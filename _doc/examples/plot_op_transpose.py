@@ -28,7 +28,7 @@ from skl2onnx.common.data_types import FloatTensorType
 from skl2onnx.algebra.onnx_ops import OnnxTranspose
 from cpyquickhelper.numbers import measure_time
 from tqdm import tqdm
-from mlprodict.testing.experimental_c import code_optimisation
+from mlprodict.testing.experimental_c_impl.experimental_c import code_optimisation
 print(code_optimisation())
 
 ###################################
@@ -66,7 +66,7 @@ def loop_fct(fct, xs, ys):
 def perm2eq(perm):
     first = "".join(chr(97 + i) for i in range(len(perm)))
     second = "".join(first[p] for p in perm)
-    return "%s->%s" % (first, second)
+    return f"{first}->{second}"
 
 
 def benchmark_op(perm, repeat=5, number=5, name="Transpose", shape_fct=None):
@@ -249,8 +249,8 @@ df.pivot("fct", "N", "average")
 
 merged = pandas.concat(dfs)
 name = "transpose"
-merged.to_csv("plot_%s.csv" % name, index=False)
-merged.to_excel("plot_%s.xlsx" % name, index=False)
-plt.savefig("plot_%s.png" % name)
+merged.to_csv(f"plot_{name}.csv", index=False)
+merged.to_excel(f"plot_{name}.xlsx", index=False)
+plt.savefig(f"plot_{name}.png")
 
 plt.show()

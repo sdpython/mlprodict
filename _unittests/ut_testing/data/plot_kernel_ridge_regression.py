@@ -35,17 +35,17 @@ kr = GridSearchCV(KernelRidge(kernel='rbf', gamma=0.1),
 t0 = time.time()
 svr.fit(X[:train_size], y[:train_size])
 svr_fit = time.time() - t0
-print("SVR complexity and bandwidth selected and model fitted in %.3f s"
-      % svr_fit)
+print(
+    f"SVR complexity and bandwidth selected and model fitted in {svr_fit:.3f} s")
 
 t0 = time.time()
 kr.fit(X[:train_size], y[:train_size])
 kr_fit = time.time() - t0
-print("KRR complexity and bandwidth selected and model fitted in %.3f s"
-      % kr_fit)
+print(
+    f"KRR complexity and bandwidth selected and model fitted in {kr_fit:.3f} s")
 
 sv_ratio = svr.best_estimator_.support_.shape[0] / train_size
-print("Support vector ratio: %.3f" % sv_ratio)
+print(f"Support vector ratio: {sv_ratio:.3f}")
 
 t0 = time.time()
 y_svr = svr.predict(X_plot)
@@ -68,9 +68,9 @@ plt.scatter(X[sv_ind], y[sv_ind], c='r', s=50, label='SVR support vectors',
 plt.scatter(X[:100], y[:100], c='k', label='data', zorder=1,
             edgecolors=(0, 0, 0))
 plt.plot(X_plot, y_svr, c='r',
-         label='SVR (fit: %.3fs, predict: %.3fs)' % (svr_fit, svr_predict))
+         label=f'SVR (fit: {svr_fit:.3f}s, predict: {svr_predict:.3f}s)')
 plt.plot(X_plot, y_kr, c='g',
-         label='KRR (fit: %.3fs, predict: %.3fs)' % (kr_fit, kr_predict))
+         label=f'KRR (fit: {kr_fit:.3f}s, predict: {kr_predict:.3f}s)')
 plt.xlabel('data')
 plt.ylabel('target')
 plt.title('SVR versus Kernel Ridge')
@@ -99,9 +99,9 @@ for name, estimator in {"KRR": KernelRidge(kernel='rbf', alpha=0.1,
         test_time.append(time.time() - t0)
 
     plt.plot(sizes, train_time, 'o-', color="r" if name == "SVR" else "g",
-             label="%s (train)" % name)
+             label=f"{name} (train)")
     plt.plot(sizes, test_time, 'o--', color="r" if name == "SVR" else "g",
-             label="%s (test)" % name)
+             label=f"{name} (test)")
 
 plt.xscale("log")
 plt.yscale("log")

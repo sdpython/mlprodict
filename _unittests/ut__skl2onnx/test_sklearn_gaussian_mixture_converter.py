@@ -8,9 +8,10 @@ from sklearn.datasets import load_iris
 from sklearn.mixture import GaussianMixture, BayesianGaussianMixture
 from skl2onnx import convert_sklearn, to_onnx
 from skl2onnx.common.data_types import FloatTensorType
-from mlprodict.tools.ort_wrapper import OrtFail
+from onnxruntime.capi._pybind_state import Fail as OrtFail  # pylint: disable=E0611
 from mlprodict.tools.ort_wrapper import InferenceSession
-from mlprodict.testing.test_utils import dump_data_and_model, TARGET_OPSET
+from mlprodict.testing.test_utils import dump_data_and_model
+from mlprodict import __max_supported_opset__ as TARGET_OPSET
 
 
 class TestGaussianMixtureConverter(ExtTestCase):
@@ -41,8 +42,7 @@ class TestGaussianMixtureConverter(ExtTestCase):
         try:
             sess = InferenceSession(onx.SerializeToString())
         except OrtFail as e:
-            raise RuntimeError('Issue {}\n{}'.format(
-                e, str(onx))) from e
+            raise RuntimeError(f'Issue {e}\n{str(onx)}') from e
         got = sess.run(None, {'X': X})
         self.assertEqual(len(got), 3)
         np.testing.assert_almost_equal(

@@ -10,7 +10,8 @@ from skl2onnx import convert_sklearn
 from skl2onnx.common.data_types import FloatTensorType
 from mlprodict.testing.test_utils import (
     dump_data_and_model, fit_regression_model,
-    fit_classification_model, TARGET_OPSET)
+    fit_classification_model)
+from mlprodict import __max_supported_opset__ as TARGET_OPSET
 
 
 def model_to_test_reg():

@@ -135,7 +135,7 @@ def compute_transposition_features(shape, perm):
     for k in keys:
         if k in {'dim', 'cpu', 'size'}:
             continue
-        feat['r%s' % k] = float(feat[k] / total)
+        feat[f'r{k}'] = float(feat[k] / total)
 
     for c in [2, 4, 8, 16, 32, 64]:
         feat["iend%d" % c] = float(end >= c)
