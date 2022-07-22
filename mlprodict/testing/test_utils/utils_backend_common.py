@@ -190,12 +190,19 @@ def compare_outputs(expected, output, verbose=False, **kwargs):
                 else:  # pragma no cover
                     return OnnxBackendAssertionError(str(e))
         else:
+            if 'OneOff' in kwargs:
+                kwargs = kwargs.copy()
+                kwargs.pop('OneOff')
+                if expected.shape != output.shape:
+                    raise NotImplementedError(
+                        f"Unable to deal with sort of shapes "
+                        f"{expected.shape!r} != {output.shape!r}.")
             try:
                 assert_array_almost_equal(expected,
                                           output,
                                           verbose=verbose,
                                           **kwargs)
-            except (RuntimeError, AssertionError) as e:  # pragma no cover
+            except (RuntimeError, AssertionError, TypeError) as e:  # pragma no cover
                 longer = "\n--EXPECTED--\n{0}\n--OUTPUT--\n{1}".format(
                     expected, output) if verbose else ""
                 expected_ = numpy.asarray(expected).ravel()
