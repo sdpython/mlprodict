@@ -6,9 +6,6 @@ environment:
       PYTHON_VERSION: "3.10.x"
       PYTHON_ARCH: "64"
 
-init:
-  - "%PYTHONEXE% -V"
-
 install:
   - "%PYTHONEXE% -m pip install wheel"
   - "%PYTHONEXE% -m pip install numpy pandas scipy matplotlib scikit-learn"
