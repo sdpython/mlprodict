@@ -1099,7 +1099,7 @@ def onnx_function_to_model(onx, functions=None, type_info=None,
         raise TypeError(  # pragma: no cover
             f"onx must be a FunctionProto not {type(onx)!r}.")
     if len(onx.attribute) > 0:
-        raise NotImplementedError(
+        raise NotImplementedError(  # pragma: no cover
             "The function has attributes, it is not implemented yet.")
 
     if isinstance(functions, list):
@@ -1499,7 +1499,7 @@ def onnx_inline_function(obj, protos=None, existing_names=None, verbose=0, fLOG=
     .. versionadded:: 0.9
     """
     if verbose > 0 and fLOG is None:
-        fLOG = print
+        fLOG = print  # pragma: no cover
     if isinstance(obj, ModelProto):
         if verbose > 0:
             fLOG("[onnx_inline_function] type=%r graph=%d" % (

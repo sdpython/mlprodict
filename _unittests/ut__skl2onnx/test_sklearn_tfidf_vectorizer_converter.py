@@ -183,10 +183,9 @@ class TestSklearnTfidfVectorizer(ExtTestCase):
         ]).reshape((2, 1))
         vect = TfidfVectorizer(ngram_range=(1, 2), norm=None)
         vect.fit(corpus.ravel())
-        model_onnx = to_onnx(vect, initial_types=
-                                     [("input", StringTensorType([None, 1]))],
-                                     options=self.get_options(),
-                                     target_opset=TARGET_OPSET)
+        model_onnx = to_onnx(
+            vect, initial_types=[("input", StringTensorType([None, 1]))],
+            options=self.get_options(), target_opset=TARGET_OPSET)
         dump_data_and_model(
             corpus, vect, model_onnx,
             basename="SklearnTfidfVectorizer22-OneOff-SklCol")
@@ -310,10 +309,9 @@ class TestSklearnTfidfVectorizer(ExtTestCase):
         ]).reshape((4, 1))
         vect = TfidfVectorizer(binary=True)
         vect.fit(corpus.ravel())
-        model_onnx = to_onnx(vect, initial_types=
-                                     [("input", StringTensorType([None, 1]))],
-                                     options=self.get_options(),
-                                     target_opset=TARGET_OPSET)
+        model_onnx = to_onnx(
+            vect, initial_types=[("input", StringTensorType([None, 1]))],
+            options=self.get_options(), target_opset=TARGET_OPSET)
         self.assertTrue(model_onnx is not None)
         dump_data_and_model(
             corpus, vect, model_onnx,
