@@ -5,8 +5,15 @@
 History
 =======
 
-current - 2022-07-20 - 0.00Mb
+current - 2022-07-23 - 0.00Mb
 =============================
+
+* #456: Fixes python runtime for TfIdfVectorizer (2022-07-22)
+* #455: Fixes division by zero in Normalizer (2022-07-21)
+* #454: Fixes compilation issues on windows and python 3.10 (2022-07-20)
+
+0.8.1858 - 2022-07-20 - 2.42Mb
+==============================
 
 * #453: Uses f strings (2022-07-19)
 * #452: Extends code coverage (2022-07-18)
@@ -18,12 +25,12 @@ current - 2022-07-20 - 0.00Mb
 * #446: Creates an exporter to python (2022-07-05)
 * #445: Removes ShapeObject, replaces by OnnxShapeInference (2022-07-02)
 * #444: Fixes a bug in to_onnx when as_function=True (2022-07-01)
-* #442: Converts onnx with functions to code based on XOP API (2022-06-30)
 * #443: Add compiled dynamic libraries to .gitignore (2022-06-30)
+* #442: Converts onnx with functions to code based on XOP API (2022-06-30)
 * #433: Converts a sklearn model into multiple functions (2022-06-29)
 * #441: Renames check_model into check_onnx (2022-06-25)
-* #439: Drops support for python 3.6 (2022-06-22)
 * #440: Update azure-pipelines.yml (2022-06-22)
+* #439: Drops support for python 3.6 (2022-06-22)
 * #438: Fixes xgboost converter when base_score is specified (2022-06-22)
 * #437: Renders vector attributes in onnx_simple_text_plot (2022-06-21)
 * #436: Supports for attributes in onnx functions (2022-06-21)
