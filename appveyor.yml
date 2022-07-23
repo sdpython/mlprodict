@@ -2,30 +2,28 @@ image:
   - Visual Studio 2019
 environment:
   matrix:
-    - PYTHON: "C:\\Python39-x64"
-      PYTHONEXE: "C:\\Python39-x64\\python"
-      PYTHON_VERSION: "3.9.x"
+    - PYTHON: "C:\\Python310-x64"
+      PYTHON_VERSION: "3.10.x"
       PYTHON_ARCH: "64"
-
 init:
-  - "%PYTHONEXE% -V"
+  - "ECHO %PYTHON% %PYTHON_VERSION% %PYTHON_ARCH%"
 
 install:
-  - "%PYTHONEXE% -m pip install wheel"
-  - "%PYTHONEXE% -m pip install numpy pandas scipy matplotlib scikit-learn"
-  - "%PYTHONEXE% -m pip install onnx onnxruntime"
-  - "%PYTHONEXE% -m pip install -r requirements-win.txt"
+  - "%PYTHON%\\python -m pip install wheel"
+  - "%PYTHON%\\python -m pip install numpy pandas scipy matplotlib scikit-learn"
+  - "%PYTHON%\\python -m pip install onnx onnxruntime"
+  - "%PYTHON%\\python -m pip install -r requirements-win.txt"
 
 build: false
 
 before_test:
-  - "%PYTHONEXE% -u setup.py build_ext --inplace"
+  - "%PYTHON%\\python -u setup.py build_ext --inplace"
 
 test_script:
-  - "%PYTHONEXE% -u setup.py unittests -d 15 -g \".*((LONG)|(SKIP)|(notebooks)|(asv)|(plotting)).*\""
+  - "%PYTHON%\\python -u setup.py unittests -d 15 -g \".*((LONG)|(SKIP)|(notebooks)|(asv)|(plotting)).*\""
 
 after_test:
-  - "%PYTHONEXE% -u setup.py bdist_wheel"
+  - "%PYTHON%\\python -u setup.py bdist_wheel"
 
 artifacts:
   - path: dist

@@ -2,7 +2,7 @@ version: 2
 jobs:
   build:
     docker:
-      - image: circleci/python:3.9.6
+      - image: cimg/python:3.10.5
     
     working_directory: ~/repo
     
@@ -56,17 +56,12 @@ jobs:
       - run:
           name: Install standard libraries
           command: |
-            python -m venv venv
-            . venv/bin/activate
-            pip install scipy matplotlib numpy cython pandas wheel pybind11
+            python -m pip install scipy matplotlib numpy cython pandas wheel pybind11
 
       - run:
           name: Install numba, llvmlite
           command: |
-            . venv/bin/activate
-            # export LLVM_CONFIG=/usr/local/opt/llvm/bin/llvm-config
-            sudo ln -s /usr/bin/llvm-config-10 /usr/bin/llvm-config
-            pip install llvmlite numba
+            python -m pip install llvmlite numba
 
 #      - run:
 #          name: Build onnx
@@ -85,8 +80,7 @@ jobs:
       - run:
           name: install dependencies (2)
           command: |
-            . venv/bin/activate
-            pip install -r requirements.txt
+            python -m pip install -r requirements.txt
 
       - save_cache:
           paths:
@@ -96,20 +90,17 @@ jobs:
       - run:
           name: check list of dependencies + pip freeze
           command: |
-            . venv/bin/activate
-            pip freeze
+            python -m pip freeze
             apt list --installed
         
       - run:
           name: compile and build
           command: |
-            . venv/bin/activate
             python setup.py build_ext --inplace
 
       - run:
           name: run tests
           command: |
-            . venv/bin/activate
             python -c "import skl2onnx;print('skl2onnx.__version__')"
             python setup.py unittests -d 15 -g ".*((LONG)|(SKIP)|(notebooks)).*"
           # Some tests take for ever, cutting the list.
@@ -117,7 +108,6 @@ jobs:
       - run:
           name: wheel
           command: |
-            . venv/bin/activate
             python setup.py bdist_wheel
             mkdir -p test-reports/dist
             cp dist/*.whl test-reports/dist
