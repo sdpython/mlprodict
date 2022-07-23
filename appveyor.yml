@@ -5,23 +5,25 @@ environment:
     - PYTHON: "C:\\Python310-x64"
       PYTHON_VERSION: "3.10.x"
       PYTHON_ARCH: "64"
+init:
+  - "ECHO %PYTHON% %PYTHON_VERSION% %PYTHON_ARCH%"
 
 install:
-  - "%PYTHON% -m pip install wheel"
-  - "%PYTHON% -m pip install numpy pandas scipy matplotlib scikit-learn"
-  - "%PYTHON% -m pip install onnx onnxruntime"
-  - "%PYTHON% -m pip install -r requirements-win.txt"
+  - "%PYTHON%\\python -m pip install wheel"
+  - "%PYTHON%\\python -m pip install numpy pandas scipy matplotlib scikit-learn"
+  - "%PYTHON%\\python -m pip install onnx onnxruntime"
+  - "%PYTHON%\\python -m pip install -r requirements-win.txt"
 
 build: false
 
 before_test:
-  - "%PYTHON% -u setup.py build_ext --inplace"
+  - "%PYTHON%\\python -u setup.py build_ext --inplace"
 
 test_script:
-  - "%PYTHON% -u setup.py unittests -d 15 -g \".*((LONG)|(SKIP)|(notebooks)|(asv)|(plotting)).*\""
+  - "%PYTHON%\\python -u setup.py unittests -d 15 -g \".*((LONG)|(SKIP)|(notebooks)|(asv)|(plotting)).*\""
 
 after_test:
-  - "%PYTHONEXE% -u setup.py bdist_wheel"
+  - "%PYTHON%\\python -u setup.py bdist_wheel"
 
 artifacts:
   - path: dist
