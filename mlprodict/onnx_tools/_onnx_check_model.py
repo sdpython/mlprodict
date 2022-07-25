@@ -171,7 +171,7 @@ class Schema(object):
 
         # Check attributes
         seen_attr_names = set()
-        for attr_proto in node.attribute:
+        for attr_proto in node.attribute:  # pragma: no cover
             name = attr_proto.name
 
             if name in seen_attr_names:
@@ -345,11 +345,11 @@ class CheckerContext:
 
     def set_is_main_graph(self, is_main_graph):
         "Accessor."
-        self.is_main_graph_ = is_main_graph
+        self.is_main_graph_ = is_main_graph  # pragma: no cover
 
     def set_schema_registry(self, schema_registry):
         "Accessor."
-        self.schema_registry_ = schema_registry
+        self.schema_registry_ = schema_registry  # pragma: no cover
 
     def get_schema_registry(self):
         "Accessor."
@@ -357,11 +357,11 @@ class CheckerContext:
 
     def set_model_dir(self, model_dir):
         "Accessor."
-        self.model_dir_ = model_dir
+        self.model_dir_ = model_dir  # pragma: no cover
 
     def get_model_dir(self):
         "Accessor."
-        return self.model_dir_
+        return self.model_dir_  # pragma: no cover
 
 
 class LexicalScopeContext:
@@ -424,7 +424,7 @@ def _check_value_info(value_info, ctx):
     _enforce_non_empty_field(value_info, "name")
     # Relax constraint for subgraph input/output.
     if not ctx.is_main_graph():
-        return
+        return  # pragma: no cover
     _enforce_has_field(value_info, "type")
     value_case = None
     for n in dir(value_info.type):
@@ -439,19 +439,19 @@ def _check_value_info(value_info, ctx):
     if value_case == "tensor_type":
         _enforce_has_field(tt, "elem_type")
         _enforce_has_field(tt, "shape")
-    elif value_case == TypeProto.kOptionalType:
+    elif value_case == TypeProto.kOptionalType:  # pragma: no cover
         tt = value_info.type.optional_type
         _enforce_has_field(tt, "elem_type")
-    elif value_case == TypeProto.kSequenceType:
+    elif value_case == TypeProto.kSequenceType:  # pragma: no cover
         tt = value_info.type.sequence_type
         _enforce_has_field(tt, "elem_type")
-    elif value_case == TypeProto.kMapType:
+    elif value_case == TypeProto.kMapType:  # pragma: no cover
         tt = value_info.type.map_type
         _enforce_has_field(tt, "key_type")
         _enforce_has_field(tt, "value_type")
-    elif value_case == TypeProto.kOpaqueType:
+    elif value_case == TypeProto.kOpaqueType:  # pragma: no cover
         pass
-    elif value_case == TypeProto.kSparseTensorType:
+    elif value_case == TypeProto.kSparseTensorType:  # pragma: no cover
         tt = value_info.type.sparse_tensor_type
         _enforce_has_field(tt, "elem_type")
         _enforce_has_field(tt, "shape")
@@ -512,7 +512,7 @@ def _check_tensor(tensor, ctx):
                 f"{value_field}.", tensor)
 
         has_location = False
-        for entry in tensor.external_data():
+        for entry in tensor.external_data():  # pragma: no cover
             # if entry.has_key() and entry.has_value() and entry.key() == "location":
             if entry.has_value() and entry.key() == "location":
                 has_location = True
@@ -550,7 +550,7 @@ def _check_tensor(tensor, ctx):
                 f"STRING data (tensor name: f{tensor.name} "
                 f"should not be stored in raw_data field",
                 tensor)
-    else:
+    else:  # pragma: no cover
         if tensor.data_type in (TensorProto.FLOAT,
                                 TensorProto.COMPLEX64):
             _check_field(tensor, "float_data", value_field, nelem)
@@ -582,7 +582,7 @@ def _check_tensor(tensor, ctx):
                 tensor)
 
 
-def _check_sequence(sequence, ctx):
+def _check_sequence(sequence, ctx):  # pragma: no cover
     _enforce_has_field(sequence, "elem_type")
     if sequence.elem_type == SequenceProto.TENSOR:
         for tensor in sequence.tensor_values():
@@ -604,7 +604,7 @@ def _check_sequence(sequence, ctx):
             sequence)
 
 
-def _check_optional(optional, ctx):
+def _check_optional(optional, ctx):  # pragma: no cover
     _enforce_has_field(optional, "elem_type")
     if optional.elem_type == OptionalProto.UNDEFINED:
         return
@@ -628,7 +628,7 @@ def _check_optional(optional, ctx):
             optional)
 
 
-def _check_map(map, ctx):
+def _check_map(map, ctx):  # pragma: no cover
     _enforce_has_field(map, 'key_type')
     if map.key_type() == TensorProto.UNDEFINED:
         raise OnnxCheckError(  # pragma: no cover
@@ -681,7 +681,8 @@ def _parse_data(dtype, indices):
             None)
 
 
-def _check_sparse_tensor_indices_1(indices, sparse_tensor_proto, nnz):
+def _check_sparse_tensor_indices_1(  # pragma: no cover
+        indices, sparse_tensor_proto, nnz):
     """
     Check that the index data stored in a SparseTensorProto is valid.
     indices: a 1-dimensional tensor; indices[i] represents the
@@ -718,7 +719,8 @@ def _check_sparse_tensor_indices_1(indices, sparse_tensor_proto, nnz):
         prev_index = curr_index
 
 
-def _check_sparse_tensor_indices_2(indices, sparse_tensor_proto, nnz):
+def _check_sparse_tensor_indices_2(  # pragma: no cover
+        indices, sparse_tensor_proto, nnz):
     """
     Check that the index data stored in a SparseTensorProto is valid.
     indices: a 2-dimensional tensor; indices[i,j] represents the j-th
@@ -760,7 +762,7 @@ def _check_sparse_tensor_indices_2(indices, sparse_tensor_proto, nnz):
         prev_index = curr_index
 
 
-def _check_sparse_tensor(sparse_tensor_proto, ctx):
+def _check_sparse_tensor(sparse_tensor_proto, ctx):  # pragma: no cover
     _enforce_has_field(sparse_tensor_proto, "values")
 
     values = sparse_tensor_proto.values()
@@ -814,7 +816,7 @@ def _check_sparse_tensor(sparse_tensor_proto, ctx):
             sparse_tensor_proto)
 
 
-def check_attribute(attr, ctx, lex_ctx):
+def check_attribute(attr, ctx, lex_ctx):  # pragma: no cover
     """
     NB: This is a generic "attribute well-formedness" check, it doesn't
     actually test if an attribute is valid per a schema.
@@ -916,10 +918,10 @@ def _check_node(node, ctx, lex_ctx):
 
     # If encounter experimental op, stop checking
     if check_is_experimental_op(node.op_type):
-        warnings.warn(
+        warnings.warn(  # pragma: no cover
             f"Warning: Checker does not support models "
             f"with experimental ops: '{node.op_type}'.")
-        return
+        return  # pragma: no cover
 
     # Resolve domain for node
     opset_imports = ctx.get_opset_imports()
@@ -1010,7 +1012,7 @@ def _check_graph(graph, ctx, parent_lex):
             # but is not required to (for IR_VERSION >= 4)
             lex_ctx.add(name)
 
-    for sparse_init in graph.sparse_initializer:
+    for sparse_init in graph.sparse_initializer:  # pragma: no cover
         values = sparse_init.values()
         _enforce_has_field(values, name)
         name = values.name
@@ -1065,7 +1067,7 @@ def _check_graph(graph, ctx, parent_lex):
             lex_ctx.add(output)
 
 
-def _get_version_for_domain(domain, opset_imports):
+def _get_version_for_domain(domain, opset_imports):  # pragma: no cover
     # Utilify function to get the imported version of domain from opset imports
     # Returns -1 if requested domain is not found in the opset_imports
     if domain not in opset_imports.end():
@@ -1073,7 +1075,8 @@ def _get_version_for_domain(domain, opset_imports):
     return opset_imports[domain]
 
 
-def _check_opset_compatibility(node, ctx, func_opset_imports, model_opset_imports):
+def _check_opset_compatibility(  # pragma: no cover
+        node, ctx, func_opset_imports, model_opset_imports):
     func_opset_version = _get_version_for_domain(
         node.domain, func_opset_imports)
     model_opset_version = _get_version_for_domain(
@@ -1115,7 +1118,7 @@ def _check_opset_compatibility(node, ctx, func_opset_imports, model_opset_import
             node)
 
 
-def _check_model_local_functions(model, ctx, parent_lex):
+def _check_model_local_functions(model, ctx, parent_lex):  # pragma: no cover
     # make a copy of model opset imports to maintain a main copy of opset imports across the model and
     # all model local functions to verify opset compatibility
     model_opset_imports = ctx.get_opset_imports()
@@ -1225,7 +1228,7 @@ def _check_model(model, ctx):
         raise OnnxCheckError(  # pragma: no cover
             f"Your model ir_version is higher than the checker's.",
             model)
-    if len(model.metadata_props) > 1:
+    if len(model.metadata_props) > 1:  # pragma: no cover
         keys = set()
         for entry in model.metadata_props:
             if entry.key() in keys:
