@@ -475,7 +475,7 @@ setup(
             'onnxruntime>=1.19.0', 'onnxruntime-extensions'],
         'all': [
             'jinja2', 'scikit-learn>=0.24', 'skl2onnx>=1.10.2',
-            'onnxruntime>=1.10.0', 'scipy' 'joblib', 'pandas',
+            'onnxruntime>=1.10.0', 'scipy', 'joblib', 'pandas',
             'threadpoolctl', 'mlinsights>=0.3', 'lightgbm',
             'xgboost', 'mlstatpy>=0.3.593', 'onnxruntime-extensions'],
     },
