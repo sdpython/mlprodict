@@ -969,9 +969,10 @@ def onnx_simple_text_plot(model, verbose=False, att_display=None,  # pylint: dis
     # subgraphs
     if recursive:
         for node, name, g in subgraphs:
-            rows.append('----- subgraph ---- %s - %s - att.%s=%s -- level=%d' % (
+            rows.append('----- subgraph ---- %s - %s - att.%s=%s -- level=%d -- %s -> %s' % (
                 node.op_type, node.name, name, _get_subgraph_name(id(g)),
-                level))
+                level, ','.join(i.name for i in g.input),
+                ','.join(i.name for i in g.output)))
             res = onnx_simple_text_plot(
                 g, verbose=verbose, att_display=att_display,
                 add_links=add_links, recursive=recursive,
