@@ -39,7 +39,7 @@ def analyse_einsum_equation(equation):
         all_letters |= set(inp)
     letters = list(sorted(all_letters))
     for c in letters:
-        if not(('a' <= c <= 'z') or ('A' <= c <= 'Z')):
+        if not (('a' <= c <= 'z') or ('A' <= c <= 'Z')):
             raise ValueError(
                 "Equation %r must only contain lower or upper letters "
                 "but %r is not." % (equation, c))
