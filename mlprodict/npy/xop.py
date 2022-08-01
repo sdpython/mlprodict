@@ -2470,7 +2470,7 @@ class OnnxOperator(OnnxOperatorBase):
         return [got[n] for n in oinf.output_names]
 
     @staticmethod
-    def _merge_op_version(n1, n2):
+    def _merge_op_version(n1, n2, at_least=None):
         if isinstance(n2, OnnxOperator):
             if n1.op_version is None:
                 opv = n2.op_version
@@ -2488,6 +2488,8 @@ class OnnxOperator(OnnxOperatorBase):
                 "is OnnxOperatorTuple.")
         else:
             opv = n1.op_version
+        if at_least is not None and opv is not None and opv < at_least:
+            opv = at_least
         return opv
 
     def __add__(self, ov):
@@ -2498,7 +2500,10 @@ class OnnxOperator(OnnxOperatorBase):
         :return: `OnnxAdd(self, ov)`
         """
         OnnxAdd = loadop('Add')
-        opv = self._merge_op_version(self, ov)
+        opv = self._merge_op_version(self, ov, at_least=15)
+        if isinstance(ov, (int, float)):
+            OnnxCastLike = loadop('CastLike')
+            ov = OnnxCastLike(numpy.array([ov]), self, op_version=opv)
         return OnnxAdd(self, ov, op_version=opv)
 
     def __sub__(self, ov):
@@ -2509,7 +2514,10 @@ class OnnxOperator(OnnxOperatorBase):
         :return: `OnnxSub(self, ov)`
         """
         OnnxSub = loadop('Sub')
-        opv = self._merge_op_version(self, ov)
+        opv = self._merge_op_version(self, ov, at_least=15)
+        if isinstance(ov, (int, float)):
+            OnnxCastLike = loadop('CastLike')
+            ov = OnnxCastLike(numpy.array([ov]), self, op_version=opv)
         return OnnxSub(self, ov, op_version=opv)
 
     def __mul__(self, ov):
@@ -2520,7 +2528,10 @@ class OnnxOperator(OnnxOperatorBase):
         :return: `OnnxMul(self, ov)`
         """
         OnnxMul = loadop('Mul')
-        opv = self._merge_op_version(self, ov)
+        opv = self._merge_op_version(self, ov, at_least=15)
+        if isinstance(ov, (int, float)):
+            OnnxCastLike = loadop('CastLike')
+            ov = OnnxCastLike(numpy.array([ov]), self, op_version=opv)
         return OnnxMul(self, ov, op_version=opv)
 
     def __truediv__(self, ov):
@@ -2531,7 +2542,10 @@ class OnnxOperator(OnnxOperatorBase):
         :return: `OnnxDiv(self, ov)`
         """
         OnnxDiv = loadop('Div')
-        opv = self._merge_op_version(self, ov)
+        opv = self._merge_op_version(self, ov, at_least=15)
+        if isinstance(ov, (int, float)):
+            OnnxCastLike = loadop('CastLike')
+            ov = OnnxCastLike(numpy.array([ov]), self, op_version=opv)
         return OnnxDiv(self, ov, op_version=opv)
 
     def __pow__(self, ov):
@@ -2542,7 +2556,10 @@ class OnnxOperator(OnnxOperatorBase):
         :return: `OnnPow(self, ov)`
         """
         OnnxPow = loadop('Pow')
-        opv = self._merge_op_version(self, ov)
+        opv = self._merge_op_version(self, ov, at_least=15)
+        if isinstance(ov, (int, float)):
+            OnnxCastLike = loadop('CastLike')
+            ov = OnnxCastLike(numpy.array([ov]), self, op_version=opv)
         return OnnxPow(self, ov, op_version=opv)
 
     def __mod__(self, ov):
@@ -2553,7 +2570,10 @@ class OnnxOperator(OnnxOperatorBase):
         :return: `OnnxMod(self, ov)`
         """
         OnnxMod = loadop('Mod')
-        opv = self._merge_op_version(self, ov)
+        opv = self._merge_op_version(self, ov, at_least=15)
+        if isinstance(ov, (int, float)):
+            OnnxCastLike = loadop('CastLike')
+            ov = OnnxCastLike(numpy.array([ov]), self, op_version=opv)
         return OnnxMod(self, ov, op_version=opv)
 
     def __matmul__(self, ov):
@@ -2575,8 +2595,25 @@ class OnnxOperator(OnnxOperatorBase):
         :return: `OnnxGreater(self, ov)`
         """
         OnnxGreater = loadop('Greater')
-        opv = self._merge_op_version(self, ov)
+        opv = self._merge_op_version(self, ov, at_least=15)
+        if isinstance(ov, (int, float)):
+            OnnxCastLike = loadop('CastLike')
+            ov = OnnxCastLike(numpy.array([ov]), self, op_version=opv)
         return OnnxGreater(self, ov, op_version=opv)
+
+    def __ge__(self, ov):
+        """
+        Automatically adds operator `OnnxGreaterOrEqual` to the graph.
+
+        :param ov: onnx node
+        :return: `OnnxGreater(self, ov)`
+        """
+        OnnxGreaterOrEqual = loadop('GreaterOrEqual')
+        opv = self._merge_op_version(self, ov, at_least=15)
+        if isinstance(ov, (int, float)):
+            OnnxCastLike = loadop('CastLike')
+            ov = OnnxCastLike(numpy.array([ov]), self, op_version=opv)
+        return OnnxGreaterOrEqual(self, ov, op_version=opv)
 
     def __lt__(self, ov):
         """
@@ -2586,8 +2623,25 @@ class OnnxOperator(OnnxOperatorBase):
         :return: `OnnxLess(self, ov)`
         """
         OnnxLess = loadop('Less')
-        opv = self._merge_op_version(self, ov)
+        opv = self._merge_op_version(self, ov, at_least=15)
+        if isinstance(ov, (int, float)):
+            OnnxCastLike = loadop('CastLike')
+            ov = OnnxCastLike(numpy.array([ov]), self, op_version=opv)
         return OnnxLess(self, ov, op_version=opv)
+
+    def __le__(self, ov):
+        """
+        Automatically adds operator `OnnxLess` to the graph.
+
+        :param ov: onnx node
+        :return: `OnnxLess(self, ov)`
+        """
+        OnnxLessOrEqual = loadop('LessOrEqual')
+        opv = self._merge_op_version(self, ov, at_least=15)
+        if isinstance(ov, (int, float)):
+            OnnxCastLike = loadop('CastLike')
+            ov = OnnxCastLike(numpy.array([ov]), self, op_version=opv)
+        return OnnxLessOrEqual(self, ov, op_version=opv)
 
     def __eq__(self, ov):
         """
@@ -2597,7 +2651,10 @@ class OnnxOperator(OnnxOperatorBase):
         :return: `OnnxEqual(self, ov)`
         """
         OnnxEqual = loadop('Equal')
-        opv = self._merge_op_version(self, ov)
+        opv = self._merge_op_version(self, ov, at_least=15)
+        if isinstance(ov, (int, float)):
+            OnnxCastLike = loadop('CastLike')
+            ov = OnnxCastLike(numpy.array([ov]), self, op_version=opv)
         return OnnxEqual(self, ov, op_version=opv)
 
     def and_(self, ov):
@@ -2630,7 +2687,10 @@ class OnnxOperator(OnnxOperatorBase):
         :return: `OnnxNot(OnnxEqual(self, ov))`
         """
         OnnxNot, OnnxEqual = loadop('Not', 'Equal')
-        opv = self._merge_op_version(self, ov)
+        opv = self._merge_op_version(self, ov, at_least=15)
+        if isinstance(ov, (int, float)):
+            OnnxCastLike = loadop('CastLike')
+            ov = OnnxCastLike(numpy.array([ov]), self, op_version=opv)
         return OnnxNot(OnnxEqual(self, ov, op_version=opv), op_version=opv)
 
     def __abs__(self):
