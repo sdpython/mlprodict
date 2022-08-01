@@ -176,7 +176,7 @@ def _sklearn_subfolder(model):
         pos = spl.index('sklearn')
     except ValueError as e:  # pragma: no cover
         raise ValueError(
-            "Unable to find 'sklearn' in '{}'.".format(mod)) from e
+            f"Unable to find 'sklearn' in '{mod}'.") from e
     res = spl[pos + 1: -1]
     if len(res) == 0:
         if spl[-1] == 'sklearn':
@@ -185,7 +185,7 @@ def _sklearn_subfolder(model):
             res = spl[pos + 1:]
         else:
             raise ValueError(  # pragma: no cover
-                "Unable to guess subfolder for '{}'.".format(model.__class__))
+                f"Unable to guess subfolder for '{model.__class__}'.")
     res.append(model.__name__)
     return res
 
@@ -211,7 +211,7 @@ def _handle_init_files(model, flat, location, verbose, location_pyspy, fLOG):
                     pass
                 created.append(init)
                 if verbose > 1 and fLOG is not None:
-                    fLOG("[create_asv_benchmark] create '{}'.".format(init))
+                    fLOG(f"[create_asv_benchmark] create '{init}'.")
     if location_pyspy is not None:
         location_pyspy_model = os.path.join(location_pyspy, *subf)
         if not os.path.exists(location_pyspy_model):
@@ -319,10 +319,10 @@ def _read_patterns():
                    'outlier', 'trainable_transform', 'transform',
                    'multi_classifier', 'transform_positive']:
         template_name = os.path.join(os.path.dirname(
-            __file__), "template", "skl_model_%s.py" % suffix)
+            __file__), "template", f"skl_model_{suffix}.py")
         if not os.path.exists(template_name):
             raise FileNotFoundError(  # pragma: no cover
-                "Template '{}' was not found.".format(template_name))
+                f"Template '{template_name}' was not found.")
         with open(template_name, "r", encoding="utf-8") as f:
             content = f.read()
         initial_content = '"""'.join(content.split('"""')[2:])
@@ -353,7 +353,7 @@ def _select_pattern_problem(prob, patterns):
     if 'm-label' in prob:
         return patterns['multi_classifier']
     raise ValueError(  # pragma: no cover
-        "Unable to guess the right pattern for '{}'.".format(prob))
+        f"Unable to guess the right pattern for '{prob}'.")
 
 
 def _display_code_lines(code):
@@ -368,7 +368,7 @@ def _format_dict(opts, indent):
     """
     rows = []
     for k, v in sorted(opts.items()):
-        rows.append('%s=%r' % (k, v))
+        rows.append(f'{k}={v!r}')
     content = ', '.join(rows)
     st1 = "\n".join(textwrap.wrap(content))
     return textwrap.indent(st1, prefix=' ' * indent)
@@ -399,8 +399,8 @@ def add_model_import_init(
     """
     add_imports = []
     add_methods = []
-    add_params = ["par_modelname = '%s'" % model.__name__,
-                  "par_extra = %r" % extra]
+    add_params = [f"par_modelname = '{model.__name__}'",
+                  f"par_extra = {extra!r}"]
 
     # additional methods and imports
     if optimisation is not None:
@@ -415,11 +415,11 @@ def add_model_import_init(
             add_methods.append(textwrap.dedent('''
                 def _optimize_onnx(self, onx):
                     return onnx_optimisations(onx, self.par_optims)'''))
-            add_params.append('par_optims = {}'.format(
-                _format_dict(optimisation, indent=4)))
+            add_params.append(
+                f'par_optims = {_format_dict(optimisation, indent=4)}')
         else:
             raise ValueError(  # pragma: no cover
-                "Unable to interpret optimisation {}.".format(optimisation))
+                f"Unable to interpret optimisation {optimisation}.")
 
     # look for import place
     lines = class_content.split('\n')
@@ -430,8 +430,7 @@ def add_model_import_init(
             break
     if keep is None:
         raise RuntimeError(  # pragma: no cover
-            "Unable to locate where to insert import in\n{}\n".format(
-                class_content))
+            f"Unable to locate where to insert import in\n{class_content}\n")
 
     # imports
     loc_class = model.__module__
@@ -464,11 +463,11 @@ def add_model_import_init(
                             maxsplit=1)[0].strip(' \n')
     lines = [content, "", "    def _create_model(self):"]
     if extra is not None and len(extra) > 0:
-        lines.append("        return {}(".format(model.__name__))
+        lines.append(f"        return {model.__name__}(")
         lines.append(_format_dict(set_n_jobs(model, extra), 12))
         lines.append("        )")
     else:
-        lines.append("        return {}()".format(model.__name__))
+        lines.append(f"        return {model.__name__}()")
     lines.append("")
 
     # methods
@@ -496,8 +495,7 @@ def find_missing_sklearn_imports(pieces):
 
     lines = []
     for k, v in res.items():
-        lines.append("from {} import {}".format(
-            k, ", ".join(sorted(v))))
+        lines.append(f"from {k} import {', '.join(sorted(v))}")
     return lines
 
 
@@ -538,4 +536,4 @@ def find_sklearn_module(piece):
         glo[piece] = getattr(sklearn.multiclass, piece)
         return "sklearn.multiclass"
     raise ValueError(  # pragma: no cover
-        "Unable to find module to import for '{}'.".format(piece))
+        f"Unable to find module to import for '{piece}'.")

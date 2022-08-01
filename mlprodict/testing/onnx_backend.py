@@ -23,7 +23,7 @@ def assert_almost_equal_string(expected, value):
     def is_float(x):
         try:
             return True
-        except ValueError:
+        except ValueError:  # pragma: no cover
             return False
 
     if all(map(is_float, expected.ravel())):
@@ -59,7 +59,7 @@ class OnnxBackendTest:
     def _read_proto_from_file(full):
         if not os.path.exists(full):
             raise FileNotFoundError(  # pragma: no cover
-                "File not found: %r." % full)
+                f"File not found: {full!r}.")
         with open(full, 'rb') as f:
             serialized = f.read()
         try:
@@ -72,7 +72,7 @@ class OnnxBackendTest:
             except Exception:  # pylint: disable=W0703
                 try:
                     loaded = onnx.load_model_from_string(serialized)
-                except Exception:
+                except Exception:  # pragma: no cover
                     raise RuntimeError(
                         "Unable to read %r, error is %s, content is %r." % (
                             full, e, serialized[:100])) from e
@@ -89,24 +89,24 @@ class OnnxBackendTest:
             elif isinstance(new_tensor, onnx.TensorProto):
                 t = to_array(new_tensor)
             else:
-                raise RuntimeError(
-                    "Unexpected type %r for %r." % (type(new_tensor), full))
+                raise RuntimeError(  # pragma: no cover
+                    f"Unexpected type {type(new_tensor)!r} for {full!r}.")
             res.append(t)
         return res
 
     def __repr__(self):
         "usual"
-        return "%s(%r)" % (self.__class__.__name__, self.folder)
+        return f"{self.__class__.__name__}({self.folder!r})"
 
     def __init__(self, folder):
         if not os.path.exists(folder):
-            raise FileNotFoundError("Unable to find folder %r." % folder)
+            raise FileNotFoundError(  # pragma: no cover
+                f"Unable to find folder {folder!r}.")
         content = os.listdir(folder)
         onx = [c for c in content if os.path.splitext(c)[-1] in {'.onnx'}]
         if len(onx) != 1:
-            raise ValueError(
-                "There is more than one onnx file in %r (%r)." % (
-                    folder, onx))
+            raise ValueError(  # pragma: no cover
+                f"There is more than one onnx file in {folder!r} ({onx!r}).")
         self.folder = folder
         self.onnx_path = os.path.join(folder, onx[0])
         self.onnx_model = onnx.load(self.onnx_path)
@@ -136,7 +136,7 @@ class OnnxBackendTest:
         "Returns the number of tests."
         return len(self.tests)
 
-    def _compare_results(self, index, i, e, o):
+    def _compare_results(self, index, i, e, o, decimal=None):
         """
         Compares the expected output and the output produced
         by the runtime. Raises an exception if not equal.
@@ -145,24 +145,29 @@ class OnnxBackendTest:
         :param i: output index
         :param e: expected output
         :param o: output
+        :param decimal: precision
         """
-        decimal = 7
         if isinstance(e, numpy.ndarray):
             if isinstance(o, numpy.ndarray):
-                if e.dtype == numpy.float32:
-                    decimal = 6
-                elif e.dtype == numpy.float64:
-                    decimal = 12
+                if decimal is None:
+                    if e.dtype == numpy.float32:
+                        deci = 6
+                    elif e.dtype == numpy.float64:
+                        deci = 12
+                    else:
+                        deci = 7
+                else:
+                    deci = decimal
                 if e.dtype == dtype_object:
                     try:
                         assert_almost_equal_string(e, o)
                     except AssertionError as ex:
-                        raise AssertionError(
+                        raise AssertionError(  # pragma: no cover
                             "Output %d of test %d in folder %r failed." % (
                                 i, index, self.folder)) from ex
                 else:
                     try:
-                        assert_almost_equal(e, o, decimal=decimal)
+                        assert_almost_equal(e, o, decimal=deci)
                     except AssertionError as ex:
                         raise AssertionError(
                             "Output %d of test %d in folder %r failed." % (
@@ -175,15 +180,21 @@ class OnnxBackendTest:
                         "(e.dtype=%r, o=%r)." % (
                             i, index, self.folder, e.dtype, o))
                 if not o.is_compatible(e.shape):
-                    raise AssertionError(
+                    raise AssertionError(  # pragma: no cover
                         "Output %d of test %d in folder %r failed "
                         "(e.shape=%r, o=%r)." % (
                             i, index, self.folder, e.shape, o))
         else:
             raise NotImplementedError(
-                "Comparison not implemented for type %r." % type(e))
+                f"Comparison not implemented for type {type(e)!r}.")
 
-    def run(self, load_fct, run_fct, index=None, decimal=5):
+    def is_random(self):
+        "Tells if a test is random or not."
+        if 'bernoulli' in self.folder:
+            return True
+        return False
+
+    def run(self, load_fct, run_fct, index=None, decimal=None):
         """
         Executes a tests or all tests if index is None.
         The function crashes if the tests fails.
@@ -193,10 +204,11 @@ class OnnxBackendTest:
         :param run_fct: running function, takes the result of previous
             function, the inputs, and returns the outputs
         :param index: index of the test to run or all.
+        :param decimal: requested precision to compare results
         """
         if index is None:
             for i in range(len(self)):
-                self.run(load_fct, run_fct, index=i)
+                self.run(load_fct, run_fct, index=i, decimal=decimal)
             return
 
         obj = load_fct(self.onnx_model)
@@ -204,12 +216,24 @@ class OnnxBackendTest:
         got = run_fct(obj, *self.tests[index]['inputs'])
         expected = self.tests[index]['outputs']
         if len(got) != len(expected):
-            raise AssertionError(
+            raise AssertionError(  # pragma: no cover
                 "Unexpected number of output (test %d, folder %r), "
                 "got %r, expected %r." % (
                     index, self.folder, len(got), len(expected)))
         for i, (e, o) in enumerate(zip(expected, got)):
-            self._compare_results(index, i, e, o)
+            if self.is_random():
+                if e.dtype != o.dtype:
+                    raise AssertionError(
+                        "Output %d of test %d in folder %r failed "
+                        "(type mismatch %r != %r)." % (
+                            i, index, self.folder, e.dtype, o.dtype))
+                if e.shape != o.shape:
+                    raise AssertionError(
+                        "Output %d of test %d in folder %r failed "
+                        "(shape mismatch %r != %r)." % (
+                            i, index, self.folder, e.shape, o.shape))
+            else:
+                self._compare_results(index, i, e, o, decimal=decimal)
 
     def to_python(self):
         """
@@ -242,11 +266,11 @@ class OnnxBackendTest:
             rows.append("    self.assertEqualArray(y, gy)")
             rows.append("")
         code = "\n".join(rows)
-        final = "\n".join(["def %s(self):" % self.name,
+        final = "\n".join([f"def {self.name}(self):",
                            textwrap.indent(code, '    ')])
         try:
             from pyquickhelper.pycode.code_helper import remove_extra_spaces_and_pep8
-        except ImportError:
+        except ImportError:  # pragma: no cover
             return final
         return remove_extra_spaces_and_pep8(final, aggressive=True)
 
@@ -257,7 +281,8 @@ def enumerate_onnx_tests(series, fct_filter=None):
     Works as an enumerator to start processing them
     without waiting or storing too much of them.
 
-    :param series: which subfolder to load
+    :param series: which subfolder to load, possible values:
+        (`'node'`, ...)
     :param fct_filter: function `lambda testname: boolean`
         to load or skip the test, None for all
     :return: list of @see cl OnnxBackendTest

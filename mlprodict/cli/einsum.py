@@ -64,13 +64,13 @@ def einsum_test(equation="abc,cd->abd", shape="30", perm=False,
         ext = os.path.splitext(output)[-1]
         if ext == '.csv':
             df.to_csv(output, index=False)
-            fLOG('[einsum_test] wrote file %r.' % output)
+            fLOG(f'[einsum_test] wrote file {output!r}.')
         elif ext == '.xlsx':
             df.to_excel(output, index=False)
-            fLOG('[einsum_test] wrote file %r.' % output)
+            fLOG(f'[einsum_test] wrote file {output!r}.')
         else:
             raise ValueError(  # pragma: no cover
-                "Unknown extension %r in file %r." % (ext, output))
+                f"Unknown extension {ext!r} in file {output!r}.")
     else:
-        for r in res:
+        for r in res:  # pragma: no cover
             fLOG(r)

@@ -10,7 +10,8 @@ from mlprodict.onnxrt import OnnxInference
 from mlprodict.plotting.text_plot import onnx_simple_text_plot
 from mlprodict.onnx_tools.onnx2py_helper import get_dtype_shape
 from mlprodict.npy.xop import (
-    loadop, OnnxLoadFactory, _GraphBuilder, _domain_to_class_name)
+    loadop, OnnxLoadFactory, _GraphBuilder, _domain_to_class_name,
+    OnnxExisting)
 from mlprodict.npy.xop_auto import get_domain_list
 from mlprodict.npy.xop_variable import (
     Variable, max_supported_opset,
@@ -688,7 +689,7 @@ class TestXOps(ExtTestCase):
         onx = last.to_onnx(numpy.int64, numpy.int64, verbose=0)
         self.assertNotIn("elem_type: 0", str(onx))
         oinf = OnnxInference(onx)
-        x = numpy.array([[-2, 2], [0, 3]], dtype=numpy.float32)
+        x = numpy.array([[-2, 2], [0, 3]], dtype=numpy.int64)
         got = oinf.run({'X': x})
         self.assertEqualArray(x % 10, got['Y'])
 
@@ -930,11 +931,288 @@ class TestXOps(ExtTestCase):
         got = oinf.run({'X': x})
         self.assertEqualArray(x.astype(numpy.int64), got['Y'])
 
+    def test_zif_then_onnx(self):
+        OnnxConstant, OnnxIf, OnnxGreater = loadop(
+            "Constant", "If", "Greater")
+        bthen = OnnxConstant(
+            value_floats=numpy.array([0], dtype=numpy.float32),
+            output_names=['res_then'])
+
+        belse = OnnxConstant(
+            value_floats=numpy.array([1], dtype=numpy.float32),
+            output_names=['res_else'])
+
+        bthen_body = bthen.to_onnx(
+            [], [Variable('res_then', numpy.float32)])
+        belse_body = belse.to_onnx(
+            [], [Variable('res_else', numpy.float32)])
+
+        onx = OnnxIf(
+            OnnxGreater('X', numpy.array([0], dtype=numpy.float32)),
+            output_names=['Z']).then_do(bthen_body).else_do(belse_body)
+
+        x = numpy.array([1, 2], dtype=numpy.float32)
+        model_def = onx.to_onnx({'X': numpy.float32}, {'Z': numpy.float32})
+        got = OnnxInference(model_def).run({'X': x})
+        self.assertEqualArray(
+            numpy.array([0.], dtype=numpy.float32), got['Z'])
+
+        x = numpy.array([-1, -2], dtype=numpy.float32)
+        model_def = onx.to_onnx({'X': numpy.float32}, {'Z': numpy.float32})
+        got = OnnxInference(model_def).run({'X': x})
+        self.assertEqualArray(
+            numpy.array([1.], dtype=numpy.float32), got['Z'])
+
+    def test_zif_onnx(self):
+        OnnxConstant, OnnxIf, OnnxGreater = loadop(
+            "Constant", "If", "Greater")
+
+        onx = OnnxIf(
+            OnnxGreater('X', numpy.array([0], dtype=numpy.float32)),
+            output_names=['Z']).then_do(
+                OnnxConstant(
+                    value_floats=numpy.array([0], dtype=numpy.float32),
+                    output_names=['res_then'])).else_do(
+                OnnxConstant(
+                    value_floats=numpy.array([1], dtype=numpy.float32),
+                    output_names=['res_else']))
+
+        x = numpy.array([1, 2], dtype=numpy.float32)
+        model_def = onx.to_onnx({'X': numpy.float32}, {'Z': numpy.float32})
+        got = OnnxInference(model_def).run({'X': x})
+        self.assertEqualArray(
+            numpy.array([0.], dtype=numpy.float32), got['Z'])
+
+        x = numpy.array([-1, -2], dtype=numpy.float32)
+        model_def = onx.to_onnx({'X': numpy.float32}, {'Z': numpy.float32})
+        got = OnnxInference(model_def).run({'X': x})
+        self.assertEqualArray(
+            numpy.array([1.], dtype=numpy.float32), got['Z'])
+
+    def test_zif_onnx_common_inputs(self):
+        OnnxIf, OnnxGreater, OnnxIdentity, OnnxReduceSum = loadop(
+            "If", "Greater", "Identity", "ReduceSum")
+
+        onx = OnnxIf(
+            OnnxGreater(OnnxReduceSum('X'),
+                        numpy.array([0], dtype=numpy.float32)),
+            output_names=['Z']) \
+            .then_do(OnnxIdentity('X') - numpy.array([0], dtype=numpy.float32)) \
+            .else_do(OnnxIdentity('X') + numpy.array([1], dtype=numpy.float32))
+
+        x = numpy.array([1, 2], dtype=numpy.float32)
+        model_def = onx.to_onnx(
+            {'X': numpy.float32}, {'Z': numpy.float32}, run_shape=False,
+            verbose=0)
+        got = OnnxInference(model_def).run({'X': x})
+        self.assertEqualArray(
+            numpy.array(x, dtype=numpy.float32), got['Z'])
+
+        x = numpy.array([-1, -2], dtype=numpy.float32)
+        model_def = onx.to_onnx({'X': numpy.float32}, {'Z': numpy.float32})
+        got = OnnxInference(model_def).run({'X': x})
+        self.assertEqualArray(x + 1, got['Z'])
+
+    def test_zif_onnx_common_intermediate(self):
+        OnnxAbs, OnnxIf, OnnxGreater, OnnxIdentity, OnnxReduceSum, OnnxExp = loadop(
+            "Abs", "If", "Greater", "Identity", "ReduceSum", "Exp")
+
+        x2 = OnnxAbs('X')
+        x3 = OnnxExp('X')
+        OnnxExisting._unique_names = set()
+        ex = OnnxExisting(x2)
+        self.assertEqual(
+            "OnnxExisting([ExistingVariable('_exist__abs_0')]) -> ?", repr(ex))
+
+        onx = OnnxIf(
+            OnnxGreater(OnnxReduceSum('X'),
+                        numpy.array([0], dtype=numpy.float32)),
+            output_names=['Z']
+        ).then_do(OnnxIdentity('X') - OnnxExisting(x2)) \
+         .else_do(OnnxIdentity('X') + OnnxExisting(x3))
+
+        x = numpy.array([1, 2], dtype=numpy.float32)
+        model_def = onx.to_onnx(
+            {'X': numpy.float32}, {'Z': numpy.float32},
+            run_shape=False, verbose=0)
+        spl = str(model_def).split('op_type: "Abs"')
+        if len(spl) < 2:
+            raise AssertionError(
+                f"Operator Abs is missing ({len(spl)}) in\n{str(model_def)}")
+        if len(spl) > 2:
+            raise AssertionError(
+                "Operator Abs should not be duplicated (%d) in\n%s" % (
+                    len(spl), str(model_def)))
+        text = onnx_simple_text_plot(model_def, recursive=True, verbose=False)
+        self.assertIn(
+            "If(out_gre_0, else_branch=G1, then_branch=G2) -> Z", text)
+        self.assertIn("Exp(X) -> _exist__exp_0\nIf(out_gre_0", text)
+        self.assertIn("Add(X, _exist__exp_0) -> out_add_0", text)
+        got = OnnxInference(model_def).run({'X': x}, verbose=0, fLOG=print)
+        self.assertEqualArray(
+            numpy.array(x - numpy.abs(x), dtype=numpy.float32), got['Z'])
+
+        x = numpy.array([-1, -2], dtype=numpy.float32)
+        model_def = onx.to_onnx({'X': numpy.float32}, {'Z': numpy.float32})
+        got = OnnxInference(model_def).run({'X': x})
+        self.assertEqualArray(x + numpy.exp(x), got['Z'])
+
+    def test_abs_addd(self):
+        OnnxAbs, OnnxMax, OnnxIdentity = loadop("Abs", "Max", "Identity")
+
+        o = OnnxAbs('X')
+        ab1 = o - OnnxIdentity('X')
+        ab2 = o + OnnxIdentity('X')
+        onx = OnnxIdentity(
+            OnnxMax(ab1, ab2) / numpy.array([2], dtype=numpy.float32),
+            output_names=['Y'])
+
+        x = numpy.array([1, -2], dtype=numpy.float32)
+        model_def = onx.to_onnx(
+            {'X': numpy.float32}, {'Y': numpy.float32},
+            run_shape=False, verbose=0)
+        got = OnnxInference(model_def).run({'X': x}, verbose=0, fLOG=print)
+        self.assertEqualArray(
+            numpy.array(numpy.abs(x), dtype=numpy.float32), got['Y'])
+        text = onnx_simple_text_plot(model_def, recursive=True)
+        spl = text.split("Abs(X) ->")
+        self.assertEqual(len(spl), 2)
+
+    def test_zif_onnx_common_intermediate_level1(self):
+        OnnxIf, OnnxIdentity = loadop("If", "Identity")
+
+        idy = OnnxIdentity('Y')
+        idz = OnnxIdentity('Z')
+        onx = OnnxIf(
+            OnnxIdentity('X') == numpy.array([1], dtype=numpy.int64),
+            output_names=['A']
+        ).then_do(OnnxIdentity(OnnxExisting(idy))).else_do(
+            OnnxIdentity(OnnxExisting(idz)))
+
+        x = numpy.array([1], dtype=numpy.int64)
+        y = numpy.array([1, 2], dtype=numpy.float32)
+        z = numpy.array([-3, -4], dtype=numpy.float32)
+        model_def = onx.to_onnx(
+            {'X': numpy.int64, 'Y': numpy.float32, 'Z': numpy.float32},
+            {'A': numpy.float32},
+            run_shape=False, verbose=0)
+        if len(model_def.graph.node) < 3:
+            raise AssertionError(f"Wrong graph.\n{str(model_def)}")
+
+        text = onnx_simple_text_plot(model_def, recursive=True, verbose=False)
+        self.assertIn("If", text)
+
+        got = OnnxInference(model_def).run({'X': x, 'Y': y, 'Z': z})
+        self.assertEqualArray(y, got['A'])
+
+        x = numpy.array([2], dtype=numpy.int64)
+        got = OnnxInference(model_def).run({'X': x, 'Y': y, 'Z': z})
+        self.assertEqualArray(z, got['A'])
+
+    def test_zif_onnx_common_intermediate_level11(self):
+        OnnxIf, OnnxIdentity = loadop("If", "Identity")
+
+        onx = OnnxIf(
+            OnnxIdentity('X') == numpy.array([1], dtype=numpy.int64),
+            output_names=['A']).then_do('Y').else_do('Z')
+
+        x = numpy.array([1], dtype=numpy.int64)
+        y = numpy.array([1, 2], dtype=numpy.float32)
+        z = numpy.array([-3, -4], dtype=numpy.float32)
+        model_def = onx.to_onnx(
+            {'X': numpy.int64, 'Y': numpy.float32, 'Z': numpy.float32},
+            {'A': numpy.float32},
+            run_shape=False, verbose=0)
+
+        text = onnx_simple_text_plot(model_def, recursive=True, verbose=False)
+        self.assertIn("If", text)
+
+        got = OnnxInference(model_def).run({'X': x, 'Y': y, 'Z': z})
+        self.assertEqualArray(y, got['A'])
+
+        x = numpy.array([2], dtype=numpy.int64)
+        got = OnnxInference(model_def).run({'X': x, 'Y': y, 'Z': z})
+        self.assertEqualArray(z, got['A'])
+
+    def test_zif_onnx_common_intermediate_level111(self):
+        OnnxIf, OnnxIdentity = loadop("If", "Identity")
+
+        yy = OnnxExisting(Variable('Y'))
+        onx = OnnxIf(
+            OnnxIdentity('X') == numpy.array([1], dtype=numpy.int64),
+            output_names=['A']).then_do(yy + yy).else_do('Z')
+
+        x = numpy.array([1], dtype=numpy.int64)
+        y = numpy.array([1, 2], dtype=numpy.float32)
+        z = numpy.array([-3, -4], dtype=numpy.float32)
+        model_def = onx.to_onnx(
+            {'X': numpy.int64, 'Y': numpy.float32, 'Z': numpy.float32},
+            {'A': numpy.float32},
+            run_shape=False, verbose=0)
+
+        text = onnx_simple_text_plot(model_def, recursive=True, verbose=False)
+        self.assertIn("If", text)
+
+        got = OnnxInference(model_def).run({'X': x, 'Y': y, 'Z': z})
+        self.assertEqualArray(y + y, got['A'])
+
+        x = numpy.array([2], dtype=numpy.int64)
+        got = OnnxInference(model_def).run({'X': x, 'Y': y, 'Z': z})
+        self.assertEqualArray(z, got['A'])
+
+    @unittest.skipIf(True, reason="Still an error")
+    def test_zif_onnx_common_intermediate_level2(self):
+        OnnxIf, OnnxTranspose, OnnxShape, OnnxSize, OnnxIdentity = loadop(
+            "If", "Transpose", "Shape", "Size", "Identity")
+
+        shape = OnnxShape('X')
+        size = OnnxSize(shape)
+        A = OnnxIdentity('A')
+        onx = OnnxIf(
+            size == numpy.array([1], dtype=numpy.int64),
+            output_names=['Z']
+        ).then_do('T') \
+         .else_do(
+            OnnxIf(
+                OnnxExisting(A) == numpy.array([0], dtype=numpy.int64)
+            ).then_do('X')
+             .else_do(OnnxTranspose('Y', perm=[1, 0]))
+        )
+
+        x = numpy.array([1, 2], dtype=numpy.float32)
+        y = x + 10
+        t = x + 100
+        model_def = onx.to_onnx(
+            {'X': numpy.float32, 'A': numpy.int64,
+             'Y': numpy.float32, 'T': numpy.float32},
+            {'Z': numpy.float32},
+            run_shape=False, verbose=0)
+
+        text = onnx_simple_text_plot(model_def, recursive=True, verbose=False)
+        self.assertIn("If", text)
+
+        a = numpy.array([0], dtype=numpy.int64)
+        got = OnnxInference(model_def).run(
+            {'X': x, 'A': a, 'Y': y, 'T': t}, verbose=0, fLOG=print)
+        self.assertEqualArray(x, got['Z'])
+
+        x = x.reshape((-1, 1))
+        y = x + 10
+        t = x + 100
+        got = OnnxInference(model_def).run(
+            {'X': x, 'A': a, 'Y': y, 'T': t}, verbose=0, fLOG=print)
+        self.assertEqualArray(x, got['Z'])
+
+        a = numpy.array([1], dtype=numpy.int64)
+        y = x + 10
+        t = x + 100
+        got = OnnxInference(model_def).run(
+            {'X': x, 'A': a, 'Y': y, 'T': t}, verbose=0, fLOG=print)
+        self.assertEqualArray(x.T, got['Z'])
+
 
 if __name__ == "__main__":
     # import logging
-    # logger = logging.getLogger('xop')
-    # logger.setLevel(logging.DEBUG)
     # logging.basicConfig(level=logging.DEBUG)
-    # TestXOps().test_onnx_ml_operator()
+    # TestXOps().test_zif_onnx_common_intermediate_level2()
     unittest.main(verbosity=2)

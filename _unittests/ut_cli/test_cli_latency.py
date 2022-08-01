@@ -67,7 +67,7 @@ class TestCliLatency(ExtTestCase):
         for runtime in ('onnxruntime', 'onnxruntime1'):
             for prof in ('name', 'type'):
                 with self.subTest(runtime=runtime, prof=prof):
-                    o = os.path.join(temp, 'prof_%s_%s.csv' % (runtime, prof))
+                    o = os.path.join(temp, f'prof_{runtime}_{prof}.csv')
                     res = latency(outonnx, max_time=0.5, fmt='csv',
                                   profiling=prof, runtime=runtime,
                                   profile_output=o)

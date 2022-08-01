@@ -5,8 +5,7 @@
 @brief Runtime operator.
 """
 import numpy
-from ._op import OpRunUnary, RuntimeTypeError
-from ..shape_object import ShapeObject
+from ._op import OpRunUnary
 from .op_tfidfvectorizer_ import RuntimeTfIdfVectorizer  # pylint: disable=E0611,E0401
 
 
@@ -28,12 +27,15 @@ class TfIdfVectorizer(OpRunUnary):
                             **options)
         self.rt_ = RuntimeTfIdfVectorizer()
         if len(self.pool_strings) != 0:
-            pool_int64s = list(range(len(self.pool_strings)))
             pool_strings_ = numpy.array(
                 [_.decode('utf-8') for _ in self.pool_strings])
             mapping = {}
+            pool_int64s = []
             for i, w in enumerate(pool_strings_):
-                mapping[w] = i
+                if w not in mapping:
+                    # 1-gram are processed first.
+                    mapping[w] = i
+                pool_int64s.append(mapping[w])
         else:
             mapping = None
             pool_int64s = self.pool_int64s
@@ -46,32 +48,17 @@ class TfIdfVectorizer(OpRunUnary):
             self.mode, self.ngram_counts, self.ngram_indexes, pool_int64s,
             self.weights)
 
-    def _run(self, x):  # pylint: disable=W0221
+    def _run(self, x, attributes=None, verbose=0, fLOG=None):  # pylint: disable=W0221
         if self.mapping_ is None:
             res = self.rt_.compute(x)
             return (res.reshape((x.shape[0], -1)), )
-        else:
-            xi = numpy.empty(x.shape, dtype=numpy.int64)
-            for i in range(0, x.shape[0]):
-                for j in range(0, x.shape[1]):
-                    try:
-                        xi[i, j] = self.mapping_[x[i, j]]
-                    except KeyError:
-                        xi[i, j] = -1
-            res = self.rt_.compute(xi)
-            return (res.reshape((x.shape[0], -1)), )
 
-    def _infer_shapes(self, x):  # pylint: disable=E0202,W0221
-        if x.shape is None:
-            return (x, )
-        if len(x) == 1:
-            return (ShapeObject((x[0], None), dtype=x.dtype,
-                                name=self.__class__.__name__), )
-        if len(x) == 2:
-            return (ShapeObject((x[0], x[1], None), dtype=x.dtype,
-                                name=self.__class__.__name__), )
-        raise RuntimeTypeError(  # pragma: no cover
-            "Only two dimension are allowed, got {}.".format(x))
-
-    def _infer_types(self, x):  # pylint: disable=E0202,W0221
-        return (x, )
+        xi = numpy.empty(x.shape, dtype=numpy.int64)
+        for i in range(0, x.shape[0]):
+            for j in range(0, x.shape[1]):
+                try:
+                    xi[i, j] = self.mapping_[x[i, j]]
+                except KeyError:
+                    xi[i, j] = -1
+        res = self.rt_.compute(xi)
+        return (res.reshape((x.shape[0], -1)), )

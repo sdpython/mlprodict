@@ -25,7 +25,7 @@ class ShapeContainer:
 
     def __repr__(self):
         "usual"
-        return "%s()" % self.__class__.__name__
+        return f"{self.__class__.__name__}()"
 
     def __len__(self):
         "usual"
@@ -49,10 +49,10 @@ class ShapeContainer:
         """
         if not isinstance(key, str):
             raise TypeError(  # pragma: no cover
-                "key must be a string not %r." % type(key))
+                f"key must be a string not {type(key)!r}.")
         if not isinstance(value, ShapeResult):
             raise TypeError(  # pragma: no cover
-                "value must be a ShapeResult not %r." % type(key))
+                f"value must be a ShapeResult not {type(key)!r}.")
         if key not in self.shapes:
             self.shapes[key] = value
             return True
@@ -69,15 +69,15 @@ class ShapeContainer:
         """
         rows = ["ShapeContainer({"]
         for k, v in self.shapes.items():
-            rows.append("    %r: %r" % (k, v))
+            rows.append(f"    {k!r}: {v!r}")
         rows.append("}, names={")
         for k, v in self.names.items():
-            rows.append("    %r: %r" % (k, v))
+            rows.append(f"    {k!r}: {v!r}")
         cst = self.get_all_constraints()
         if len(cst) > 0:
             rows.append("}, constraint={")
             for c, v in cst.items():
-                rows.append("    %r: %r" % (c, v))
+                rows.append(f"    {c!r}: {v!r}")
             rows.append("})")
         else:
             rows.append("})")
@@ -91,7 +91,7 @@ class ShapeContainer:
         """
         if name is not None and not isinstance(name, str):
             raise TypeError(  # pragma: no cover
-                "name must be string not %r." % name)
+                f"name must be string not {name!r}.")
         if name is None:
             name = ''
         if name == '' or name not in self.names:
@@ -108,8 +108,7 @@ class ShapeContainer:
         val = self.names_rev[name]
         if len(val) != 1:
             raise RuntimeError(  # pragma: no cover
-                "Name %r has more than one correspondance (%r)." % (
-                    name, val))
+                f"Name {name!r} has more than one correspondance ({val!r}).")
         return val[0]
 
     def get_all_constraints(self):
@@ -238,14 +237,13 @@ class ShapeContainer:
                     if v is None:
                         found = k
                 if found is not None:
-                    name = "d%d" % len(dim_names)
+                    name = f"d{len(dim_names)}"
                     dim_names.add(name)
                     variables[found] = {name}
                     updates += 1
                 else:
                     raise RuntimeError(  # pragma: no cover
-                        "Inconsistency in %r with\n%r" % (
-                            self, variables))
+                        f"Inconsistency in {self!r} with\n{variables!r}")
 
         # final
         results = {}

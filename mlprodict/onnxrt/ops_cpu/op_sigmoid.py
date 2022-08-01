@@ -14,10 +14,10 @@ class Sigmoid(OpRunUnaryNum):
         OpRunUnaryNum.__init__(self, onnx_node, desc=desc,
                                **options)
 
-    def _run(self, x):  # pylint: disable=W0221
+    def _run(self, x, attributes=None, verbose=0, fLOG=None):  # pylint: disable=W0221
         y = logistic_sigmoid(x)
         return (y, )
 
     def to_python(self, inputs):
         return ("from scipy.special import expit",
-                "return expit(%s)" % inputs[0])
+                f"return expit({inputs[0]})")

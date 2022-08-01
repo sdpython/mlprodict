@@ -1,15 +1,16 @@
-# pylint: disable=R0912
+# pylint: disable=R0912,R0914,C0302
 """
 @file
 @brief Text representations of graphs.
 """
+import pprint
 from collections import OrderedDict
 import numpy
 from onnx import TensorProto, AttributeProto
 from onnx.numpy_helper import to_array
 from onnx.mapping import TENSOR_TYPE_TO_NP_TYPE
 from ..tools.graphs import onnx2bigraph
-from ..onnx_tools.onnx2py_helper import _var_as_dict
+from ..onnx_tools.onnx2py_helper import _var_as_dict, get_tensor_shape
 
 
 def onnx_text_plot(model_onnx, recursive=False, graph_type='basic',
@@ -87,7 +88,7 @@ def onnx_text_plot_tree(node):
         if r == b'BRANCH_NEQ':  # pragma: no cover
             return '!='
         raise ValueError(  # pragma: no cover
-            "Unexpected rule %r." % rule)
+            f"Unexpected rule {rule!r}.")
 
     class Node:
         "Node representation."
@@ -115,37 +116,41 @@ def onnx_text_plot_tree(node):
                     rule(self.nodes_modes),  # pylint: disable=E1101
                     self.nodes_values)  # pylint: disable=E1101
                 if self.nodes_hitrates and self.nodes_hitrates != 1:
-                    text += " hi=%r" % self.nodes_hitrates
+                    text += f" hi={self.nodes_hitrates!r}"
                 if self.nodes_missing_value_tracks_true:
-                    text += " miss=%r" % (
-                        self.nodes_missing_value_tracks_true)
-            return "%s%s" % ("   " * self.depth, text)
+                    text += f" miss={self.nodes_missing_value_tracks_true!r}"
+            return f"{'   ' * self.depth}{text}"
 
     def process_tree(atts, treeid):
         "tree to string"
-        rows = ['treeid=%r' % treeid]
+        rows = [f'treeid={treeid!r}']
         if 'base_values' in atts:
-            rows.append('base_value=%r' % atts['base_values'][treeid])
+            if treeid < len(atts['base_values']):
+                rows.append(f"base_value={atts['base_values'][treeid]!r}")
 
         short = {}
         for prefix in ['nodes', 'target', 'class']:
-            if ('%s_treeids' % prefix) not in atts:
+            if (f'{prefix}_treeids') not in atts:
                 continue
-            idx = [i for i in range(len(atts['%s_treeids' % prefix]))
-                   if atts['%s_treeids' % prefix][i] == treeid]
+            idx = [i for i in range(len(atts[f'{prefix}_treeids']))
+                   if atts[f'{prefix}_treeids'][i] == treeid]
             for k, v in atts.items():
                 if k.startswith(prefix):
-                    short[k] = [v[i] for i in idx]
+                    if 'classlabels' in k:
+                        short[k] = list(v)
+                    else:
+                        short[k] = [v[i] for i in idx]
 
         nodes = OrderedDict()
         for i in range(len(short['nodes_treeids'])):
             nodes[i] = Node(i, short)
-        for i in range(len(short['target_treeids'])):
-            idn = short['target_nodeids'][i]
+        prefix = 'target' if 'target_treeids' in short else 'class'
+        for i in range(len(short[f'{prefix}_treeids'])):
+            idn = short[f'{prefix}_nodeids'][i]
             node = nodes[idn]
             node.target_nodeids = idn
-            node.target_ids = short['target_ids'][i]
-            node.target_weights = short['target_weights'][i]
+            node.target_ids = short[f'{prefix}_ids'][i]
+            node.target_weights = short[f'{prefix}_weights'][i]
 
         def iterate(nodes, node, depth=0, true_false=''):
             node.depth = depth
@@ -163,22 +168,113 @@ def onnx_text_plot_tree(node):
             rows.append(node.process_node())
         return rows
 
-    if node.op_type != "TreeEnsembleRegressor":
-        raise NotImplementedError(  # pragma: no cover
-            "Type %r cannot be displayed." % node.op_type)
-    d = {k: v['value'] for k, v in _var_as_dict(node)['atts'].items()}
-    atts = {}
-    for k, v in d.items():
-        atts[k] = v if isinstance(v, int) else list(v)
-    trees = list(sorted(set(atts['nodes_treeids'])))
-    rows = ['n_targets=%r' % atts['n_targets'],
-            'n_trees=%r' % len(trees)]
-    for tree in trees:
-        r = process_tree(atts, tree)
-        rows.append('----')
-        rows.extend(r)
+    if node.op_type in ("TreeEnsembleRegressor", "TreeEnsembleClassifier"):
+        d = {k: v['value'] for k, v in _var_as_dict(node)['atts'].items()}
+        atts = {}
+        for k, v in d.items():
+            atts[k] = v if isinstance(v, int) else list(v)
+        trees = list(sorted(set(atts['nodes_treeids'])))
+        if 'n_targets' in atts:
+            rows = [f"n_targets={atts['n_targets']!r}"]
+        else:
+            rows = ['n_classes=%r' % len(
+                atts.get('classlabels_int64s',
+                         atts.get('classlabels_strings', [])))]
+        rows.append(f'n_trees={len(trees)!r}')
+        for tree in trees:
+            r = process_tree(atts, tree)
+            rows.append('----')
+            rows.extend(r)
+        return "\n".join(rows)
 
-    return "\n".join(rows)
+    raise NotImplementedError(  # pragma: no cover
+        f"Type {node.op_type!r} cannot be displayed.")
+
+
+def _append_succ_pred(subgraphs, successors, predecessors, node_map, node, prefix="",
+                      parent_node_name=None):
+    node_name = prefix + node.name + "#" + "|".join(node.output)
+    node_map[node_name] = node
+    successors[node_name] = []
+    predecessors[node_name] = []
+    for name in node.input:
+        predecessors[node_name].append(name)
+        if name not in successors:
+            successors[name] = []
+        successors[name].append(node_name)
+    for name in node.output:
+        successors[node_name].append(name)
+        predecessors[name] = [node_name]
+    if node.op_type in {'If', 'Scan', 'Loop', 'Expression'}:
+        for att in node.attribute:
+            if (att.type != AttributeProto.GRAPH or  # pylint: disable=E1101
+                    not hasattr(att, 'g') or att.g is None):
+                continue
+            subgraphs.append((node, att.name, att.g))
+            _append_succ_pred_s(subgraphs, successors, predecessors, node_map,
+                                att.g.node, prefix=node_name + ":/:",
+                                parent_node_name=node_name,
+                                parent_graph=att.g)
+
+
+def _append_succ_pred_s(subgraphs, successors, predecessors, node_map, nodes, prefix="",
+                        parent_node_name=None, parent_graph=None):
+    for node in nodes:
+        _append_succ_pred(subgraphs, successors, predecessors, node_map, node,
+                          prefix=prefix, parent_node_name=parent_node_name)
+    if parent_node_name is not None:
+        unknown = set()
+        known = {}
+        for i in parent_graph.initializer:
+            known[i.name] = None
+        for i in parent_graph.input:
+            known[i.name] = None
+        for n in parent_graph.node:
+            for i in n.input:
+                if i not in known:
+                    unknown.add(i)
+            for i in n.output:
+                known[i] = n
+        if len(unknown) > 0:
+            # These inputs are coming from the graph below.
+            for name in unknown:
+                successors[name].append(parent_node_name)
+                predecessors[parent_node_name].append(name)
+
+
+def graph_predecessors_and_successors(graph):
+    """
+    Returns the successors and the predecessors within on ONNX graph.
+    """
+    node_map = {}
+    successors = {}
+    predecessors = {}
+    subgraphs = []
+    _append_succ_pred_s(subgraphs, successors,
+                        predecessors, node_map, graph.node)
+    return subgraphs, predecessors, successors, node_map
+
+
+def get_hidden_inputs(nodes):
+    """
+    Returns the list of hidden inputs used by subgraphs.
+
+    :param nodes: list of nodes
+    :return: list of names
+    """
+    inputs = set()
+    outputs = set()
+    for node in nodes:
+        inputs |= set(node.input)
+        outputs |= set(node.output)
+        for att in node.attribute:
+            if (att.type != AttributeProto.GRAPH or  # pylint: disable=E1101
+                    not hasattr(att, 'g') or att.g is None):
+                continue
+            hidden = get_hidden_inputs(att.g.node)
+            inits = set(att.g.initializer)
+            inputs |= hidden - (inits & hidden)
+    return inputs - (outputs & inputs)
 
 
 def reorder_nodes_for_display(nodes, verbose=False):
@@ -189,28 +285,29 @@ def reorder_nodes_for_display(nodes, verbose=False):
     :param verbose: dislay intermediate informations
     :return: reordered list of nodes
     """
+    class temp:
+        "Fake GraphProto."
+
+        def __init__(self, nodes):
+            self.node = nodes
+
+    _, predecessors, successors, dnodes = graph_predecessors_and_successors(
+        temp(nodes))
+    local_variables = get_hidden_inputs(nodes)
+
     all_outputs = set()
-    all_inputs = set()
+    all_inputs = set(local_variables)
     for node in nodes:
         all_outputs |= set(node.output)
         all_inputs |= set(node.input)
     common = all_outputs & all_inputs
-    dnodes = OrderedDict()
-    successors = {}
-    predecessors = {}
-    for node in nodes:
-        node_name = node.name + "#" + "|".join(node.output)
-        dnodes[node_name] = node
-        successors[node_name] = set()
-        predecessors[node_name] = set()
-        for name in node.input:
-            predecessors[node_name].add(name)
-            if name not in successors:
-                successors[name] = set()
-            successors[name].add(node_name)
-        for name in node.output:
-            successors[node_name].add(name)
-            predecessors[name] = {node_name}
+
+    successors = {k: set(v) for k, v in successors.items()}
+    predecessors = {k: set(v) for k, v in predecessors.items()}
+    if verbose:
+        pprint.pprint(  # pragma: no cover
+            ["[reorder_nodes_for_display]", "predecessors",
+             predecessors, "successors", successors])
 
     known = all_inputs - common
     new_nodes = []
@@ -250,6 +347,9 @@ def reorder_nodes_for_display(nodes, verbose=False):
         for k, v in dnodes.items():
             if k in done:
                 continue
+            if ':/:' in k:
+                # node part of a sub graph (assuming :/: is never used in a node name)
+                continue
             if predecessors[k] <= known:
                 possibles[k] = v
 
@@ -259,15 +359,15 @@ def reorder_nodes_for_display(nodes, verbose=False):
                 continue
             sequences[k] = _find_sequence(k, known, done)
             if verbose:
-                print("[reorder_nodes_for_display] sequence(%s)=%s" % (
-                    k, ",".join(sequences[k])))
+                print("[reorder_nodes_for_display] * sequence(%s)=%s - %r" % (
+                    k, ",".join(sequences[k]), list(sequences)))
 
         if len(sequences) == 0:
             raise RuntimeError(  # pragma: no cover
-                "Unexpected empty sequences (len(possibles)=%d, "
+                "Unexpected empty sequence (len(possibles)=%d, "
                 "len(done)=%d, len(nodes)=%d). This is usually due to "
-                "a name used both as result name and node node."
-                "" % (len(possibles), len(done), len(nodes)))
+                "a name used both as result name and node node. "
+                "known=%r." % (len(possibles), len(done), len(nodes), known))
 
         # find the best sequence
         best = None
@@ -295,7 +395,7 @@ def reorder_nodes_for_display(nodes, verbose=False):
 
         if best is None:
             raise RuntimeError(  # pragma: no cover
-                "Wrong implementation (len(sequence)=%d)." % len(sequences))
+                f"Wrong implementation (len(sequence)={len(sequences)}).")
         if verbose:
             print("[reorder_nodes_for_display] BEST: sequence(%s)=%s" % (
                 best, ",".join(sequences[best])))
@@ -304,15 +404,34 @@ def reorder_nodes_for_display(nodes, verbose=False):
         for k in sequences[best]:
             v = dnodes[k]
             new_nodes.append(v)
+            if verbose:
+                print(
+                    f"[reorder_nodes_for_display] + {v.name!r} ({v.op_type!r})")
             done.add(k)
             known |= set(v.output)
 
     if len(new_nodes) != len(nodes):
         raise RuntimeError(  # pragma: no cover
             "The returned new nodes are different. "
-            "len(nodes=%d != %d=len(new_nodes). done=\n%r"
+            "len(nodes=%d) != %d=len(new_nodes). done=\n%r"
             "\n%s\n----------\n%s" % (
                 len(nodes), len(new_nodes), done,
+                "\n".join("%d - %s - %s - %s" % (
+                    (n.name + "".join(n.output)) in done,
+                    n.op_type, n.name, n.name + "".join(n.output))
+                    for n in nodes),
+                "\n".join("%d - %s - %s - %s" % (
+                    (n.name + "".join(n.output)) in done,
+                    n.op_type, n.name, n.name + "".join(n.output))
+                    for n in new_nodes)))
+    n0s = set(n.name for n in nodes)
+    n1s = set(n.name for n in new_nodes)
+    if n0s != n1s:
+        raise RuntimeError(  # pragma: no cover
+            "The returned new nodes are different.\n"
+            "%r !=\n%r\ndone=\n%r"
+            "\n----------\n%s\n----------\n%s" % (
+                n0s, n1s, done,
                 "\n".join("%d - %s - %s - %s" % (
                     (n.name + "".join(n.output)) in done,
                     n.op_type, n.name, n.name + "".join(n.output))
@@ -340,7 +459,7 @@ def _get_type(obj0):
                 hasattr(obj, 'int32_data')):
             return TENSOR_TYPE_TO_NP_TYPE[TensorProto.INT32]  # pylint: disable=E1101
         raise RuntimeError(  # pragma: no cover
-            "Unable to guess type from %r." % obj0)
+            f"Unable to guess type from {obj0!r}.")
     if hasattr(obj, 'type'):
         obj = obj.type
     if hasattr(obj, 'tensor_type'):
@@ -348,7 +467,7 @@ def _get_type(obj0):
     if hasattr(obj, 'elem_type'):
         return TENSOR_TYPE_TO_NP_TYPE.get(obj.elem_type, '?')
     raise RuntimeError(  # pragma: no cover
-        "Unable to guess type from %r." % obj0)
+        f"Unable to guess type from {obj0!r}.")
 
 
 def _get_shape(obj):
@@ -367,26 +486,19 @@ def _get_shape(obj):
                 hasattr(obj, 'int32_data')):
             return (len(obj.int32_data), )
         raise RuntimeError(  # pragma: no cover
-            "Unable to guess type from %r." % obj0)
+            f"Unable to guess type from {obj0!r}.")
     if hasattr(obj, 'type'):
         obj = obj.type
     if hasattr(obj, 'tensor_type'):
-        obj = obj.tensor_type
-    if hasattr(obj, 'shape'):
-        obj = obj.shape
-        dims = []
-        for d in obj.dim:
-            if hasattr(d, 'dim_value'):
-                dims.append(d.dim_value)
-            else:
-                dims.append(None)
-        return tuple(dims)
+        return get_tensor_shape(obj)
     raise RuntimeError(  # pragma: no cover
-        "Unable to guess type from %r." % obj0)
+        f"Unable to guess type from {obj0!r}.")
 
 
-def onnx_simple_text_plot(model, verbose=False, att_display=None,
-                          add_links=False, recursive=False, functions=True):
+def onnx_simple_text_plot(model, verbose=False, att_display=None,  # pylint: disable=R0915
+                          add_links=False, recursive=False, functions=True,
+                          raise_exc=True, sub_graphs_names=None,
+                          level=1, indent=True):
     """
     Displays an ONNX graph into text.
 
@@ -397,6 +509,11 @@ def onnx_simple_text_plot(model, verbose=False, att_display=None,
     :param add_links: displays links of the right side
     :param recursive: display subgraphs as well
     :param functions: display functions as well
+    :param raise_exc: raises an exception if the model is not valid,
+        otherwise tries to continue
+    :param sub_graphs_names: list of sub-graphs names
+    :param level: sub-graph level
+    :param indent: use indentation or not
     :return: str
 
     An ONNX graph is printed the following way:
@@ -459,6 +576,7 @@ def onnx_simple_text_plot(model, verbose=False, att_display=None,
 
         print("DOT-SECTION", oinf.to_dot())
     """
+    use_indentation = indent
     if att_display is None:
         att_display = [
             'activations',
@@ -561,31 +679,109 @@ def onnx_simple_text_plot(model, verbose=False, att_display=None,
             'zs',
         ]
 
+    if sub_graphs_names is None:
+        sub_graphs_names = {}
+
+    def _get_subgraph_name(idg):
+        if idg in sub_graphs_names:
+            return sub_graphs_names[idg]
+        g = "G%d" % (len(sub_graphs_names) + 1)
+        sub_graphs_names[idg] = g
+        return g
+
     def str_node(indent, node):
         atts = []
         if hasattr(node, 'attribute'):
             for att in node.attribute:
+                done = True
                 if att.name in att_display:
                     if att.type == AttributeProto.INT:  # pylint: disable=E1101
                         atts.append("%s=%d" % (att.name, att.i))
                     elif att.type == AttributeProto.FLOAT:  # pylint: disable=E1101
-                        atts.append("%s=%1.2f" % (att.name, att.f))
+                        atts.append(f"{att.name}={att.f:1.2f}")
                     elif att.type == AttributeProto.INTS:  # pylint: disable=E1101
                         atts.append("%s=%s" % (att.name, str(
                             list(att.ints)).replace(" ", "")))
+                    else:
+                        done = False
+                elif (att.type == AttributeProto.GRAPH and  # pylint: disable=E1101
+                        hasattr(att, 'g') and att.g is not None):
+                    atts.append(f"{att.name}={_get_subgraph_name(id(att.g))}")
+                elif att.ref_attr_name:
+                    atts.append(f"{att.name}=${att.ref_attr_name}")
+                else:
+                    done = False
+                if done:
+                    continue
+                if att.type in (AttributeProto.TENSOR,  # pylint: disable=E1101
+                                AttributeProto.TENSORS,  # pylint: disable=E1101
+                                AttributeProto.SPARSE_TENSOR,  # pylint: disable=E1101
+                                AttributeProto.SPARSE_TENSORS):  # pylint: disable=E1101
+                    try:
+                        val = str(to_array(att.t).tolist())
+                    except TypeError as e:  # pragma: no cover
+                        raise TypeError(
+                            "Unable to display tensor type %r.\n%s" % (
+                                att.type, str(att))) from e
+                    if "\n" in val:
+                        val = val.split("\n", maxsplit=1) + "..."
+                    if len(val) > 10:
+                        val = val[:10] + "..."
+                elif att.type == AttributeProto.STRING:  # pylint: disable=E1101
+                    val = str(att.s)
+                elif att.type == AttributeProto.STRINGS:  # pylint: disable=E1101
+                    n_val = list(att.strings)
+                    if len(n_val) < 5:
+                        val = ",".join(map(str, n_val))
+                    else:
+                        val = "%d:[%s...%s]" % (
+                            len(n_val),
+                            ",".join(map(str, n_val[:2])),
+                            ",".join(map(str, n_val[-2:])))
+                elif att.type == AttributeProto.INT:  # pylint: disable=E1101
+                    val = str(att.i)
+                elif att.type == AttributeProto.FLOAT:  # pylint: disable=E1101
+                    val = str(att.f)
+                elif att.type == AttributeProto.INTS:  # pylint: disable=E1101
+                    n_val = list(att.ints)
+                    if len(n_val) < 6:
+                        val = f"[{','.join(map(str, n_val))}]"
+                    else:
+                        val = "%d:[%s...%s]" % (
+                            len(n_val),
+                            ",".join(map(str, n_val[:3])),
+                            ",".join(map(str, n_val[-3:])))
+                elif att.type == AttributeProto.FLOATS:  # pylint: disable=E1101
+                    n_val = list(att.floats)
+                    if len(n_val) < 5:
+                        val = f"[{','.join(map(str, n_val))}]"
+                    else:
+                        val = "%d:[%s...%s]" % (
+                            len(n_val),
+                            ",".join(map(str, n_val[:2])),
+                            ",".join(map(str, n_val[-2:])))
+                else:
+                    val = '.%d' % att.type
+                atts.append(f"{att.name}={val}")
         inputs = list(node.input)
         if len(atts) > 0:
             inputs.extend(atts)
-        return "%s%s(%s) -> %s" % (
-            "  " * indent, node.op_type,
+        if node.domain in ('', 'ai.onnx.ml'):
+            domain = ''
+        else:
+            domain = f'[{node.domain}]'
+        return "%s%s%s(%s) -> %s" % (
+            "  " * indent, node.op_type, domain,
             ", ".join(inputs), ", ".join(node.output))
 
     rows = []
     if hasattr(model, 'opset_import'):
         for opset in model.opset_import:
-            rows.append("opset: domain=%r version=%r" % (
-                opset.domain, opset.version))
+            rows.append(
+                f"opset: domain={opset.domain!r} version={opset.version!r}")
     if hasattr(model, 'graph'):
+        if model.doc_string:
+            rows.append(f'doc_string: {model.doc_string}')
         main_model = model
         model = model.graph
     else:
@@ -594,45 +790,40 @@ def onnx_simple_text_plot(model, verbose=False, att_display=None,
     # inputs
     line_name_new = {}
     line_name_in = {}
+    if level == 0:
+        rows.append("----- input ----")
     for inp in model.input:
         if isinstance(inp, str):
-            rows.append("input: %r" % inp)
+            rows.append(f"input: {inp!r}")
         else:
             line_name_new[inp.name] = len(rows)
             rows.append("input: name=%r type=%r shape=%r" % (
                 inp.name, _get_type(inp), _get_shape(inp)))
+    if hasattr(model, 'attribute'):
+        for att in model.attribute:
+            if isinstance(att, str):
+                rows.append(f"attribute: {att!r}")
+            else:
+                raise NotImplementedError(  # pragma: no cover
+                    "Not yet introduced in onnx.")
+
     # initializer
     if hasattr(model, 'initializer'):
+        if len(model.initializer) and level == 0:
+            rows.append("----- initializer ----")
         for init in model.initializer:
             if numpy.prod(_get_shape(init)) < 5:
-                content = " -- %r" % to_array(init).ravel()
+                content = f" -- {to_array(init).ravel()!r}"
             else:
                 content = ""
             line_name_new[init.name] = len(rows)
             rows.append("init: name=%r type=%r shape=%r%s" % (
                 init.name, _get_type(init), _get_shape(init), content))
+    if level == 0:
+        rows.append("----- main graph ----")
 
-    # successors, predecessors
-    successors = {}
-    predecessors = {}
-    subgraphs = []
-    for node in model.node:
-        node_name = node.name + "#" + "|".join(node.output)
-        successors[node_name] = []
-        predecessors[node_name] = []
-        for name in node.input:
-            predecessors[node_name].append(name)
-            if name not in successors:
-                successors[name] = []
-            successors[name].append(node_name)
-        for name in node.output:
-            successors[node_name].append(name)
-            predecessors[name] = [node_name]
-        if recursive and node.op_type in {'If', 'Scan', 'Loop'}:
-            for att in node.attribute:
-                if att.name not in {'body', 'else_branch', 'then_branch'}:
-                    continue
-                subgraphs.append((node, att.name, att.g))
+    # successors, predecessors, it needs to support subgraphs
+    subgraphs = graph_predecessors_and_successors(model)[0]
 
     # walk through nodes
     init_names = set()
@@ -649,7 +840,14 @@ def onnx_simple_text_plot(model, verbose=False, att_display=None,
             indents[init.name] = 0
             init_names.add(init.name)
 
-    nodes = reorder_nodes_for_display(model.node, verbose=verbose)
+    try:
+        nodes = reorder_nodes_for_display(model.node, verbose=verbose)
+    except RuntimeError as e:  # pragma: no cover
+        if raise_exc:
+            raise e
+        else:
+            rows.append(f"ERROR: {e}")
+        nodes = model.node
 
     previous_indent = None
     previous_out = None
@@ -661,7 +859,7 @@ def onnx_simple_text_plot(model, verbose=False, att_display=None,
             indent = indents[name]
             if previous_indent is not None and indent < previous_indent:
                 if verbose:
-                    print("[onnx_simple_text_plot] break1 %s" % node.op_type)
+                    print(f"[onnx_simple_text_plot] break1 {node.op_type}")
                 add_break = True
         elif previous_in is not None and set(node.input) == previous_in:
             indent = previous_indent
@@ -676,14 +874,12 @@ def onnx_simple_text_plot(model, verbose=False, att_display=None,
                 if previous_indent is not None and indent < previous_indent:
                     if verbose:
                         print(  # pragma: no cover
-                            "[onnx_simple_text_plot] break2 %s" %
-                                node.op_type)
+                            f"[onnx_simple_text_plot] break2 {node.op_type}")
                     add_break = True
             if not add_break and previous_out is not None:
                 if len(set(node.input) & previous_out) == 0:
                     if verbose:
-                        print("[onnx_simple_text_plot] break3 %s" %
-                              node.op_type)
+                        print(f"[onnx_simple_text_plot] break3 {node.op_type}")
                     add_break = True
                     indent = 0
 
@@ -696,7 +892,7 @@ def onnx_simple_text_plot(model, verbose=False, att_display=None,
                 line_name_in[n] = [len(rows)]
         for n in node.output:
             line_name_new[n] = len(rows)
-        rows.append(str_node(indent, node))
+        rows.append(str_node(indent if use_indentation else 0, node))
         indents[name] = indent
 
         for i, o in enumerate(node.output):
@@ -707,14 +903,15 @@ def onnx_simple_text_plot(model, verbose=False, att_display=None,
         previous_in = set(node.input)
 
     # outputs
+    if level == 0:
+        rows.append("----- output ----")
     for out in model.output:
         if isinstance(out, str):
             if out in line_name_in:
                 line_name_in[out].append(len(rows))
             else:
                 line_name_in[out] = [len(rows)]
-            rows.append("output: name=%r type=%s shape=%s" % (
-                out, '?', '?'))
+            rows.append(f"output: name={out!r} type={'?'} shape={'?'}")
         else:
             if out.name in line_name_in:
                 line_name_in[out.name].append(len(rows))
@@ -770,23 +967,30 @@ def onnx_simple_text_plot(model, verbose=False, att_display=None,
             _mark_link(rows, lengths, r1, r2, d)
 
     # subgraphs
-    for node, name, g in subgraphs:
-        rows.append('----- subgraph ---- %s - %s - att.%s=' % (
-            node.op_type, node.name, name))
-        res = onnx_simple_text_plot(
-            g, verbose=verbose, att_display=att_display,
-            add_links=add_links, recursive=recursive)
-        rows.append(res)
+    if recursive:
+        for node, name, g in subgraphs:
+            rows.append('----- subgraph ---- %s - %s - att.%s=%s -- level=%d -- %s -> %s' % (
+                node.op_type, node.name, name, _get_subgraph_name(id(g)),
+                level, ','.join(i.name for i in g.input),
+                ','.join(i.name for i in g.output)))
+            res = onnx_simple_text_plot(
+                g, verbose=verbose, att_display=att_display,
+                add_links=add_links, recursive=recursive,
+                sub_graphs_names=sub_graphs_names, level=level + 1,
+                raise_exc=raise_exc)
+            rows.append(res)
 
     # functions
     if functions and main_model is not None:
         for fct in main_model.functions:
-            rows.append('----- function name=%s domain=%s' % (
-                fct.name, fct.domain))
+            rows.append(f'----- function name={fct.name} domain={fct.domain}')
+            if fct.doc_string:
+                rows.append(f'----- doc_string: {fct.doc_string}')
             res = onnx_simple_text_plot(
                 fct, verbose=verbose, att_display=att_display,
                 add_links=add_links, recursive=recursive,
-                functions=False)
+                functions=False, sub_graphs_names=sub_graphs_names,
+                level=1)
             rows.append(res)
 
     return "\n".join(rows)
@@ -823,8 +1027,8 @@ def onnx_text_plot_io(model, verbose=False, att_display=None):
     rows = []
     if hasattr(model, 'opset_import'):
         for opset in model.opset_import:
-            rows.append("opset: domain=%r version=%r" % (
-                opset.domain, opset.version))
+            rows.append(
+                f"opset: domain={opset.domain!r} version={opset.version!r}")
     if hasattr(model, 'graph'):
         model = model.graph
 

@@ -50,8 +50,7 @@ def evaluate_condition(backend, condition):
         import onnxruntime  # pylint: disable=W0611
         return eval(condition)  # pylint: disable=W0123
     raise NotImplementedError(  # pragma no cover
-        "Not implemented for backend '{0}' and "
-        "condition '{1}'.".format(backend, condition))
+        f"Not implemented for backend '{backend}' and condition '{condition}'.")
 
 
 def is_backend_enabled(backend):
@@ -69,7 +68,7 @@ def is_backend_enabled(backend):
     if backend == "python":
         return True
     raise NotImplementedError(  # pragma no cover
-        "Not implemented for backend '{0}'".format(backend))
+        f"Not implemented for backend '{backend}'")
 
 
 def load_data_and_model(items_as_dict, **context):
@@ -90,7 +89,7 @@ def load_data_and_model(items_as_dict, **context):
                         if '.model.' in v:
                             continue
                         raise ImportError(  # pylint: disable=W0707
-                            "Unable to load '{0}' due to {1}".format(v, e))
+                            f"Unable to load '{v}' due to {e}")
                     res[k] = bin
             else:
                 res[k] = v
@@ -113,12 +112,12 @@ def extract_options(name):
     res = {}
     for opt in opts[1:]:
         if opt in ("SkipDim1", "OneOff", "NoProb", "NoProbOpp",
-                   "Dec4", "Dec3", "Dec2", 'Svm',
+                   "Dec4", "Dec3", "Dec2", "Dec1", 'Svm',
                    'Out0', 'Reshape', 'SklCol', 'DF', 'OneOffArray'):
             res[opt] = True
         else:
-            raise NameError("Unable to parse option '{}'".format(
-                opts[1:]))  # pragma no cover
+            # pragma no cover
+            raise NameError(f"Unable to parse option '{opts[1:]}'")
     return res
 
 
@@ -133,6 +132,7 @@ def compare_outputs(expected, output, verbose=False, **kwargs):
     Dec4 = kwargs.pop("Dec4", False)
     Dec3 = kwargs.pop("Dec3", False)
     Dec2 = kwargs.pop("Dec2", False)
+    Dec1 = kwargs.pop("Dec1", False)
     Disc = kwargs.pop("Disc", False)
     Mism = kwargs.pop("Mism", False)
 
@@ -142,6 +142,8 @@ def compare_outputs(expected, output, verbose=False, **kwargs):
         kwargs["decimal"] = min(kwargs["decimal"], 3)
     if Dec2:
         kwargs["decimal"] = min(kwargs["decimal"], 2)  # pragma: no cover
+    if Dec1:
+        kwargs["decimal"] = min(kwargs["decimal"], 1)
     if isinstance(expected, numpy.ndarray) and isinstance(
             output, numpy.ndarray):
         if SkipDim1:
@@ -188,12 +190,19 @@ def compare_outputs(expected, output, verbose=False, **kwargs):
                 else:  # pragma no cover
                     return OnnxBackendAssertionError(str(e))
         else:
+            if 'OneOff' in kwargs:
+                kwargs = kwargs.copy()
+                kwargs.pop('OneOff')
+                if expected.shape != output.shape:
+                    raise NotImplementedError(
+                        f"Unable to deal with sort of shapes "
+                        f"{expected.shape!r} != {output.shape!r}.")
             try:
                 assert_array_almost_equal(expected,
                                           output,
                                           verbose=verbose,
                                           **kwargs)
-            except (RuntimeError, AssertionError) as e:  # pragma no cover
+            except (RuntimeError, AssertionError, TypeError) as e:  # pragma no cover
                 longer = "\n--EXPECTED--\n{0}\n--OUTPUT--\n{1}".format(
                     expected, output) if verbose else ""
                 expected_ = numpy.asarray(expected).ravel()
@@ -217,15 +226,12 @@ def compare_outputs(expected, output, verbose=False, **kwargs):
                 if Disc:
                     # Bug to be fixed later.
                     return ExpectedAssertionError(
-                        "max-diff={0}\n--expected--output--\n{1}{2}".format(
-                            diff, e, longer))
+                        f"max-diff={diff}\n--expected--output--\n{e}{longer}")
                 return OnnxBackendAssertionError(
-                    "max-diff={0}\n--expected--output--\n{1}{2}".format(
-                        diff, e, longer))
+                    f"max-diff={diff}\n--expected--output--\n{e}{longer}")
     else:
         return OnnxBackendAssertionError(  # pragma: no cover
-            "Unexpected types {0} != {1}".format(
-                type(expected), type(output)))
+            f"Unexpected types {type(expected)} != {type(output)}")
     return None
 
 
@@ -265,7 +271,7 @@ def _post_process_output(res):
                 return res
             if len(res[0]) != 1:
                 raise NotImplementedError(  # pragma no cover
-                    "Not conversion implemented for {0}".format(res))
+                    f"Not conversion implemented for {res}")
             st = [r[0] for r in res]
             return numpy.vstack(st)
         return res
@@ -283,7 +289,7 @@ def _create_column(values, dtype):
     if str(dtype) in ("tensor(string)", "tensor(str)"):
         return numpy.array(values, dtype=numpy.str_)
     raise OnnxBackendAssertionError(
-        "Unable to create one column from dtype '{0}'".format(dtype))
+        f"Unable to create one column from dtype '{dtype}'")
 
 
 def _compare_expected(expected, output, sess, onnx_model,
@@ -315,12 +321,11 @@ def _compare_expected(expected, output, sess, onnx_model,
                 tested += 1
         else:
             raise OnnxBackendAssertionError(  # pragma no cover
-                "Type mismatch for '{0}', output type is {1}".format(
-                    onnx_model, type(output)))
+                f"Type mismatch for '{onnx_model}', output type is {type(output)}")
     elif isinstance(expected, dict):
         if not isinstance(output, dict):
             raise OnnxBackendAssertionError(  # pragma no cover
-                "Type mismatch for '{0}'".format(onnx_model))
+                f"Type mismatch for '{onnx_model}'")
         for k, v in output.items():
             if k not in expected:
                 continue
@@ -328,8 +333,7 @@ def _compare_expected(expected, output, sess, onnx_model,
                 expected[k], v, decimal=decimal, verbose=verbose, **kwargs)
             if msg:
                 raise OnnxBackendAssertionError(  # pragma no cover
-                    "Unexpected output '{0}' in model '{1}'\n{2}".format(
-                        k, onnx_model, msg))
+                    f"Unexpected output '{k}' in model '{onnx_model}'\n{msg}")
             tested += 1
     elif isinstance(expected, numpy.ndarray):
         if isinstance(output, list):
@@ -353,8 +357,7 @@ def _compare_expected(expected, output, sess, onnx_model,
             output = output[-1]
         if not isinstance(output, numpy.ndarray):
             raise OnnxBackendAssertionError(  # pragma no cover
-                "output must be an array for onnx '{0}' not {1}".format(
-                    onnx_model, type(output)))
+                f"output must be an array for onnx '{onnx_model}' not {type(output)}")
         if (classes is not None and (
                 expected.dtype == numpy.str_ or expected.dtype.char == 'U')):
             try:
@@ -368,7 +371,7 @@ def _compare_expected(expected, output, sess, onnx_model,
             raise msg  # pylint: disable=E0702
         if msg:
             raise OnnxBackendAssertionError(  # pragma no cover
-                "Unexpected output in model '{0}'\n{1}".format(onnx_model, msg))
+                f"Unexpected output in model '{onnx_model}'\n{msg}")
         tested += 1
     else:
         if isinstance(expected, csr_matrix):
@@ -379,7 +382,7 @@ def _compare_expected(expected, output, sess, onnx_model,
                                   verbose=verbose, **kwargs)
             if msg:
                 raise OnnxBackendAssertionError(  # pragma no cover
-                    "Unexpected output in model '{0}'\n{1}".format(onnx_model, msg))
+                    f"Unexpected output in model '{onnx_model}'\n{msg}")
             tested += 1
         else:
             raise OnnxBackendAssertionError(  # pragma no cover
@@ -387,4 +390,4 @@ def _compare_expected(expected, output, sess, onnx_model,
                 format(onnx_model, type(expected)))
     if tested == 0:
         raise OnnxBackendAssertionError(  # pragma no cover
-            "No test for onnx '{0}'".format(onnx_model))
+            f"No test for onnx '{onnx_model}'")

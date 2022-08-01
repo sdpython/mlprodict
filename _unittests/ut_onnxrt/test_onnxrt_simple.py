@@ -81,7 +81,7 @@ class TestOnnxrtSimple(ExtTestCase):
         if not sys.platform.startswith('win'):
             # Crashes (onnx crashes).
             try:
-                oinf.check_model()
+                oinf.check_onnx()
             except ValidationError as e:
                 warnings.warn("Why? " + str(e))  # pylint: disable=E1101
 
@@ -177,7 +177,7 @@ class TestOnnxrtSimple(ExtTestCase):
         self.assertIn('Ad_Addcst1 -> Ad_Add1;', dot)
         self.assertIn('Ad_Addcst -> Ad_Add;', dot)
         self.assertIn('Ad_Add1 -> Y;', dot)
-        self.assertIn('shape=(n, 2)', dot)
+        self.assertIn('shape=[', dot)
         self.assertIn('inplace', dot)
 
     @ignore_warnings(DeprecationWarning)

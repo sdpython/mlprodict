@@ -39,7 +39,7 @@ class _ArgMin(OpRunArg):
                           expected_attributes=expected_attributes,
                           **options)
 
-    def _run(self, data):  # pylint: disable=W0221
+    def _run(self, data, attributes=None, verbose=0, fLOG=None):  # pylint: disable=W0221
         return (_argmin(data, axis=self.axis, keepdims=self.keepdims), )
 
 
@@ -54,7 +54,7 @@ class ArgMin_11(_ArgMin):
 
     def to_python(self, inputs):
         return ('import numpy\nfrom mlprodict.onnxrt.ops_cpu.op_argmin import _argmin',
-                'return _argmin(%s, axis=axis, keepdims=keepdims)' % inputs[0])
+                f'return _argmin({inputs[0]}, axis=axis, keepdims=keepdims)')
 
 
 class ArgMin_12(_ArgMin):
@@ -66,7 +66,7 @@ class ArgMin_12(_ArgMin):
                          expected_attributes=ArgMin_12.atts,
                          **options)
 
-    def _run(self, data):  # pylint: disable=W0221
+    def _run(self, data, attributes=None, verbose=0, fLOG=None):  # pylint: disable=W0221
         if self.select_last_index == 0:
             return _ArgMin._run(self, data)
         return (_argmin_use_numpy_select_last_index(

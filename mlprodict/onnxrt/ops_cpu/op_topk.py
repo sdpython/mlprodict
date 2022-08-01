@@ -30,7 +30,7 @@ def topk_sorted_implementation(X, k, axis, largest):
     if isinstance(k, numpy.ndarray):
         if k.size != 1:
             raise RuntimeError(  # pragma: no cover
-                "k must be an integer not %r." % k)
+                f"k must be an integer not {k!r}.")
         k = k[0]
     if len(X.shape) == 2 and axis == 1:
         sample_range = numpy.arange(X.shape[0])[:, None]
@@ -77,7 +77,7 @@ def topk_sorted_implementation_cpp(X, k, axis, largest, th_para=50):
     if isinstance(k, numpy.ndarray):
         if k.size != 1:
             raise RuntimeError(  # pragma: no cover
-                "k must be an integer not %r." % k)
+                f"k must be an integer not {k!r}.")
     if axis != len(X.shape) - 1:
         if k == 0:
             return numpy.empty((0,), dtype=numpy.int64)
@@ -144,17 +144,6 @@ class _CommonTopK(OpRun):
             data, k, axis, largest, self.th_para)
         return (sort, sorti.astype(numpy.int64))
 
-    def _infer_shapes(self, data, ink):  # pylint: disable=W0221
-        axis = self.axis if self.axis >= 0 else (self.axis + len(data))
-        sh = data.copy()
-        pref = str(hex(id(self))[2:])
-        sh[axis] = "ntopk%s" % pref
-        shi = sh.copy(dtype=numpy.int64)
-        return (sh, shi)
-
-    def _infer_types(self, x, ink):  # pylint: disable=E0202,W0221
-        return (x, numpy.int64)
-
 
 class TopK_1(_CommonTopK):
 
@@ -165,7 +154,7 @@ class TopK_1(_CommonTopK):
                              expected_attributes=TopK_10.atts,
                              **options)
 
-    def _run(self, data):  # pylint: disable=W0221
+    def _run(self, data, attributes=None, verbose=0, fLOG=None):  # pylint: disable=W0221
         """
         Runtime for operator *TopK*.
         The implementation is not the most efficient
@@ -180,17 +169,6 @@ class TopK_1(_CommonTopK):
         """
         return _CommonTopK._common_run(self, data, [self.k])
 
-    def _infer_shapes(self, data):  # pylint: disable=W0221
-        return _CommonTopK._infer_shapes(self, data, [self.k])
-
-    def _infer_types(self, data):  # pylint: disable=W0221
-        return (data, )
-
-    def _infer_sizes(self, *args):  # pylint: disable=W0221
-        res = self.run(*args)
-        x = args[0]
-        return (dict(temp=x.dtype.itemsize * self.k * 2), ) + res
-
 
 class TopK_10(_CommonTopK):
 
@@ -201,7 +179,7 @@ class TopK_10(_CommonTopK):
                              expected_attributes=TopK_10.atts,
                              **options)
 
-    def _run(self, data, ink):  # pylint: disable=W0221
+    def _run(self, data, ink, attributes=None, verbose=0, fLOG=None):  # pylint: disable=W0221
         """
         Runtime for operator *TopK*.
         The implementation is not the most efficient
@@ -216,10 +194,6 @@ class TopK_10(_CommonTopK):
         """
         return _CommonTopK._common_run(self, data, ink)
 
-    def _infer_sizes(self, data, ink):  # pylint: disable=W0221
-        res = self.run(data, ink)
-        return (dict(temp=data.dtype.itemsize * ink[0] * 2), ) + res
-
 
 class TopK_11(_CommonTopK):
 
@@ -233,7 +207,7 @@ class TopK_11(_CommonTopK):
             raise RuntimeError(  # pragma: no cover
                 "TopK does not implement anything for sorted=0.")
 
-    def _run(self, data, ink):  # pylint: disable=W0221
+    def _run(self, data, ink, attributes=None, verbose=0, fLOG=None):  # pylint: disable=W0221
         """
         Runtime for operator *TopK*.
         The implementation is not the most efficient
@@ -247,10 +221,6 @@ class TopK_11(_CommonTopK):
             <https://github.com/Microsoft/onnxruntime/blob/master/onnxruntime/core/providers/cpu/math/top_k.cc#L63>`_.
         """
         return _CommonTopK._common_run(self, data, ink, self.largest)
-
-    def _infer_sizes(self, data, ink):  # pylint: disable=W0221
-        res = self.run(data, ink)
-        return (dict(temp=data.dtype.itemsize * ink[0] * 2), ) + res
 
 
 if onnx_opset_version() >= 11:

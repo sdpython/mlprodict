@@ -85,7 +85,7 @@ def custom_linear_classifier_converter3(X, op_=None):
     if X.dtype is None:
         raise AssertionError("X.dtype cannot be None.")
     if isinstance(X, numpy.ndarray):
-        raise TypeError("Unexpected type %r." % X)
+        raise TypeError(f"Unexpected type {X!r}.")
     if op_ is None:
         raise AssertionError("op_ cannot be None.")
     coef = op_.coef_.astype(X.dtype)
@@ -118,7 +118,7 @@ class CustomLinearClassifierOnnx(ClassifierMixin, BaseEstimator):
         if X.dtype is None:
             raise AssertionError("X.dtype cannot be None.")
         if isinstance(X, numpy.ndarray):
-            raise TypeError("Unexpected type %r." % X)
+            raise TypeError(f"Unexpected type {X!r}.")
         coef = self.coef_.astype(X.dtype)
         intercept = self.intercept_.astype(X.dtype)
         prob = nxnp.expit((X @ coef) + intercept)

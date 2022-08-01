@@ -138,11 +138,11 @@ def _retrieve_problems_extra(model, verbose, fLOG, extended_list):
 
             if verbose >= 2 and fLOG is not None:
                 fLOG(
-                    "[enumerate_compatible_opset] found custom for model={}".format(model))
+                    f"[enumerate_compatible_opset] found custom for model={model}")
                 extras = extra_parameters.get(model, None)
                 if extras is not None:
                     fLOG(
-                        "[enumerate_compatible_opset] found custom scenarios={}".format(extras))
+                        f"[enumerate_compatible_opset] found custom scenarios={extras}")
     else:
         problems = None
 
@@ -256,11 +256,11 @@ def enumerate_compatible_opset(model, opset_min=-1, opset_max=-1,  # pylint: dis
     if opset_max == -1:
         opset_max = __max_supported_opset__  # pragma: no cover
     if verbose > 0 and fLOG is not None:
-        fLOG("[enumerate_compatible_opset] opset in [{}, {}].".format(
-            opset_min, opset_max))
+        fLOG(
+            f"[enumerate_compatible_opset] opset in [{opset_min}, {opset_max}].")
     if verbose > 1 and fLOG:
-        fLOG("[enumerate_compatible_opset] validate class '{}'.".format(
-            model.__name__))
+        fLOG(
+            f"[enumerate_compatible_opset] validate class '{model.__name__}'.")
         if verbose > 2:
             fLOG(model)
 
@@ -441,16 +441,15 @@ def _call_conv_runtime_opset(
 
     for opset in set_opsets:
         if verbose >= 2 and fLOG is not None:
-            fLOG("[enumerate_compatible_opset] opset={} init_types={}".format(
-                opset, init_types))
+            fLOG(
+                f"[enumerate_compatible_opset] opset={opset} init_types={init_types}")
         obs_op = obs.copy()
         if opset is not None:
             obs_op['opset'] = opset
 
         if len(init_types) != 1:
             raise NotImplementedError(  # pragma: no cover
-                "Multiple types are is not implemented: "
-                "{}.".format(init_types))
+                f"Multiple types are is not implemented: {init_types}.")
 
         if not isinstance(runtime, list):
             runtime = [runtime]
@@ -482,7 +481,7 @@ def _call_conv_runtime_opset(
 
                 if verbose >= 2 and fLOG is not None:
                     fLOG(
-                        "[enumerate_compatible_opset] conversion to onnx: {}".format(all_conv_options))
+                        f"[enumerate_compatible_opset] conversion to onnx: {all_conv_options}")
                 try:
                     conv, t4 = _measure_time(fct_conv)[:2]
                     obs_op["convert_time"] = t4
@@ -497,7 +496,7 @@ def _call_conv_runtime_opset(
 
                 if verbose >= 6 and fLOG is not None:
                     fLOG(  # pragma: no cover
-                        "[enumerate_compatible_opset] ONNX:\n{}".format(conv))
+                        f"[enumerate_compatible_opset] ONNX:\n{conv}")
 
                 if all_conv_options.get('optim', '') == 'cdist':  # pragma: no cover
                     check_cdist = [_ for _ in str(conv).split('\n')
@@ -506,8 +505,7 @@ def _call_conv_runtime_opset(
                                   if 'Scan' in _]
                     if len(check_cdist) == 0 and len(check_scan) > 0:
                         raise RuntimeError(
-                            "Operator CDist was not used in\n{}"
-                            "".format(conv))
+                            f"Operator CDist was not used in\n{conv}")
 
                 obs_op0 = obs_op.copy()
                 for optimisation in optimisations:
@@ -541,8 +539,7 @@ def _call_conv_runtime_opset(
 
                     # opset_domain
                     for op_imp in list(conv.opset_import):
-                        obs_op['domain_opset_%s' %
-                               op_imp.domain] = op_imp.version
+                        obs_op[f'domain_opset_{op_imp.domain}'] = op_imp.version
 
                     run_benchmark = _check_run_benchmark(
                         benchmark, stat_onnx, bench_memo, rt)
@@ -612,8 +609,8 @@ def _call_runtime(obs_op, conv, opset, debug, inst, runtime,
     if store_models:
         obs_op['OINF'] = sess
     if verbose >= 2 and fLOG is not None:
-        fLOG("[enumerate_compatible_opset-R] compute batch with runtime "
-             "'{}'".format(runtime))
+        fLOG(
+            f"[enumerate_compatible_opset-R] compute batch with runtime '{runtime}'")
 
     def fct_batch(se=sess, xo=Xort_test, it=init_types):  # pylint: disable=W0102
         return se.run({it[0][0]: xo},
@@ -626,8 +623,8 @@ def _call_runtime(obs_op, conv, opset, debug, inst, runtime,
             {init_types[0][0]: xo}, node_time=node_time), Xort_test)
     except (RuntimeError, TypeError, ValueError, KeyError, IndexError) as e:
         if debug:
-            raise RuntimeError("Issue with {}.".format(
-                obs_op)) from e  # pragma: no cover
+            raise RuntimeError(
+                f"Issue with {obs_op}.") from e  # pragma: no cover
         obs_op['_6ort_run_batch_exc'] = e
     if (benchmark or node_time) and 'lambda-batch' in obs_op:
         try:
@@ -657,8 +654,7 @@ def _call_runtime(obs_op, conv, opset, debug, inst, runtime,
             except IndexError as e:  # pragma: no cover
                 if debug:
                     raise IndexError(
-                        "Issue with output_index={}/{}".format(
-                            output_index, len(opred))) from e
+                        f"Issue with output_index={output_index}/{len(opred)}") from e
                 obs_op['_8max_rel_diff_batch_exc'] = (
                     "Unable to fetch output {}/{} for model '{}'"
                     "".format(output_index, len(opred),
@@ -750,8 +746,7 @@ def _enumerate_validated_operator_opsets_ops(extended_list, models, skip_models)
         ops_ = [_ for _ in ops if _['name'] in models]
         if len(ops) == 0:
             raise ValueError(  # pragma: no cover
-                "Parameter models is wrong: {}\n{}".format(
-                    models, ops[0]))
+                f"Parameter models is wrong: {models}\n{ops[0]}")
         ops = ops_
     if skip_models is not None:
         ops = [m for m in ops if m['name'] not in skip_models]
@@ -858,7 +853,7 @@ def enumerate_validated_operator_opsets(verbose=0, opset_min=-1, opset_max=-1,
 
         def iterate():
             for i, row in enumerate(ops):  # pragma: no cover
-                fLOG("{}/{} - {}".format(i + 1, len(ops), row))
+                fLOG(f"{i + 1}/{len(ops)} - {row}")
                 yield row
 
         if verbose >= 11:
@@ -873,7 +868,7 @@ def enumerate_validated_operator_opsets(verbose=0, opset_min=-1, opset_max=-1,
                         for i in t:
                             row = ops[i]
                             disp = row['name'] + " " * (28 - len(row['name']))
-                            t.set_description("%s" % disp)
+                            t.set_description(f"{disp}")
                             yield row
 
                 loop = iterate_tqdm()
@@ -900,7 +895,7 @@ def enumerate_validated_operator_opsets(verbose=0, opset_min=-1, opset_max=-1,
 
         model = row['cl']
         if verbose > 1:
-            fLOG("[enumerate_validated_operator_opsets] - model='{}'".format(model))
+            fLOG(f"[enumerate_validated_operator_opsets] - model='{model}'")
 
         for obs in enumerate_compatible_opset(
                 model, opset_min=opset_min, opset_max=opset_max,
@@ -938,7 +933,7 @@ def enumerate_validated_operator_opsets(verbose=0, opset_min=-1, opset_max=-1,
             batch = 'max_rel_diff_batch' in obs and diff is not None
             op1 = obs.get('domain_opset_', '')
             op2 = obs.get('domain_opset_ai.onnx.ml', '')
-            op = '{}/{}'.format(op1, op2)
+            op = f'{op1}/{op2}'
 
             obs['available'] = "?"
             if diff is not None:
@@ -953,13 +948,13 @@ def enumerate_validated_operator_opsets(verbose=0, opset_min=-1, opset_max=-1,
                 elif diff < 0.1:
                     obs['available'] = 'e<0.1'
                 else:
-                    obs['available'] = "ERROR->=%1.1f" % diff
+                    obs['available'] = f"ERROR->={diff:1.1f}"
                 obs['available'] += '-' + op
                 if not batch:
                     obs['available'] += "-NOBATCH"  # pragma: no cover
                 if fail_bad_results and 'e<' in obs['available']:
                     raise RuntimeBadResultsError(
-                        "Wrong results '{}'.".format(obs['available']), obs)  # pragma: no cover
+                        f"Wrong results '{obs['available']}'.", obs)  # pragma: no cover
 
             excs = []
             for k, v in sorted(obs.items()):
@@ -971,7 +966,7 @@ def enumerate_validated_operator_opsets(verbose=0, opset_min=-1, opset_max=-1,
                 obs['opset'] = current_opset
             if obs['opset'] == current_opset and len(excs) > 0:
                 k, v = excs[0]
-                obs['available'] = 'ERROR-%s' % k
+                obs['available'] = f'ERROR-{k}'
                 obs['available-ERROR'] = v
 
             if 'bench-skl' in obs:

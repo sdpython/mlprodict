@@ -6,18 +6,25 @@ from logging import getLogger
 import numpy
 from onnx.helper import (
     make_tensor_value_info, make_node, make_graph,
-    make_operatorsetid, make_sequence_value_info,
-    make_tensor, make_model)
+    make_operatorsetid, make_tensor, make_model,
+    make_tensor_type_proto, make_sequence_type_proto,
+    make_value_info)
 from onnx import TensorProto
 from pyquickhelper.pycode import ExtTestCase, ignore_warnings
 from mlprodict.onnxrt import OnnxInference
-from mlprodict.onnxrt.type_object import SequenceType
 from mlprodict import __max_supported_opset__ as TARGET_OPSET
 
 
+def make_sequence_value_info(name, elem_type, shape):
+    if isinstance(elem_type, int):
+        return make_tensor_sequence_value_info(name, elem_type, shape)
+    s_type = make_sequence_type_proto(elem_type)
+    return make_value_info(name, s_type, shape)
+
+
 def make_tensor_sequence_value_info(name, tensor_type, shape):
-    return make_sequence_value_info(
-        name, tensor_type, shape, None)
+    t_type = make_tensor_type_proto(tensor_type, shape)
+    return make_sequence_value_info(name, t_type, shape)
 
 
 class TestOnnxrtPythonRuntimeControlLoop(ExtTestCase):
@@ -205,17 +212,6 @@ class TestOnnxrtPythonRuntimeControlLoop(ExtTestCase):
                     'seq_empty': seq_empty}
                 got = oinf.run(inputs)
                 self.assertEqualArray(expected, got['res'])
-                if rt == 'python':
-                    siz = oinf.infer_sizes(inputs)
-                    self.assertIsInstance(siz, dict)
-                    typ = oinf.infer_types()
-                    self.assertEqual(typ["trip_count"], numpy.int64)
-                    if 'cond' in typ:
-                        self.assertEqual(typ["cond"], numpy.bool_)
-                    for k, v in typ.items():
-                        if k in {'trip_count', 'cond'}:
-                            continue
-                        self.assertIsInstance(v, SequenceType)
 
     @ignore_warnings(DeprecationWarning)
     def test_loop_additional_input(self):
@@ -327,17 +323,6 @@ class TestOnnxrtPythonRuntimeControlLoop(ExtTestCase):
                 got = oinf.run(inputs)
                 self.assertEqualArray(-X, got['Y'])
                 self.assertEqualArray(expected, got['res'])
-                if rt == 'python':
-                    siz = oinf.infer_sizes(inputs)
-                    self.assertIsInstance(siz, dict)
-                    typ = oinf.infer_types()
-                    self.assertEqual(typ["trip_count"], numpy.int64)
-                    if 'cond' in typ:
-                        self.assertEqual(typ["cond"], numpy.bool_)
-                    for k, v in typ.items():
-                        if k in {'trip_count', 'cond', 'Y', 'XI'}:
-                            continue
-                        self.assertIsInstance(v, SequenceType)
 
     def sequence_insert_reference_implementation(
             self, sequence, tensor, position=None):

@@ -32,7 +32,7 @@ class CategoryMapper(OpRun):
             self.int2str_[a] = be
             self.str2int_[be] = a
 
-    def _run(self, x):  # pylint: disable=W0221
+    def _run(self, x, attributes=None, verbose=0, fLOG=None):  # pylint: disable=W0221
         if x.dtype == numpy.int64:
             xf = x.ravel()
             res = [self.int2str_.get(xf[i], self.default_string)
@@ -44,17 +44,3 @@ class CategoryMapper(OpRun):
         for i in range(0, res.shape[0]):
             res[i] = self.str2int_.get(xf[i], self.default_int64)
         return (res.reshape(x.shape), )
-
-    def _infer_shapes(self, x):  # pylint: disable=W0221
-        if x.dtype == numpy.int64:
-            return (x.copy(dtype=numpy.str_), )
-        return (x.copy(dtype=numpy.int64), )
-
-    def _infer_types(self, x):  # pylint: disable=W0221
-        if x.dtype == numpy.int64:
-            return (numpy.str_, )
-        return (numpy.int64, )
-
-    def _infer_sizes(self, *args, **kwargs):
-        res = self.run(*args, **kwargs)
-        return (dict(temp=0), ) + res

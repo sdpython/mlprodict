@@ -115,7 +115,7 @@ def measure_relative_difference(skl_pred, ort_pred, batch=True, abs_diff=False):
 
         if isinstance(ort_pred, list):
             raise RuntimeError(  # pragma: no cover
-                "Issue with {}\n{}".format(ort_pred, ort_pred_))
+                f"Issue with {ort_pred}\n{ort_pred_}")
 
         if skl_pred.shape != ort_pred.shape and skl_pred.size == ort_pred.size:
             ort_pred = ort_pred.ravel()

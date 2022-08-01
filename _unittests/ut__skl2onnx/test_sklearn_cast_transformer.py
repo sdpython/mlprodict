@@ -36,8 +36,7 @@ class TestSklearnCastTransformerConverter(unittest.TestCase):
         self.assertTrue(model_onnx is not None)
         dump_data_and_model(
             data, model, model_onnx,
-            basename="SklearnCastTransformer{}".format(
-                input_type.__class__.__name__))
+            basename=f"SklearnCastTransformer{input_type.__class__.__name__}")
 
     def test_cast_transformer_float(self):
         self.common_test_cast_transformer(

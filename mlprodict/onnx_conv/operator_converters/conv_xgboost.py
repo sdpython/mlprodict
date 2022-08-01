@@ -75,13 +75,13 @@ class XGBConverter:
                     feature_id = int(feature_id[1:])
                 except ValueError as e:  # pragma: no cover
                     raise RuntimeError(
-                        "Unable to interpret '{0}'".format(feature_id)) from e
+                        f"Unable to interpret '{feature_id}'") from e
             else:  # pragma: no cover
                 try:
                     feature_id = int(feature_id)
                 except ValueError:
                     raise RuntimeError(
-                        "Unable to interpret '{0}'".format(feature_id)) from e
+                        f"Unable to interpret '{feature_id}'") from e
 
         # Split condition for sklearn
         # * if X_ptr[X_sample_stride * i + X_fx_stride * node.feature] <= node.threshold:
@@ -138,7 +138,7 @@ class XGBConverter:
                         treeid, tree_weight, ch, attr_pairs, is_classifier, remap)
                 else:
                     raise RuntimeError(  # pragma: no cover
-                        "Unable to convert this node {0}".format(ch))
+                        f"Unable to convert this node {ch}")
 
         else:
             weights = [jsnode['leaf']]
@@ -204,7 +204,7 @@ class XGBRegressorConverter(XGBConverter):
 
         if objective in ["reg:gamma", "reg:tweedie"]:
             raise RuntimeError(  # pragma: no cover
-                "Objective '{}' not supported.".format(objective))
+                f"Objective '{objective}' not supported.")
 
         booster = xgb_node.get_booster()
         if booster is None:
@@ -290,12 +290,16 @@ class XGBClassifierConverter(XGBConverter):
                 "XGBoost model is empty.")
         if 'n_estimators' not in params:
             raise RuntimeError(  # pragma: no cover
-                "Parameters not found, existing:\n{}".format(
-                    pformat(params)))
+                f"Parameters not found, existing:\n{pformat(params)}")
         if ncl <= 1:
             ncl = 2
             # See https://github.com/dmlc/xgboost/blob/master/src/common/math.h#L23.
             attr_pairs['post_transform'] = "LOGISTIC"
+            if js_trees[0].get('leaf', None) == 0:
+                attr_pairs['base_values'] = [0.5]
+            elif base_score != 0.5:
+                cst = - numpy.log(1 / numpy.float32(base_score) - 1.)
+                attr_pairs['base_values'] = [cst]
             attr_pairs['class_ids'] = [0 for v in attr_pairs['class_treeids']]
         else:
             # See https://github.com/dmlc/xgboost/blob/master/src/common/math.h#L35.
@@ -332,6 +336,13 @@ class XGBClassifierConverter(XGBConverter):
                 operator.output_full_names,
                 name=scope.get_unique_operator_name(op_name),
                 op_domain='ai.onnx.ml', op_version=1, **attr_pairs)
+        elif objective == "multi:softmax":
+            ncl = len(js_trees) // params['n_estimators']
+            container.add_node(
+                op_name, operator.input_full_names,
+                operator.output_full_names,
+                name=scope.get_unique_operator_name(op_name),
+                op_domain='ai.onnx.ml', op_version=1, **attr_pairs)
         elif objective == "reg:logistic":
             ncl = len(js_trees) // params['n_estimators']
             if ncl == 1:
@@ -343,7 +354,7 @@ class XGBClassifierConverter(XGBConverter):
                 op_domain='ai.onnx.ml', op_version=1, **attr_pairs)
         else:
             raise RuntimeError(  # pragma: no cover
-                "Unexpected objective: {0}".format(objective))
+                f"Unexpected objective: {objective}")
 
         if opsetml >= 3:
             _fix_tree_ensemble(scope, container, opsetml, dtype)

@@ -25,8 +25,7 @@ class TestOnnxGrammarBug(ExtTestCase):
         rows = []
         for r in v.Rows:
             rows.append(
-                ("{0}{1}: {2}".format(
-                    "    " * r["indent"], r["type"], r["str"])))
+                f"{'    ' * r['indent']}{r['type']}: {r['str']}")
         final = "\n".join(rows)
         self.assertIn("Assign:", final)
 

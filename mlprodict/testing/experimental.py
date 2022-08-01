@@ -20,8 +20,7 @@ def custom_pad(arr, paddings, constant=0, verbose=False):
     """
     if paddings.shape[0] != len(arr.shape):
         raise ValueError(  # pragma: no cover
-            "Input shape {} and paddings {} are inconsistent.".format(
-                arr.shape, paddings))
+            f"Input shape {arr.shape} and paddings {paddings} are inconsistent.")
     if min(paddings.ravel()) < 0:
         raise NotImplementedError("Negative paddings is not implemented yet.")
     if not arr.flags['C_CONTIGUOUS']:
@@ -103,7 +102,7 @@ def custom_einsum(equation, x, y, verbose=False):
     def _check_eq(eq, sh):
         if len(eq) != len(sh):
             raise ValueError(
-                "Unable to map equation %r to shape %r." % (eq, sh))
+                f"Unable to map equation {eq!r} to shape {sh!r}.")
 
     def _split(eq, sh):
         dx = OrderedDict((e, (v, i)) for i, (e, v) in enumerate(zip(eq, sh)))
@@ -118,8 +117,7 @@ def custom_einsum(equation, x, y, verbose=False):
                 if r in dy:
                     if dx[r][0] != dy[r][0]:
                         raise ValueError(
-                            "Dimension mismatch for letter "
-                            "%r dx=%r dy=%r." % (r, dx, dy))
+                            f"Dimension mismatch for letter {r!r} dx={dx!r} dy={dy!r}.")
                     c_trp.append(r)
                 else:
                     c_uni.append((r, None))
@@ -127,21 +125,20 @@ def custom_einsum(equation, x, y, verbose=False):
                 c_uni.append((None, r))
             else:
                 raise ValueError(  # pragma: no cover
-                    "Unexpected letter %r in result %r." % (r, eqr))
+                    f"Unexpected letter {r!r} in result {eqr!r}.")
         for c in dx:
             if c not in eqr:
                 if c not in dy:
                     raise ValueError(  # pragma: no cover
-                        "Unable to guess what to do with column %r (left side)" % c)
+                        f"Unable to guess what to do with column {c!r} (left side)")
                 if dx[c][0] != dy[c][0]:
                     raise ValueError(  # pragma: no cover
-                        "Dimension mismatch for letter "
-                        "%r dx=%r dy=%r." % (c, dx, dy))
+                        f"Dimension mismatch for letter {c!r} dx={dx!r} dy={dy!r}.")
                 c_sum.append(c)
         for c in dy:
             if c not in eqr and c not in dx:
                 raise ValueError(  # pragma: no cover
-                    "Unable to guess what to do with column %r (right side)" % c)
+                    f"Unable to guess what to do with column {c!r} (right side)")
         shape = OrderedDict()
         for i, r in enumerate(eqr):
             if r in c_trp:
@@ -210,8 +207,7 @@ def custom_einsum(equation, x, y, verbose=False):
     # loop
     if len(c_sum) != 1:
         raise NotImplementedError(
-            "More than one summation indices %r in equation %r." % (
-                c_sum, equation))
+            f"More than one summation indices {c_sum!r} in equation {equation!r}.")
     zeros = numpy.zeros((1, ), dtype=x.dtype)
     shape_dims = [v[0] for v in shape.values()]
     index = [0 for s in shape]

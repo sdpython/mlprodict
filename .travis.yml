@@ -4,8 +4,8 @@ language: python
 
 matrix:
   include:
-  - python: 3.9
-    name: "Python39"
+  - python: 3.10
+    name: "Python310"
 
 before_install:
     - sudo apt-get install libgeos-dev libproj-dev proj-data graphviz libblas-dev liblapack-dev

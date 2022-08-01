@@ -168,12 +168,12 @@ class TestCustomEmbeddedModels(ExtTestCase):
         self.assertEqualArray(exp, got['label'].ravel())
         self.assertEqualArray(prob, got['probabilities'])
 
-    @ignore_warnings((DeprecationWarning, RuntimeWarning))
+    @ignore_warnings((DeprecationWarning, RuntimeWarning, UserWarning))
     def test_function_classifier_embedded_float32(self):
         self.common_test_function_classifier_embedded(
             numpy.float32, DecisionTreeClassifier(max_depth=3))
 
-    @ignore_warnings((DeprecationWarning, RuntimeWarning))
+    @ignore_warnings((DeprecationWarning, RuntimeWarning, UserWarning))
     def test_function_classifier_embedded_float64(self):
         self.common_test_function_classifier_embedded(
             numpy.float64, DecisionTreeClassifier(max_depth=3))
@@ -191,12 +191,12 @@ class TestCustomEmbeddedModels(ExtTestCase):
         self.assertEqual(dtype, exp.dtype)
         self.assertEqualArray(exp, got['variable'])
 
-    @ignore_warnings((DeprecationWarning, RuntimeWarning))
+    @ignore_warnings((DeprecationWarning, RuntimeWarning, UserWarning))
     def test_function_regressor_embedded_float32(self):
         self.common_test_function_regressor_embedded(
             numpy.float32, DecisionTreeRegressor(max_depth=3))
 
-    @ignore_warnings((DeprecationWarning, RuntimeWarning))
+    @ignore_warnings((DeprecationWarning, RuntimeWarning, UserWarning))
     def test_function_regressor_embedded_float64(self):
         self.common_test_function_regressor_embedded(
             numpy.float64, DecisionTreeRegressor(max_depth=3))
@@ -216,12 +216,12 @@ class TestCustomEmbeddedModels(ExtTestCase):
         self.assertEqualArray(exp, got['label'].ravel())
         self.assertEqualArray(prob, got['scores'])
 
-    @ignore_warnings((DeprecationWarning, RuntimeWarning))
+    @ignore_warnings((DeprecationWarning, RuntimeWarning, UserWarning))
     def test_function_cluster_embedded_float32(self):
         self.common_test_function_cluster_embedded(
             numpy.float32, KMeans(n_clusters=2))
 
-    @ignore_warnings((DeprecationWarning, RuntimeWarning))
+    @ignore_warnings((DeprecationWarning, RuntimeWarning, UserWarning))
     def test_function_cluster_embedded_float64(self):
         self.common_test_function_cluster_embedded(
             numpy.float64, KMeans(n_clusters=2))
@@ -239,17 +239,17 @@ class TestCustomEmbeddedModels(ExtTestCase):
         self.assertEqual(dtype, tr.dtype)
         self.assertEqualArray(tr, got['variable'])
 
-    @ignore_warnings((DeprecationWarning, RuntimeWarning))
+    @ignore_warnings((DeprecationWarning, RuntimeWarning, UserWarning))
     def test_function_transformer_embedded_float32(self):
         self.common_test_function_transformer_embedded(
             numpy.float32, StandardScaler())
 
-    @ignore_warnings((DeprecationWarning, RuntimeWarning))
+    @ignore_warnings((DeprecationWarning, RuntimeWarning, UserWarning))
     def test_function_transformer_embedded_float64(self):
         self.common_test_function_transformer_embedded(
             numpy.float64, StandardScaler())
 
-    @ignore_warnings((DeprecationWarning, RuntimeWarning))
+    @ignore_warnings((DeprecationWarning, RuntimeWarning, UserWarning))
     def test_function_cluster_embedded_validation(self):
         est = KMeans(2)
         dtype = numpy.float32

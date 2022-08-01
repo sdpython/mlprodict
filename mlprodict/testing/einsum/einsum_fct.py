@@ -108,14 +108,14 @@ class CachedEinsum:
             self.equation_ = self._build_optimize_ml()
         else:
             raise ValueError(  # pragma error
-                "Unknown strategy %r." % self.strategy)
+                f"Unknown strategy {self.strategy!r}.")
         self.build_runtime()
 
     def _build_optimize(self):
         # loops over all permutations
         if self.equation.lower() != self.equation:
             raise RuntimeError(  # pragma: no cover
-                "Only lower equation can be optimized, %r is not." % self.equation)
+                f"Only lower equation can be optimized, {self.equation!r} is not.")
         letters = list(
             sorted(set(c for c in self.equation if "a" <= c <= "z")))
         possible = list(permutations(letters))
@@ -165,7 +165,7 @@ class CachedEinsum:
         # loops over all permutations
         if self.equation.lower() != self.equation:
             raise RuntimeError(  # pragma: no cover
-                "Only lower equation can be optimized, %r is not." % self.equation)
+                f"Only lower equation can be optimized, {self.equation!r} is not.")
         letters = list(
             sorted(set(c for c in self.equation if "a" <= c <= "z")))
         possible = list(permutations(letters))
@@ -284,7 +284,7 @@ class CachedEinsum:
                     {i: v for i, v in zip(self.onnx_names_, inputs)})['Y']
             else:
                 raise ValueError(  # pragma: no cover
-                    "Unexpected runtime %r." % self.runtime)
+                    f"Unexpected runtime {self.runtime!r}.")
         else:
             if self.runtime in ('python', 'onnxruntime1'):
                 from ...onnxrt import OnnxInference
@@ -302,7 +302,7 @@ class CachedEinsum:
                     {i: v for i, v in zip(self.onnx_names_, inputs)})['Y']
             else:
                 raise ValueError(  # pragma: no cover
-                    "Unexpected runtime %r." % self.runtime)
+                    f"Unexpected runtime {self.runtime!r}.")
 
     def __call__(self, *inputs):
         """

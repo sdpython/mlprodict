@@ -59,12 +59,12 @@ def _reduce_infos(infos):
 
     if not isinstance(infos, list):
         raise TypeError(  # pragma: no cover
-            "infos must a list not {}.".format(type(infos)))
+            f"infos must a list not {type(infos)}.")
     keys = set()
     for info in infos:
         if not isinstance(info, dict):
             raise TypeError(  # pragma: no cover
-                "info must a dictionary not {}.".format(type(info)))
+                f"info must a dictionary not {type(info)}.")
         keys |= set(info)
 
     info = {}
@@ -72,11 +72,11 @@ def _reduce_infos(infos):
         values = [d.get(k, None) for d in infos]
         values = [_ for _ in values if _ is not None]
         if k.endswith('.leave_count') or k.endswith('.node_count'):
-            info['sum|%s' % k] = sum(values)
+            info[f'sum|{k}'] = sum(values)
         elif k.endswith('.max_depth'):
-            info['max|%s' % k] = max(values)
+            info[f'max|{k}'] = max(values)
         elif k.endswith('.size'):
-            info['sum|%s' % k] = sum(values)  # pragma: no cover
+            info[f'sum|{k}'] = sum(values)  # pragma: no cover
         else:
             try:
                 un = set(values)
@@ -89,15 +89,15 @@ def _reduce_infos(infos):
                 row = [_[0] for _ in values]
                 col = [_[1] for _ in values if len(_) > 1]
                 if len(col) == 0:
-                    info['max|%s' % k] = (max(row), )
+                    info[f'max|{k}'] = (max(row), )
                 else:
-                    info['max|%s' % k] = (max(row), max(col))
+                    info[f'max|{k}'] = (max(row), max(col))
                 continue
             if k == 'n_classes_':
                 info['n_classes_'] = max(tof(_) for _ in values)
                 continue
             raise NotImplementedError(  # pragma: no cover
-                "Unable to reduce key '{}', values={}.".format(k, values))
+                f"Unable to reduce key '{k}', values={values}.")
     return info
 
 
@@ -120,7 +120,7 @@ def _get_info_lgb(model):
         info['n_targets'] = 1
     else:
         raise NotImplementedError(  # pragma: no cover
-            "Unknown objective '{}'.".format(gbm_text['objective']))
+            f"Unknown objective '{gbm_text['objective']}'.")
     n_classes = info.get('n_classes', info.get('n_targets', -1))
 
     info['estimators_.size'] = len(gbm_text['tree_info'])
@@ -205,7 +205,7 @@ def analyze_model(model, simplify=True):
         if len(infos) == 0:
             return info  # pragma: no cover
         for k, v in _reduce_infos(infos).items():
-            info['.%s' % k] = v
+            info[f'.{k}'] = v
         return info
 
     # linear model
@@ -216,12 +216,12 @@ def analyze_model(model, simplify=True):
         if k.endswith('_') and not k.startswith('_'):
             v = getattr(model, k)
             if isinstance(v, numpy.ndarray):
-                info['%s.shape' % k] = v.shape
+                info[f'{k}.shape'] = v.shape
             elif isinstance(v, numpy.float64):
-                info['%s.shape' % k] = 1
+                info[f'{k}.shape'] = 1
         elif k in ('_fit_X', ):
             v = getattr(model, k)
-            info['%s.shape' % k] = v.shape
+            info[f'{k}.shape'] = v.shape
 
     # classification
     for f in ['n_classes_', 'n_outputs', 'n_features_']:
@@ -231,19 +231,19 @@ def analyze_model(model, simplify=True):
     # tree
     if hasattr(model, 'tree_'):
         for k, v in _analyse_tree(model.tree_).items():
-            info['tree_.%s' % k] = v
+            info[f'tree_.{k}'] = v
 
     # tree
     if hasattr(model, 'get_n_leaf_nodes'):
         for k, v in _analyse_tree_h(model).items():
-            info['tree_.%s' % k] = v
+            info[f'tree_.{k}'] = v
 
     # estimators
     if hasattr(model, 'estimators_'):
         info['estimators_.size'] = len(model.estimators_)
         infos = [analyze_model(est, False) for est in model.estimators_]
         for k, v in _reduce_infos(infos).items():
-            info['estimators_.%s' % k] = v
+            info[f'estimators_.{k}'] = v
 
     # predictors
     if hasattr(model, '_predictors'):
@@ -253,7 +253,7 @@ def analyze_model(model, simplify=True):
             ii = [analyze_model(e, False) for e in est]
             infos.extend(ii)
         for k, v in _reduce_infos(infos).items():
-            info['_predictors.%s' % k] = v
+            info[f'_predictors.{k}'] = v
 
     # LGBM
     if hasattr(model, 'booster_'):

@@ -92,8 +92,8 @@ def get_default_context():
     for k, v in numpy.__dict__.items():
         if k not in allow:
             continue
-        context['numpy.%s' % k] = v
-        context['np.%s' % k] = v
+        context[f'numpy.{k}'] = v
+        context[f'np.{k}'] = v
     return context
 
 
@@ -125,7 +125,7 @@ def get_default_context_cpl():
             if inspect.isfunction(v):
                 continue
             raise RuntimeError(  # pragma: no cover
-                "Issue with {}={} (type={})".format(k, v, type(v))) from e
+                f"Issue with {k}={v} (type={type(v)})") from e
     return ctx
 
 
@@ -273,7 +273,7 @@ def translate_fct2onnx(fct, context=None, cpl=False,
         try:
             obj = compile(code, "", "exec")
         except SyntaxError as e:  # pragma: no cover
-            raise SyntaxError("Unable to compile\n{}".format(code)) from e
+            raise SyntaxError(f"Unable to compile\n{code}") from e
         context_g = context.copy()
         context_l = context.copy()
         exec(obj, context_g, context_l)  # pylint: disable=W0122
@@ -285,7 +285,7 @@ def translate_fct2onnx(fct, context=None, cpl=False,
         code = inspect.getsource(fct)
     else:
         raise TypeError(  # pragma: no cover
-            "Unable to guess code from type {}.".format(type(fct)))
+            f"Unable to guess code from type {type(fct)}.")
     node = ast.parse(dedent(code))
     v = CodeNodeVisitor()
     v.visit(node)

@@ -34,7 +34,7 @@ class SVMRegressorCommon(OpRunUnaryNum):
         if op_name == "SVMRegressorDouble":
             return SVMRegressorDoubleSchema()
         raise RuntimeError(  # pragma: no cover
-            "Unable to find a schema for operator '{}'.".format(op_name))
+            f"Unable to find a schema for operator '{op_name}'.")
 
     def _init(self, dtype):
         if dtype == numpy.float32:
@@ -43,12 +43,12 @@ class SVMRegressorCommon(OpRunUnaryNum):
             self.rt_ = RuntimeSVMRegressorDouble(50)
         else:
             raise RuntimeTypeError(  # pragma: no cover
-                "Unsupported dtype={}.".format(dtype))
+                f"Unsupported dtype={dtype}.")
         atts = [self._get_typed_attributes(k)
                 for k in SVMRegressor.atts]
         self.rt_.init(*atts)
 
-    def _run(self, x):  # pylint: disable=W0221
+    def _run(self, x, attributes=None, verbose=0, fLOG=None):  # pylint: disable=W0221
         """
         This is a C++ implementation coming from
         :epkg:`onnxruntime`.

@@ -75,7 +75,7 @@ class TestOnnxrtPythonRuntimeMlTreeRF(ExtTestCase):
                 self.assertEqualArray(lexp, y['variable'])
             except AssertionError as e:
                 raise AssertionError(
-                    "---------\n{}\n-----".format(model_def)) from e
+                    f"---------\n{model_def}\n-----") from e
         self.assertEqual(oinf.sequence_[0].ops_.rt_.same_mode_, True)
         self.assertNotEmpty(oinf.sequence_[0].ops_.rt_.nodes_modes_)
 
@@ -146,7 +146,7 @@ class TestOnnxrtPythonRuntimeMlTreeRF(ExtTestCase):
             runtime='python_compiled', debug=debug,
             filter_exp=lambda m, p: pp(p) == "~b-reg-64"))
         if len(rows) == 0:
-            raise AssertionError("Empty rows: {}".format(pps))
+            raise AssertionError(f"Empty rows: {pps}")
 
     @skipif_circleci('too long')
     @ignore_warnings(category=(FutureWarning, UserWarning, RuntimeWarning, DeprecationWarning))
@@ -172,7 +172,7 @@ class TestOnnxrtPythonRuntimeMlTreeRF(ExtTestCase):
             runtime='python_compiled', debug=debug,
             filter_exp=lambda m, p: pp(p) == '~b-reg-64'))
         if len(rows) == 0:
-            raise AssertionError("Empty rows: {}".format(pps))
+            raise AssertionError(f"Empty rows: {pps}")
 
 
 if __name__ == "__main__":

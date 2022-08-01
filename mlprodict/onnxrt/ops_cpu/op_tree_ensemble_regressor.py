@@ -35,7 +35,7 @@ class TreeEnsembleRegressorCommon(OpRunUnaryNum):
         if op_name == "TreeEnsembleRegressorDouble":
             return TreeEnsembleRegressorDoubleSchema()
         raise RuntimeError(  # pragma: no cover
-            "Unable to find a schema for operator '{}'.".format(op_name))
+            f"Unable to find a schema for operator '{op_name}'.")
 
     def _init(self, dtype, version):
         atts = []
@@ -67,7 +67,7 @@ class TreeEnsembleRegressorCommon(OpRunUnaryNum):
                 self.rt_ = RuntimeTreeEnsembleRegressorPFloat(
                     60, 20, True, True)
             else:
-                raise ValueError("Unknown version '{}'.".format(version))
+                raise ValueError(f"Unknown version '{version}'.")
         elif dtype == numpy.float64:
             if version == 0:
                 self.rt_ = RuntimeTreeEnsembleRegressorDouble()
@@ -81,13 +81,13 @@ class TreeEnsembleRegressorCommon(OpRunUnaryNum):
                 self.rt_ = RuntimeTreeEnsembleRegressorPDouble(
                     60, 20, True, True)
             else:
-                raise ValueError("Unknown version '{}'.".format(version))
+                raise ValueError(f"Unknown version '{version}'.")
         else:
             raise RuntimeTypeError(  # pragma: no cover
-                "Unsupported dtype={}.".format(dtype))
+                f"Unsupported dtype={dtype}.")
         self.rt_.init(*atts)
 
-    def _run(self, x):  # pylint: disable=W0221
+    def _run(self, x, attributes=None, verbose=0, fLOG=None):  # pylint: disable=W0221
         """
         This is a C++ implementation coming from
         :epkg:`onnxruntime`.

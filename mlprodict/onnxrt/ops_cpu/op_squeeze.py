@@ -6,7 +6,6 @@
 """
 import numpy
 from onnx.defs import onnx_opset_version
-from ..shape_object import ShapeObject
 from ._op import OpRunUnaryNum, OpRun
 
 
@@ -25,7 +24,7 @@ class Squeeze_1(OpRunUnaryNum):
         elif isinstance(self.axes, list):
             self.axes = tuple(self.axes)
 
-    def _run(self, data):  # pylint: disable=W0221
+    def _run(self, data, attributes=None, verbose=0, fLOG=None):  # pylint: disable=W0221
         if isinstance(self.axes, (tuple, list)):
             sq = data
             for a in reversed(self.axes):
@@ -33,16 +32,6 @@ class Squeeze_1(OpRunUnaryNum):
         else:
             sq = numpy.squeeze(data, axis=self.axes)
         return (sq, )
-
-    def _infer_shapes(self, x):  # pylint: disable=W0221
-        return (x.squeeze(axis=self.axes), )
-
-    def _infer_types(self, x):  # pylint: disable=W0221
-        return (x, )
-
-    def _infer_sizes(self, *args, **kwargs):
-        res = self.run(*args, **kwargs)
-        return (dict(temp=0), ) + res
 
 
 class Squeeze_11(Squeeze_1):
@@ -59,7 +48,7 @@ class Squeeze_13(OpRun):
                        **options)
         self.axes = None
 
-    def _run(self, data, axes=None):  # pylint: disable=W0221
+    def _run(self, data, axes=None, attributes=None, verbose=0, fLOG=None):  # pylint: disable=W0221
         if axes is not None:
             if hasattr(axes, '__iter__'):
                 sq = numpy.squeeze(data, axis=tuple(axes))
@@ -68,16 +57,6 @@ class Squeeze_13(OpRun):
         else:
             sq = numpy.squeeze(data)
         return (sq, )
-
-    def _infer_shapes(self, x, axes=None):  # pylint: disable=W0221
-        return (ShapeObject(None, dtype=x.dtype), )
-
-    def _infer_types(self, x, axes=None):  # pylint: disable=W0221
-        return (x, )
-
-    def _infer_sizes(self, *args, **kwargs):
-        res = self.run(*args, **kwargs)
-        return (dict(temp=0), ) + res
 
 
 if onnx_opset_version() >= 13:

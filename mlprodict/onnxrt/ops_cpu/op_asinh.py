@@ -14,8 +14,8 @@ class Asinh(OpRunUnaryNum):
         OpRunUnaryNum.__init__(self, onnx_node, desc=desc,
                                **options)
 
-    def _run(self, x):  # pylint: disable=W0221
-        if self.inplaces.get(0, False):
+    def _run(self, x, attributes=None, verbose=0, fLOG=None):  # pylint: disable=W0221
+        if self.inplaces.get(0, False) and x.flags['WRITEABLE']:
             return self._run_inplace(x)
         return (numpy.arcsinh(x), )
 

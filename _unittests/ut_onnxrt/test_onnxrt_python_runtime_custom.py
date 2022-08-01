@@ -58,7 +58,7 @@ class TestOnnxrtPythonRuntimeCustom(ExtTestCase):
                                          'Y': Y.astype(numpy.float32)},
                                         outputs={'Z': Z.astype(numpy.float32)},
                                         target_opset=TARGET_OPSET)
-                self.assertIn('s: "%s"' % metric, str(model_def))
+                self.assertIn(f's: "{metric}"', str(model_def))
                 oinf = OnnxInference(model_def)
                 got = oinf.run({'X': X, 'Y': Y})
                 self.assertEqual(list(sorted(got)), ['Z'])

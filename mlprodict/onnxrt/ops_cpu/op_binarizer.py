@@ -17,7 +17,7 @@ class Binarizer(OpRunUnaryNum):
                                expected_attributes=Binarizer.atts,
                                **options)
 
-    def _run(self, x):  # pylint: disable=W0221
+    def _run(self, x, attributes=None, verbose=0, fLOG=None):  # pylint: disable=W0221
         X = x.copy()
         cond = X > self.threshold
         not_cond = numpy.logical_not(cond)

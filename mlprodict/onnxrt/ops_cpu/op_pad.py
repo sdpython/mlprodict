@@ -6,7 +6,6 @@
 """
 import numpy
 from ._op import OpRun
-from ..shape_object import ShapeObject
 
 
 def _pad_impl(data, raw_pads, mode, constant_values=0.0):
@@ -59,18 +58,8 @@ class Pad(OpRun):
                        **options)
         self.mode_ = self.mode.decode('ascii')
 
-    def _run(self, data, pads, constant_value=None):  # pylint: disable=W0221
+    def _run(self, data, pads, constant_value=None, attributes=None, verbose=0, fLOG=None):  # pylint: disable=W0221
         if constant_value is None:
             constant_value = 0
         return (_pad_impl(data, pads, mode=self.mode_,
                           constant_values=constant_value), )
-
-    def _infer_shapes(self, data, pads, constant_value=None):  # pylint: disable=E0202,W0221
-        return (ShapeObject(None, data.dtype), )
-
-    def _infer_types(self, data, pads, constant_value=None):  # pylint: disable=E0202,W0221
-        return (data, )
-
-    def _infer_sizes(self, *args):  # pylint: disable=W0221
-        res = self.run(*args)
-        return (dict(temp=0), ) + res

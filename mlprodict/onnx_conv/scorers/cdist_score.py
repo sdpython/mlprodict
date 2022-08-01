@@ -36,8 +36,7 @@ def convert_score_cdist_sum(scope, operator, container):
     op = operator.raw_operator
     if op._fct != score_cdist_sum:  # pylint: disable=W0143
         raise RuntimeError(  # pragma: no cover
-            "The wrong converter was called {} != {}.".format(
-                op._fct, score_cdist_sum))
+            f"The wrong converter was called {op._fct} != {score_cdist_sum}.")
 
     from skl2onnx.algebra.complex_functions import onnx_cdist
     from skl2onnx.algebra.onnx_ops import OnnxReduceSumApi11  # pylint: disable=E0611

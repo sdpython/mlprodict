@@ -1,4 +1,6 @@
 
+.. _l-backend-python-coverage:
+
 ONNX Backends for Python/Numpy runtime
 ======================================
 
@@ -66,4 +68,6 @@ Backend class: :class:`OnnxInferenceBackend
     ran = testsRun - skipped
     print("ratio=%f" % (1 - errors * 1.0 / ran))
     print('---------------------------------')
-    print(buffer.getvalue())
+    lines = buffer.getvalue().split('\n')
+    print("\n".join(line for line in lines
+          if "skipped 'no matched include pattern'" not in line))

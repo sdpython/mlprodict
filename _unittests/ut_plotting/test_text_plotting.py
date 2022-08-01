@@ -3,15 +3,16 @@
 @brief      test log(time=2s)
 """
 import unittest
+import os
 import textwrap
 import numpy
-from onnx import TensorProto
+from onnx import TensorProto, load
 from onnx.helper import (
     make_model, make_node, make_function,
     make_graph, make_tensor_value_info, make_opsetid)
 from pyquickhelper.pycode import ExtTestCase, ignore_warnings
 from sklearn.datasets import load_iris
-from sklearn.tree import DecisionTreeRegressor
+from sklearn.tree import DecisionTreeRegressor, DecisionTreeClassifier
 from sklearn.cluster import KMeans
 from sklearn.neighbors import RadiusNeighborsRegressor
 from skl2onnx.common.data_types import FloatTensorType
@@ -40,7 +41,7 @@ class TestPlotTextPlotting(ExtTestCase):
         res = onnx_text_plot(onx)
         self.assertIn("Init", res)
 
-    def test_onnx_text_plot_tree(self):
+    def test_onnx_text_plot_tree_reg(self):
         iris = load_iris()
         X, y = iris.data.astype(numpy.float32), iris.target
         clr = DecisionTreeRegressor(max_depth=3)
@@ -49,6 +50,17 @@ class TestPlotTextPlotting(ExtTestCase):
         res = onnx_text_plot_tree(onx.graph.node[0])
         self.assertIn("treeid=0", res)
         self.assertIn("         T y=", res)
+
+    def test_onnx_text_plot_tree_cls(self):
+        iris = load_iris()
+        X, y = iris.data.astype(numpy.float32), iris.target
+        clr = DecisionTreeClassifier(max_depth=3)
+        clr.fit(X, y)
+        onx = to_onnx(clr, X)
+        res = onnx_text_plot_tree(onx.graph.node[0])
+        self.assertIn("treeid=0", res)
+        self.assertIn("         T y=", res)
+        self.assertIn("n_classes=3", res)
 
     @ignore_warnings(UserWarning)
     def test_onnx_simple_text_plot_kmeans(self):
@@ -88,7 +100,7 @@ class TestPlotTextPlotting(ExtTestCase):
         if (expected1 not in text and expected2 not in text and
                 expected3 not in text):
             raise AssertionError(
-                "Unexpected value:\n%s" % text)
+                f"Unexpected value:\n{text}")
 
     def test_onnx_simple_text_plot_knnr(self):
         x = numpy.random.randn(10, 3)
@@ -189,7 +201,7 @@ class TestPlotTextPlotting(ExtTestCase):
         input:
         """).strip(" \n")
         self.assertIn(expected, text)
-        self.assertIn("If(Gr_C0) -> y", text)
+        self.assertIn("If(Gr_C0, else_branch=G1, then_branch=G2)", text)
         oinf = OnnxInference(model_def)
         text2 = oinf.to_text(kind="seq")
         self.assertEqual(text, text2)
@@ -203,7 +215,7 @@ class TestPlotTextPlotting(ExtTestCase):
                       target_opset=15)
         text = onnx_simple_text_plot(onx, add_links=True)
         self.assertIn("Sqrt(Ad_C0) -> scores  <------", text)
-        self.assertIn("|-|", text)
+        self.assertIn("|-+-|", text)
 
     def test_scan_plot(self):
         (OnnxSub, OnnxIdentity, OnnxReduceSumSquare, OnnxScan,  # pylint: disable=W0621
@@ -277,6 +289,7 @@ class TestPlotTextPlotting(ExtTestCase):
         self.assertIn("function name=LinearRegression domain=custom", text)
         self.assertIn("MatMul(X, A) -> XA", text)
         self.assertIn("type=? shape=?", text)
+        self.assertIn("LinearRegression[custom]", text)
 
     def test_onnx_function_init(self):
         OnnxAbs, OnnxAdd, OnnxDiv = loadop(  # pylint: disable=W0621
@@ -291,6 +304,42 @@ class TestPlotTextPlotting(ExtTestCase):
         onx = op.to_onnx(numpy.float32, numpy.float32)
         text = onnx_simple_text_plot(onx)
         self.assertIn("----- function name=AddAbs domain=mlprodict", text)
+
+    def test_onnx_text_plot_fft(self):
+        data = os.path.join(os.path.dirname(__file__),
+                            '..', 'ut_tools', 'data', 'fft')
+        model = os.path.join(data, 'dft_last_axis.onnx')
+        with open(model, "rb") as f:
+            onx = load(f)
+        text1 = onnx_simple_text_plot(onx)
+        self.assertIn('input:', text1)
+        onnx_simple_text_plot(onx, recursive=True)
+        try:
+            onnx_simple_text_plot(onx, recursive=True)
+        except RuntimeError as e:
+            raise AssertionError(
+                "Unable to display a graph\n%s" % onnx_simple_text_plot(
+                    onx, recursive=True, raise_exc=False)) from e
+
+    def test_onnx_text_plot_tree_simple(self):
+        iris = load_iris()
+        X, y = iris.data.astype(numpy.float32), iris.target
+        clr = DecisionTreeRegressor(max_depth=3)
+        clr.fit(X, y)
+        onx = to_onnx(clr, X)
+        res = onnx_simple_text_plot(onx)
+        self.assertIn("nodes_featureids=9:[", res)
+        self.assertIn("nodes_modes=9:[b'", res)
+        self.assertIn("target_weights=5:[", res)
+
+    def test_simple_text_plot_bug(self):
+        data = os.path.join(os.path.dirname(__file__), "data")
+        onx_file = os.path.join(data, "tree_torch.onnx")
+        onx = load(onx_file)
+        res = onnx_simple_text_plot(onx, raise_exc=False)
+        self.assertIn("-> variable", res)
+        res2 = onnx_simple_text_plot(onx, raise_exc=True)
+        self.assertEqual(res, res2)
 
 
 if __name__ == "__main__":

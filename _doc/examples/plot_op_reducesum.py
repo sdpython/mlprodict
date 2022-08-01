@@ -101,7 +101,7 @@ def benchmark_op(axes, repeat=5, number=5, name="ReduceSum", shape_fct=None,
         if custom_impl:
             if axes != (0, ):
                 raise RuntimeError(
-                    "Unexpected axes=%r." % axes)
+                    f"Unexpected axes={axes!r}.")
             ctx['fct'] = lambda x, y: custom_reducesum_rk_float(x)
             ctx['xs'] = [x.reshape((x.shape[0], -1)).copy() for x in xs]
             obs = measure_time(
@@ -159,8 +159,7 @@ def benchmark_op(axes, repeat=5, number=5, name="ReduceSum", shape_fct=None,
     # Graphs.
     fig, ax = plt.subplots(1, 2, figsize=(12, 4))
     piv.plot(logx=True, logy=True, ax=ax[0],
-             title="%s benchmark\n%r - %r"
-                   " lower better" % (name, shape_name, axes))
+             title=f"{name} benchmark\n{shape_name!r} - {axes!r} lower better")
     ax[0].legend(prop={"size": 9})
     rs.plot(logx=True, logy=True, ax=ax[1],
             title="%s Speedup, baseline=numpy\n%r - %r"
@@ -241,20 +240,6 @@ dfs.append(df)
 df.pivot("fct", "N", "average")
 
 ###################################
-# Reduction on a particular case RKR
-# ++++++++++++++++++++++++++++++++++
-#
-# (N, 64, 16, 16), axis=(0, 2, 3)
-# ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-
-axes = (0, 2, 3)
-df, piv, ax = benchmark_op(
-    axes, shape_fct=lambda dim: (dim, 64, 16, 16))
-dfs.append(df)
-df.pivot("fct", "N", "average")
-
-
-###################################
 # Reduction on a particular case RKRK
 # +++++++++++++++++++++++++++++++++++
 #
@@ -276,8 +261,8 @@ df.pivot("fct", "N", "average")
 
 merged = pandas.concat(dfs)
 name = "reducesum"
-merged.to_csv("plot_%s.csv" % name, index=False)
-merged.to_excel("plot_%s.xlsx" % name, index=False)
-plt.savefig("plot_%s.png" % name)
+merged.to_csv(f"plot_{name}.csv", index=False)
+merged.to_excel(f"plot_{name}.xlsx", index=False)
+plt.savefig(f"plot_{name}.png")
 
 plt.show()

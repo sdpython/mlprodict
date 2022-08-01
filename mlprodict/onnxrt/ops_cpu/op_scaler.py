@@ -16,13 +16,14 @@ class Scaler(OpRunUnary):
                             expected_attributes=Scaler.atts,
                             **options)
 
-    def _run(self, x):  # pylint: disable=W0221
-        return self._run_no_checks_(x)
+    def _run(self, x, attributes=None, verbose=0, fLOG=None):  # pylint: disable=W0221
+        return self._run_no_checks_(x, verbose=verbose, fLOG=fLOG)
 
-    def _run_no_checks_(self, x):  # pylint: disable=W0221
-        if self.inplaces.get(0, False):
+    def _run_no_checks_(self, x, verbose=0, fLOG=None):  # pylint: disable=W0221
+        if self.inplaces.get(0, False) and x.flags['WRITEABLE']:
             return self._run_inplace(x)
-        return ((x - self.offset) * self.scale, )
+        dx = x - self.offset
+        return (dx * self.scale, )
 
     def _run_inplace(self, x):
         x -= self.offset

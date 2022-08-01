@@ -13,7 +13,7 @@ class MatMul(OpRunBinaryNum):
     def __init__(self, onnx_node, desc=None, **options):
         OpRunBinaryNum.__init__(self, onnx_node, desc=desc, **options)
 
-    def _run(self, a, b):  # pylint: disable=W0221
+    def _run(self, a, b, attributes=None, verbose=0, fLOG=None):  # pylint: disable=W0221
         return (numpy_matmul_inplace(self.inplaces, a, b), )
 
     def to_python(self, inputs):

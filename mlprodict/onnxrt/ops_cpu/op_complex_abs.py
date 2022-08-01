@@ -5,7 +5,6 @@
 @brief Runtime operator.
 """
 import numpy
-from ..shape_object import ShapeObject
 from ._op import OpRun
 from ._new_ops import OperatorSchema
 
@@ -19,9 +18,9 @@ class ComplexAbs(OpRun):
         if op_name == "ComplexAbs":
             return ComplexAbsSchema()
         raise RuntimeError(  # pragma: no cover
-            "Unable to find a schema for operator '{}'.".format(op_name))
+            f"Unable to find a schema for operator '{op_name}'.")
 
-    def _run(self, x):  # pylint: disable=W0221
+    def _run(self, x, attributes=None, verbose=0, fLOG=None):  # pylint: disable=W0221
         y = numpy.absolute(x)
         if x.dtype == numpy.complex64:
             y = y.astype(numpy.float32)
@@ -29,26 +28,8 @@ class ComplexAbs(OpRun):
             y = y.astype(numpy.float64)
         else:
             raise TypeError(  # pragma: no cover
-                "Unexpected input type for x: %r." % x.dtype)
+                f"Unexpected input type for x: {x.dtype!r}.")
         return (y, )
-
-    def _infer_shapes(self, x):  # pylint: disable=W0221,W0237
-        if x.dtype == numpy.complex64:
-            return (ShapeObject(x.shape, numpy.float32), )
-        elif x.dtype == numpy.complex128:
-            return (ShapeObject(x.shape, numpy.float64), )
-        else:
-            raise TypeError(  # pragma: no cover
-                "Unexpected input type for x: %r." % x.dtype)
-
-    def _infer_types(self, x):  # pylint: disable=W0221,W0237
-        if x == numpy.complex64:
-            return (numpy.float32, )
-        elif x == numpy.complex128:
-            return (numpy.float64, )
-        else:
-            raise TypeError(  # pragma: no cover
-                "Unexpected input type for x: %r." % x)
 
     def to_python(self, inputs):
         return self._to_python_numpy(inputs, 'absolute')

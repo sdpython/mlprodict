@@ -120,16 +120,16 @@ class OnnxVar:
             args.append(repr(inp))
         if self.onnx_op is not None:
             if isinstance(self.onnx_op, str):
-                args.append("op=%r" % self.onnx_op)
+                args.append(f"op={self.onnx_op!r}")
             else:
-                args.append("op=%s" % self.onnx_op.__name__)
+                args.append(f"op={self.onnx_op.__name__}")
         if self.select_output is not None:
-            args.append("select_output=%r" % self.select_output)
+            args.append(f"select_output={self.select_output!r}")
         if self.dtype is not None and self.dtype != self._guess_dtype(None):
-            args.append("dtype=%r" % self.dtype)
+            args.append(f"dtype={self.dtype!r}")
         for k, v in sorted(self.onnx_op_kwargs.items()):
-            args.append("%s=%r" % (k, v))
-        res = "%s(%s)" % (self.__class__.__name__, ", ".join(args))
+            args.append(f"{k}={v!r}")
+        res = f"{self.__class__.__name__}({', '.join(args)})"
         return res
 
     def set_onnx_name(self, name_type):
@@ -213,7 +213,7 @@ class OnnxVar:
             return self._custom_op_filter(*args, op_version=op_version,
                                           runtime=runtime, **kwargs)
         raise NotImplementedError(  # pragma: no cover
-            "Unexpected custom operator %r." % self.onnx_op)
+            f"Unexpected custom operator {self.onnx_op!r}.")
 
     def _custom_op_filter(self, *args, op_version=None, runtime=None, **kwargs):
         """
@@ -225,10 +225,10 @@ class OnnxVar:
             'Squeeze', 'TopK', 'Gather', 'ReduceSum')
         if len(args) != 2:
             raise RuntimeError(  # pragma: no cover
-                "Custom op 'filter' expects two inputs not %r." % len(args))
+                f"Custom op 'filter' expects two inputs not {len(args)!r}.")
         if len(kwargs) != 0:
             raise RuntimeError(  # pragma: no cover
-                "Custom op 'filter' expects no arguments but got %r." % kwargs)
+                f"Custom op 'filter' expects no arguments but got {kwargs!r}.")
         mat, index = args
         cast = OnnxVar(index.astype(numpy.int64), op=OnnxSqueeze)
         n1 = OnnxVar(cast, op=OnnxReduceSum, keepdims=1)
@@ -495,7 +495,7 @@ class OnnxVar:
                     needs_shape.append(end)
                 continue
             raise NotImplementedError(  # pragma: no cover
-                "Not implemented for type %r." % type(ind))
+                f"Not implemented for type {type(ind)!r}.")
 
         if max(steps) == min(steps) == 1:
             steps = None
@@ -571,7 +571,7 @@ class OnnxVar:
         if len(index) == 1:
             return self._setitem1i_(index[0], value)
         raise NotImplementedError(  # pragma: no cover
-            "Indices in %d dimensions are not implemented yet." % len(index))
+            f"Indices in {len(index)} dimensions are not implemented yet.")
 
     def _setitem1i_(self, index, value):
         sl = None
@@ -584,8 +584,7 @@ class OnnxVar:
             sl = [index, index + 1, 1]
         else:
             raise NotImplementedError(  # pragma: no cover
-                "Unable to assign new values due to unexpected type %r."
-                "" % type(index))
+                f"Unable to assign new values due to unexpected type {type(index)!r}.")
 
         if sl[1] is None and isinstance(value, numpy.ndarray):
             sl[1] = sl[0] + value.size
@@ -600,7 +599,7 @@ class OnnxVar:
             inp = self.inputs[0]
             if not isinstance(inp, OnnxVar):
                 raise RuntimeError(  # pragma: no cover
-                    "Input must be an instance of OnnxVar not %r." % type(inp))
+                    f"Input must be an instance of OnnxVar not {type(inp)!r}.")
             cst = OnnxVar(inp.shape, op=OnnxConstantOfShape, value=value)
             ext = inp[:sl[0]]
             indices = numpy.arange(0, sl[0]).astype(numpy.int64)

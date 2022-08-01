@@ -30,10 +30,10 @@ class OnnxNumpyFunction:
                  n_optional, n_variables):
         if any(map(lambda n: not isinstance(n, Variable), inputs)):
             raise TypeError(  # pragma: no cover
-                "All inputs must be of type Variable: %r." % (inputs, ))
+                f"All inputs must be of type Variable: {inputs!r}.")
         if any(map(lambda n: not isinstance(n, Variable), outputs)):
             raise TypeError(  # pragma: no cover
-                "All outputs must be of type Variable: %r." % (outputs, ))
+                f"All outputs must be of type Variable: {outputs!r}.")
         self.compiler = compiler
         self.inputs = inputs
         self.outputs = outputs
@@ -42,8 +42,7 @@ class OnnxNumpyFunction:
         self.n_variables = n_variables
         if n_optional < 0:
             raise RuntimeError(  # pragma: no cover
-                "Wrong configuration, n_optional %r must be >= 0."
-                "" % n_optional)
+                f"Wrong configuration, n_optional {n_optional!r} must be >= 0.")
         if n_optional >= len(inputs):
             raise RuntimeError(  # pragma: no cover
                 "Wrong configuration, n_optional %r must be >= %r "
@@ -94,7 +93,7 @@ class OnnxNumpyFunctionInferenceSession(OnnxNumpyFunction):
         self._check_(*args, **kwargs)
         if len(kwargs) > 0:
             raise RuntimeError(  # pragma: no cover
-                "kwargs is not used but it is not empty: %r." % kwargs)
+                f"kwargs is not used but it is not empty: {kwargs!r}.")
         inp = {k.name: a for k, a in zip(self.inputs, args)}
         out = self.rt.run(None, inp)
 
@@ -143,8 +142,7 @@ class OnnxNumpyCompiler:
             self.fct_ = fct
             if not inspect.isfunction(fct):
                 raise TypeError(  # pragma: no cover
-                    "Unexpected type for fct=%r, it must be a "
-                    "function." % type(fct))
+                    f"Unexpected type for fct={type(fct)!r}, it must be a function.")
             self.onnx_ = None
             self.onnx_ = self._to_onnx(
                 op_version=op_version, signature=signature,
@@ -187,9 +185,9 @@ class OnnxNumpyCompiler:
     def __repr__(self):
         "usual"
         if self.fct_ is not None:
-            return "%s(%s)" % (self.__class__.__name__, repr(self.fct_))
+            return f"{self.__class__.__name__}({repr(self.fct_)})"
         if self.onnx_ is not None:
-            return "%s(%s)" % (self.__class__.__name__, "... ONNX ... ")
+            return f"{self.__class__.__name__}({'... ONNX ... '})"
         raise NotImplementedError(  # pragma: no cover
             "fct_ and onnx_ are empty.")
 
@@ -201,7 +199,7 @@ class OnnxNumpyCompiler:
                      for s in shape]
         else:
             raise RuntimeError(  # pragma: no cover
-                "Unexpected annotated shape %r." % shape)
+                f"Unexpected annotated shape {shape!r}.")
         return shape
 
     def _parse_annotation(self, signature, version):
@@ -242,8 +240,7 @@ class OnnxNumpyCompiler:
         for k, v in kwargs.items():
             if isinstance(v, (type, numpy.dtype)):
                 raise RuntimeError(  # pragma: no cover
-                    "Unexpected value for argument %r: %r from %r." % (
-                        k, v, kwargs))
+                    f"Unexpected value for argument {k!r}: {v!r} from {kwargs!r}.")
 
         if signature is not None:
             inputs, kwargs, outputs, n_optional, n_variables = (
@@ -408,7 +405,7 @@ class OnnxNumpyCompiler:
 
             if isinstance(onx_algebra, str):
                 raise RuntimeError(  # pragma: no cover
-                    "Unexpected str type %r." % onx_algebra)
+                    f"Unexpected str type {onx_algebra!r}.")
             if isinstance(onx_algebra, tuple):
                 raise NotImplementedError(  # pragma: no cover
                     "Not implemented when the function returns multiple results.")
@@ -458,7 +455,7 @@ class OnnxNumpyCompiler:
                             version=version)
         inputs, outputs, _, n_optional, n_variables = self._parse_annotation(
             signature=signature, version=version)
-        if runtime != 'onnxruntime':
+        if runtime not in ('onnxruntime', 'onnxruntime-cuda'):
             from ..onnxrt import OnnxInference
             rt = OnnxInference(onx, runtime=runtime)
             self.rt_fct_ = OnnxNumpyFunctionOnnxInference(
@@ -466,7 +463,7 @@ class OnnxNumpyCompiler:
                 n_optional=n_optional, n_variables=n_variables)
         else:
             from ..tools.ort_wrapper import InferenceSession
-            rt = InferenceSession(onx.SerializeToString())
+            rt = InferenceSession(onx.SerializeToString(), runtime=runtime)
             self.rt_fct_ = OnnxNumpyFunctionInferenceSession(
                 self, rt, inputs=inputs, outputs=outputs,
                 n_optional=n_optional, n_variables=n_variables)

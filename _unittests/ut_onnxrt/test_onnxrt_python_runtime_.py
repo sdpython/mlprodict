@@ -1,19 +1,32 @@
 """
-@brief      test log(time=120s)
+@brief      test log(time=152s)
 """
 import unittest
 import pprint
 import warnings
 import sys
+import math
 from logging import getLogger
 from contextlib import redirect_stdout
 from io import StringIO
 import numpy
-import onnx
 from scipy.sparse import coo_matrix, csr_matrix, SparseEfficiencyWarning
 from scipy.special import (  # pylint: disable=E0611
     expit as logistic_sigmoid, erf)
 from scipy.spatial.distance import cdist
+import onnx
+from onnx.backend.test.case.node.gru import GRU_Helper
+from onnx.backend.test.case.node.lstm import LSTM_Helper
+from onnx.backend.test.case.node.negativeloglikelihoodloss import (
+    compute_negative_log_likelihood_loss)
+from onnx.backend.test.case.node.onehot import one_hot
+from onnx.backend.test.case.node.resize import (
+    nearest_coeffs, interpolate_nd, linear_coeffs)
+from onnx.backend.test.case.node.rnn import RNN_Helper
+from onnx.backend.test.case.node.roialign import get_roi_align_input_values
+from onnx.backend.test.case.node.softmaxcrossentropy import softmaxcrossentropy
+from onnx.backend.test.case.node.scatternd import scatter_nd_impl
+from onnx.backend.test.case.node.unique import specify_int64
 from onnx import TensorProto, __version__ as onnx_version
 from onnx.helper import make_sparse_tensor, make_tensor
 from onnx.defs import onnx_opset_version
@@ -29,7 +42,7 @@ from skl2onnx.algebra.onnx_ops import (  # pylint: disable=E0611
     OnnxAbs, OnnxAdd, OnnxAnd,
     OnnxArgMax_11, OnnxArgMax,
     OnnxArgMin_11, OnnxArgMin,
-    OnnxBatchNormalization,
+    OnnxBatchNormalization, OnnxBitShift,
     OnnxAcos, OnnxAcosh, OnnxAsin, OnnxAsinh, OnnxAtan, OnnxAtanh,
     OnnxAveragePool,
     OnnxCast, OnnxCastLike, OnnxCeil, OnnxClip,
@@ -41,39 +54,47 @@ from skl2onnx.algebra.onnx_ops import (  # pylint: disable=E0611
     OnnxCos, OnnxCosh,
     OnnxCumSum,
     OnnxDequantizeLinear,
-    OnnxDet, OnnxDiv,
+    OnnxDepthToSpace, OnnxDet, OnnxDiv,
     OnnxDropout, OnnxDropout_7,
-    OnnxEinsum, OnnxEqual, OnnxErf, OnnxExp, OnnxExpand, OnnxEyeLike,
+    OnnxEinsum, OnnxElu, OnnxEqual, OnnxErf, OnnxExp, OnnxExpand, OnnxEyeLike,
     OnnxFlatten, OnnxFloor,
-    OnnxGreater, OnnxGreaterOrEqual, OnnxGemm, OnnxGlobalAveragePool,
-    OnnxIdentity, OnnxIsNaN,
+    OnnxGemm, OnnxGlobalAveragePool, OnnxGlobalMaxPool,
+    OnnxGreater, OnnxGreaterOrEqual, OnnxGridSample, OnnxGRU,
+    OnnxHardmax, OnnxHardSigmoid, OnnxHardSwish,
+    OnnxIdentity, OnnxIsInf, OnnxIsNaN,
     OnnxLeakyRelu, OnnxLess, OnnxLessOrEqual,
-    OnnxLog, OnnxLogSoftmax, OnnxLpNormalization,
+    OnnxLog, OnnxLogSoftmax, OnnxLpNormalization, OnnxLRN, OnnxLSTM,
     OnnxMatMul, OnnxMax, OnnxMaxPool, OnnxMean, OnnxMin, OnnxMod, OnnxMul,
-    OnnxNeg, OnnxNot,
-    OnnxOr,
-    OnnxPad, OnnxPow,
+    OnnxNeg, OnnxNonMaxSuppression, OnnxNot, OnnxNegativeLogLikelihoodLoss,
+    OnnxOneHot, OnnxOr,
+    OnnxPad, OnnxPow, OnnxPRelu,
     OnnxQLinearConv, OnnxQuantizeLinear,
     OnnxRange,
     OnnxReciprocal,
     OnnxReduceL1, OnnxReduceL2,
-    OnnxReduceLogSumExp, OnnxReduceMax, OnnxReduceMean, OnnxReduceMin,
+    OnnxReduceLogSum, OnnxReduceLogSumExp, OnnxReduceMax,
+    OnnxReduceMean, OnnxReduceMin,
     OnnxReduceProd,
     OnnxReduceSum, OnnxReduceSumApi11,
     OnnxReduceSum_13, OnnxReduceSum_11, OnnxReduceSum_1,
     OnnxReduceSumSquare,
     OnnxRelu, OnnxReshape,
-    OnnxRound,
-    OnnxScatterElements,
-    OnnxSequenceAt, OnnxSequenceConstruct,
-    OnnxShape, OnnxSlice, OnnxSigmoid, OnnxSign,
+    OnnxRNN,
+    OnnxRoiAlign, OnnxRound,
+    OnnxScatterElements, OnnxScatterND,
+    OnnxSelu, OnnxSequenceAt, OnnxSequenceConstruct,
+    OnnxShape, OnnxShrink, OnnxSigmoid, OnnxSign,
     OnnxSin, OnnxSinh,
-    OnnxSize, OnnxSoftmax,
-    OnnxSplit, OnnxSplitApi11,
+    OnnxSize, OnnxSlice,
+    OnnxSoftmax, OnnxSoftmaxCrossEntropyLoss,
+    OnnxSoftplus, OnnxSoftsign,
+    OnnxSpaceToDepth, OnnxSplit, OnnxSplitApi11,
     OnnxSqrt, OnnxSub, OnnxSum,
     OnnxSqueeze, OnnxSqueezeApi11,
-    OnnxTan, OnnxTanh, OnnxTopK, OnnxTranspose,
-    OnnxUnsqueeze, OnnxUnsqueezeApi11
+    OnnxTan, OnnxTanh, OnnxThresholdedRelu,
+    OnnxTopK, OnnxTranspose, OnnxTrilu,
+    OnnxUnique, OnnxUnsqueeze, OnnxUnsqueezeApi11,
+    OnnxXor
 )
 try:
     from skl2onnx.algebra.onnx_ops import OnnxCelu
@@ -90,7 +111,8 @@ from mlprodict.onnxrt.ops_cpu.op_batch_normalization import (
     _batchnorm_test_mode, _batchnorm_training_mode)
 from mlprodict.onnxrt.ops_cpu.op_average_pool import (
     _get_output_shape, _pool, _get_pad_shape)
-from mlprodict.onnxrt.ops_cpu.op_global_average_pool import _global_average_pool
+from mlprodict.onnxrt.ops_cpu.op_global_average_pool import (
+    _global_average_pool, _global_max_pool)
 from mlprodict.onnxrt.ops_cpu._op_onnx_numpy import (  # pylint: disable=E0611,E0401
     topk_element_min_double, topk_element_max_double,
     topk_element_fetch_double,
@@ -111,9 +133,11 @@ from mlprodict.testing.test_utils.quantized_tensor import (
 from mlprodict.onnxrt.ops_cpu.op_qlinear_conv_ import (  # pylint: disable=W0611,E0611,E0401
     test_qgemm0, test_qgemm1)
 from mlprodict.onnxrt.ops_cpu.op_constant import Constant_12, Constant_11, Constant_9
-from mlprodict.onnxrt.ops_shape.shape_excs import ShapeInferenceException
 from mlprodict.plotting.text_plot import onnx_simple_text_plot
 from mlprodict import __max_supported_opset__ as TARGET_OPSET, get_ir_version
+from mlprodict.onnxrt.ops_cpu.op_negative_log_likelihood_loss import (
+    _compute_negative_log_likelihood_loss)
+from mlprodict.onnxrt.ops_cpu.op_resize import _interpolate_nd, _linear_coeffs
 
 from skl2onnx.common.data_types import (  # pylint: disable=C0412
     FloatTensorType, Int64TensorType, DoubleTensorType, StringTensorType,
@@ -180,6 +204,380 @@ class TestOnnxrtPythonRuntime(ExtTestCase):  # pylint: disable=R0904
         logger = getLogger('skl2onnx')
         logger.disabled = True
 
+    @wraplog()
+    def test_cpp_topk_min_1(self):
+        X = numpy.array([1, -1], dtype=numpy.float64)
+        to1 = topk_sorted_implementation(X, 1, 0, 0)
+        to2 = topk_element_min_double(X, 1, False, 50)
+        self.assertEqualArray(to1[1], to2)
+        v2 = topk_element_fetch_double(X, to2)
+        self.assertEqualArray(to1[0], v2)
+
+        X = numpy.array([1, -1], dtype=numpy.float64)
+        to1 = topk_sorted_implementation(X, 2, 0, 0)
+        to2 = topk_element_min_double(X, 2, False, 50)
+        self.assertEqual(set(to1[1]), set(to2))
+
+        X = numpy.array([1, -1], dtype=numpy.float64)
+        to1 = topk_sorted_implementation(X, 2, 0, 0)
+        to2 = topk_element_min_double(X, 2, True, 50)
+        self.assertEqualArray(to1[1], to2)
+        v2 = topk_element_fetch_double(X, to2)
+        self.assertEqualArray(to1[0], v2)
+
+        X = numpy.array([1, -1, -2, 4, 5], dtype=numpy.float64)
+        to1 = topk_sorted_implementation(X, 2, 0, 0)
+        to2 = topk_element_min_double(X, 2, True, 50)
+        self.assertEqualArray(to1[1], to2)
+        v2 = topk_element_fetch_double(X, to2)
+        self.assertEqualArray(to1[0], v2)
+
+        X = numpy.array([1, -1, -2, 4, 5], dtype=numpy.float64)
+        to1 = topk_sorted_implementation(X, 3, 0, 0)
+        to2 = topk_element_min_double(X, 3, True, 50)
+        self.assertEqualArray(to1[1], to2)
+        v2 = topk_element_fetch_double(X, to2)
+        self.assertEqualArray(to1[0], v2)
+
+        X = numpy.array([1, -1, -2, 4, 5], dtype=numpy.float64)
+        to1 = topk_sorted_implementation(X, 4, 0, 0)
+        to2 = topk_element_min_double(X, 4, True, 50)
+        self.assertEqualArray(to1[1], to2)
+        v2 = topk_element_fetch_double(X, to2)
+        self.assertEqualArray(to1[0], v2)
+
+        X = numpy.array([1, -1, -2, 4, 5], dtype=numpy.float32)
+        to1 = topk_sorted_implementation(X, 4, 0, 0)
+        to2 = topk_element_min_float(X, 4, True, 50)
+        self.assertEqualArray(to1[1], to2)
+        v2 = topk_element_fetch_float(X, to2)
+        self.assertEqualArray(to1[0], v2)
+
+    @wraplog()
+    def test_cpp_topk_min_2(self):
+        X = numpy.array([[0, 1, 2, 3, 4],
+                         [1, -1, -2, 4, 5],
+                         [2, -2, -3, 5, -4]],
+                        dtype=numpy.int64)
+        to1 = topk_sorted_implementation(X, 2, 1, 0)
+        to2 = topk_element_min_int64(X, 2, True, 50)
+        self.assertEqualArray(to1[1], to2)
+        v2 = topk_element_fetch_int64(X, to2)
+        self.assertEqualArray(to1[0], v2)
+
+        X = numpy.array([[0, 1, 2, 3, 4],
+                         [1, -1, -2, 4, 5],
+                         [2, -2, -3, 5, -4]],
+                        dtype=numpy.float32)
+        to1 = topk_sorted_implementation(X, 2, 1, 0)
+        to2 = topk_element_min_float(X, 2, True, 50)
+        self.assertEqualArray(to1[1], to2)
+        v2 = topk_element_fetch_float(X, to2)
+        self.assertEqualArray(to1[0], v2)
+
+        X = numpy.array([[0, 1, 2, 3, 4],
+                         [1, -1, -2, 4, 5],
+                         [2, -2, -3, 5, -4]],
+                        dtype=numpy.float64)
+        to1 = topk_sorted_implementation(X, 2, 1, 0)
+        to2 = topk_element_min_double(X, 2, True, 50)
+        self.assertEqualArray(to1[1], to2)
+        v2 = topk_element_fetch_double(X, to2)
+        self.assertEqualArray(to1[0], v2)
+
+        to1 = topk_sorted_implementation(X, 3, 1, 0)
+        to2 = topk_element_min_double(X, 3, True, 50)
+        self.assertEqualArray(to1[1], to2)
+        v2 = topk_element_fetch_double(X, to2)
+        self.assertEqualArray(to1[0], v2)
+
+        to1 = topk_sorted_implementation(X, 4, 1, 0)
+        to2 = topk_element_min_double(X, 4, True, 50)
+        self.assertEqualArray(to1[1], to2)
+        v2 = topk_element_fetch_double(X, to2)
+        self.assertEqualArray(to1[0], v2)
+
+    @wraplog()
+    def test_cpp_topk_max_1(self):
+        X = numpy.array([1, -1], dtype=numpy.float64)
+        to1 = topk_sorted_implementation(X, 1, 0, 1)
+        to2 = topk_element_max_double(X, 1, False, 50)
+        self.assertEqualArray(to1[1], to2)
+        v2 = topk_element_fetch_double(X, to2)
+        self.assertEqualArray(to1[0], v2)
+
+        X = numpy.array([1, -1], dtype=numpy.float64)
+        to1 = topk_sorted_implementation(X, 2, 0, 1)
+        to2 = topk_element_max_double(X, 2, False, 50)
+        self.assertEqual(set(to1[1]), set(to2))
+
+        X = numpy.array([1, -1], dtype=numpy.float64)
+        to1 = topk_sorted_implementation(X, 2, 0, 1)
+        to2 = topk_element_max_double(X, 2, True, 50)
+        self.assertEqualArray(to1[1], to2)
+        v2 = topk_element_fetch_double(X, to2)
+        self.assertEqualArray(to1[0], v2)
+
+        X = numpy.array([1, -1, -2, 4, 5], dtype=numpy.float64)
+        to1 = topk_sorted_implementation(X, 2, 0, 1)
+        to2 = topk_element_max_double(X, 2, True, 50)
+        self.assertEqualArray(to1[1], to2)
+        v2 = topk_element_fetch_double(X, to2)
+        self.assertEqualArray(to1[0], v2)
+
+        X = numpy.array([1, -1, -2, 4, 5], dtype=numpy.float64)
+        to1 = topk_sorted_implementation(X, 3, 0, 1)
+        to2 = topk_element_max_double(X, 3, True, 50)
+        self.assertEqualArray(to1[1], to2)
+        v2 = topk_element_fetch_double(X, to2)
+        self.assertEqualArray(to1[0], v2)
+
+        X = numpy.array([1, -1, -2, 4, 5], dtype=numpy.float64)
+        to1 = topk_sorted_implementation(X, 4, 0, 1)
+        to2 = topk_element_max_double(X, 4, True, 50)
+        self.assertEqualArray(to1[1], to2)
+        v2 = topk_element_fetch_double(X, to2)
+        self.assertEqualArray(to1[0], v2)
+
+        X = numpy.array([1, -1, -2, 4, 5], dtype=numpy.float32)
+        to1 = topk_sorted_implementation(X, 4, 0, 1)
+        to2 = topk_element_max_float(X, 4, True, 50)
+        self.assertEqualArray(to1[1], to2)
+        v2 = topk_element_fetch_float(X, to2)
+        self.assertEqualArray(to1[0], v2)
+
+    @wraplog()
+    def test_cpp_topk_max_2(self):
+        X = numpy.array([[0, 1, 2, 3, 4],
+                         [1, -1, -2, 4, 5],
+                         [2, -2, -3, 5, -4]],
+                        dtype=numpy.int64)
+        to1 = topk_sorted_implementation(X, 2, 1, 1)
+        to2 = topk_element_max_int64(X, 2, True, 50)
+        self.assertEqualArray(to1[1], to2)
+        v2 = topk_element_fetch_int64(X, to2)
+        self.assertEqualArray(to1[0], v2)
+
+        X = numpy.array([[0, 1, 2, 3, 4],
+                         [1, -1, -2, 4, 5],
+                         [2, -2, -3, 5, -4]],
+                        dtype=numpy.float32)
+        to1 = topk_sorted_implementation(X, 2, 1, 1)
+        to2 = topk_element_max_float(X, 2, True, 50)
+        self.assertEqualArray(to1[1], to2)
+        v2 = topk_element_fetch_float(X, to2)
+        self.assertEqualArray(to1[0], v2)
+
+        X = numpy.array([[0, 1, 2, 3, 4],
+                         [1, -1, -2, 4, 5],
+                         [2, -2, -3, 5, -4]],
+                        dtype=numpy.float64)
+        to1 = topk_sorted_implementation(X, 2, 1, 1)
+        to2 = topk_element_max_double(X, 2, True, 50)
+        self.assertEqualArray(to1[1], to2)
+        v2 = topk_element_fetch_double(X, to2)
+        self.assertEqualArray(to1[0], v2)
+
+        to1 = topk_sorted_implementation(X, 3, 1, 1)
+        to2 = topk_element_max_double(X, 3, True, 50)
+        self.assertEqualArray(to1[1], to2)
+        v2 = topk_element_fetch_double(X, to2)
+        self.assertEqualArray(to1[0], v2)
+
+        to1 = topk_sorted_implementation(X, 4, 1, 1)
+        to2 = topk_element_max_double(X, 4, True, 50)
+        self.assertEqualArray(to1[1], to2)
+        v2 = topk_element_fetch_double(X, to2)
+        self.assertEqualArray(to1[0], v2)
+
+    @wraplog()
+    def test_cpp_topk_max_openmp(self):
+        X = numpy.random.randn(100, 10).astype(  # pylint: disable=E1101
+            numpy.float64)  # pylint: disable=E1101
+        to1 = topk_sorted_implementation(X, 2, 1, 1)
+        to2 = topk_element_max_double(X, 2, True, 50)
+        self.assertEqualArray(to1[1], to2)
+        v2 = topk_element_fetch_double(X, to2)
+        self.assertEqualArray(to1[0], v2)
+
+    @wraplog()
+    def test_cpp_pairwise(self):
+        X = numpy.full((20, 4), 1, dtype=numpy.float32)
+        X[::2, 3] = 20
+        X[1::5, 1] = 30
+        X[::5, 2] = 40
+        cd = cdist(X[:10], X[10:])
+        to1 = topk_sorted_implementation(cd, 3, 1, 1)
+        to2 = topk_element_max_double(cd, 3, True, 50)
+        self.assertEqualArray(to1[1], to2)
+
+    @unittest.skipIf(onnx_opset_version() < 12, reason="new API not available")
+    @wraplog()
+    def test_make_sparse_tensor_12(self):
+        values = [1.1, 2.2, 3.3, 4.4, 5.5]
+        values_tensor = make_tensor(
+            name='test', data_type=TensorProto.FLOAT,  # pylint: disable=E1101
+            dims=(5, ), vals=values)
+        indices = [1, 3, 5, 7, 9]
+        indices_tensor = make_tensor(
+            name='test_indices', data_type=TensorProto.INT64,  # pylint: disable=E1101
+            dims=(5, ), vals=indices)
+        dense_shape = [10]
+        sparse = make_sparse_tensor(values_tensor, indices_tensor, dense_shape)
+        self.assertEqual(sparse.values, values_tensor)  # pylint: disable=E1101
+        self.assertEqual(
+            sparse.indices, indices_tensor)  # pylint: disable=E1101
+        self.assertEqual(sparse.dims, dense_shape)  # pylint: disable=E1101
+
+        opset_tests = [
+            (TARGET_OPSET, OnnxConstant),
+            (11, OnnxConstant_11)]
+
+        if (not sys.platform.startswith('win') or
+                compare_module_version(onnx_version, (1, 8, 0)) != 0):
+            # to_onnx fails for opset, it is expected
+            # but it makes python crash on python for onnx 1.8.0
+            opset_tests.append((9, OnnxConstant_9))
+
+        for opset, cls in opset_tests:
+            for ty, nty in [('float', numpy.float32),
+                            ('int', numpy.int64),
+                            ('string', numpy_str)]:
+                with self.subTest(opset=opset, type=ty):
+                    X = numpy.array([0.1, 0.2], dtype=numpy.float32)
+                    if opset >= 12:
+                        if ty == 'float':
+                            cst = cls(value_floats=X, op_version=opset,
+                                      output_names=['cst'])
+                            tty = FloatTensorType
+                        elif ty == 'int':
+                            cst = cls(value_ints=(X + 1).astype(nty), op_version=opset,
+                                      output_names=['cst'])
+                            tty = Int64TensorType
+                        elif ty == 'string':
+                            cst = cls(value_strings=X.astype(nty), op_version=opset,
+                                      output_names=['cst'])
+                            tty = StringTensorType
+                        else:
+                            raise AssertionError(
+                                f"{ty}-{nty} not tested.")
+                    elif ty != 'float':
+                        continue
+                    else:
+                        cst = cls(value=X, op_version=opset)
+                        nty = numpy.float32
+                        tty = FloatTensorType
+                    onx = OnnxAdd('X', cst, op_version=opset,
+                                  output_names=['Y'])
+                    try:
+                        model_def = onx.to_onnx(
+                            {'X': X.astype(nty)}, target_opset=opset,
+                            outputs=[('Y', tty()), ('cst', tty())])
+                    except RuntimeError as e:
+                        if opset == 9:
+                            continue
+                        raise e
+                    try:
+                        oinf = OnnxInference(model_def)
+                    except RuntimeError as e:
+                        raise AssertionError(
+                            f"Unable to load the model:\n{model_def}") from e
+                    if tty == StringTensorType:
+                        continue
+                    try:
+                        got = oinf.run({'X': X.astype(nty)})
+                    except Exception as e:
+                        rows = []
+
+                        def bprint(*args):
+                            rows.append(str(args))  # pylint: disable=W0640
+                        try:
+                            oinf.run({'X': X.astype(nty)},  # opset=13, 14, ...
+                                     verbose=13, fLOG=bprint)
+                        except Exception:  # pylint: disable=W0703
+                            pass
+                        raise AssertionError(
+                            "Execution issue\n{}\n----\n{}".format(
+                                "\n".join(map(str, rows)),
+                                model_def)) from e
+                    if ty == 'float':
+                        vexp = X * 2
+                    else:
+                        vexp = X.astype(nty) + 1
+                    if opset >= 11:
+                        self.assertEqual(list(sorted(got)), [
+                                         'Y', 'cst'])
+                        self.assertEqualArray(vexp, got['Y'])
+                    else:
+                        self.assertEqual(list(sorted(got)), ['Y', 'cst'])
+                        self.assertEqualArray(vexp, got['Y'])
+
+    @wraplog()
+    def test_make_constant(self):
+        X = numpy.array([0.1, 0.2], dtype=numpy.float32)
+        values = [1.1, 2.2]
+        exp = numpy.array([1.2, 2.4], dtype=numpy.float32)
+
+        opset_tests = [
+            (TARGET_OPSET, OnnxConstant),
+            (13, OnnxConstant_13),
+            (12, OnnxConstant_12),
+            (11, OnnxConstant_11),
+            (9, OnnxConstant_9)]
+
+        expected_type = {15: Constant_12, 14: Constant_12,
+                         12: Constant_12, 13: Constant_12,
+                         11: Constant_11, 9: Constant_9}
+
+        if (not sys.platform.startswith('win') or
+                compare_module_version(onnx_version, (1, 8, 0)) != 0):
+            # to_onnx fails for opset, it is expected
+            # but it makes python crash on python for onnx 1.8.0
+            opset_tests.append((9, OnnxConstant_9))
+
+        for opset, cls in opset_tests:
+            with self.subTest(opset=opset):
+                if opset >= 12:
+                    cst = cls(value_floats=values, op_version=opset)
+                else:
+                    cst = cls(value=values, op_version=opset)
+                onx = OnnxAdd('X', cst, op_version=opset)
+                try:
+                    model_def = onx.to_onnx({'X': X.astype(numpy.float32)},
+                                            target_opset=opset)
+                except RuntimeError as e:
+                    if opset == 9:
+                        continue
+                    raise e
+                try:
+                    oinf = OnnxInference(model_def)
+                except RuntimeError as e:
+                    raise AssertionError(
+                        f"Unable to load the model:\n{model_def}") from e
+                ope = oinf.sequence_[0].ops_
+                self.assertIsInstance(ope, expected_type[opset])
+                got = oinf.run({'X': X})
+                if opset >= 11:
+                    self.assertEqual(list(sorted(got)), ['Ad_C0'])
+                    self.assertEqualArray(exp, got['Ad_C0'])
+                else:
+                    self.assertEqual(list(sorted(got)), ['Ad_C0'])
+                    self.assertEqualArray(exp, got['Ad_C0'])
+
+    def test_op_constant(self):
+        for opv in [9, 10, 11, 12, 13, 14, 15]:  # opset=13, 14, ...
+            for dtype in [numpy.float32, numpy.float64,
+                          numpy.int32, numpy.int64]:
+                with self.subTest(opv=opv, dtype=dtype):
+                    X = numpy.array([1], dtype=dtype)
+                    pX = from_array(X)
+                    op = OnnxAdd('X', OnnxConstant(op_version=opv, value=pX),
+                                 output_names=['Y'], op_version=opv)
+                    onx = op.to_onnx({'X': X})
+                    oinf = OnnxInference(onx)
+                    res = oinf.run({'X': X})
+                    self.assertEqualArray(res['Y'], X + X)
+
     def test_opset_skl2onnx(self):
         opset_mlprodict = TARGET_OPSET
         opset_skl2onnx = __max_supported_opset__
@@ -197,8 +595,7 @@ class TestOnnxrtPythonRuntime(ExtTestCase):  # pylint: disable=R0904
                 shape_results = shapeinf.run()
             except Exception as e:
                 raise AssertionError(
-                    "Unable to infer shape %r in\n%r\n." % (
-                        e, model_def)) from e
+                    f"Unable to infer shape {e!r} in\n{model_def!r}\n.") from e
             shape = shape_results.get()
             try:
                 self.assertIn('X', shape)
@@ -214,36 +611,21 @@ class TestOnnxrtPythonRuntime(ExtTestCase):  # pylint: disable=R0904
 
     def common_expected_shapes_types(self, oinf, inputs, got, onnx_cl, model_def,
                                      raise_shape=False):
-        expected_types = oinf.infer_types()
-        self.assertEqual(set(got) & set(expected_types), set(got))
-        for k, v in got.items():
-            if expected_types[k] in (str, numpy.str_):
-                # Type mismatch: dtype('<U32') != <class 'str'>
-                continue
-            if v.dtype != expected_types[k]:
-                raise AssertionError(
-                    "Type mismatch: %r != %r\nexpected_types=%r\ngot=%r"
-                    "\n----\n%r" % (
-                        v.dtype, expected_types[k], expected_types, got,
-                        model_def))
-
         try:
             expected_shapes = oinf.infer_shapes()
             self.assertEqual(set(got) & set(expected_shapes), set(got))
         except RuntimeError as e:
             if raise_shape:
                 raise e
-            warnings.warn("infer_shapes fails for operator %r." % onnx_cl)
-
-        res = oinf.infer_sizes(inputs)
-        self.assertIsInstance(res, dict)
+            warnings.warn(f"infer_shapes fails for operator {onnx_cl!r}.")
 
     @ignore_warnings(category=(RuntimeWarning, DeprecationWarning,
                                SparseEfficiencyWarning, PendingDeprecationWarning))
     def common_test_onnxt_runtime_unary(self, onnx_cl, np_fct,
                                         op_version=None,
                                         outputs=None, debug=False,
-                                        do_sparse=True, raise_shape=False):
+                                        do_sparse=True, raise_shape=False,
+                                        bool_type=False):
         if op_version is None:
             op_version = TARGET_OPSET
         try:
@@ -251,9 +633,13 @@ class TestOnnxrtPythonRuntime(ExtTestCase):  # pylint: disable=R0904
         except RuntimeError as e:
             raise RuntimeError('onnx.opset={} op_version={}'.format(
                 TARGET_OPSET, op_version)) from e
-        X = numpy.array([[1, 2], [3, -4]], dtype=numpy.float64)
+        X = numpy.array([[1, 2], [0, -4]], dtype=numpy.float64)
+        dtype = numpy.float32
+        if bool_type:
+            X = X.astype(numpy.bool_)
+            dtype = numpy.bool_
         model_def = onx.to_onnx(
-            {'X': X.astype(numpy.float32)}, target_opset=op_version,
+            {'X': X.astype(dtype)}, target_opset=op_version,
             outputs=outputs)
         if debug:
             print(model_def)
@@ -261,19 +647,20 @@ class TestOnnxrtPythonRuntime(ExtTestCase):  # pylint: disable=R0904
 
         # python code
         oinfpy = OnnxInference(model_def, runtime="python", inplace=True)
-        validate_python_inference(oinfpy, {'X': X.astype(numpy.float32)})
+        validate_python_inference(oinfpy, {'X': X.astype(dtype)})
 
         # no inplace
         oinf = OnnxInference(model_def, inplace=False)
         all_names = "\n".join(
             "%s>=v%d" % (op.ops_.__class__.__name__,
-                         op.ops_._schema.since_version)  # pylint: disable=W0212
+                         op.ops_._schema.since_version
+                         if op.ops_ is not None else 1)  # pylint: disable=W0212
             for op in oinf.sequence_)
         if debug:
-            got = oinf.run({'X': X.astype(numpy.float32)},
+            got = oinf.run({'X': X.astype(dtype)},
                            verbose=1, fLOG=print)
         else:
-            got = oinf.run({'X': X.astype(numpy.float32)})
+            got = oinf.run({'X': X.astype(dtype)})
         self.assertEqual(list(sorted(got)), ['Y'])
         self.common_expected_shapes_types(
             oinf, {'X': X.astype(numpy.float32)}, got, onnx_cl,
@@ -298,7 +685,7 @@ class TestOnnxrtPythonRuntime(ExtTestCase):  # pylint: disable=R0904
             onnx_cl('X', op_version=op_version),
             output_names=['Y'], op_version=op_version)
         model_def2 = onx2.to_onnx(
-            {'X': X.astype(numpy.float32)}, target_opset=op_version,
+            {'X': X.astype(dtype)}, target_opset=op_version,
             outputs=outputs)
         oinf = OnnxInference(model_def2, input_inplace=False, inplace=True)
         got = oinf.run({'X': X})
@@ -313,29 +700,24 @@ class TestOnnxrtPythonRuntime(ExtTestCase):  # pylint: disable=R0904
         self.assertEqualArray(expe, got['Y'], decimal=5)
 
         # shape
-        if onnx_cl == OnnxNot:
-            self.assertRaise(lambda: OnnxShapeInference(model_def),
-                             ShapeInferenceException)
+        shapeinf = OnnxShapeInference(model_def)
+        try:
+            shape_results = shapeinf.run()
+        except Exception as e:
+            raise AssertionError(
+                f"Unable to infer shape {e!r} in\n{model_def!r}\n.") from e
+        shape = shape_results.get()
+        self.assertIn('X', shape)
+        self.assertIn('Y', shape)
+        if onnx_cl == OnnxDet:
+            self.assertEqual(shape['X'].dtype, shape['Y'].dtype)
+            self.assertEqual(shape['Y'].shape, [])
+        elif onnx_cl in (OnnxIsNaN, OnnxIsInf):
+            self.assertEqual(shape['X'].shape, shape['Y'].shape)
+            self.assertEqual(shape['Y'].dtype, numpy.bool_)
         else:
-            shapeinf = OnnxShapeInference(model_def)
-            try:
-                shape_results = shapeinf.run()
-            except Exception as e:
-                raise AssertionError(
-                    "Unable to infer shape %r in\n%r\n." % (
-                        e, model_def)) from e
-            shape = shape_results.get()
-            self.assertIn('X', shape)
-            self.assertIn('Y', shape)
-            if onnx_cl == OnnxDet:
-                self.assertEqual(shape['X'].dtype, shape['Y'].dtype)
-                self.assertEqual(shape['Y'].shape, [])
-            elif onnx_cl == OnnxIsNaN:
-                self.assertEqual(shape['X'].shape, shape['Y'].shape)
-                self.assertEqual(shape['Y'].dtype, numpy.bool_)
-            else:
-                self.assertEqual(shape['X'].shape, shape['Y'].shape)
-                self.assertEqual(shape['X'].dtype, shape['Y'].dtype)
+            self.assertEqual(shape['X'].shape, shape['Y'].shape)
+            self.assertEqual(shape['X'].dtype, shape['Y'].dtype)
 
         # sparse
         if do_sparse:
@@ -398,13 +780,13 @@ class TestOnnxrtPythonRuntime(ExtTestCase):  # pylint: disable=R0904
                 shape_results = shapeinf.run()
             except Exception as e:
                 raise AssertionError(
-                    "Unable to infer shape %r in\n%r\n." % (
-                        e, model_def)) from e
+                    f"Unable to infer shape {e!r} in\n{model_def!r}\n.") from e
             shape = shape_results.get()
             self.assertIn('X', shape)
             self.assertIn('Y', shape)
             if onnx_cl in {OnnxSub, OnnxMul, OnnxDiv, OnnxAdd, OnnxAnd,
-                           OnnxOr, OnnxMod, OnnxMax, OnnxMin, OnnxPow}:
+                           OnnxOr, OnnxMod, OnnxMax, OnnxMin, OnnxPow,
+                           OnnxXor}:
                 self.assertEqual(shape['X'].dtype, shape['Y'].dtype)
                 self.assertIn(shape['Y'].shape[0], shape['X'].shape[0])
                 self.assertEqual(shape['X'].shape[1], shape['Y'].shape[1])
@@ -424,7 +806,7 @@ class TestOnnxrtPythonRuntime(ExtTestCase):  # pylint: disable=R0904
             [[0, 2], [3, -4]], dtype=numpy.float32))
         try:
             exp = np_fct(X, idi)
-        except (TypeError, NotImplementedError, ValueError) as e:
+        except (TypeError, NotImplementedError, ValueError, AttributeError) as e:
             # Function np_fct does not work on sparse data.
             sparse_no_numpy.append((onnx_cl.__name__, op_version, e))
             return
@@ -436,8 +818,7 @@ class TestOnnxrtPythonRuntime(ExtTestCase):  # pylint: disable=R0904
                 model_def_sparse, input_inplace=False, inplace=True)
         except RuntimeError as e:
             raise RuntimeError(
-                "Unable to load sparse model\n{}".format(
-                    model_def_sparse)) from e
+                f"Unable to load sparse model\n{model_def_sparse}") from e
         if debug:
             got = oinf.run({'X': X}, verbose=1, fLOG=print)
         else:
@@ -502,8 +883,8 @@ class TestOnnxrtPythonRuntime(ExtTestCase):  # pylint: disable=R0904
                 self._check_shape_inference(OnnxArgMax, model_def)
                 got = oinf.run({'X': X})
                 self.assertEqual(list(sorted(got)), ['Y'])
-                self.assertEqualArray(numpy.argmax(
-                    X, axis=0), got['Y'], decimal=5)
+                self.assertEqualArray(
+                    numpy.argmax(X, axis=0), got['Y'], decimal=5)
                 self.common_expected_shapes_types(
                     oinf, {'X': X}, got, clarg, model_def)
 
@@ -1062,6 +1443,29 @@ class TestOnnxrtPythonRuntime(ExtTestCase):  # pylint: disable=R0904
         self.assertNotEmpty(var)
 
     @wraplog()
+    def test_onnxt_runtime_bitshift(self):
+        x = numpy.array([16, 4, 1]).astype(numpy.uint32)
+        y = numpy.array([1, 2, 3]).astype(numpy.uint32)
+
+        onx = OnnxBitShift('X', 'Y', direction=b'LEFT',
+                           op_version=14, output_names=['Z'])
+        model_def = onx.to_onnx({'X': x, 'Y': y}, {'Z': x},
+                                target_opset=14)
+        oinf = OnnxInference(model_def)
+        got = oinf.run({'X': x, 'Y': y})
+        self.assertEqualArray(got['Z'], x << y)
+
+        onx = OnnxBitShift('X', 'Y', direction=b'RIGHT',
+                           op_version=14, output_names=['Z'])
+        model_def = onx.to_onnx({'X': x, 'Y': y}, {'Z': x},
+                                target_opset=14)
+        oinf = OnnxInference(model_def)
+        got = oinf.run({'X': x, 'Y': y})
+        self.assertEqualArray(got['Z'], x >> y)
+
+        python_tested.append(OnnxBitShift)
+
+    @wraplog()
     def test_onnxt_runtime_cast_out(self):
         x = numpy.array([1., 2., 3., 4., 5., 6.]).astype(
             numpy.float32)  # pylint: disable=E1101
@@ -1389,14 +1793,8 @@ class TestOnnxrtPythonRuntime(ExtTestCase):  # pylint: disable=R0904
                 got = oinf.run({'X': x})
                 self.assertEqual(list(sorted(got)), ['Y'])
                 self.assertEqualArray(y_without_padding, got['Y'])
-                if rt == 'python':
-                    self.common_expected_shapes_types(
-                        oinf, {'X': x}, got, OnnxConv, model_def)
-                else:
-                    self.assertRaise(
-                        lambda: self.common_expected_shapes_types(
-                            oinf, {'X': x}, got, OnnxConv, model_def),
-                        RuntimeError)
+                self.common_expected_shapes_types(
+                    oinf, {'X': x}, got, OnnxConv, model_def)
 
         # test 3
         y = numpy.array([[[[12., 27., 24.],
@@ -1850,132 +2248,164 @@ class TestOnnxrtPythonRuntime(ExtTestCase):  # pylint: disable=R0904
 
     @wraplog()
     def test_onnxt_runtime_cum_sum(self):
-        x = numpy.array([1., 2., 3., 4., 5.]).astype(numpy.float64)
-        axis = numpy.array([0]).astype(numpy.int32)
-        exp = numpy.array([1., 3., 6., 10., 15.]).astype(numpy.float64)
-        onx = OnnxCumSum('X', 'axis', output_names=['Y'],
-                         op_version=TARGET_OPSET)
-        model_def = onx.to_onnx({'X': x, 'axis': axis},
-                                outputs=[('Y', DoubleTensorType())],
-                                target_opset=TARGET_OPSET)
-        self._check_shape_inference(OnnxCumSum, model_def)
+        with self.subTest(case="2d axis = 1, reverse"):
+            x = numpy.array([1., 2., 3., 4., 5., 6.]).astype(
+                numpy.float64).reshape((2, 3))
+            axis = numpy.array([-1]).astype(numpy.int32)
+            exp = numpy.array([6., 5., 3., 15., 11., 6.]).astype(
+                numpy.float64).reshape((2, 3))
+            onx = OnnxCumSum('X', 'axis', output_names=['Y'], reverse=1,
+                             op_version=TARGET_OPSET)
+            model_def = onx.to_onnx({'X': x, 'axis': axis},
+                                    outputs=[('Y', DoubleTensorType())],
+                                    target_opset=TARGET_OPSET)
+            try:
+                got = OnnxInference(model_def).run({'X': x, 'axis': axis})
+                self.assertEqualArray(exp, got['Y'])
+            except NotImplementedError:
+                pass
+
+        with self.subTest(case="reverse"):
+            x = numpy.array([1., 2., 3., 4., 5.]).astype(numpy.float64)
+            axis = numpy.array([0]).astype(numpy.int32)
+            exp = numpy.array([15., 14., 12., 9., 5.]).astype(numpy.float64)
+            onx = OnnxCumSum('X', 'axis', output_names=['Y'], reverse=1,
+                             op_version=TARGET_OPSET)
+            model_def = onx.to_onnx({'X': x, 'axis': axis},
+                                    outputs=[('Y', DoubleTensorType())],
+                                    target_opset=TARGET_OPSET)
+            try:
+                got = OnnxInference(model_def).run({'X': x, 'axis': axis})
+                self.assertEqualArray(exp, got['Y'])
+            except NotImplementedError:
+                pass
+
+        with self.subTest(case="default"):
+            x = numpy.array([1., 2., 3., 4., 5.]).astype(numpy.float64)
+            axis = numpy.array([0]).astype(numpy.int32)
+            exp = numpy.array([1., 3., 6., 10., 15.]).astype(numpy.float64)
+            onx = OnnxCumSum('X', 'axis', output_names=['Y'],
+                             op_version=TARGET_OPSET)
+            model_def = onx.to_onnx({'X': x, 'axis': axis},
+                                    outputs=[('Y', DoubleTensorType())],
+                                    target_opset=TARGET_OPSET)
+            self._check_shape_inference(OnnxCumSum, model_def)
+            oinf = OnnxInference(model_def)
+            got = oinf.run({'X': x.astype(numpy.float64),
+                            'axis': axis})
+            self.assertEqualArray(exp, got['Y'])
+            self.common_expected_shapes_types(
+                oinf, {'X': x.astype(numpy.float64),
+                       'axis': axis},
+                got, OnnxCumSum, model_def)
+
+            python_tested.append(OnnxCumSum)
+
+            oinfpy = OnnxInference(model_def, runtime="python", inplace=True)
+            validate_python_inference(oinfpy, {'X': x, 'axis': axis})
+
+        with self.subTest(case="exclusive"):
+            x = numpy.array([1., 2., 3., 4., 5.]).astype(numpy.float64)
+            axis = numpy.array([0]).astype(numpy.int32)
+            exp = numpy.array([0., 1., 3., 6., 10.]).astype(numpy.float64)
+            onx = OnnxCumSum('X', 'axis', output_names=['Y'], exclusive=1,
+                             op_version=TARGET_OPSET)
+            model_def = onx.to_onnx({'X': x, 'axis': axis},
+                                    outputs=[('Y', DoubleTensorType())],
+                                    target_opset=TARGET_OPSET)
+            try:
+                got = OnnxInference(model_def).run({'X': x, 'axis': axis})
+                self.assertEqualArray(exp, got['Y'])
+            except NotImplementedError:
+                pass
+
+        with self.subTest(case="2d axis = 0"):
+            x = numpy.array([1., 2., 3., 4., 5., 6.]).astype(
+                numpy.float64).reshape((2, 3))
+            axis = numpy.array([0]).astype(numpy.int32)
+            exp = numpy.array([1., 2., 3., 5., 7., 9.]).astype(
+                numpy.float64).reshape((2, 3))
+            onx = OnnxCumSum('X', 'axis', output_names=['Y'],
+                             op_version=TARGET_OPSET)
+            model_def = onx.to_onnx({'X': x, 'axis': axis},
+                                    outputs=[('Y', DoubleTensorType())],
+                                    target_opset=TARGET_OPSET)
+            got = OnnxInference(model_def).run({'X': x, 'axis': axis})
+            self.assertEqualArray(exp, got['Y'])
+
+        with self.subTest(case="2d axis = 1"):
+            x = numpy.array([1., 2., 3., 4., 5., 6.]).astype(
+                numpy.float64).reshape((2, 3))
+            axis = numpy.array([-1]).astype(numpy.int32)
+            exp = numpy.array([1., 3., 6., 4., 9., 15.]).astype(
+                numpy.float64).reshape((2, 3))
+            onx = OnnxCumSum('X', 'axis', output_names=['Y'],
+                             op_version=TARGET_OPSET)
+            model_def = onx.to_onnx({'X': x, 'axis': axis},
+                                    outputs=[('Y', DoubleTensorType())],
+                                    target_opset=TARGET_OPSET)
+            got = OnnxInference(model_def).run({'X': x, 'axis': axis})
+            self.assertEqualArray(exp, got['Y'])
+
+        with self.subTest(case="no axis"):
+            x = numpy.array([1., 2., 3., 4., 5.]).astype(numpy.float64)
+            axis = numpy.array([0]).astype(numpy.int32)
+            exp = numpy.array([1., 3., 6., 10., 15.]).astype(numpy.float64)
+            try:
+                onx = OnnxCumSum('X', output_names=['Y'],
+                                 op_version=TARGET_OPSET)
+                model_def = onx.to_onnx(
+                    {'X': x}, outputs=[('Y', DoubleTensorType())],
+                    target_opset=TARGET_OPSET)
+                got = OnnxInference(model_def).run({'X': x})
+                self.assertEqualArray(exp, got['Y'])
+            except RuntimeError:
+                pass
+
+        with self.subTest(case="reverse = 1"):
+            x = numpy.array([1., 2., 3., 4., 5.]).astype(numpy.float64)
+            axis = numpy.array([0]).astype(numpy.int32)
+            exp = numpy.array([15., 14., 12., 9., 5.]).astype(numpy.float64)
+            try:
+                onx = OnnxCumSum('X', output_names=['Y'], reverse=1,
+                                 op_version=TARGET_OPSET)
+                model_def = onx.to_onnx(
+                    {'X': x}, outputs=[('Y', DoubleTensorType())],
+                    target_opset=TARGET_OPSET)
+                got = OnnxInference(model_def).run({'X': x})
+                self.assertEqualArray(exp, got['Y'])
+            except RuntimeError:
+                pass
+
+    @wraplog()
+    def test_onnxt_runtime_depth_to_space(self):
+        x = numpy.array(
+            [[[[0., 1., 2.], [3., 4., 5.]],
+              [[9., 10., 11.], [12., 13., 14.]],
+              [[18., 19., 20.], [21., 22., 23.]],
+              [[27., 28., 29.], [30., 31., 32.]],
+              [[36., 37., 38.], [39., 40., 41.]],
+              [[45., 46., 47.], [48., 49., 50.]],
+              [[54., 55., 56.], [57., 58., 59.]],
+              [[63., 64., 65.], [66., 67., 68.]]]]).astype(numpy.float32)
+        y = numpy.array(
+            [[[[0., 18., 1., 19., 2., 20.],
+               [36., 54., 37., 55., 38., 56.],
+               [3., 21., 4., 22., 5., 23.],
+               [39., 57., 40., 58., 41., 59.]],
+              [[9., 27., 10., 28., 11., 29.],
+               [45., 63., 46., 64., 47., 65.],
+               [12., 30., 13., 31., 14., 32.],
+               [48., 66., 49., 67., 50., 68.]]]]).astype(numpy.float32)
+        onx = OnnxDepthToSpace(
+            'X', output_names=['Y'], blocksize=2, mode='DCR',
+            op_version=TARGET_OPSET)
+        model_def = onx.to_onnx({'X': x}, target_opset=TARGET_OPSET)
         oinf = OnnxInference(model_def)
-        got = oinf.run({'X': x.astype(numpy.float64),
-                        'axis': axis})
-        self.assertEqualArray(exp, got['Y'])
-        self.common_expected_shapes_types(
-            oinf, {'X': x.astype(numpy.float64),
-                   'axis': axis},
-            got, OnnxCumSum, model_def)
-
-        python_tested.append(OnnxCumSum)
-        oinfpy = OnnxInference(model_def, runtime="python", inplace=True)
-        validate_python_inference(oinfpy, {'X': x, 'axis': axis})
-
-        # reverse = 1
-        x = numpy.array([1., 2., 3., 4., 5.]).astype(numpy.float64)
-        axis = numpy.array([0]).astype(numpy.int32)
-        exp = numpy.array([15., 14., 12., 9., 5.]).astype(numpy.float64)
-        onx = OnnxCumSum('X', 'axis', output_names=['Y'], reverse=1,
-                         op_version=TARGET_OPSET)
-        model_def = onx.to_onnx({'X': x, 'axis': axis},
-                                outputs=[('Y', DoubleTensorType())],
-                                target_opset=TARGET_OPSET)
-        try:
-            got = OnnxInference(model_def).run({'X': x, 'axis': axis})
-            self.assertEqualArray(exp, got['Y'])
-        except NotImplementedError:
-            pass
-
-        # exclusive = 1
-        x = numpy.array([1., 2., 3., 4., 5.]).astype(numpy.float64)
-        axis = numpy.array([0]).astype(numpy.int32)
-        exp = numpy.array([0., 1., 3., 6., 10.]).astype(numpy.float64)
-        onx = OnnxCumSum('X', 'axis', output_names=['Y'], exclusive=1,
-                         op_version=TARGET_OPSET)
-        model_def = onx.to_onnx({'X': x, 'axis': axis},
-                                outputs=[('Y', DoubleTensorType())],
-                                target_opset=TARGET_OPSET)
-        try:
-            got = OnnxInference(model_def).run({'X': x, 'axis': axis})
-            self.assertEqualArray(exp, got['Y'])
-        except NotImplementedError:
-            pass
-
-        # 2d axis = 0
-        x = numpy.array([1., 2., 3., 4., 5., 6.]).astype(
-            numpy.float64).reshape((2, 3))
-        axis = numpy.array([0]).astype(numpy.int32)
-        exp = numpy.array([1., 2., 3., 5., 7., 9.]).astype(
-            numpy.float64).reshape((2, 3))
-        onx = OnnxCumSum('X', 'axis', output_names=['Y'],
-                         op_version=TARGET_OPSET)
-        model_def = onx.to_onnx({'X': x, 'axis': axis},
-                                outputs=[('Y', DoubleTensorType())],
-                                target_opset=TARGET_OPSET)
-        got = OnnxInference(model_def).run({'X': x, 'axis': axis})
-        self.assertEqualArray(exp, got['Y'])
-
-        # 2d axis = 1
-        x = numpy.array([1., 2., 3., 4., 5., 6.]).astype(
-            numpy.float64).reshape((2, 3))
-        axis = numpy.array([-1]).astype(numpy.int32)
-        exp = numpy.array([1., 3., 6., 4., 9., 15.]).astype(
-            numpy.float64).reshape((2, 3))
-        onx = OnnxCumSum('X', 'axis', output_names=['Y'],
-                         op_version=TARGET_OPSET)
-        model_def = onx.to_onnx({'X': x, 'axis': axis},
-                                outputs=[('Y', DoubleTensorType())],
-                                target_opset=TARGET_OPSET)
-        got = OnnxInference(model_def).run({'X': x, 'axis': axis})
-        self.assertEqualArray(exp, got['Y'])
-
-        # 2d axis = 1, reverse
-        x = numpy.array([1., 2., 3., 4., 5., 6.]).astype(
-            numpy.float64).reshape((2, 3))
-        axis = numpy.array([-1]).astype(numpy.int32)
-        exp = numpy.array([1., 3., 6., 4., 9., 15.]).astype(
-            numpy.float64).reshape((2, 3))
-        onx = OnnxCumSum('X', 'axis', output_names=['Y'], reverse=1,
-                         op_version=TARGET_OPSET)
-        model_def = onx.to_onnx({'X': x, 'axis': axis},
-                                outputs=[('Y', DoubleTensorType())],
-                                target_opset=TARGET_OPSET)
-        try:
-            got = OnnxInference(model_def).run({'X': x, 'axis': axis})
-            self.assertEqualArray(exp, got['Y'])
-        except NotImplementedError:
-            pass
-
-        # no axis
-        x = numpy.array([1., 2., 3., 4., 5.]).astype(numpy.float64)
-        axis = numpy.array([0]).astype(numpy.int32)
-        exp = numpy.array([1., 3., 6., 10., 15.]).astype(numpy.float64)
-        try:
-            onx = OnnxCumSum('X', output_names=['Y'],
-                             op_version=TARGET_OPSET)
-            model_def = onx.to_onnx(
-                {'X': x}, outputs=[('Y', DoubleTensorType())],
-                target_opset=TARGET_OPSET)
-            got = OnnxInference(model_def).run({'X': x})
-            self.assertEqualArray(exp, got['Y'])
-        except RuntimeError:
-            pass
-
-        # reverse = 1
-        x = numpy.array([1., 2., 3., 4., 5.]).astype(numpy.float64)
-        axis = numpy.array([0]).astype(numpy.int32)
-        exp = numpy.array([15., 14., 12., 9., 5.]).astype(numpy.float64)
-        try:
-            onx = OnnxCumSum('X', output_names=['Y'], reverse=1,
-                             op_version=TARGET_OPSET)
-            model_def = onx.to_onnx(
-                {'X': x}, outputs=[('Y', DoubleTensorType())],
-                target_opset=TARGET_OPSET)
-            got = OnnxInference(model_def).run({'X': x})
-            self.assertEqualArray(exp, got['Y'])
-        except RuntimeError:
-            pass
+        got = oinf.run({'X': x})
+        self.assertEqual(list(sorted(got)), ['Y'])
+        self.assertEqualArray(y, got['Y'], decimal=5)
+        python_tested.append(OnnxDepthToSpace)
 
     @wraplog()
     def test_onnxt_runtime_det(self):
@@ -2130,6 +2560,11 @@ class TestOnnxrtPythonRuntime(ExtTestCase):  # pylint: disable=R0904
         oinfpy = OnnxInference(model_def, runtime="python", inplace=True)
         validate_python_inference(oinfpy, {'X': X.astype(numpy.float32),
                                            'Y': Y.astype(numpy.float32)})
+
+    @wraplog()
+    def test_onnxt_runtime_elu(self):
+        self.common_test_onnxt_runtime_unary(
+            OnnxElu, lambda x: numpy.where(x > 0, x, (numpy.exp(x) - 1)))
 
     @ignore_warnings(category=(RuntimeWarning, DeprecationWarning))
     @wraplog()
@@ -2328,8 +2763,7 @@ class TestOnnxrtPythonRuntime(ExtTestCase):  # pylint: disable=R0904
             oinf = OnnxInference(model_def, runtime=runtime)
         except RuntimeError as e:
             raise RuntimeError(
-                "Unable to instantiate (runtime='{}')\n{}".format(
-                    runtime, model_def)) from e
+                f"Unable to instantiate (runtime='{runtime}')\n{model_def}") from e
         got = oinf.run({'X': X.astype(numpy.float32)})
         self.assertEqual(list(sorted(got)), ['Y'])
         self.assertEqualArray(numpy.dot(X, idi) + cst, got['Y'], decimal=5)
@@ -2344,8 +2778,7 @@ class TestOnnxrtPythonRuntime(ExtTestCase):  # pylint: disable=R0904
             oinf = OnnxInference(model_def, runtime=runtime)
         except RuntimeError as e:
             raise RuntimeError(
-                "Unable to instantiate (runtime='{}')\n{}".format(
-                    runtime, model_def)) from e
+                f"Unable to instantiate (runtime='{runtime}')\n{model_def}") from e
         got = oinf.run({'X': X.astype(numpy.float32)})
         self.assertEqual(list(sorted(got)), ['Y'])
         self.assertEqualArray(numpy.dot(X.T, idi.T) + cst, got['Y'], decimal=5)
@@ -2435,6 +2868,42 @@ class TestOnnxrtPythonRuntime(ExtTestCase):  # pylint: disable=R0904
 
         python_tested.append(OnnxGlobalAveragePool)
 
+    @wraplog()
+    def test_onnxt_runtime_global_max_pool(self):
+        x = x = numpy.random.randn(1, 3, 5, 5).astype(numpy.float32)
+        y = _global_max_pool(x).astype(numpy.float32)
+
+        onx = OnnxGlobalMaxPool(
+            'X', output_names=['Y'],
+            op_version=TARGET_OPSET)
+        model_def = onx.to_onnx({'X': x.astype(numpy.float32)},
+                                target_opset=TARGET_OPSET)
+        self._check_shape_inference(OnnxGlobalMaxPool, model_def)
+        oinf = OnnxInference(model_def)
+        got = oinf.run({'X': x})
+        self.assertEqual(list(sorted(got)), ['Y'])
+        self.assertEqualArray(y, got['Y'])
+        self.common_expected_shapes_types(
+            oinf, {'X': x}, got, OnnxGlobalMaxPool, model_def)
+
+        x = numpy.array([[[
+            [1, 2, 3],
+            [4, 5, 6],
+            [7, 8, 9],
+        ]]]).astype(numpy.float32)
+        y = numpy.array([[[[9]]]]).astype(numpy.float32)
+        onx = OnnxGlobalMaxPool(
+            'X', output_names=['Y'],
+            op_version=TARGET_OPSET)
+        model_def = onx.to_onnx({'X': x.astype(numpy.float32)},
+                                target_opset=TARGET_OPSET)
+        oinf = OnnxInference(model_def)
+        got = oinf.run({'X': x})
+        self.assertEqual(list(sorted(got)), ['Y'])
+        self.assertEqualArray(y, got['Y'])
+
+        python_tested.append(OnnxGlobalMaxPool)
+
     def test_onnxt_runtime_greater(self):
         self.common_test_onnxt_runtime_binary(OnnxGreater, numpy.greater)
 
@@ -2444,12 +2913,188 @@ class TestOnnxrtPythonRuntime(ExtTestCase):  # pylint: disable=R0904
             OnnxGreaterOrEqual, numpy.greater_equal)
 
     @wraplog()
+    def test_onnxt_runtime_grid_sample(self):
+
+        def _make_model(node, opset=15):
+            ginputs = [
+                onnx.helper.make_tensor_value_info(name, TensorProto.FLOAT, [])
+                for i, name in enumerate(node.input)]
+            goutputs = [
+                onnx.helper.make_tensor_value_info(o, TensorProto.FLOAT, [])
+                for o in node.output]
+            model_def = onnx.helper.make_model(
+                opset_imports=[onnx.helper.make_operatorsetid('', opset)],
+                graph=onnx.helper.make_graph(
+                    name='test_grid_sample',
+                    inputs=ginputs, outputs=goutputs,
+                    nodes=[node]))
+            return model_def
+
+        node = onnx.helper.make_node(
+            'GridSample',
+            inputs=['X', 'Grid'],
+            outputs=['Y'],
+            mode='bilinear',
+            padding_mode='zeros',
+            align_corners=0)
+        X = numpy.array([[[[0., 1., 2., 3.],
+                           [4., 5., 6., 7.],
+                           [8., 9., 10., 11.],
+                           [12., 13., 14., 15.]]]],
+                        dtype=numpy.float32)
+        Grid = numpy.array([[[[-1.0000, -1.0000],
+                              [-0.6000, -1.0000],
+                              [-0.2000, -1.0000],
+                              [0.2000, -1.0000],
+                              [0.6000, -1.0000],
+                              [1.0000, -1.0000]],
+                             [[-1.0000, -0.6000],
+                              [-0.6000, -0.6000],
+                              [-0.2000, -0.6000],
+                              [0.2000, -0.6000],
+                              [0.6000, -0.6000],
+                              [1.0000, -0.6000]],
+                             [[-1.0000, -0.2000],
+                              [-0.6000, -0.2000],
+                              [-0.2000, -0.2000],
+                              [0.2000, -0.2000],
+                              [0.6000, -0.2000],
+                              [1.0000, -0.2000]],
+                             [[-1.0000, 0.2000],
+                              [-0.6000, 0.2000],
+                              [-0.2000, 0.2000],
+                              [0.2000, 0.2000],
+                              [0.6000, 0.2000],
+                              [1.0000, 0.2000]],
+                             [[-1.0000, 0.6000],
+                              [-0.6000, 0.6000],
+                              [-0.2000, 0.6000],
+                              [0.2000, 0.6000],
+                              [0.6000, 0.6000],
+                              [1.0000, 0.6000]],
+                             [[-1.0000, 1.0000],
+                              [-0.6000, 1.0000],
+                              [-0.2000, 1.0000],
+                              [0.2000, 1.0000],
+                              [0.6000, 1.0000],
+                              [1.0000, 1.0000]]]],
+                           dtype=numpy.float32)
+        Y = numpy.array([[[[0.0000, 0.1500, 0.5500, 0.9500, 1.3500, 0.7500],
+                           [0.6000, 1.5000, 2.3000, 3.1000, 3.9000, 2.1000],
+                           [2.2000, 4.7000, 5.5000, 6.3000, 7.1000, 3.7000],
+                           [3.8000, 7.9000, 8.7000, 9.5000, 10.3000, 5.3000],
+                           [5.4000, 11.1000, 11.9000, 12.7000, 13.5000, 6.9000],
+                           [3.0000, 6.1500, 6.5500, 6.9500, 7.3500, 3.7500]]]],
+                        dtype=numpy.float32)
+
+        model_def = _make_model(node)
+        oinf = OnnxInference(model_def)
+
+        got = oinf.run({'X': X, 'Grid': Grid})
+        self.assertEqual(len(got), 1)
+        self.assertEqualArray(Y, got['Y'], decimal=5)
+        python_tested.append(OnnxGridSample)
+
+    @wraplog()
+    def test_onnxt_runtime_gru_default(self):
+        input_size = 2
+        hidden_size = 5
+        weight_scale = 0.1
+        number_of_gates = 3
+
+        X = numpy.array([[[1., 2.], [3., 4.], [5., 6.]]]).astype(numpy.float32)
+        W = (weight_scale * numpy.ones((1, number_of_gates * hidden_size, input_size))).astype(numpy.float32)
+        R = (weight_scale * numpy.ones((1, number_of_gates * hidden_size, hidden_size))).astype(numpy.float32)
+
+        gru = GRU_Helper(X=X, W=W, R=R)
+        _, Y_h = gru.step()
+
+        onx = OnnxGRU('X', 'W', 'R', output_names=['Y', 'Y_h'],
+                      op_version=TARGET_OPSET,
+                      hidden_size=hidden_size)
+        model_def = onx.to_onnx(
+            {'X': X, 'W': W, 'R': R},
+            outputs=[('Y', FloatTensorType()),
+                     ('Y_h', FloatTensorType())],
+            target_opset=TARGET_OPSET)
+
+        oinf = OnnxInference(model_def)
+        got = oinf.run({'X': X, 'W': W, 'R': R})
+        self.assertEqualArray(Y_h, got['Y_h'])
+        python_tested.append(OnnxGRU)
+
+    def test_onnxt_runtime_hard_sigmoid(self):
+        self.common_test_onnxt_runtime_unary(
+            OnnxHardSigmoid, lambda x: numpy.maximum(
+                0, numpy.minimum(1, x * 0.2 + 0.5)))
+
+    @wraplog()
+    def test_onnxt_runtime_hardmax(self):
+        def hardmax(x, axis=-1):
+            x_argmax = numpy.argmax(x, axis=axis)
+            y = numpy.zeros_like(x)
+            numpy.put_along_axis(y, numpy.expand_dims(x_argmax, axis=axis),
+                                 1, axis=axis)
+            return y
+
+        self.common_test_onnxt_runtime_unary(OnnxHardmax, hardmax)
+
+    @wraplog()
+    def test_onnxt_runtime_hardswish(self):
+
+        def hardswish(x):
+            alfa = 1. / 6
+            beta = 0.5
+            return x * numpy.maximum(0, numpy.minimum(1, alfa * x + beta))
+
+        self.common_test_onnxt_runtime_unary(OnnxHardSwish, hardswish)
+
+    @wraplog()
     def test_onnxt_runtime_identity(self):
         self.common_test_onnxt_runtime_unary(OnnxIdentity, lambda x: x)
 
     @wraplog()
     def test_onnxt_runtime_isnan(self):
         self.common_test_onnxt_runtime_unary(OnnxIsNaN, numpy.isnan)
+
+    @wraplog()
+    def test_onnxt_runtime_isinf(self):
+        self.common_test_onnxt_runtime_unary(OnnxIsInf, numpy.isinf)
+
+    @wraplog()
+    def test_onnxt_runtime_isinf_cases(self):
+        X = numpy.array([1, numpy.inf, -numpy.inf], dtype=numpy.float32)
+
+        onx = OnnxIsInf('X', output_names=['Y'], op_version=TARGET_OPSET)
+        model_def = onx.to_onnx({'X': X}, target_opset=TARGET_OPSET)
+        oinf = OnnxInference(model_def)
+        got = oinf.run({'X': X})
+        exp = numpy.array([False, True, True])
+        self.assertEqualArray(got['Y'], exp)
+
+        onx = OnnxIsInf('X', output_names=['Y'], op_version=TARGET_OPSET,
+                        detect_positive=0)
+        model_def = onx.to_onnx({'X': X}, target_opset=TARGET_OPSET)
+        oinf = OnnxInference(model_def)
+        got = oinf.run({'X': X})
+        exp = numpy.array([False, False, True])
+        self.assertEqualArray(got['Y'], exp)
+
+        onx = OnnxIsInf('X', output_names=['Y'], op_version=TARGET_OPSET,
+                        detect_negative=0)
+        model_def = onx.to_onnx({'X': X}, target_opset=TARGET_OPSET)
+        oinf = OnnxInference(model_def)
+        got = oinf.run({'X': X})
+        exp = numpy.array([False, True, False])
+        self.assertEqualArray(got['Y'], exp)
+
+        onx = OnnxIsInf('X', output_names=['Y'], op_version=TARGET_OPSET,
+                        detect_positive=0, detect_negative=0)
+        model_def = onx.to_onnx({'X': X}, target_opset=TARGET_OPSET)
+        oinf = OnnxInference(model_def)
+        got = oinf.run({'X': X})
+        exp = numpy.array([False, False, False])
+        self.assertEqualArray(got['Y'], exp)
 
     @wraplog()
     def test_onnxt_runtime_leaky_relu(self):
@@ -2510,6 +3155,75 @@ class TestOnnxrtPythonRuntime(ExtTestCase):  # pylint: disable=R0904
                            [0.9486833, -0.8944272]], dtype=numpy.float32)
         self.assertEqualArray(got['Y'], exp)
         python_tested.append(OnnxLpNormalization)
+
+    @wraplog()
+    def test_onnxt_runtime_lrn(self):
+
+        def _make_model(node, opset=15):
+            ginputs = [
+                onnx.helper.make_tensor_value_info(
+                    name, (TensorProto.FLOAT if i % 2 == 0 else TensorProto.INT64), [])
+                for i, name in enumerate(node.input)]
+            goutputs = [
+                onnx.helper.make_tensor_value_info(o, TensorProto.FLOAT, [])
+                for o in node.output]
+            model_def = onnx.helper.make_model(
+                opset_imports=[onnx.helper.make_operatorsetid('', opset)],
+                graph=onnx.helper.make_graph(
+                    name='test_lrn',
+                    inputs=ginputs, outputs=goutputs,
+                    nodes=[node]))
+            return model_def
+
+        alpha = 0.0002
+        beta = 0.5
+        bias = 2.0
+        nsize = 3
+        node = onnx.helper.make_node(
+            'LRN', inputs=['x'], outputs=['y'],
+            alpha=alpha, beta=beta, bias=bias, size=nsize)
+        model_def = _make_model(node)
+        oinf = OnnxInference(model_def)
+
+        x = numpy.random.randn(5, 5, 5, 5).astype(numpy.float32)
+        square_sum = numpy.zeros((5, 5, 5, 5)).astype(numpy.float32)
+        for n, c, h, w in numpy.ndindex(x.shape):
+            square_sum[n, c, h, w] = sum(
+                x[n, max(0, c - int(math.floor((nsize - 1) / 2))):min(5, c + int(math.ceil((nsize - 1) / 2)) + 1), h, w] ** 2)
+        y = x / ((bias + (alpha / nsize) * square_sum) ** beta)
+
+        got = oinf.run({'x': x})
+        self.assertEqual(len(got), 1)
+        self.assertEqualArray(y, got['y'])
+        python_tested.append(OnnxLRN)
+
+    @wraplog()
+    def test_onnxt_runtime_lstm_default(self):
+        input_size = 2
+        hidden_size = 3
+        weight_scale = 0.1
+        number_of_gates = 4
+
+        X = numpy.array([[[1., 2.], [3., 4.], [5., 6.]]]).astype(numpy.float32)
+        W = weight_scale * numpy.ones((1, number_of_gates * hidden_size, input_size)).astype(numpy.float32)
+        R = weight_scale * numpy.ones((1, number_of_gates * hidden_size, hidden_size)).astype(numpy.float32)
+
+        gru = LSTM_Helper(X=X, W=W, R=R)
+        _, Y_h = gru.step()
+
+        onx = OnnxLSTM('X', 'W', 'R', output_names=['Y', 'Y_h'],
+                       op_version=TARGET_OPSET,
+                       hidden_size=hidden_size)
+        model_def = onx.to_onnx(
+            {'X': X, 'W': W, 'R': R},
+            outputs=[('Y', FloatTensorType()),
+                     ('Y_h', FloatTensorType())],
+            target_opset=TARGET_OPSET)
+
+        oinf = OnnxInference(model_def)
+        got = oinf.run({'X': X, 'W': W, 'R': R})
+        self.assertEqualArray(Y_h, got['Y_h'])
+        python_tested.append(OnnxLSTM)
 
     @wraplog()
     def test_onnxt_runtime_matmul(self):
@@ -2719,8 +3433,102 @@ class TestOnnxrtPythonRuntime(ExtTestCase):  # pylint: disable=R0904
         self.common_test_onnxt_runtime_unary(OnnxNeg, numpy.negative)
 
     @wraplog()
+    def test_negative_log_likelihood_loss(self):
+
+        def _make_model(node, opset=15):
+            ginputs = [
+                onnx.helper.make_tensor_value_info(
+                    name, (TensorProto.FLOAT if i % 2 == 0 else TensorProto.INT64), [])
+                for i, name in enumerate(node.input)]
+            goutputs = [
+                onnx.helper.make_tensor_value_info(o, TensorProto.FLOAT, [])
+                for o in node.output]
+            model_def = onnx.helper.make_model(
+                opset_imports=[onnx.helper.make_operatorsetid('', opset)],
+                graph=onnx.helper.make_graph(
+                    name='test_softmax_cross_entropy_loss',
+                    inputs=ginputs, outputs=goutputs,
+                    nodes=[node]))
+            return model_def
+
+        node = onnx.helper.make_node(
+            'NegativeLogLikelihoodLoss', inputs=['x', 'target'], outputs=['z'],
+            reduction='mean')
+        model_def = _make_model(node)
+
+        N, C = 3, 5
+        numpy.random.seed(0)
+        x = numpy.random.rand(N, C).astype(numpy.float32)
+        target = numpy.random.randint(0, high=C, size=(N, )).astype(numpy.int64)
+
+        outputs = compute_negative_log_likelihood_loss(x, target, weight=None, reduction='mean')
+        outputs_2 = _compute_negative_log_likelihood_loss(x, target, weight=None, reduction=b'mean')
+        self.assertEqualArray(outputs, outputs_2)
+
+        oinf = OnnxInference(model_def)
+        got = oinf.run({'x': x, 'target': target})
+        self.assertEqual(len(got), 1)
+        self.assertEqualArray(outputs, got['z'])
+        python_tested.append(OnnxNegativeLogLikelihoodLoss)
+
+    @wraplog()
+    def test_onnxt_runtime_non_max_suppression(self):
+        boxes = numpy.array([[
+            [0.0, 0.0, 1.0, 1.0],
+            [0.0, 0.1, 1.0, 1.1],
+            [0.0, -0.1, 1.0, 0.9],
+            [0.0, 10.0, 1.0, 11.0],
+            [0.0, 10.1, 1.0, 11.1],
+            [0.0, 100.0, 1.0, 101.0]
+        ]]).astype(numpy.float32)
+        scores = numpy.array([[[0.9, 0.75, 0.6, 0.95, 0.5, 0.3]]]).astype(numpy.float32)
+        max_output_boxes_per_class = numpy.array([3]).astype(numpy.int64)
+        iou_threshold = numpy.array([0.5]).astype(numpy.float32)
+        score_threshold = numpy.array([0.0]).astype(numpy.float32)
+        selected_indices = numpy.array([[0, 0, 3], [0, 0, 0], [0, 0, 5]]).astype(numpy.int64)
+
+        inputs = {'boxes': boxes, 'scores': scores,
+                  'max_output_boxes_per_class': max_output_boxes_per_class,
+                  'iou_threshold': iou_threshold,
+                  'score_threshold': score_threshold}
+        onx = OnnxNonMaxSuppression(
+            'boxes', 'scores', 'max_output_boxes_per_class',
+            'iou_threshold', 'score_threshold',
+            output_names=['Y'],
+            op_version=TARGET_OPSET)
+        model_def = onx.to_onnx(inputs, target_opset=TARGET_OPSET)
+        oinf = OnnxInference(model_def)
+        got = oinf.run(inputs)
+        self.assertEqualArray(selected_indices, got['Y'])
+        python_tested.append(OnnxNonMaxSuppression)
+
+    @wraplog()
     def test_onnxt_runtime_not(self):
-        self.common_test_onnxt_runtime_unary(OnnxNot, numpy.logical_not)
+        self.common_test_onnxt_runtime_unary(OnnxNot, numpy.logical_not, bool_type=True)
+
+    @wraplog()
+    def test_onnxt_runtime_one_hot(self):
+        on_value = 5
+        off_value = 2
+        output_type = numpy.int32
+
+        indices = numpy.array([0, 7, 8], dtype=numpy.int64)
+        depth = numpy.float32(12)
+        values = numpy.array([off_value, on_value], dtype=output_type)
+        y = one_hot(indices, depth, dtype=output_type)
+        expected = y * (on_value - off_value) + off_value
+
+        onx = OnnxOneHot(
+            'indices', 'depth', 'values', output_names=['Y'],
+            op_version=TARGET_OPSET)
+        model_def = onx.to_onnx(
+            {'indices': indices, 'depth': depth, 'values': values},
+            target_opset=TARGET_OPSET)
+
+        oinf = OnnxInference(model_def)
+        got = oinf.run({'indices': indices, 'depth': depth, 'values': values})
+        self.assertEqualArray(expected, got['Y'])
+        python_tested.append(OnnxOneHot)
 
     @wraplog()
     def test_onnxt_runtime_or(self):
@@ -2815,6 +3623,22 @@ class TestOnnxrtPythonRuntime(ExtTestCase):  # pylint: disable=R0904
     @wraplog()
     def test_onnxt_runtime_pow(self):
         self.common_test_onnxt_runtime_binary(OnnxPow, numpy.power)
+
+    @wraplog()
+    def test_onnxt_runtime_prelu(self):
+        x = numpy.random.randn(1, 3, 4, 5).astype(numpy.float32)
+        slope = numpy.array([3]).astype(numpy.float32)
+        onx = OnnxPRelu(
+            'x', 'slope', output_names=['Y'],
+            op_version=TARGET_OPSET)
+        model_def = onx.to_onnx({'x': x, 'slope': slope},
+                                outputs={'Y': x},
+                                target_opset=TARGET_OPSET)
+        oinf = OnnxInference(model_def)
+        exp = numpy.where(x > 0, x, x * slope)
+        got = oinf.run({'x': x, 'slope': slope})
+        self.assertEqualArray(exp, got['Y'])
+        python_tested.append(OnnxPRelu)
 
     @wraplog()
     def test_onnxt_runtime_qlinear_conv(self):
@@ -3192,6 +4016,24 @@ class TestOnnxrtPythonRuntime(ExtTestCase):  # pylint: disable=R0904
         self.assertEqualArray(reduce_l2(X, axis=1, keepdims=1).ravel(),
                               got['Y'].ravel())
         python_tested.append(OnnxReduceL2)
+
+    @wraplog()
+    def test_onnxt_runtime_reduce_log_sum(self):
+        X = numpy.array([[2, 1], [4, 1]], dtype=float)
+
+        onx = OnnxReduceLogSum('X', output_names=['Y'], keepdims=0,
+                               op_version=TARGET_OPSET)
+        model_def = onx.to_onnx({'X': X.astype(numpy.float32)},
+                                target_opset=TARGET_OPSET)
+        oinf = OnnxInference(model_def)
+        got = oinf.run({'X': X.astype(numpy.float32)})
+        self.assertEqual(list(sorted(got)), ['Y'])
+        res = numpy.log(numpy.sum(X))
+        self.assertEqualArray(res, got['Y'], decimal=5)
+        self.common_expected_shapes_types(
+            oinf, {'X': X.astype(numpy.float32)}, got,
+            OnnxReduceLogSum, model_def)
+        python_tested.append(OnnxReduceLogSum)
 
     @wraplog()
     def test_onnxt_runtime_reduce_log_sum_exp(self):
@@ -3587,10 +4429,6 @@ class TestOnnxrtPythonRuntime(ExtTestCase):  # pylint: disable=R0904
         self.common_test_onnxt_runtime_unary(
             OnnxRelu, lambda x: numpy.maximum(x, 0))
 
-    @wraplog()
-    def test_onnxt_runtime_round(self):
-        self.common_test_onnxt_runtime_unary(OnnxRound, numpy.round)
-
     @ignore_warnings(category=(RuntimeWarning, DeprecationWarning))
     @wraplog()
     def test_onnxt_runtime_reshape(self):
@@ -3610,6 +4448,112 @@ class TestOnnxrtPythonRuntime(ExtTestCase):  # pylint: disable=R0904
             oinf, {'X': X.astype(numpy.float32)}, got,
             OnnxReshape, model_def)
         python_tested.append(OnnxReshape)
+
+    @wraplog()
+    def test_onnxt_runtime_resize(self):
+        from mlprodict.npy.xop import loadop
+        OnnxResize = loadop('Resize')
+
+        with self.subTest(example='resize_tf_crop_and_resize'):
+            data = numpy.array([[[[1, 2, 3, 4],
+                                  [5, 6, 7, 8],
+                                  [9, 10, 11, 12],
+                                  [13, 14, 15, 16]]]],
+                               dtype=numpy.float32)
+
+            roi = numpy.array([0, 0, 0.4, 0.6, 1, 1, 0.6, 0.8],
+                              dtype=numpy.float32)
+            sizes = numpy.array([1, 1, 3, 3], dtype=numpy.int64)
+
+            expected = interpolate_nd(
+                data, linear_coeffs, output_size=sizes, roi=roi,
+                coordinate_transformation_mode='tf_crop_and_resize').astype(
+                    numpy.float32)
+            check = _interpolate_nd(
+                data, _linear_coeffs, output_size=sizes, roi=roi,
+                coordinate_transformation_mode=b'tf_crop_and_resize').astype(
+                    numpy.float32)
+            self.assertEqualArray(expected, check)
+
+            onx = OnnxResize(
+                'X', 'roi', '', 'sizes', mode='linear', output_names=['Y'],
+                coordinate_transformation_mode='tf_crop_and_resize',
+                op_version=TARGET_OPSET)
+            model_def = onx.to_onnx(
+                {'X': data, 'roi': roi, 'sizes': sizes},
+                target_opset=TARGET_OPSET)
+            oinf = OnnxInference(model_def)
+            got = oinf.run({'X': data, 'roi': roi, 'sizes': sizes})
+            self.assertEqualArray(expected, got['Y'])
+
+        with self.subTest(example='resize_upsample_scales_nearest'):
+            data = numpy.array([[[[1, 2], [3, 4]]]], dtype=numpy.float32)
+            scales = numpy.array([1.0, 1.0, 2.0, 3.0], dtype=numpy.float32)
+            expected = interpolate_nd(
+                data, nearest_coeffs, scale_factors=scales).astype(numpy.float32)
+            onx = OnnxResize(
+                'X', '', 'scales', mode='nearest', output_names=['Y'],
+                op_version=TARGET_OPSET)
+            model_def = onx.to_onnx(
+                {'X': data, 'scales': scales}, target_opset=TARGET_OPSET)
+            oinf = OnnxInference(model_def)
+            got = oinf.run({'X': data, 'scales': scales})
+            self.assertEqualArray(expected, got['Y'])
+
+        python_tested.append(OnnxResize)
+
+    @wraplog()
+    def test_onnxt_runtime_roi_align(self):
+
+        def _make_model(node, opset=15):
+            ginputs = [
+                onnx.helper.make_tensor_value_info(name, TensorProto.FLOAT, [])
+                for i, name in enumerate(node.input)]
+            goutputs = [
+                onnx.helper.make_tensor_value_info(o, TensorProto.FLOAT, [])
+                for o in node.output]
+            model_def = onnx.helper.make_model(
+                opset_imports=[onnx.helper.make_operatorsetid('', opset)],
+                graph=onnx.helper.make_graph(
+                    name='test_grid_sample',
+                    inputs=ginputs, outputs=goutputs,
+                    nodes=[node]))
+            return model_def
+
+        node = onnx.helper.make_node(
+            "RoiAlign", inputs=["X", "rois", "batch_indices"],
+            outputs=["Y"], spatial_scale=1.0, output_height=5,
+            output_width=5, sampling_ratio=2,
+            coordinate_transformation_mode="output_half_pixel")
+        X, batch_indices, rois = get_roi_align_input_values()
+        # (num_rois, C, output_height, output_width)
+        Y = numpy.array([[[[0.4664, 0.4466, 0.3405, 0.5688, 0.6068],
+                           [0.3714, 0.4296, 0.3835, 0.5562, 0.3510],
+                           [0.2768, 0.4883, 0.5222, 0.5528, 0.4171],
+                           [0.4713, 0.4844, 0.6904, 0.4920, 0.8774],
+                           [0.6239, 0.7125, 0.6289, 0.3355, 0.3495]]],
+                         [[[0.3022, 0.4305, 0.4696, 0.3978, 0.5423],
+                           [0.3656, 0.7050, 0.5165, 0.3172, 0.7015],
+                           [0.2912, 0.5059, 0.6476, 0.6235, 0.8299],
+                           [0.5916, 0.7389, 0.7048, 0.8372, 0.8893],
+                           [0.6227, 0.6153, 0.7097, 0.6154, 0.4585]]],
+                         [[[0.2384, 0.3379, 0.3717, 0.6100, 0.7601],
+                           [0.3767, 0.3785, 0.7147, 0.9243, 0.9727],
+                           [0.5749, 0.5826, 0.5709, 0.7619, 0.8770],
+                           [0.5355, 0.2566, 0.2141, 0.2796, 0.3600],
+                           [0.4365, 0.3504, 0.2887, 0.3661, 0.2349]]]],
+                        dtype=numpy.float32)
+        model_def = _make_model(node)
+        oinf = OnnxInference(model_def)
+
+        got = oinf.run({'X': X, 'rois': rois, 'batch_indices': batch_indices})
+        self.assertEqual(len(got), 1)
+        self.assertEqualArray(Y, got['Y'], decimal=3)
+        python_tested.append(OnnxRoiAlign)
+
+    @wraplog()
+    def test_onnxt_runtime_round(self):
+        self.common_test_onnxt_runtime_unary(OnnxRound, numpy.round)
 
     @wraplog()
     def test_onnxt_runtime_scatter_elements1(self):
@@ -3669,6 +4613,43 @@ class TestOnnxrtPythonRuntime(ExtTestCase):  # pylint: disable=R0904
                 self.assertEqualArray(y, got['Y'])
 
     @wraplog()
+    def test_onnxt_runtime_scatter_nd(self):
+        data = numpy.array(
+            [[[1, 2, 3, 4], [5, 6, 7, 8], [8, 7, 6, 5], [4, 3, 2, 1]],
+             [[1, 2, 3, 4], [5, 6, 7, 8], [8, 7, 6, 5], [4, 3, 2, 1]],
+             [[8, 7, 6, 5], [4, 3, 2, 1], [1, 2, 3, 4], [5, 6, 7, 8]],
+             [[8, 7, 6, 5], [4, 3, 2, 1], [1, 2, 3, 4], [5, 6, 7, 8]]],
+            dtype=numpy.float32)
+        indices = numpy.array([[0], [2]], dtype=numpy.int64)
+        updates = numpy.array(
+            [[[5, 5, 5, 5], [6, 6, 6, 6], [7, 7, 7, 7], [8, 8, 8, 8]],
+             [[1, 1, 1, 1], [2, 2, 2, 2], [3, 3, 3, 3], [4, 4, 4, 4]]],
+            dtype=numpy.float32)
+        output = scatter_nd_impl(data, indices, updates)
+        for opset in [11, TARGET_OPSET]:
+            if opset > TARGET_OPSET:
+                continue
+            with self.subTest(opset=opset):
+                onx = OnnxScatterND(
+                    'X', 'I', 'U', output_names=['Y'], op_version=opset)
+                model_def = onx.to_onnx(
+                    {'X': data, 'I': indices, 'U': updates},
+                    target_opset=opset)
+                got = OnnxInference(model_def).run(
+                    {'X': data, 'I': indices, 'U': updates})
+                self.assertEqualArray(output, got['Y'])
+
+        python_tested.append(OnnxScatterND)
+
+    @wraplog()
+    def test_onnxt_runtime_selu(self):
+        alpha = 1.67326319217681884765625
+        gamma = 1.05070102214813232421875
+        self.common_test_onnxt_runtime_unary(
+            OnnxSelu, lambda x: numpy.where(
+                x > 0, x, numpy.exp(x) * alpha - alpha) * gamma)
+
+    @wraplog()
     def test_onnxt_runtime_sequence_at(self):
         x = numpy.random.randn(20, 2).astype(  # pylint: disable=E1101
             numpy.float32)  # pylint: disable=E1101
@@ -3721,6 +4702,16 @@ class TestOnnxrtPythonRuntime(ExtTestCase):  # pylint: disable=R0904
         self.common_expected_shapes_types(
             oinf, {'X': x}, got, OnnxShape, model_def)
         python_tested.append(OnnxShape)
+
+    @wraplog()
+    def test_onnxt_runtime_shrink(self):
+
+        def loc(x, bias=0, lambd=0.5):
+            return numpy.where(
+                x < -lambd, x + bias,
+                numpy.where(x > lambd, x - bias, 0))
+
+        self.common_test_onnxt_runtime_unary(OnnxShrink, loc)
 
     @wraplog()
     def test_onnxt_runtime_sigmoid(self):
@@ -3860,6 +4851,87 @@ class TestOnnxrtPythonRuntime(ExtTestCase):  # pylint: disable=R0904
                 self.assertEqualArray(y, got['Y'])
 
     @wraplog()
+    def test_onnxt_runtime_space_to_depth(self):
+        x = numpy.array(
+            [[[[0, 6, 1, 7, 2, 8],
+               [12, 18, 13, 19, 14, 20],
+               [3, 9, 4, 10, 5, 11],
+               [15, 21, 16, 22, 17, 23]]]]).astype(numpy.float32)
+        y = numpy.array(
+            [[[[0, 1, 2], [3, 4, 5]],
+              [[6, 7, 8], [9, 10, 11]],
+              [[12, 13, 14], [15, 16, 17]],
+              [[18, 19, 20], [21, 22, 23]]]]).astype(numpy.float32)
+        onx = OnnxSpaceToDepth(
+            'X', output_names=['Y'], blocksize=2,
+            op_version=TARGET_OPSET)
+        model_def = onx.to_onnx({'X': x}, target_opset=TARGET_OPSET)
+        oinf = OnnxInference(model_def)
+        got = oinf.run({'X': x})
+        self.assertEqual(list(sorted(got)), ['Y'])
+        self.assertEqualArray(y, got['Y'], decimal=5)
+        python_tested.append(OnnxSpaceToDepth)
+
+    @wraplog()
+    def test_onnxt_runtime_rnn_default(self):
+        input_size = 2
+        hidden_size = 4
+        weight_scale = 0.1
+
+        X = numpy.array([[[1., 2.], [3., 4.], [5., 6.]]]).astype(numpy.float32)
+        W = (weight_scale * numpy.ones((1, hidden_size, input_size))).astype(numpy.float32)
+        R = (weight_scale * numpy.ones((1, hidden_size, hidden_size))).astype(numpy.float32)
+
+        rnn = RNN_Helper(X=X, W=W, R=R)
+        _, Y_h = rnn.step()
+
+        onx = OnnxRNN('X', 'W', 'R', output_names=['Y', 'Y_h'],
+                      op_version=TARGET_OPSET,
+                      hidden_size=hidden_size)
+        model_def = onx.to_onnx(
+            {'X': X, 'W': W, 'R': R},
+            outputs=[('Y', FloatTensorType()),
+                     ('Y_h', FloatTensorType())],
+            target_opset=TARGET_OPSET)
+
+        oinf = OnnxInference(model_def)
+        got = oinf.run({'X': X, 'W': W, 'R': R})
+        self.assertEqualArray(Y_h, got['Y_h'])
+        python_tested.append(OnnxRNN)
+
+    @wraplog()
+    def test_onnxt_runtime_rnn_batchwise(self):
+        input_size = 2
+        hidden_size = 4
+        weight_scale = 0.5
+        layout = 1
+
+        X = numpy.array([[[1., 2.], [3., 4.], [5., 6.]]]).astype(numpy.float32)
+        W = (weight_scale * numpy.ones((1, hidden_size, input_size))).astype(numpy.float32)
+        R = (weight_scale * numpy.ones((1, hidden_size, hidden_size))).astype(numpy.float32)
+
+        rnn = RNN_Helper(X=X, W=W, R=R, layout=layout)
+        try:
+            Y, Y_h = rnn.step()
+        except ValueError:
+            # Unexpected error.
+            return
+
+        onx = OnnxRNN('X', 'W', 'R', output_names=['Y', 'Y_h'],
+                      op_version=TARGET_OPSET,
+                      hidden_size=hidden_size, layout=layout)
+        model_def = onx.to_onnx(
+            {'X': X, 'W': W, 'R': R},
+            outputs=[('Y', FloatTensorType()),
+                     ('Y_h', FloatTensorType())],
+            target_opset=TARGET_OPSET)
+
+        oinf = OnnxInference(model_def)
+        got = oinf.run({'X': X, 'W': W, 'R': R})
+        self.assertEqualArray(Y_h, got['Y_h'])
+        self.assertEqualArray(Y, got['Y'])
+
+    @wraplog()
     def test_onnxt_runtime_split(self):
         # opset=13, 14, ...
         for opset in [10, 11, 12, 13, 14, 15, TARGET_OPSET]:
@@ -3947,6 +5019,103 @@ class TestOnnxrtPythonRuntime(ExtTestCase):  # pylint: disable=R0904
     @wraplog()
     def test_onnxt_runtime_softmax(self):
         self.common_test_onnxt_runtime_unary(OnnxSoftmax, softmax)
+
+    @wraplog()
+    def test_softmax_cross_entropy_loss(self):
+
+        def _make_model(node, opset=15):
+            ginputs = [
+                onnx.helper.make_tensor_value_info(
+                    name, (TensorProto.FLOAT if i % 2 == 0 else TensorProto.INT64), [])
+                for i, name in enumerate(node.input)]
+            goutputs = [
+                onnx.helper.make_tensor_value_info(o, TensorProto.FLOAT, [])
+                for o in node.output]
+            model_def = onnx.helper.make_model(
+                opset_imports=[onnx.helper.make_operatorsetid('', opset)],
+                graph=onnx.helper.make_graph(
+                    name='test_softmax_cross_entropy_loss',
+                    inputs=ginputs, outputs=goutputs,
+                    nodes=[node]))
+            return model_def
+
+        reduction = 'mean'
+        ignore_index = numpy.int64(-1)
+        node = onnx.helper.make_node(
+            'SoftmaxCrossEntropyLoss', inputs=['x', 'y', 'w'],
+            outputs=['z'], reduction=reduction, ignore_index=ignore_index)
+        model_def = _make_model(node)
+
+        N, C, dim1 = 3, 5, 6
+        numpy.random.seed(0)
+        x = numpy.random.rand(N, C, dim1).astype(numpy.float32)
+        labels = numpy.random.randint(0, high=C, size=(N, dim1)).astype(numpy.int64)
+        labels[0, 0] = -1
+        weight = numpy.random.rand(C).astype(numpy.float32)
+
+        outputs = softmaxcrossentropy(
+            x, labels, weight=weight, reduction=reduction,
+            ignore_index=ignore_index)
+
+        oinf = OnnxInference(model_def)
+        got = oinf.run({'x': x, 'y': labels, 'w': weight})
+        self.assertEqual(len(got), 1)
+        self.assertEqualArray(outputs, got['z'])
+        python_tested.append(OnnxSoftmaxCrossEntropyLoss)
+
+    @wraplog()
+    def test_softmax_cross_entropy_loss_multi_output(self):
+
+        def _make_model(node, opset=15):
+            ginputs = [
+                onnx.helper.make_tensor_value_info(
+                    name, (TensorProto.FLOAT if i % 2 == 0 else TensorProto.INT64), [])
+                for i, name in enumerate(node.input)]
+            goutputs = [
+                onnx.helper.make_tensor_value_info(o, TensorProto.FLOAT, [])
+                for o in node.output]
+            model_def = onnx.helper.make_model(
+                opset_imports=[onnx.helper.make_operatorsetid('', opset)],
+                graph=onnx.helper.make_graph(
+                    name='test_softmax_cross_entropy_loss',
+                    inputs=ginputs, outputs=goutputs,
+                    nodes=[node]))
+            return model_def
+
+        reduction = 'none'
+        ignore_index = numpy.int64(-5)
+        node = onnx.helper.make_node(
+            'SoftmaxCrossEntropyLoss', inputs=['x', 'y'],
+            outputs=['z', 'log_prob'], reduction=reduction, ignore_index=ignore_index)
+        model_def = _make_model(node)
+
+        N, C, dim1, dim2, dim3 = 3, 5, 6, 6, 5
+        numpy.random.seed(0)
+        x = numpy.random.rand(N, C, dim1, dim2, dim3).astype(numpy.float32)
+        labels = numpy.random.randint(0, high=C, size=(N, dim1, dim2, dim3)).astype(numpy.int64)
+        labels[0][0][0][0] = -5
+
+        outputs = softmaxcrossentropy(
+            x, labels, reduction=reduction,
+            ignore_index=ignore_index, get_log_prob=True)
+
+        oinf = OnnxInference(model_def)
+        got = oinf.run({'x': x, 'y': labels})
+        self.assertEqual(len(got), 2)
+        self.assertEqualArray(outputs[0], got['z'])
+        self.assertEqualArray(outputs[1], got['log_prob'])
+
+    @wraplog()
+    def test_onnxt_runtime_softplus(self):
+        def sp(x):
+            return numpy.log(numpy.exp(x) + 1)
+        self.common_test_onnxt_runtime_unary(OnnxSoftplus, sp)
+
+    @wraplog()
+    def test_onnxt_runtime_softsign(self):
+        def sp(x):
+            return x / (numpy.abs(x) + 1)
+        self.common_test_onnxt_runtime_unary(OnnxSoftsign, sp)
 
     @wraplog()
     def test_onnxt_runtime_sub(self):
@@ -4145,381 +5314,88 @@ class TestOnnxrtPythonRuntime(ExtTestCase):  # pylint: disable=R0904
         python_tested.append(OnnxUnsqueeze)
 
     @wraplog()
-    def test_cpp_topk_min_1(self):
-        X = numpy.array([1, -1], dtype=numpy.float64)
-        to1 = topk_sorted_implementation(X, 1, 0, 0)
-        to2 = topk_element_min_double(X, 1, False, 50)
-        self.assertEqualArray(to1[1], to2)
-        v2 = topk_element_fetch_double(X, to2)
-        self.assertEqualArray(to1[0], v2)
-
-        X = numpy.array([1, -1], dtype=numpy.float64)
-        to1 = topk_sorted_implementation(X, 2, 0, 0)
-        to2 = topk_element_min_double(X, 2, False, 50)
-        self.assertEqual(set(to1[1]), set(to2))
-
-        X = numpy.array([1, -1], dtype=numpy.float64)
-        to1 = topk_sorted_implementation(X, 2, 0, 0)
-        to2 = topk_element_min_double(X, 2, True, 50)
-        self.assertEqualArray(to1[1], to2)
-        v2 = topk_element_fetch_double(X, to2)
-        self.assertEqualArray(to1[0], v2)
-
-        X = numpy.array([1, -1, -2, 4, 5], dtype=numpy.float64)
-        to1 = topk_sorted_implementation(X, 2, 0, 0)
-        to2 = topk_element_min_double(X, 2, True, 50)
-        self.assertEqualArray(to1[1], to2)
-        v2 = topk_element_fetch_double(X, to2)
-        self.assertEqualArray(to1[0], v2)
-
-        X = numpy.array([1, -1, -2, 4, 5], dtype=numpy.float64)
-        to1 = topk_sorted_implementation(X, 3, 0, 0)
-        to2 = topk_element_min_double(X, 3, True, 50)
-        self.assertEqualArray(to1[1], to2)
-        v2 = topk_element_fetch_double(X, to2)
-        self.assertEqualArray(to1[0], v2)
-
-        X = numpy.array([1, -1, -2, 4, 5], dtype=numpy.float64)
-        to1 = topk_sorted_implementation(X, 4, 0, 0)
-        to2 = topk_element_min_double(X, 4, True, 50)
-        self.assertEqualArray(to1[1], to2)
-        v2 = topk_element_fetch_double(X, to2)
-        self.assertEqualArray(to1[0], v2)
-
-        X = numpy.array([1, -1, -2, 4, 5], dtype=numpy.float32)
-        to1 = topk_sorted_implementation(X, 4, 0, 0)
-        to2 = topk_element_min_float(X, 4, True, 50)
-        self.assertEqualArray(to1[1], to2)
-        v2 = topk_element_fetch_float(X, to2)
-        self.assertEqualArray(to1[0], v2)
+    def test_onnxt_runtime_threshold_relu(self):
+        self.common_test_onnxt_runtime_unary(
+            OnnxThresholdedRelu, lambda x: numpy.maximum(x, 1))
 
     @wraplog()
-    def test_cpp_topk_min_2(self):
-        X = numpy.array([[0, 1, 2, 3, 4],
-                         [1, -1, -2, 4, 5],
-                         [2, -2, -3, 5, -4]],
-                        dtype=numpy.int64)
-        to1 = topk_sorted_implementation(X, 2, 1, 0)
-        to2 = topk_element_min_int64(X, 2, True, 50)
-        self.assertEqualArray(to1[1], to2)
-        v2 = topk_element_fetch_int64(X, to2)
-        self.assertEqualArray(to1[0], v2)
-
-        X = numpy.array([[0, 1, 2, 3, 4],
-                         [1, -1, -2, 4, 5],
-                         [2, -2, -3, 5, -4]],
-                        dtype=numpy.float32)
-        to1 = topk_sorted_implementation(X, 2, 1, 0)
-        to2 = topk_element_min_float(X, 2, True, 50)
-        self.assertEqualArray(to1[1], to2)
-        v2 = topk_element_fetch_float(X, to2)
-        self.assertEqualArray(to1[0], v2)
-
-        X = numpy.array([[0, 1, 2, 3, 4],
-                         [1, -1, -2, 4, 5],
-                         [2, -2, -3, 5, -4]],
-                        dtype=numpy.float64)
-        to1 = topk_sorted_implementation(X, 2, 1, 0)
-        to2 = topk_element_min_double(X, 2, True, 50)
-        self.assertEqualArray(to1[1], to2)
-        v2 = topk_element_fetch_double(X, to2)
-        self.assertEqualArray(to1[0], v2)
-
-        to1 = topk_sorted_implementation(X, 3, 1, 0)
-        to2 = topk_element_min_double(X, 3, True, 50)
-        self.assertEqualArray(to1[1], to2)
-        v2 = topk_element_fetch_double(X, to2)
-        self.assertEqualArray(to1[0], v2)
-
-        to1 = topk_sorted_implementation(X, 4, 1, 0)
-        to2 = topk_element_min_double(X, 4, True, 50)
-        self.assertEqualArray(to1[1], to2)
-        v2 = topk_element_fetch_double(X, to2)
-        self.assertEqualArray(to1[0], v2)
+    def test_onnxt_runtime_trilu(self):
+        self.common_test_onnxt_runtime_unary(
+            OnnxTrilu, lambda x: numpy.triu(x, 0))
 
     @wraplog()
-    def test_cpp_topk_max_1(self):
-        X = numpy.array([1, -1], dtype=numpy.float64)
-        to1 = topk_sorted_implementation(X, 1, 0, 1)
-        to2 = topk_element_max_double(X, 1, False, 50)
-        self.assertEqualArray(to1[1], to2)
-        v2 = topk_element_fetch_double(X, to2)
-        self.assertEqualArray(to1[0], v2)
+    def test_onnxt_runtime_unique(self):
+        x = numpy.array([2.0, 1.0, 1.0, 3.0, 4.0, 3.0], dtype=numpy.float32)
 
-        X = numpy.array([1, -1], dtype=numpy.float64)
-        to1 = topk_sorted_implementation(X, 2, 0, 1)
-        to2 = topk_element_max_double(X, 2, False, 50)
-        self.assertEqual(set(to1[1]), set(to2))
+        # sorted_without_axis
+        onx = OnnxUnique('X', op_version=TARGET_OPSET,
+                         output_names=['Y', 'indices', 'inverse_indices', 'counts'])
+        model_def = onx.to_onnx({'X': x.astype(numpy.float32)},
+                                target_opset=TARGET_OPSET)
+        self._check_shape_inference(OnnxTranspose, model_def)
+        oinf = OnnxInference(model_def)
+        got = oinf.run({'X': x})
+        self.assertEqual(list(sorted(got)), ['Y', 'counts', 'indices', 'inverse_indices'])
 
-        X = numpy.array([1, -1], dtype=numpy.float64)
-        to1 = topk_sorted_implementation(X, 2, 0, 1)
-        to2 = topk_element_max_double(X, 2, True, 50)
-        self.assertEqualArray(to1[1], to2)
-        v2 = topk_element_fetch_double(X, to2)
-        self.assertEqualArray(to1[0], v2)
+        y, indices, inverse_indices, counts = numpy.unique(x, True, True, True)
+        indices, inverse_indices, counts = specify_int64(indices, inverse_indices, counts)
+        self.assertEqualArray(y, got['Y'])
+        self.assertEqualArray(indices, got['indices'])
+        self.assertEqualArray(inverse_indices, got['inverse_indices'])
+        self.assertEqualArray(counts, got['counts'])
 
-        X = numpy.array([1, -1, -2, 4, 5], dtype=numpy.float64)
-        to1 = topk_sorted_implementation(X, 2, 0, 1)
-        to2 = topk_element_max_double(X, 2, True, 50)
-        self.assertEqualArray(to1[1], to2)
-        v2 = topk_element_fetch_double(X, to2)
-        self.assertEqualArray(to1[0], v2)
+        # sorted_with_axis
+        x = numpy.array([[1, 0, 0], [1, 0, 0], [2, 3, 4]], dtype=numpy.float32)
+        onx = OnnxUnique('X', op_version=TARGET_OPSET, sorted=1, axis=0,
+                         output_names=['Y', 'indices', 'inverse_indices', 'counts'])
+        model_def = onx.to_onnx({'X': x.astype(numpy.float32)},
+                                target_opset=TARGET_OPSET)
+        self._check_shape_inference(OnnxTranspose, model_def)
+        oinf = OnnxInference(model_def)
+        got = oinf.run({'X': x})
+        self.assertEqual(list(sorted(got)), ['Y', 'counts', 'indices', 'inverse_indices'])
 
-        X = numpy.array([1, -1, -2, 4, 5], dtype=numpy.float64)
-        to1 = topk_sorted_implementation(X, 3, 0, 1)
-        to2 = topk_element_max_double(X, 3, True, 50)
-        self.assertEqualArray(to1[1], to2)
-        v2 = topk_element_fetch_double(X, to2)
-        self.assertEqualArray(to1[0], v2)
+        y, indices, inverse_indices, counts = numpy.unique(x, True, True, True, axis=0)
+        indices, inverse_indices, counts = specify_int64(indices, inverse_indices, counts)
+        self.assertEqualArray(y, got['Y'])
+        self.assertEqualArray(indices, got['indices'])
+        self.assertEqualArray(inverse_indices, got['inverse_indices'])
+        self.assertEqualArray(counts, got['counts'])
 
-        X = numpy.array([1, -1, -2, 4, 5], dtype=numpy.float64)
-        to1 = topk_sorted_implementation(X, 4, 0, 1)
-        to2 = topk_element_max_double(X, 4, True, 50)
-        self.assertEqualArray(to1[1], to2)
-        v2 = topk_element_fetch_double(X, to2)
-        self.assertEqualArray(to1[0], v2)
+        # not_sorted_without_axis
+        x = numpy.array([2.0, 1.0, 1.0, 3.0, 4.0, 3.0], dtype=numpy.float32)
+        onx = OnnxUnique('X', op_version=TARGET_OPSET, sorted=0,
+                         output_names=['Y', 'indices', 'inverse_indices', 'counts'])
+        model_def = onx.to_onnx({'X': x.astype(numpy.float32)},
+                                target_opset=TARGET_OPSET)
+        self._check_shape_inference(OnnxTranspose, model_def)
+        oinf = OnnxInference(model_def)
+        got = oinf.run({'X': x})
+        self.assertEqual(list(sorted(got)), ['Y', 'counts', 'indices', 'inverse_indices'])
 
-        X = numpy.array([1, -1, -2, 4, 5], dtype=numpy.float32)
-        to1 = topk_sorted_implementation(X, 4, 0, 1)
-        to2 = topk_element_max_float(X, 4, True, 50)
-        self.assertEqualArray(to1[1], to2)
-        v2 = topk_element_fetch_float(X, to2)
-        self.assertEqualArray(to1[0], v2)
+        y, indices, inverse_indices, counts = numpy.unique(x, True, True, True)
+        argsorted_indices = numpy.argsort(indices)
+        inverse_indices_map = {i: si for i, si in zip(argsorted_indices, numpy.arange(len(argsorted_indices)))}
+        indices = indices[argsorted_indices]
+        y = numpy.take(x, indices, axis=0)
+        inverse_indices = numpy.asarray([inverse_indices_map[i] for i in inverse_indices], dtype=numpy.int64)
+        counts = counts[argsorted_indices]
+        indices, inverse_indices, counts = specify_int64(indices, inverse_indices, counts)
 
-    @wraplog()
-    def test_cpp_topk_max_2(self):
-        X = numpy.array([[0, 1, 2, 3, 4],
-                         [1, -1, -2, 4, 5],
-                         [2, -2, -3, 5, -4]],
-                        dtype=numpy.int64)
-        to1 = topk_sorted_implementation(X, 2, 1, 1)
-        to2 = topk_element_max_int64(X, 2, True, 50)
-        self.assertEqualArray(to1[1], to2)
-        v2 = topk_element_fetch_int64(X, to2)
-        self.assertEqualArray(to1[0], v2)
+        self.assertEqualArray(y, got['Y'])
+        self.assertEqualArray(indices, got['indices'])
+        self.assertEqualArray(inverse_indices, got['inverse_indices'])
+        self.assertEqualArray(counts, got['counts'])
 
-        X = numpy.array([[0, 1, 2, 3, 4],
-                         [1, -1, -2, 4, 5],
-                         [2, -2, -3, 5, -4]],
-                        dtype=numpy.float32)
-        to1 = topk_sorted_implementation(X, 2, 1, 1)
-        to2 = topk_element_max_float(X, 2, True, 50)
-        self.assertEqualArray(to1[1], to2)
-        v2 = topk_element_fetch_float(X, to2)
-        self.assertEqualArray(to1[0], v2)
-
-        X = numpy.array([[0, 1, 2, 3, 4],
-                         [1, -1, -2, 4, 5],
-                         [2, -2, -3, 5, -4]],
-                        dtype=numpy.float64)
-        to1 = topk_sorted_implementation(X, 2, 1, 1)
-        to2 = topk_element_max_double(X, 2, True, 50)
-        self.assertEqualArray(to1[1], to2)
-        v2 = topk_element_fetch_double(X, to2)
-        self.assertEqualArray(to1[0], v2)
-
-        to1 = topk_sorted_implementation(X, 3, 1, 1)
-        to2 = topk_element_max_double(X, 3, True, 50)
-        self.assertEqualArray(to1[1], to2)
-        v2 = topk_element_fetch_double(X, to2)
-        self.assertEqualArray(to1[0], v2)
-
-        to1 = topk_sorted_implementation(X, 4, 1, 1)
-        to2 = topk_element_max_double(X, 4, True, 50)
-        self.assertEqualArray(to1[1], to2)
-        v2 = topk_element_fetch_double(X, to2)
-        self.assertEqualArray(to1[0], v2)
+        python_tested.append(OnnxTranspose)
 
     @wraplog()
-    def test_cpp_topk_max_openmp(self):
-        X = numpy.random.randn(100, 10).astype(  # pylint: disable=E1101
-            numpy.float64)  # pylint: disable=E1101
-        to1 = topk_sorted_implementation(X, 2, 1, 1)
-        to2 = topk_element_max_double(X, 2, True, 50)
-        self.assertEqualArray(to1[1], to2)
-        v2 = topk_element_fetch_double(X, to2)
-        self.assertEqualArray(to1[0], v2)
-
-    @wraplog()
-    def test_cpp_pairwise(self):
-        X = numpy.full((20, 4), 1, dtype=numpy.float32)
-        X[::2, 3] = 20
-        X[1::5, 1] = 30
-        X[::5, 2] = 40
-        cd = cdist(X[:10], X[10:])
-        to1 = topk_sorted_implementation(cd, 3, 1, 1)
-        to2 = topk_element_max_double(cd, 3, True, 50)
-        self.assertEqualArray(to1[1], to2)
-
-    @unittest.skipIf(onnx_opset_version() < 12, reason="new API not available")
-    @wraplog()
-    def test_make_sparse_tensor_12(self):
-        values = [1.1, 2.2, 3.3, 4.4, 5.5]
-        values_tensor = make_tensor(
-            name='test', data_type=TensorProto.FLOAT,  # pylint: disable=E1101
-            dims=(5, ), vals=values)
-        indices = [1, 3, 5, 7, 9]
-        indices_tensor = make_tensor(
-            name='test_indices', data_type=TensorProto.INT64,  # pylint: disable=E1101
-            dims=(5, ), vals=indices)
-        dense_shape = [10]
-        sparse = make_sparse_tensor(values_tensor, indices_tensor, dense_shape)
-        self.assertEqual(sparse.values, values_tensor)  # pylint: disable=E1101
-        self.assertEqual(
-            sparse.indices, indices_tensor)  # pylint: disable=E1101
-        self.assertEqual(sparse.dims, dense_shape)  # pylint: disable=E1101
-
-        opset_tests = [
-            (TARGET_OPSET, OnnxConstant),
-            (11, OnnxConstant_11)]
-
-        if (not sys.platform.startswith('win') or
-                compare_module_version(onnx_version, (1, 8, 0)) != 0):
-            # to_onnx fails for opset, it is expected
-            # but it makes python crash on python for onnx 1.8.0
-            opset_tests.append((9, OnnxConstant_9))
-
-        for opset, cls in opset_tests:
-            for ty, nty in [('float', numpy.float32),
-                            ('int', numpy.int64),
-                            ('string', numpy_str)]:
-                with self.subTest(opset=opset, type=ty):
-                    X = numpy.array([0.1, 0.2], dtype=numpy.float32)
-                    if opset >= 12:
-                        if ty == 'float':
-                            cst = cls(value_floats=X, op_version=opset,
-                                      output_names=['cst'])
-                            tty = FloatTensorType
-                        elif ty == 'int':
-                            cst = cls(value_ints=(X + 1).astype(nty), op_version=opset,
-                                      output_names=['cst'])
-                            tty = Int64TensorType
-                        elif ty == 'string':
-                            cst = cls(value_strings=X.astype(nty), op_version=opset,
-                                      output_names=['cst'])
-                            tty = StringTensorType
-                        else:
-                            raise AssertionError(
-                                "{}-{} not tested.".format(ty, nty))
-                    elif ty != 'float':
-                        continue
-                    else:
-                        cst = cls(value=X, op_version=opset)
-                        nty = numpy.float32
-                        tty = FloatTensorType
-                    onx = OnnxAdd('X', cst, op_version=opset,
-                                  output_names=['Y'])
-                    try:
-                        model_def = onx.to_onnx(
-                            {'X': X.astype(nty)}, target_opset=opset,
-                            outputs=[('Y', tty()), ('cst', tty())])
-                    except RuntimeError as e:
-                        if opset == 9:
-                            continue
-                        raise e
-                    try:
-                        oinf = OnnxInference(model_def)
-                    except RuntimeError as e:
-                        raise AssertionError(
-                            "Unable to load the model:\n{}".format(model_def)) from e
-                    if tty == StringTensorType:
-                        continue
-                    try:
-                        got = oinf.run({'X': X.astype(nty)})
-                    except Exception as e:
-                        rows = []
-
-                        def bprint(*args):
-                            rows.append(str(args))  # pylint: disable=W0640
-                        try:
-                            oinf.run({'X': X.astype(nty)},  # opset=13, 14, ...
-                                     verbose=13, fLOG=bprint)
-                        except Exception:  # pylint: disable=W0703
-                            pass
-                        raise AssertionError(
-                            "Execution issue\n{}\n----\n{}".format(
-                                "\n".join(map(str, rows)),
-                                model_def)) from e
-                    if ty == 'float':
-                        vexp = X * 2
-                    else:
-                        vexp = X.astype(nty) + 1
-                    if opset >= 11:
-                        self.assertEqual(list(sorted(got)), [
-                                         'Y', 'cst'])
-                        self.assertEqualArray(vexp, got['Y'])
-                    else:
-                        self.assertEqual(list(sorted(got)), ['Y', 'cst'])
-                        self.assertEqualArray(vexp, got['Y'])
-
-    @wraplog()
-    def test_make_constant(self):
-        X = numpy.array([0.1, 0.2], dtype=numpy.float32)
-        values = [1.1, 2.2]
-        exp = numpy.array([1.2, 2.4], dtype=numpy.float32)
-
-        opset_tests = [
-            (TARGET_OPSET, OnnxConstant),
-            (13, OnnxConstant_13),
-            (12, OnnxConstant_12),
-            (11, OnnxConstant_11),
-            (9, OnnxConstant_9)]
-
-        expected_type = {15: Constant_12, 14: Constant_12,
-                         12: Constant_12, 13: Constant_12,
-                         11: Constant_11, 9: Constant_9}
-
-        if (not sys.platform.startswith('win') or
-                compare_module_version(onnx_version, (1, 8, 0)) != 0):
-            # to_onnx fails for opset, it is expected
-            # but it makes python crash on python for onnx 1.8.0
-            opset_tests.append((9, OnnxConstant_9))
-
-        for opset, cls in opset_tests:
-            with self.subTest(opset=opset):
-                if opset >= 12:
-                    cst = cls(value_floats=values, op_version=opset)
-                else:
-                    cst = cls(value=values, op_version=opset)
-                onx = OnnxAdd('X', cst, op_version=opset)
-                try:
-                    model_def = onx.to_onnx({'X': X.astype(numpy.float32)},
-                                            target_opset=opset)
-                except RuntimeError as e:
-                    if opset == 9:
-                        continue
-                    raise e
-                try:
-                    oinf = OnnxInference(model_def)
-                except RuntimeError as e:
-                    raise AssertionError(
-                        "Unable to load the model:\n{}".format(model_def)) from e
-                ope = oinf.sequence_[0].ops_
-                self.assertIsInstance(ope, expected_type[opset])
-                got = oinf.run({'X': X})
-                if opset >= 11:
-                    self.assertEqual(list(sorted(got)), ['Ad_C0'])
-                    self.assertEqualArray(exp, got['Ad_C0'])
-                else:
-                    self.assertEqual(list(sorted(got)), ['Ad_C0'])
-                    self.assertEqualArray(exp, got['Ad_C0'])
-
-    def test_op_constant(self):
-        for opv in [9, 10, 11, 12, 13, 14, 15]:  # opset=13, 14, ...
-            for dtype in [numpy.float32, numpy.float64,
-                          numpy.int32, numpy.int64]:
-                with self.subTest(opv=opv, dtype=dtype):
-                    X = numpy.array([1], dtype=dtype)
-                    pX = from_array(X)
-                    op = OnnxAdd('X', OnnxConstant(op_version=opv, value=pX),
-                                 output_names=['Y'], op_version=opv)
-                    onx = op.to_onnx({'X': X})
-                    oinf = OnnxInference(onx)
-                    res = oinf.run({'X': X})
-                    self.assertEqualArray(res['Y'], X + X)
+    def test_onnxt_runtime_xor(self):
+        self.common_test_onnxt_runtime_binary(
+            OnnxXor, numpy.logical_xor, dtype=numpy.bool_)
 
 
 if __name__ == "__main__":
     # Working
-    # TestOnnxrtPythonRuntime().test_onnxt_runtime_sub()
+    # TestOnnxrtPythonRuntime().test_onnxt_runtime_gru_default()
     unittest.main(verbosity=2)

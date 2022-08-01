@@ -53,7 +53,7 @@ def _register_converters_lightgbm(exc=True):
             raise e
         else:
             warnings.warn(
-                "Cannot register LGBMClassifier due to '{}'.".format(e))
+                f"Cannot register LGBMClassifier due to '{e}'.")
             LGBMClassifier = None
     if LGBMClassifier is not None:
         try:
@@ -80,7 +80,7 @@ def _register_converters_lightgbm(exc=True):
             raise e
         else:
             warnings.warn(
-                "Cannot register LGBMRegressor due to '{}'.".format(e))
+                f"Cannot register LGBMRegressor due to '{e}'.")
             LGBMRegressor = None
     if LGBMRegressor is not None:
         from .operator_converters.conv_lightgbm import convert_lightgbm
@@ -97,7 +97,7 @@ def _register_converters_lightgbm(exc=True):
             raise e
         else:
             warnings.warn(
-                "Cannot register LGBMRegressor due to '{}'.".format(e))
+                f"Cannot register LGBMRegressor due to '{e}'.")
             Booster = None
     if Booster is not None:
         from .operator_converters.conv_lightgbm import (
@@ -154,7 +154,7 @@ def _register_converters_xgboost(exc=True):
             raise e
         else:
             warnings.warn(
-                "Cannot register XGBClassifier due to '{}'.".format(e))
+                f"Cannot register XGBClassifier due to '{e}'.")
             XGBClassifier = None
     if XGBClassifier is not None:
         from .operator_converters.conv_xgboost import convert_xgboost
@@ -173,7 +173,7 @@ def _register_converters_xgboost(exc=True):
             raise e
         else:
             warnings.warn(
-                "Cannot register LGBMRegressor due to '{}'.".format(e))
+                f"Cannot register LGBMRegressor due to '{e}'.")
             XGBRegressor = None
     if XGBRegressor is not None:
         from .operator_converters.conv_xgboost import convert_xgboost
@@ -202,7 +202,7 @@ def _register_converters_mlinsights(exc=True):
             raise e
         else:
             warnings.warn(
-                "Cannot register models from 'mlinsights' due to '{}'.".format(e))
+                f"Cannot register models from 'mlinsights' due to '{e}'.")
             TransferTransformer = None
 
     if TransferTransformer is not None:
@@ -249,7 +249,7 @@ def _register_converters_skl2onnx(exc=True):
             raise e
         else:
             warnings.warn(
-                "Cannot register models from 'skl2onnx' due to %r." % e)
+                f"Cannot register models from 'skl2onnx' due to {e!r}.")
             model = None
 
     if model is not None:

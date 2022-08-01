@@ -19,7 +19,7 @@ def _random_input(typ, shape, batch):
         dtype = numpy.float32
     else:
         raise NotImplementedError(
-            "Unable to guess dtype from %r." % typ)
+            f"Unable to guess dtype from {typ!r}.")
 
     if len(shape) <= 1:
         new_shape = shape
@@ -92,10 +92,10 @@ def latency(model, law='normal', size=1, number=10, repeat=10, max_time=0,
 
     if isinstance(model, str) and not os.path.exists(model):
         raise FileNotFoundError(  # pragma: no cover
-            "Unable to find model %r." % model)
+            f"Unable to find model {model!r}.")
     if profiling not in (None, '', 'name', 'type'):
         raise ValueError(
-            "Unexpected value for profiling: %r." % profiling)
+            f"Unexpected value for profiling: {profiling!r}.")
     size = int(size)
     number = int(number)
     repeat = int(repeat)
@@ -108,7 +108,7 @@ def latency(model, law='normal', size=1, number=10, repeat=10, max_time=0,
 
     if law != "normal":
         raise ValueError(
-            "Only law='normal' is supported, not %r." % law)
+            f"Only law='normal' is supported, not {law!r}.")
 
     if device in ('cpu', 'CPUExecutionProviders'):
         providers = ['CPUExecutionProviders']
@@ -129,20 +129,23 @@ def latency(model, law='normal', size=1, number=10, repeat=10, max_time=0,
         for p in providers:
             if p not in allp:
                 raise ValueError(
-                    "One device or provider %r is not supported among %r."
-                    "" % (p, allp))
+                    f"One device or provider {p!r} is not supported among {allp!r}.")
     else:
         raise ValueError(  # pragma no cover
-            "Device %r not supported." % device)
+            f"Device {device!r} not supported.")
 
-    if runtime == "onnxruntime":
+    if runtime in ("onnxruntime", "onnxruntime-cuda"):
         from onnxruntime import InferenceSession, SessionOptions  # delayed import
+        providers = ['CPUExecutionProvider']
+        if runtime == "onnxruntime-cuda":
+            providers = ['CUDAExecutionProvider'] + providers
         if profiling in ('name', 'type'):
             so = SessionOptions()
             so.enable_profiling = True
-            sess = InferenceSession(model, sess_options=so)
+            sess = InferenceSession(
+                model, sess_options=so, providers=providers)
         else:
-            sess = InferenceSession(model)
+            sess = InferenceSession(model, providers=providers)
         fct = lambda feeds: sess.run(None, feeds)
         inputs = sess.get_inputs()
     else:
@@ -150,7 +153,7 @@ def latency(model, law='normal', size=1, number=10, repeat=10, max_time=0,
             runtime_options = {"enable_profiling": True}
             if runtime != 'onnxruntime1':
                 raise NotImplementedError(  # pragma: no cover
-                    "Profiling is not implemented for runtime=%r." % runtime)
+                    f"Profiling is not implemented for runtime={runtime!r}.")
         else:
             runtime_options = None
         oinf = OnnxInference(model, runtime=runtime,
@@ -163,7 +166,7 @@ def latency(model, law='normal', size=1, number=10, repeat=10, max_time=0,
         lambda: fct(feeds), number=number, repeat=repeat, context={},
         max_time=max_time, div_by_number=True)
     for k, v in feeds.items():
-        res["shape(%s)" % k] = "x".join(map(str, v.shape))
+        res[f"shape({k})"] = "x".join(map(str, v.shape))
     if profiling in ('name', 'type'):
         if runtime == 'onnxruntime':
             profile_name = sess.end_profiling()

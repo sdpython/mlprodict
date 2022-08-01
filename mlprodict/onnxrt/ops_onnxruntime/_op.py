@@ -24,24 +24,26 @@ class OpRunOnnxRuntime:
     """
 
     def __init__(self, onnx_node, desc=None, variables=None,
-                 dtype=None, **options):
+                 dtype=None, runtime=None, **options):
         """
-        @param      onnx_node               :epkg:`onnx` node
-        @param      desc                    internal representation
-        @param      variables               registered variables created by previous operators
-        @param      dtype                   float computation type
-        @param      options                 runtime options
+        :param onnx_node: :epkg:`onnx` node
+        :param desc: internal representation
+        :param variables: registered variables created by previous operators
+        :param dtype: float computation type
+        :param options: runtime options
+        :param runtime: `onnxruntime1`, `onnxruntime1-cuda`, ...
         """
         self._provider = 'onnxruntime'
         self.onnx_node = onnx_node
         self.desc = desc
+        self.runtime = runtime
         self._schema = _schemas.get(onnx_node.op_type, None)
         if desc is not None:
             if 'atts' in desc:
                 for a, b in desc['atts'].items():
                     if not isinstance(b, dict) or 'value' not in b:
                         raise ValueError(  # pragma: no cover
-                            "Unexpected value {}.".format(b))
+                            f"Unexpected value {b}.")
                     options[a] = b['value']
 
         self.options = options
@@ -58,10 +60,10 @@ class OpRunOnnxRuntime:
         for name in inputs:
             if name in mapping:
                 i = 0
-                new_name = "{}_{}".format(name, i)
+                new_name = f"{name}_{i}"
                 while new_name in mapping:
                     i += 1  # pragma: no cover
-                    new_name = "{}_{}".format(name, i)  # pragma: no cover
+                    new_name = f"{name}_{i}"  # pragma: no cover
                 mapping[new_name] = name
                 new_inputs.append(new_name)
             else:
@@ -130,6 +132,17 @@ class OpRunOnnxRuntime:
             outvar = [(name, DictionaryType(otype([1]), FloatTensorType([1])))]
             self.onnx_ = self.inst_.to_onnx(inputs, outputs=outvar)
             forced = True
+        elif self.onnx_node.op_type == 'ArrayFeatureExtractor':
+            self.inst_ = self.alg_class(*self.inputs, output_names=self.outputs,
+                                        op_version=target_opset, **options)
+            inputs = get_defined_inputs(
+                self.inputs, variables, dtype=self.dtype)
+            name = (self.outputs[0] if len(self.outputs) == 1
+                    else self.inst_.expected_outputs[0][0])
+            otype = inputs[0][1].__class__
+            outvar = [(name, otype())]
+            self.onnx_ = self.inst_.to_onnx(inputs, outputs=outvar)
+            forced = True
         elif self.onnx_node.op_type == 'ConstantOfShape':
             for k in options:
                 v = options[k]
@@ -147,8 +160,7 @@ class OpRunOnnxRuntime:
                                                 domain=domain)
                 if "dim_value: 0" in str(self.onnx_):
                     raise RuntimeError(  # pragma: no cover
-                        "Probable issue as one dimension is null.\n--\n{}".format(
-                            self.onnx_))
+                        f"Probable issue as one dimension is null.\n--\n{self.onnx_}")
             except AttributeError as e:  # pragma: no cover
                 # older version of skl2onnx
                 self.onnx_ = self.inst_.to_onnx(inputs)
@@ -175,8 +187,7 @@ class OpRunOnnxRuntime:
                                             domain=domain)
             if "dim_value: 0" in str(self.onnx_):
                 raise RuntimeError(  # pragma: no cover
-                    "Probable issue as one dimension is null.\n--\n{}".format(
-                        self.onnx_))
+                    f"Probable issue as one dimension is null.\n--\n{self.onnx_}")
             forced = True
         else:
             self.inst_ = self.alg_class(*self.inputs, output_names=self.outputs,
@@ -228,8 +239,7 @@ class OpRunOnnxRuntime:
                                             domain=domain)
             if "dim_value: 0" in str(self.onnx_):
                 raise RuntimeError(  # pragma: no cover
-                    "Probable issue as one dimension is null.\n--\n{}".format(
-                        self.onnx_))
+                    f"Probable issue as one dimension is null.\n--\n{self.onnx_}")
         else:
             lo = list(self.onnx_.graph.output)
             outputs = proto2vars(lo)
@@ -268,7 +278,8 @@ class OpRunOnnxRuntime:
             self.onnx_.ir_version = ir_version
         try:
             self.sess_ = InferenceSession(
-                self.onnx_.SerializeToString(), sess_options=sess_options)
+                self.onnx_.SerializeToString(), sess_options=sess_options,
+                runtime=self.runtime)
         except (RuntimeError, OrtNotImplemented, OrtInvalidGraph, OrtFail) as e:
             raise RuntimeError(
                 "Unable to load node '{}' (output type was {}) inputs={} "

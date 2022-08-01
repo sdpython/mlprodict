@@ -39,7 +39,7 @@ def analyse_einsum_equation(equation):
         all_letters |= set(inp)
     letters = list(sorted(all_letters))
     for c in letters:
-        if not(('a' <= c <= 'z') or ('A' <= c <= 'Z')):
+        if not (('a' <= c <= 'z') or ('A' <= c <= 'Z')):
             raise ValueError(
                 "Equation %r must only contain lower or upper letters "
                 "but %r is not." % (equation, c))
@@ -132,14 +132,14 @@ def decompose_einsum_equation(equation, *shapes, strategy="simple",
         for sh in shapes:
             if not isinstance(sh, tuple):
                 raise TypeError(
-                    "All shapes must be tuples for %r is not." % sh)
+                    f"All shapes must be tuples for {sh!r} is not.")
     if strategy in ("simple", "numpy"):
         op_matmul = {'simple': 'matmul',
                      'numpy': 'batch_dot'}
         graph = _decompose_einsum_equation_simple(
             equation, *shapes, verbose=verbose, op_matmul=op_matmul[strategy])
     else:
-        raise ValueError("Unknown strategy %r." % strategy)
+        raise ValueError(f"Unknown strategy {strategy!r}.")
 
     # Last step: clean unused nodes.
     if clean:
@@ -281,18 +281,18 @@ def _apply_einsum_matmul(fd, op1, op2, axes, left, right, ndim,
     allowed = {'matmul', 'batch_dot', 'dot'}
     if op_matmul not in allowed:
         raise ValueError(  # pragma: no cover
-            "Unknown operator op_matmul=%r not in %r." % (op_matmul, allowed))
+            f"Unknown operator op_matmul={op_matmul!r} not in {allowed!r}.")
     if op_matmul == 'matmul':
         if verbose:  # pragma: no cover
-            print("  -- MATMUL -> matmul axes=%r left=%r right=%r"
-                  "" % (axes, left, right))
+            print(
+                f"  -- MATMUL -> matmul axes={axes!r} left={left!r} right={right!r}")
         yield EinsumSubOp(fd, 'matmul', op1, op2,
                           axes=axes, left=left, right=right, ndim=ndim)
 
     elif len(axes) == 0 and len(set(left) & set(right)) == 0:
         if verbose:  # pragma: no cover
-            print("  -- MATMUL -> mul axes=%r left=%r right=%r"
-                  "" % (axes, left, right))
+            print(
+                f"  -- MATMUL -> mul axes={axes!r} left={left!r} right={right!r}")
         yield EinsumSubOp(fd, 'mul', op1, op2)
 
     elif (len(set(axes) & set(left)) == 0 and
@@ -316,8 +316,8 @@ def _apply_einsum_matmul(fd, op1, op2, axes, left, right, ndim,
             (set(right) & (set(left) | set(axes)))
         if right_no_left:
             if verbose:  # pragma: no cover
-                print('  -- MATMUL reduce1 has_dim=%r axes=%r' %
-                      (has_dim, right_no_left))
+                print(
+                    f'  -- MATMUL reduce1 has_dim={has_dim!r} axes={right_no_left!r}')
             op1 = EinsumSubOp(fd, 'reduce_sum_mm', op1, op2,
                               axes=tuple(sorted(right_no_left)))
             yield op1
@@ -327,8 +327,8 @@ def _apply_einsum_matmul(fd, op1, op2, axes, left, right, ndim,
             (set(left) & (set(right) | set(axes)))
         if left_no_right:
             if verbose:  # pragma: no cover
-                print('  -- MATMUL reduce2 has_dim=%r axes=%r' %
-                      (has_dim, left_no_right))
+                print(
+                    f'  -- MATMUL reduce2 has_dim={has_dim!r} axes={left_no_right!r}')
             op2 = EinsumSubOp(fd, 'reduce_sum', op2,
                               axes=tuple(sorted(left_no_right)))
             yield op2
@@ -398,8 +398,7 @@ def _decompose_einsum_equation_simple(equation, *shapes, verbose=False,
     letters, mat, lengths, duplicates = analyse_einsum_equation(equation)
     if len(letters) != mat.shape[1]:
         raise RuntimeError(  # pragma: no cover
-            "Unexpected number of letters %r, shape=%r." % (
-                letters, mat.shape))
+            f"Unexpected number of letters {letters!r}, shape={mat.shape!r}.")
     if len(shapes) == 0:
         shapes = [(2, ) * le for le in lengths[:-1]]
     _basic_verification(lengths, shapes, equation)
@@ -409,9 +408,9 @@ def _decompose_einsum_equation_simple(equation, *shapes, verbose=False,
     graph = GraphEinsumSubOp(letters, mat, lengths, duplicates)
     fd = mat.shape[1]
     if verbose:
-        print("EQUATION=%r" % equation)
-        print("LETTERS=%r" % letters, "LENGTHS=%r" % lengths)
-        print("DUPLICATES=%r" % duplicates)
+        print(f"EQUATION={equation!r}")
+        print(f"LETTERS={letters!r}", f"LENGTHS={lengths!r}")
+        print(f"DUPLICATES={duplicates!r}")
 
     for i, sh in enumerate(shapes):
         if verbose:
@@ -479,7 +478,7 @@ def _decompose_einsum_equation_simple(equation, *shapes, verbose=False,
                     if rows[1, d] >= 0:
                         right.append(d)
             if verbose:
-                print("  -- MATMUL common_dims=%r" % common_dims)
+                print(f"  -- MATMUL common_dims={common_dims!r}")
                 print(rows)
             for iop in _apply_einsum_matmul(
                     fd, graph.last_op, op, axes=tuple(common_dims),
@@ -498,7 +497,7 @@ def _decompose_einsum_equation_simple(equation, *shapes, verbose=False,
     # Final output
     if verbose:
         print()
-        print("######### FIN row=%r" % rows[1, :])
+        print(f"######### FIN row={rows[1, :]!r}")
 
     if mat[len(shapes), :].max() >= 0:
         rows[1, :] = mat[len(shapes), :]
@@ -512,7 +511,7 @@ def _decompose_einsum_equation_simple(equation, *shapes, verbose=False,
                     "output is %r." % (equation, d, rows[0, :], rows[1, :]))
         if len(red) > 0:
             if verbose:  # pragma: no cover
-                print("-- REDUCE2 axes=%r" % red)
+                print(f"-- REDUCE2 axes={red!r}")
                 print(mat)
             op = EinsumSubOp(fd, 'reduce_sum', op, axes=tuple(red))
             graph.append(op)

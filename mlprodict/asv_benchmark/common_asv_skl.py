@@ -1,3 +1,4 @@
+# pylint: disable=E1101
 """
 Common class for all benchmarks testing
 converted models from :epkg:`scikit-learn`
@@ -78,7 +79,7 @@ class _CommonAsvSklBenchmark:
         elif dtype in ('double', '64', 64, numpy.float64):
             return numpy.float64
         raise ValueError(  # pragma: no cover
-            "Unknown dtype '{}'.".format(dtype))
+            f"Unknown dtype '{dtype}'.")
 
     def _get_dataset(self, nf, dtype):
         xdtype = self._get_xdtype(dtype)
@@ -103,8 +104,7 @@ class _CommonAsvSklBenchmark:
             options = self.par_convopts
         elif self.par_convopts and len(self.par_convopts) > 0:
             raise NotImplementedError(  # pragma: no cover
-                "Conflict between par_convopts={} and optim={}".format(
-                    self.par_convopts, optim))
+                f"Conflict between par_convopts={self.par_convopts} and optim={optim}")
         else:
             # Expand common onnx options, see _nick_name_options.
             options = expand_onnx_options(model, optim)
@@ -124,7 +124,7 @@ class _CommonAsvSklBenchmark:
                 runtime_options=dict(log_severity_level=3))
         except RuntimeError as e:  # pragma: no cover
             if "[ONNXRuntimeError]" in str(e):
-                return RuntimeError("onnxruntime fails due to {}".format(str(e)))
+                return RuntimeError(f"onnxruntime fails due to {str(e)}")
             raise e
         if old is not None:
             onx.ir_version = old
@@ -140,7 +140,7 @@ class _CommonAsvSklBenchmark:
             raise ValueError("rt cannot be empty.")  # pragma: no cover
         if not hasattr(rt, meth):
             raise TypeError(  # pragma: no cover
-                "rt of type %r has no method %r." % (type(rt), meth))
+                f"rt of type {type(rt)!r} has no method {meth!r}.")
 
     def runtime_name(self, runtime):
         """
@@ -158,12 +158,11 @@ class _CommonAsvSklBenchmark:
             name = 'python_compiled'
         else:
             raise ValueError(  # pragma: no cover
-                "Unknown runtime '{}'.".format(runtime))
+                f"Unknown runtime '{runtime}'.")
         return name
 
     def _name(self, nf, opset, dtype):
-        last = 'cache-{}-nf{}-op{}-dt{}.pickle'.format(
-            self.__class__.__name__, nf, opset, dtype)
+        last = f'cache-{self.__class__.__name__}-nf{nf}-op{opset}-dt{dtype}.pickle'
         return last
 
     def setup_cache(self):
@@ -182,8 +181,7 @@ class _CommonAsvSklBenchmark:
                         pickle.dump(stored, f)
                     if not os.path.exists(filename):
                         raise RuntimeError(  # pragma: no cover
-                            "Unable to dump model %r into %r." % (
-                                model, filename))
+                            f"Unable to dump model {model!r} into {filename!r}.")
 
     def setup(self, runtime, N, nf, opset, dtype, optim):
         "asv API"
@@ -245,7 +243,7 @@ class _CommonAsvSklBenchmark:
         "Does some verifications. Fails if inconsistencies."
         if getattr(self, 'chk_method_name', None) not in (None, method_name):
             raise RuntimeError(  # pragma: no cover
-                "Method name must be '{}'.".format(method_name))
+                f"Method name must be '{method_name}'.")
         if getattr(self, 'chk_method_name', None) is None:
             raise RuntimeError(  # pragma: no cover
                 "Unable to check that the method name is correct "

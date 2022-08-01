@@ -15,7 +15,7 @@ class Neg(OpRunUnaryNum):
                                expected_attributes=None,
                                **options)
 
-    def _run(self, data):  # pylint: disable=W0221
+    def _run(self, data, attributes=None, verbose=0, fLOG=None):  # pylint: disable=W0221
         if self.inplaces.get(0, False):
             numpy.negative(data, out=data)
         else:
@@ -24,4 +24,4 @@ class Neg(OpRunUnaryNum):
 
     def to_python(self, inputs):
         return ("import numpy",
-                "return -%s" % inputs[0])
+                f"return -{inputs[0]}")

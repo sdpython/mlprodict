@@ -5,7 +5,6 @@
 @brief Runtime operator.
 """
 import numpy
-from ..shape_object import ShapeObject
 from ._op import OpRun
 
 
@@ -69,16 +68,6 @@ class ScatterElements(OpRun):
         OpRun.__init__(self, onnx_node, desc=desc,
                        **options)
 
-    def _run(self, data, indices, updates):  # pylint: disable=W0221
+    def _run(self, data, indices, updates, attributes=None, verbose=0, fLOG=None):  # pylint: disable=W0221
         res = scatter_elements(data, indices, updates, axis=self.axis)
         return (res, )
-
-    def _infer_shapes(self, data, indices, updates):  # pylint: disable=W0221
-        return (ShapeObject(data.shape, dtype=data.dtype), )
-
-    def _infer_types(self, data, indices, updates):  # pylint: disable=W0221
-        return (data, )
-
-    def _infer_sizes(self, *args):  # pylint: disable=W0221
-        res = self.run(*args)
-        return (dict(temp=0), ) + res

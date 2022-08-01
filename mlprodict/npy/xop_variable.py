@@ -55,7 +55,7 @@ def numpy_type_prototype(dtype):
     if dt in NP_TYPE_TO_TENSOR_TYPE:
         return NP_TYPE_TO_TENSOR_TYPE[dt]
     raise ValueError(  # pragma: no cover
-        "Unable to convert dtype %r into ProtoType." % dtype)
+        f"Unable to convert dtype {dtype!r} into ProtoType.")
 
 
 def guess_numpy_type(data_type):
@@ -85,7 +85,34 @@ def guess_numpy_type(data_type):
     if hasattr(data_type, 'type'):
         return guess_numpy_type(data_type.type)
     raise NotImplementedError(  # pragma: no cover
-        "Unsupported data_type '{}'.".format(data_type))
+        f"Unsupported data_type '{data_type}'.")
+
+
+class ExistingVariable:
+    """
+    Temporary name.
+
+    :param name: variable name
+    :param op: operator it comes from
+    """
+
+    def __init__(self, name, op):
+        self.name = name
+        self.op = op
+
+    def __repr__(self):
+        "usual"
+        return f"{self.__class__.__name__}({self.name!r})"
+
+    @property
+    def dtype(self):
+        "Unknown type, returns None."
+        return None
+
+    @property
+    def added_dtype(self):
+        "Unknown type, returns None."
+        return None
 
 
 class Variable:
@@ -106,18 +133,18 @@ class Variable:
         if (dtype is not None and isinstance(
                 dtype, (int, Variable, tuple, numpy.ndarray))):
             raise TypeError(
-                "Unexpected type %r for dtype." % type(dtype))
+                f"Unexpected type {type(dtype)!r} for dtype.")
         if (added_dtype is not None and isinstance(
                 added_dtype, (int, Variable, tuple, numpy.ndarray))):
             raise TypeError(
-                "Unexpected type %r for added_dtype." % type(added_dtype))
+                f"Unexpected type {type(added_dtype)!r} for added_dtype.")
         if shape is not None and not isinstance(shape, (tuple, list)):
             raise TypeError(
-                "Unexpected type %r for shape." % type(shape))
+                f"Unexpected type {type(shape)!r} for shape.")
         if (added_shape is not None and not isinstance(
                 added_shape, (tuple, list))):
             raise TypeError(
-                "Unexpected type %r for added_shape." % type(added_shape))
+                f"Unexpected type {type(added_shape)!r} for added_shape.")
 
         if isinstance(name, Variable):
             if (dtype is not None or shape is not None or
@@ -134,7 +161,7 @@ class Variable:
         else:
             if not isinstance(name, str):
                 raise TypeError(  # pragma: no cover
-                    "name must be a string not %r." % type(name))
+                    f"name must be a string not {type(name)!r}.")
 
             self.name_ = name
             self.dtype_ = dtype
@@ -156,10 +183,19 @@ class Variable:
     @staticmethod
     def from_skl2onnx(var):
         """
-        Converts var from :epkg:`sklearn-onnx` into this class.
+        Converts variable from :epkg:`sklearn-onnx` into this class.
         """
         return Variable(var.onnx_name, guess_numpy_type(var.type),
                         shape=var.type.shape)
+
+    @staticmethod
+    def from_skl2onnx_tuple(var):
+        """
+        Converts variable from :epkg:`sklearn-onnx` into this class
+        defined as a tuple.
+        """
+        return Variable(var[0], guess_numpy_type(var[1]),
+                        shape=var[1].shape)
 
     @property
     def name(self):
@@ -170,6 +206,11 @@ class Variable:
     def dtype(self):
         "Returns `self.dtype_`."
         return self.dtype_
+
+    @property
+    def added_dtype(self):
+        "Returns `self.added_dtype_`."
+        return self.added_dtype_
 
     @property
     def shape(self):
@@ -206,17 +247,16 @@ class Variable:
                       added_shape=self.added_shape_)
         kwargs = {k: v for k, v in kwargs.items() if v is not None}
         if len(kwargs) > 0:
-            msg = ", " + ", ".join("%s=%r" % (k, v) for k, v in kwargs.items())
+            msg = ", " + ", ".join(f"{k}={v!r}" for k, v in kwargs.items())
         else:
             msg = ''
-        return "%s(%r%s)" % (
-            self.__class__.__name__, self.name_, msg)
+        return f"{self.__class__.__name__}({self.name_!r}{msg})"
 
     def is_named(self, name):
         "Tells the variable is named like that."
         if not isinstance(name, str):
             raise TypeError(  # pragma: no cover
-                "name is expected to be a string not %r." % type(name))
+                f"name is expected to be a string not {type(name)!r}.")
         return self.name == name
 
     def copy_add(self, dtype):
@@ -235,14 +275,17 @@ class Variable:
             shape = None
         return Variable(self.name_, self.dtype_, self.shape_, dtype, shape)
 
-    def copy_merge(self, var):
+    def copy_merge(self, var, shape=None):
         """
         Merges information from both Variable.
         """
         if not isinstance(var, Variable):
+            if shape is not None:
+                raise RuntimeError(  # pragma: no cover
+                    "shape must be None if var is a Variable.")
             return self.copy_add(var)
         res = Variable(self.name_, self.dtype_,
-                       self.shape_, self.added_dtype_,
+                       shape or self.shape_, self.added_dtype_,
                        self.added_shape_)
         if self.added_dtype_ is None and var.dtype_ is not None:
             res.added_dtype_ = var.dtype_
@@ -265,7 +308,7 @@ class Variable:
         """
         if not isinstance(other, Variable):
             raise TypeError(
-                "Unexpected type %r." % type(other))
+                f"Unexpected type {type(other)!r}.")
         if self.name != other.name:
             return False
         if self.shape_ != other.shape_:
@@ -313,7 +356,7 @@ class NodeResultName:
 
     def __repr__(self):
         "Usual"
-        return "%s(%r, %r)" % (self.__class__.__name__, self.node, self.index)
+        return f"{self.__class__.__name__}({self.node!r}, {self.index!r})"
 
     def get_name(self):
         """
@@ -339,10 +382,9 @@ class DetectedVariable:
     """
 
     def __init__(self, node, var, index):
-        if not isinstance(var, Variable):
+        if not isinstance(var, (Variable, ExistingVariable)):
             raise TypeError(  # pragma: no cover
-                "Unexpected type %r, it should be a Variable."
-                "" % type(var))
+                f"Unexpected type {type(var)!r}, it should be a Variable.")
         self.node = node
         self.var = var
         self.index = index
@@ -354,10 +396,9 @@ class DetectedVariable:
 
     def __repr__(self):
         "usual"
-        sindex = ", %s" % self.index if self.index >= 0 else ""
+        sindex = f", {self.index}" if self.index >= 0 else ""
         if self.node is None:
-            return "%s(None, %r%s)" % (
-                self.__class__.__name__, self.var, sindex)
+            return f"{self.__class__.__name__}(None, {self.var!r}{sindex})"
         return "%s(%s-%d, %r%s)" % (
             self.__class__.__name__, self.node.__class__.__name__,
             id(self.node), self.var, sindex)

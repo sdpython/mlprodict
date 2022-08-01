@@ -47,7 +47,7 @@ def compare_runtime_session(  # pylint: disable=R0912
         context = {}
     load = load_data_and_model(test, **context)
     if verbose:  # pragma no cover
-        print("[compare_runtime] test '{}' loaded".format(test['onnx']))
+        print(f"[compare_runtime] test '{test['onnx']}' loaded")
 
     onx = test['onnx']
 
@@ -63,20 +63,20 @@ def compare_runtime_session(  # pylint: disable=R0912
             "options must be a dictionary.")
 
     if verbose:  # pragma no cover
-        print("[compare_runtime] InferenceSession('{}')".format(onx))
+        print(f"[compare_runtime] InferenceSession('{onx}')")
 
     runtime_options = dict(disable_optimisation=disable_optimisation)
     try:
         sess = cls_session(onx, runtime_options=runtime_options)
     except TypeError as et:  # pragma: no cover
         raise TypeError(  # pylint: disable=W0707
-            "Wrong signature for '{}' ({}).".format(cls_session.__name__, et))
+            f"Wrong signature for '{cls_session.__name__}' ({et}).")
     except ExpectedAssertionError as expe:  # pragma no cover
         raise expe
     except Exception as e:  # pylint: disable=W0703
         if "CannotLoad" in options:  # pragma no cover
             raise ExpectedAssertionError(  # pylint: disable=W0707
-                "Unable to load onnx '{0}' due to\n{1}".format(onx, e))
+                f"Unable to load onnx '{onx}' due to\n{e}")
         else:  # pragma no cover
             if verbose:  # pragma no cover
                 model = onnx.load(onx)
@@ -98,8 +98,7 @@ def compare_runtime_session(  # pylint: disable=R0912
                     "'{0}'\n{1}\nONNX\n{2}".format(
                         onx, e, smodel, cls_session))
             raise OnnxBackendAssertionError(  # pylint: disable=W0707
-                "Unable to load onnx '{0}'\nONNX\n{1}\n{2}".format(
-                    onx, smodel, e))
+                f"Unable to load onnx '{onx}'\nONNX\n{smodel}\n{e}")
 
     input = load["data"]
     DF = options.pop('DF', False)
@@ -178,11 +177,10 @@ def compare_runtime_session(  # pylint: disable=R0912
                         .format(len(inp), shape, array_input.shape, onx))
             else:
                 raise OnnxBackendAssertionError(  # pragma no cover
-                    "Wrong type of inputs onnx {0}, onnx='{1}'".format(
-                        type(input), onx))
+                    f"Wrong type of inputs onnx {type(input)}, onnx='{onx}'")
         else:
             raise OnnxBackendAssertionError(  # pragma no cover
-                "Dict or list is expected, not {0}".format(type(input)))
+                f"Dict or list is expected, not {type(input)}")
 
         for k in inputs:
             if isinstance(inputs[k], list):
@@ -220,12 +218,13 @@ def compare_runtime_session(  # pylint: disable=R0912
             sess.run(None, inputs, verbose=3, fLOG=print)
         if "-Fail" in onx:
             raise ExpectedAssertionError(  # pylint: disable=W0707
-                "{1} cannot compute the prediction for '{0}'".
-                format(onx, cls_session))
+                f"{cls_session} cannot compute the prediction for '{onx}'")
         else:
             if verbose:  # pragma no cover
+                from ...plotting.text_plot import onnx_simple_text_plot
                 model = onnx.load(onx)
-                smodel = "\nJSON ONNX\n" + str(model)
+                smodel = "\nJSON ONNX\n" + onnx_simple_text_plot(
+                    model, recursive=True, raise_exc=False)
             else:
                 smodel = ""
             import pprint
@@ -236,9 +235,9 @@ def compare_runtime_session(  # pylint: disable=R0912
                         cls_session))
     except Exception as e:  # pragma no cover
         raise OnnxBackendAssertionError(  # pylint: disable=W0707
-            "Unable to run onnx '{0}' due to {1}".format(onx, e))
+            f"Unable to run onnx '{onx}' due to {e}")
     if verbose:  # pragma no cover
-        print("[compare_runtime] done type={}".format(type(output)))
+        print(f"[compare_runtime] done type={type(output)}")
 
     output0 = output.copy()
 

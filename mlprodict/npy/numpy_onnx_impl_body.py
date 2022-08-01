@@ -38,7 +38,7 @@ class AttributeGraph:
 
     def __repr__(self):
         "usual"
-        return "%s(...)" % self.__class__.__name__
+        return f"{self.__class__.__name__}(...)"
 
     def _graph_guess_dtype(self, i, var):
         """
@@ -78,7 +78,7 @@ class AttributeGraph:
         var = self.fct(*vars)
         if not isinstance(var, OnnxVar):
             raise RuntimeError(  # pragma: no cover
-                "var is not from type OnnxVar but %r." % type(var))
+                f"var is not from type OnnxVar but {type(var)!r}.")
 
         self.alg_ = var.to_algebra(op_version=op_version)
         logger.debug('AttributeGraph.to_algebra:end:2:%r', type(self.alg_))

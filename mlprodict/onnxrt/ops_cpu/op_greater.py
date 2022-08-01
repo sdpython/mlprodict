@@ -14,7 +14,7 @@ class Greater(OpRunBinaryComparison):
         OpRunBinaryComparison.__init__(
             self, onnx_node, desc=desc, **options)
 
-    def _run(self, a, b):  # pylint: disable=W0221
+    def _run(self, a, b, attributes=None, verbose=0, fLOG=None):  # pylint: disable=W0221
         return (numpy.greater(a, b), )
 
     def to_python(self, inputs):
@@ -27,7 +27,7 @@ class GreaterOrEqual(OpRunBinaryComparison):
         OpRunBinaryComparison.__init__(
             self, onnx_node, desc=desc, **options)
 
-    def _run(self, a, b):  # pylint: disable=W0221
+    def _run(self, a, b, attributes=None, verbose=0, fLOG=None):  # pylint: disable=W0221
         return (numpy.greater_equal(a, b), )
 
     def to_python(self, inputs):

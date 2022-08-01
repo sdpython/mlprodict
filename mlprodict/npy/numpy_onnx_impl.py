@@ -57,7 +57,7 @@ def arange(start, stop, step=1):
     "See :func:`numpy.arange`, *start*, *stop* must be specified."
     if not isinstance(step, (int, numpy.int64)):
         raise TypeError(  # pragma: no cover
-            "step must be an integer not %r." % type(step))
+            f"step must be an integer not {type(step)!r}.")
     if isinstance(start, (int, numpy.int64, numpy.int32)):
         start = numpy.array([start], dtype=numpy.int64)
         zero = start == 0
@@ -203,7 +203,7 @@ def concat(*x, axis=0):
     OnnxConcat = loadop('Concat')
     if len(x) <= 1:
         raise RuntimeError(  # pragma: no cover
-            "N=%d<=1 elements to concatenate." % len(x))
+            f"N={len(x)}<=1 elements to concatenate.")
     return OnnxVar(*x, op=OnnxConcat, axis=axis)
 
 
@@ -235,11 +235,11 @@ def cst(x, dtype=None):
     if hasattr(x, 'dtype'):
         if dtype is not None:
             raise RuntimeError(  # pragma: no cover
-                "dtype is not used because x is of type %r." % type(x))
+                f"dtype is not used because x is of type {type(x)!r}.")
         return OnnxVar(numpy.array([x], dtype=x.dtype),
                        op=OnnxIdentity)
     raise NotImplementedError(  # pragma: no cover
-        "Unable to convert type %r into a constant." % type(x))
+        f"Unable to convert type {type(x)!r} into a constant.")
 
 
 def det(x):
@@ -285,7 +285,7 @@ def expand_dims(x, axis):
     "See :func:`numpy.expand_dims`."
     if not isinstance(axis, int):
         raise NotImplementedError(  # pragma: no cover
-            "This function only allows integer for axis not %r." % type(axis))
+            f"This function only allows integer for axis not {type(axis)!r}.")
     OnnxUnsqueeze = loadop('Unsqueeze')
     return OnnxVar(x, numpy.array([axis], dtype=numpy.int64),
                    op=OnnxUnsqueeze)
@@ -307,7 +307,7 @@ def hstack(*x):
     "See :func:`numpy.hstack`."
     if len(x) <= 1:
         raise RuntimeError(  # pragma: no cover
-            "N=%d<=1 elements to concatenate." % len(x))
+            f"N={len(x)}<=1 elements to concatenate.")
     OnnxConcat = loadop('Concat')
     return OnnxVar(*x, op=OnnxConcat, axis=-1)
 
@@ -380,7 +380,7 @@ def pad(x, pads, constant_value=None, mode='constant'):
     It does not implement :func:`numpy.pad` but the ONNX version
     :func:`onnx_pad <mlprodict.onnxrt.ops_cpu.op_pad.onnx_pad>`.
     """
-    OnnxPad = loadop('Pad')
+    OnnxPad = loadop(('', 'Pad'))
     if constant_value is None:
         return OnnxVar(x, pads, op=OnnxPad, mode=mode)
     return OnnxVar(x, pads, constant_value, op=OnnxPad, mode=mode)
@@ -504,7 +504,7 @@ def vstack(*x):
     OnnxConcat = loadop('Concat')
     if len(x) <= 1:
         raise RuntimeError(  # pragma: no cover
-            "N=%d<=1 elements to concatenate." % len(x))
+            f"N={len(x)}<=1 elements to concatenate.")
     return OnnxVar(*x, op=OnnxConcat, axis=0)
 
 

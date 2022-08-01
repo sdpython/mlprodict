@@ -108,8 +108,7 @@ class CodeNodeVisitor(ast.NodeVisitor):
         visitor = getattr(self, method, None)
         if visitor is None:
             raise TypeError(  # pragma: no cover
-                "Unable to find a method '{}' at {}.".format(
-                    method, self.make_msg(node)))
+                f"Unable to find a method '{method}' at {self.make_msg(node)}.")
         res = visitor(node)
         # print(method, CodeNodeVisitor.print_node(node))
         return res
@@ -136,7 +135,7 @@ class CodeNodeVisitor(ast.NodeVisitor):
                                'value'] + list(getattr(node, '_attributes', [])))):
             v = getattr(node, att, None)
             if v is not None or att in getattr(node, '_fields', []):
-                r.append("{0}={1}".format(att, v))
+                r.append(f"{att}={v}")
         return " ".join(r)
 
     def print_tree(self):
@@ -148,11 +147,7 @@ class CodeNodeVisitor(ast.NodeVisitor):
         rows = []
         for r in self.Rows:
             rows.append(
-                ("{0}{1}: {2}".format(
-                    "    " *
-                    r["indent"],
-                    r["type"],
-                    r["str"])))
+                f"{'    ' * r['indent']}{r['type']}: {r['str']}")
         return "\n".join(rows)
 
     @property
@@ -269,7 +264,7 @@ class CodeNodeVisitor(ast.NodeVisitor):
             fir = cont["children"][0]
             if fir["type"] == "Name":
                 parent = fir["node"].id
-                cont["str"] = "{0}.{1}".format(parent, cont["str"])
+                cont["str"] = f"{parent}.{cont['str']}"
                 cont["children"][0]["remove"] = True
         return res
 
@@ -278,7 +273,7 @@ class CodeNodeVisitor(ast.NodeVisitor):
         return self.generic_visit_args(node, cont)
 
     def visit_keyword(self, node):  # pylint: disable=C0111
-        cont = {"indent": self._indent, "type": "keyword", "str": "{0}".format(node.arg),
+        cont = {"indent": self._indent, "type": "keyword", "str": f"{node.arg}",
                 "node": node, "arg": node.arg, "value": node.value}
         self.push(cont)
         return self.generic_visit_args(node, cont)
@@ -355,7 +350,7 @@ class CodeNodeVisitor(ast.NodeVisitor):
 
     def visit_Num(self, node):  # pylint: disable=C0111
         cont = {"indent": self._indent, "type": "Num",
-                "node": node, "str": "{0}".format(node.n),
+                "node": node, "str": f"{node.n}",
                 'n': node.n}
         self.push(cont)
         return self.generic_visit_args(node, cont)

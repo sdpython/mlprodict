@@ -16,6 +16,7 @@ predictions, it handles the graph and operators runtimes.
 .. toctree::
     :maxdepth: 1
 
+    onnxops/index
     onnx_runtime
     backends/index
 

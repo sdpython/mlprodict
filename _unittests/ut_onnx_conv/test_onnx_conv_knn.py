@@ -28,6 +28,7 @@ from mlprodict.onnxrt import OnnxInference
 from mlprodict.onnxrt.ops_cpu.op_topk import topk_sorted_implementation
 from mlprodict import __max_supported_opset__ as TARGET_OPSET, get_ir_version
 from mlprodict.testing.test_utils import _capture_output
+from mlprodict.plotting.text_plot import onnx_simple_text_plot
 
 
 def old_topk_sorted_implementation(X, k, axis, largest):
@@ -158,7 +159,7 @@ class TestOnnxConvKNN(ExtTestCase):
                 try:
                     sess = OnnxInference(model_def)
                 except RuntimeError as e:
-                    raise AssertionError("Issue\n{}".format(model_def)) from e
+                    raise AssertionError(f"Issue\n{model_def}") from e
                 res = sess.run({'input': x})['cdist']
                 exp = scipy_cdist(x, x2, metric="minkowski", p=pp)
                 self.assertEqualArray(exp, res, decimal=5)
@@ -212,7 +213,7 @@ class TestOnnxConvKNN(ExtTestCase):
         elif kind == 'mcl':
             y = y.astype(numpy.int64)
         else:
-            raise AssertionError("unknown '{}'".format(kind))
+            raise AssertionError(f"unknown '{kind}'")
 
         if n_targets != 1:
             yn = numpy.empty((y.shape[0], n_targets), dtype=dtype)
@@ -249,7 +250,7 @@ class TestOnnxConvKNN(ExtTestCase):
             opsets = [target_opset]
         for ops in opsets:
             if ops is None:
-                raise AssertionError("Cannot happen: {}.".format(opsets))
+                raise AssertionError(f"Cannot happen: {opsets}.")
             with self.subTest(target_opset=ops):
                 try:
                     model_def = to_onnx(
@@ -274,12 +275,12 @@ class TestOnnxConvKNN(ExtTestCase):
                     if debug:
                         raise AssertionError(
                             "Unable to create a model for target_opset={}\n----\n{}\n----".format(
-                                ops, str(model_def)[:100])) from e
+                                ops, onnx_simple_text_plot(model_def))) from e
                     if "Unknown model file format version." in str(e):
                         continue
                     raise AssertionError(
                         "Unable to create model for opset={} and runtime='{}'\n{}"
-                        "".format(ops, runtime, str(model_def)[:100])) from e
+                        "".format(ops, runtime, onnx_simple_text_plot(model_def))) from e
 
                 if debug:
                     y = oinf.run({'X': X_test}, verbose=level, fLOG=print)
@@ -324,6 +325,9 @@ class TestOnnxConvKNN(ExtTestCase):
 
     @igw((DeprecationWarning, FutureWarning))
     def test_onnx_test_knn_single_reg32_onnxruntime2(self):
+        self.onnx_test_knn_single_classreg(
+            numpy.float32, runtime="onnxruntime2", target_opset=10,
+            debug=False)
         try:
             self.onnx_test_knn_single_classreg(
                 numpy.float32, runtime="onnxruntime2", target_opset=10,
@@ -332,6 +336,8 @@ class TestOnnxConvKNN(ExtTestCase):
             if "Invalid rank for input: Ar_Z0 Got: 2 Expected: 1" in str(e):
                 return
             if "Got invalid dimensions for input:" in str(e):
+                return
+            if "Invalid rank for input: knny_Z0" in str(e):
                 return
             raise e
 
@@ -552,4 +558,5 @@ class TestOnnxConvKNN(ExtTestCase):
 
 
 if __name__ == "__main__":
+    # TestOnnxConvKNN().test_onnx_test_knn_single_reg32_onnxruntime2()
     unittest.main(verbosity=2)

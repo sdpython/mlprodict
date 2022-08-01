@@ -84,6 +84,10 @@ Validation of scikit-learn models
 C++ classes
 +++++++++++
 
+**Conv**
+
+.. autosignature:: mlprodict.onnxrt.ops_cpu.op_conv_helper_.im2col_1d_inplace_float
+
 **Gather**
 
 .. autosignature:: mlprodict.onnxrt.ops_cpu.op_gather_.GatherDouble

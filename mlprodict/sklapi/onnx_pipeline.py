@@ -173,8 +173,7 @@ class OnnxPipeline(Pipeline):
         """
         if not isinstance(x_train, numpy.ndarray):
             raise RuntimeError(  # pragma: no cover
-                "The pipeline only handle numpy arrays not {}.".format(
-                    type(x_train)))
+                f"The pipeline only handle numpy arrays not {type(x_train)}.")
         atts = {'options', 'white_op', 'black_op', 'final_types'}
         kwargs = {k: getattr(self, k) for k in atts}
         if self.enforce_float32 or x_train.dtype != numpy.float64:

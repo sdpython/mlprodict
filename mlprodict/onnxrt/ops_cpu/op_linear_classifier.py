@@ -24,8 +24,7 @@ class LinearClassifier(OpRunClassifierProb, _ClassifierCommon):
         self._post_process_label_attributes()
         if not isinstance(self.coefficients, numpy.ndarray):
             raise TypeError(  # pragma: no cover
-                "coefficient must be an array not {}.".format(
-                    type(self.coefficients)))
+                f"coefficient must be an array not {type(self.coefficients)}.")
         if len(getattr(self, "classlabels_ints", [])) == 0 and \
                 len(getattr(self, 'classlabels_strings', [])) == 0:
             raise ValueError(  # pragma: no cover
@@ -39,7 +38,7 @@ class LinearClassifier(OpRunClassifierProb, _ClassifierCommon):
         n = self.coefficients.shape[0] // self.nb_class
         self.coefficients = self.coefficients.reshape(self.nb_class, n).T
 
-    def _run(self, x):  # pylint: disable=W0221
+    def _run(self, x, attributes=None, verbose=0, fLOG=None):  # pylint: disable=W0221
         scores = numpy_dot_inplace(self.inplaces, x, self.coefficients)
         if self.intercepts is not None:
             scores += self.intercepts
@@ -55,8 +54,8 @@ class LinearClassifier(OpRunClassifierProb, _ClassifierCommon):
             numpy.divide(scores, scores.sum(axis=1)[
                          :, numpy.newaxis], out=scores)
         else:
-            raise NotImplementedError("Unknown post_transform: '{}'.".format(
-                self.post_transform))
+            raise NotImplementedError(  # pragma: no cover
+                f"Unknown post_transform: '{self.post_transform}'.")
 
         if self.nb_class == 1:
             label = numpy.zeros((scores.shape[0],), dtype=x.dtype)

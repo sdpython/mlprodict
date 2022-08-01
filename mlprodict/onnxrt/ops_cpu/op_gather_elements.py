@@ -6,7 +6,6 @@
 """
 import numpy
 from ._op import OpRun
-from ..shape_object import ShapeObject
 
 
 def gather_numpy_2(self, dim, index):
@@ -65,25 +64,15 @@ class GatherElements(OpRun):
                        expected_attributes=GatherElements.atts,
                        **options)
 
-    def _run(self, data, indices):  # pylint: disable=W0221
+    def _run(self, data, indices, attributes=None, verbose=0, fLOG=None):  # pylint: disable=W0221
         if indices.size == 0:
             return (numpy.empty((0, ), dtype=data.dtype), )
         y = gather_numpy(data, self.axis, indices)
         return (y, )
 
-    def _infer_shapes(self, data, indices):  # pylint: disable=W0221
-        return (ShapeObject(None, data.dtype), )
-
-    def _infer_types(self, data, indices):  # pylint: disable=W0221
-        return (data, )
-
-    def _infer_sizes(self, *args):  # pylint: disable=W0221
-        res = self.run(*args)
-        return (dict(temp=sum(a.size * a.dtype.itemsize for a in args)), ) + res
-
     def to_python(self, inputs):
-        lines = ['data_swaped = numpy.swapaxes(%s, 0, axis)' % inputs[0],
-                 'index_swaped = numpy.swapaxes(%s, 0, axis)' % inputs[1],
+        lines = [f'data_swaped = numpy.swapaxes({inputs[0]}, 0, axis)',
+                 f'index_swaped = numpy.swapaxes({inputs[1]}, 0, axis)',
                  "gathered = numpy.choose(index_swaped, data_swaped, mode='wrap')",
                  'return numpy.swapaxes(gathered, 0, axis)']
         return "import numpy", "\n".join(lines)

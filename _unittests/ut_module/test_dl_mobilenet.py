@@ -4,12 +4,16 @@
 import unittest
 import numpy
 from pyquickhelper.pycode import ExtTestCase
-from pyensae.datasource import download_data
+try:
+    from pyensae.datasource import download_data
+except ImportError:
+    download_data = None
 from mlprodict.onnxrt import OnnxInference
 
 
 class TestLONGMobileNet(ExtTestCase):
 
+    @unittest.skipIf(download_data is None, reason="pyensae is not installed")
     def test_mobilenet(self):
         src = ("https://s3.amazonaws.com/onnx-model-zoo/mobilenet/"
                "mobilenetv2-1.0/")
@@ -38,7 +42,7 @@ class TestLONGMobileNet(ExtTestCase):
                 Y = oinf.run({name: X})
             if any(map(numpy.isnan, Y[out].ravel())):
                 raise AssertionError(
-                    "Runtime {}:{} produces NaN.\n{}".format(i, rt, Y[out]))
+                    f"Runtime {i}:{rt} produces NaN.\n{Y[out]}")
             res.append((rt, Y[out]))
         for rt, r in res[1:]:
             exp = numpy.squeeze(r[0])
@@ -48,7 +52,7 @@ class TestLONGMobileNet(ExtTestCase):
                 self.assertEqualArray(got, exp)
             except AssertionError as e:
                 raise AssertionError(
-                    "Issue with runtime: '{}'.".format(rt)) from e
+                    f"Issue with runtime: '{rt}'.") from e
 
 
 if __name__ == "__main__":

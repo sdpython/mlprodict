@@ -6,7 +6,6 @@
 """
 import itertools
 import numpy
-from ..shape_object import ShapeObjectFct, ShapeObject
 from ._op import OpRun
 
 
@@ -97,8 +96,7 @@ def _pool(padded, x_shape, kernel_shape, strides_shape,
         fpool = numpy.max
     else:
         raise NotImplementedError(  # pragma: no cover
-            'Pooling type {} does not support. Should be AVG, MAX.'
-            ''.format(pooling_type))
+            f'Pooling type {pooling_type} does not support. Should be AVG, MAX.')
     spatial_size = len(x_shape) - 2
     y = numpy.zeros([x_shape[0], x_shape[1]] + list(out_shape))
     round_fct = numpy.ceil if ceil_mode else numpy.floor
@@ -144,7 +142,7 @@ class AveragePool(OpRun):
                        expected_attributes=AveragePool.atts,
                        **options)
 
-    def _run(self, x):  # pylint: disable=W0221
+    def _run(self, x, attributes=None, verbose=0, fLOG=None):  # pylint: disable=W0221
         if len(self.strides) == 0:
             strides = [1] * (len(x.shape) - 2)
         else:
@@ -202,33 +200,3 @@ class AveragePool(OpRun):
                     count_include_pad=self.count_include_pad,
                     ceil_mode=self.ceil_mode)
         return (res, )
-
-    def _infer_shapes(self, x):  # pylint: disable=W0221
-        kernel_shape = list(self.kernel_shape)
-        auto_pad = 'VALID' if self.auto_pad == 'NOTSET' else self.auto_pad
-        if len(self.pads) == 0:
-            if x.shape is None:
-                return (ShapeObject(None, dtype=x.dtype), )
-            pad_shape = [0] * (len(x.shape) - 2)
-        elif len(self.pads) == 4:
-            pad_top, pad_bottom, pad_left, pad_right = self.pads
-            pad_shape = [pad_top + pad_bottom, pad_left + pad_right]
-
-        def compute_shape(xshape):
-            if len(self.strides) == 0:
-                strides = [1] * (len(xshape) - 2)
-            else:
-                strides = self.strides
-            out_shape = _get_output_shape(
-                auto_pad, xshape[2:], kernel_shape, strides, pad_shape, self.ceil_mode)
-            return out_shape
-
-        return (ShapeObjectFct(
-            compute_shape, x, name="AveragePool", dtype=x.dtype), )
-
-    def _infer_types(self, x):  # pylint: disable=W0221
-        return (x, )
-
-    def _infer_sizes(self, *args):  # pylint: disable=W0221
-        res = self.run(*args)
-        return (dict(temp=0), ) + res

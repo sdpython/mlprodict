@@ -7,7 +7,6 @@
 .. versionadded:: 0.8
 """
 from ._op import OpRun
-from ..shape_object import ShapeObject
 
 
 class SequenceAt(OpRun):
@@ -18,15 +17,5 @@ class SequenceAt(OpRun):
         OpRun.__init__(self, onnx_node, desc=desc,
                        atts=SequenceAt.atts, **options)
 
-    def _run(self, seq, index):  # pylint: disable=W0221
+    def _run(self, seq, index, attributes=None, verbose=0, fLOG=None):  # pylint: disable=W0221
         return (seq[index], )
-
-    def _infer_shapes(self, seq, index):  # pylint: disable=W0221
-        return (ShapeObject(None, dtype=seq.subtype.dtype), )
-
-    def _infer_types(self, *data):  # pylint: disable=W0221
-        return (None, )
-
-    def _infer_sizes(self, *args):  # pylint: disable=W0221
-        res = self.run(*args)
-        return (dict(temp=0), ) + res

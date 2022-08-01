@@ -42,7 +42,7 @@ def _op_type_domain_regressor(dtype, opsetml):
     if dtype == numpy.float64:
         return 'TreeEnsembleRegressorDouble', 'mlprodict', 1
     raise RuntimeError(  # pragma: no cover
-        "Unsupported dtype {}.".format(dtype))
+        f"Unsupported dtype {dtype}.")
 
 
 def _op_type_domain_classifier(dtype, opsetml):
@@ -56,7 +56,7 @@ def _op_type_domain_classifier(dtype, opsetml):
     if dtype == numpy.float64:
         return 'TreeEnsembleClassifierDouble', 'mlprodict', 1
     raise RuntimeError(  # pragma: no cover
-        "Unsupported dtype {}.".format(dtype))
+        f"Unsupported dtype {dtype}.")
 
 
 def _fix_tree_ensemble_node(scope, container, opsetml, node, dtype):
@@ -97,7 +97,7 @@ def _fix_tree_ensemble_node(scope, container, opsetml, node, dtype):
                         att.name, att.type, opsetml, node.op_type, att))
             if to_array(value).shape[0] == 0:
                 raise RuntimeError(
-                    "Null value from attribute (dtype=%r): %r." % (dtype, att))
+                    f"Null value from attribute (dtype={dtype!r}): {att!r}.")
             node.attribute.append(make_attribute(atts[att.name], value))
         else:
             node.attribute.append(att)

@@ -2,10 +2,49 @@
 @file
 @brief Optimisation of :epkg:`ONNX` graphs.
 """
-from onnx import FunctionProto
+import logging
+from onnx import FunctionProto, GraphProto
 from onnx.helper import make_graph, make_function
 from ._onnx_optimisation_common import (  # pylint: disable=E0611
     _apply_optimisation_on_graph, _apply_remove_node_fct_node)
+
+
+logger = logging.getLogger('onnx:optim')
+
+
+def _process_node(node, data, edges, paths, prefix="", sep="::", path=None):
+    node_name = prefix + node.name
+    data[node_name, 1] = node
+    path = [] if path is None else path.copy()
+    paths[node_name, 1] = path
+    path = path.copy()
+    path.append(node_name)
+    for inp in node.input:
+        data[inp, 0] = node
+        edges[(inp, 0), (node_name, 1)] = node
+        paths[inp, 0] = path
+        if '::' in node_name:
+            # We need to link an input to the parent node
+            # if the node is part of subgraph.
+            # path_r = paths[inp, 0]
+            if len(path) <= 1:
+                raise RuntimeError(  # pragma: no cover
+                    f"Unexpected path {path!r}.")
+            edges[(inp, 0), (path[-2], 1)] = node
+
+    for out in node.output:
+        data[out, 0] = node
+        paths[out, 0] = node_name
+        edges[(node_name, 1), (out, 0)] = node
+    if len(node.attribute) > 0:
+        for att in node.attribute:
+            if not hasattr(att, 'g'):
+                continue
+            if not isinstance(att.g, GraphProto):
+                continue
+            for no in att.g.node:
+                _process_node(no, data, edges, paths,
+                              prefix=node_name + sep, path=path)
 
 
 def onnx_remove_node_unused(onnx_model, recursive=True, debug_info=None, **options):
@@ -13,11 +52,11 @@ def onnx_remove_node_unused(onnx_model, recursive=True, debug_info=None, **optio
     Removes unused nodes of the graph. An unused node
     is not involved in the output computation.
 
-    @param      onnx_model      onnx model
-    @param      recursive       looks into subgraphs
-    @param      debug_info      debug information (private)
-    @param      options         unused
-    @return                     new onnx _model
+    :param onnx_model: onnx model
+    :param recursive: looks into subgraphs
+    :param debug_info: debug information (private)
+    :param options: unused
+    :return: new onnx _model
     """
     if debug_info is None:
         debug_info = [str(type(onnx_model)).rsplit(
@@ -33,23 +72,20 @@ def onnx_remove_node_unused(onnx_model, recursive=True, debug_info=None, **optio
             **options)
 
     graph = onnx_model
+    logger.debug("onnx_remove_node_unused:begin with %d nodes.",
+                 len(graph.node))
     is_function = isinstance(graph, FunctionProto)
     data = {}
     valid = {}
     edges = {}
+    paths = {}
 
     if not is_function:
         for init in graph.initializer:
             data[init.name, 0] = init
 
     for node in graph.node:
-        data[node.name, 1] = node
-        for inp in node.input:
-            data[inp, 0] = node
-            edges[(inp, 0), (node.name, 1)] = node
-        for out in node.output:
-            data[out, 0] = node
-            edges[(node.name, 1), (out, 0)] = node
+        _process_node(node, data, edges, paths)
 
     for out in graph.output:
         valid[out if is_function else out.name, 0] = True
@@ -79,6 +115,8 @@ def onnx_remove_node_unused(onnx_model, recursive=True, debug_info=None, **optio
     # Finally create the new graph.
     nodes = list(filter(lambda n: n is not None, new_nodes))
     if is_function:
+        logger.debug("onnx_remove_node_unused:end function with %d nodes.",
+                     len(nodes))
         return make_function(
             onnx_model.domain, onnx_model.name,
             onnx_model.input, onnx_model.output, nodes,
@@ -89,4 +127,6 @@ def onnx_remove_node_unused(onnx_model, recursive=True, debug_info=None, **optio
                        onnx_model.input, onnx_model.output,
                        new_inits)
     graph.value_info.extend(onnx_model.value_info)  # pylint: disable=E1101
+    logger.debug("onnx_remove_node_unused:end graph with %d nodes.",
+                 len(nodes))
     return graph

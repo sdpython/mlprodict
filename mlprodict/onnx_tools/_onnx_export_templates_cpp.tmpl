@@ -1,0 +1,17 @@
+import numpy
+from onnx import numpy_helper, TensorProto
+from onnx.helper import (
+    make_model, make_node, set_model_props, make_tensor, make_graph,
+    make_tensor_value_info, make_opsetid, make_function)
+
+
+void make_model_{{ function_name }}(ModelProto& model) {
+    /*
+    Converted ``{{ name }}``.
+    */
+    
+    // Creates the main graph.
+    model.graph.ParseFromString(R"(
+    {{ printable_graph(graph) }}
+    )");
+}

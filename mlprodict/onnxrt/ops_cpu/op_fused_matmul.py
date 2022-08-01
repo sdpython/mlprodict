@@ -29,7 +29,7 @@ class FusedMatMul(OpRun):
         if op_name == "FusedMatMul":
             return FusedMatMulSchema()
         raise RuntimeError(  # pragma: no cover
-            "Unable to find a schema for operator '{}'.".format(op_name))
+            f"Unable to find a schema for operator '{op_name}'.")
 
     @staticmethod
     def _fmatmul00(a, b, alpha):
@@ -47,14 +47,8 @@ class FusedMatMul(OpRun):
     def _fmatmul11(a, b, alpha):
         return numpy.matmul(a.T, b.T) * alpha
 
-    def _run(self, a, b):  # pylint: disable=W0221
+    def _run(self, a, b, attributes=None, verbose=0, fLOG=None):  # pylint: disable=W0221
         return (self._meth(a, b), )
-
-    def _infer_shapes(self, a, b):  # pylint: disable=W0221
-        return (a, )
-
-    def _infer_types(self, a, b):  # pylint: disable=W0221
-        return (a, )
 
 
 class FusedMatMulSchema(OperatorSchema):

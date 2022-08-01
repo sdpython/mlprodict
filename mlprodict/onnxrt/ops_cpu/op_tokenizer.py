@@ -8,7 +8,6 @@ import re
 import numpy
 from ._op import OpRunUnary, RuntimeTypeError
 from ._new_ops import OperatorSchema
-from ..shape_object import ShapeObject
 
 
 class Tokenizer(OpRunUnary):
@@ -36,7 +35,7 @@ class Tokenizer(OpRunUnary):
                                        for _ in self.separators)
         except AttributeError as e:  # pragma: no cover
             raise RuntimeTypeError(
-                "Unable to interpret separators {}.".format(self.separators)) from e
+                f"Unable to interpret separators {self.separators}.") from e
         if self.tokenexp not in (None, b''):
             self.tokenexp_ = re.compile(self.tokenexp.decode('utf-8'))
 
@@ -44,9 +43,9 @@ class Tokenizer(OpRunUnary):
         if op_name == "Tokenizer":
             return TokenizerSchema()
         raise RuntimeError(  # pragma: no cover
-            "Unable to find a schema for operator '{}'.".format(op_name))
+            f"Unable to find a schema for operator '{op_name}'.")
 
-    def _run(self, text):  # pylint: disable=W0221
+    def _run(self, text, attributes=None, verbose=0, fLOG=None):  # pylint: disable=W0221
         if self.char_tokenization_:
             return self._run_char_tokenization(text, self.stops_)
         if self.str_separators_ is not None and len(self.str_separators_) > 0:
@@ -103,7 +102,7 @@ class Tokenizer(OpRunUnary):
             res = res[:, :, :max_pos]
         else:
             raise RuntimeError(  # pragma: no cover
-                "Only vector or matrices are supported not shape {}.".format(text.shape))
+                f"Only vector or matrices are supported not shape {text.shape}.")
         return (res, )
 
     def _run_char_tokenization(self, text, stops):
@@ -150,21 +149,6 @@ class Tokenizer(OpRunUnary):
             def split(t):
                 return filter(lambda x: x, exp.findall(t))
         return self._run_tokenization(text, stops, split)
-
-    def _infer_shapes(self, x):  # pylint: disable=E0202,W0221
-        if x.shape is None:
-            return (x, )
-        if len(x) == 1:
-            return (ShapeObject((x[0], None), dtype=x.dtype,
-                                name=self.__class__.__name__), )
-        if len(x) == 2:
-            return (ShapeObject((x[0], x[1], None), dtype=x.dtype,
-                                name=self.__class__.__name__), )
-        raise RuntimeTypeError(  # pragma: no cover
-            "Only two dimension are allowed, got {}.".format(x))
-
-    def _infer_types(self, x):  # pylint: disable=E0202,W0221
-        return (x, )
 
 
 class TokenizerSchema(OperatorSchema):
