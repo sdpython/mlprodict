@@ -212,7 +212,7 @@ def _append_succ_pred(subgraphs, successors, predecessors, node_map, node, prefi
                 continue
             subgraphs.append((node, att.name, att.g))
             _append_succ_pred_s(subgraphs, successors, predecessors, node_map,
-                                att.g.node, prefix=node_name + "::",
+                                att.g.node, prefix=node_name + ":/:",
                                 parent_node_name=node_name,
                                 parent_graph=att.g)
 
@@ -347,8 +347,8 @@ def reorder_nodes_for_display(nodes, verbose=False):
         for k, v in dnodes.items():
             if k in done:
                 continue
-            if '::' in k:
-                # node part of a sub graph (assuming :: is never used in a node name)
+            if ':/:' in k:
+                # node part of a sub graph (assuming :/: is never used in a node name)
                 continue
             if predecessors[k] <= known:
                 possibles[k] = v

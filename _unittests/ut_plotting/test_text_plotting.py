@@ -332,7 +332,15 @@ class TestPlotTextPlotting(ExtTestCase):
         self.assertIn("nodes_modes=9:[b'", res)
         self.assertIn("target_weights=5:[", res)
 
+    def test_simple_text_plot_bug(self):
+        data = os.path.join(os.path.dirname(__file__), "data")
+        onx_file = os.path.join(data, "tree_torch.onnx")
+        onx = load(onx_file)
+        res = onnx_simple_text_plot(onx, raise_exc=False)
+        self.assertIn("-> variable", res)
+        res2 = onnx_simple_text_plot(onx, raise_exc=True)
+        self.assertEqual(res, res2)
+
 
 if __name__ == "__main__":
-    # TestPlotTextPlotting().test_onnx_text_plot_tree_cls()
     unittest.main()
