@@ -135,6 +135,100 @@ class TestXOps(ExtTestCase):
         got = oinf.run({'X': x})
         self.assertEqualArray(numpy.abs(x), got['Y'])
 
+    def test_onnx_abs_1(self):
+        OnnxAbs, OnnxIdentity = loadop("Abs", "Identity")
+
+        with self.subTest(op="+"):
+            ab = OnnxAbs('X')
+            ov = OnnxIdentity(ab + 1, output_names=['Y'])
+            onx = ov.to_onnx(numpy.float32, numpy.float32, verbose=0)
+            self.assertNotIn("elem_type: 0", str(onx))
+            oinf = OnnxInference(onx)
+            x = numpy.array([-2, 2], dtype=numpy.float32)
+            got = oinf.run({'X': x})
+            self.assertEqualArray(numpy.abs(x) + 1, got['Y'])
+
+        with self.subTest(op="-"):
+            ov = OnnxIdentity(OnnxAbs('X') - 1, output_names=['Y'])
+            onx = ov.to_onnx(numpy.float32, numpy.float32, verbose=0)
+            self.assertNotIn("elem_type: 0", str(onx))
+            oinf = OnnxInference(onx)
+            x = numpy.array([-2, 2], dtype=numpy.float32)
+            got = oinf.run({'X': x})
+            self.assertEqualArray(numpy.abs(x) - 1, got['Y'])
+
+        with self.subTest(op="*"):
+            ov = OnnxIdentity(OnnxAbs('X') * 2, output_names=['Y'])
+            onx = ov.to_onnx(numpy.float32, numpy.float32, verbose=0)
+            self.assertNotIn("elem_type: 0", str(onx))
+            oinf = OnnxInference(onx)
+            x = numpy.array([-2, 2], dtype=numpy.float32)
+            got = oinf.run({'X': x})
+            self.assertEqualArray(numpy.abs(x) * 2, got['Y'])
+
+        with self.subTest(op="/"):
+            ov = OnnxIdentity(OnnxAbs('X') / 2, output_names=['Y'])
+            onx = ov.to_onnx(numpy.float32, numpy.float32, verbose=0)
+            self.assertNotIn("elem_type: 0", str(onx))
+            oinf = OnnxInference(onx)
+            x = numpy.array([-2, 2], dtype=numpy.float32)
+            got = oinf.run({'X': x})
+            self.assertEqualArray(numpy.abs(x) / 2, got['Y'])
+
+        with self.subTest(op="**"):
+            ov = OnnxIdentity(OnnxAbs('X') ** 2, output_names=['Y'])
+            onx = ov.to_onnx(numpy.float32, numpy.float32, verbose=0)
+            self.assertNotIn("elem_type: 0", str(onx))
+            oinf = OnnxInference(onx)
+            x = numpy.array([-2, 2], dtype=numpy.float32)
+            got = oinf.run({'X': x})
+            self.assertEqualArray(numpy.abs(x) ** 2, got['Y'])
+
+        with self.subTest(op="=="):
+            ov = OnnxIdentity(OnnxAbs('X') == 2, output_names=['Y'])
+            onx = ov.to_onnx(numpy.float32, numpy.bool_, verbose=0)
+            self.assertNotIn("elem_type: 0", str(onx))
+            oinf = OnnxInference(onx)
+            x = numpy.array([-2, 2], dtype=numpy.float32)
+            got = oinf.run({'X': x})
+            self.assertEqualArray(numpy.abs(x) == 2, got['Y'])
+
+        with self.subTest(op=">"):
+            ov = OnnxIdentity(OnnxAbs('X') > 2, output_names=['Y'])
+            onx = ov.to_onnx(numpy.float32, numpy.bool_, verbose=0)
+            self.assertNotIn("elem_type: 0", str(onx))
+            oinf = OnnxInference(onx)
+            x = numpy.array([-2, 2], dtype=numpy.float32)
+            got = oinf.run({'X': x})
+            self.assertEqualArray(numpy.abs(x) > 2, got['Y'])
+
+        with self.subTest(op=">="):
+            ov = OnnxIdentity(OnnxAbs('X') >= 2, output_names=['Y'])
+            onx = ov.to_onnx(numpy.float32, numpy.bool_, verbose=0)
+            self.assertNotIn("elem_type: 0", str(onx))
+            oinf = OnnxInference(onx)
+            x = numpy.array([-2, 2], dtype=numpy.float32)
+            got = oinf.run({'X': x})
+            self.assertEqualArray(numpy.abs(x) >= 2, got['Y'])
+
+        with self.subTest(op="<"):
+            ov = OnnxIdentity(OnnxAbs('X') < 2, output_names=['Y'])
+            onx = ov.to_onnx(numpy.float32, numpy.bool_, verbose=0)
+            self.assertNotIn("elem_type: 0", str(onx))
+            oinf = OnnxInference(onx)
+            x = numpy.array([-2, 2], dtype=numpy.float32)
+            got = oinf.run({'X': x})
+            self.assertEqualArray(numpy.abs(x) < 2, got['Y'])
+
+        with self.subTest(op="<="):
+            ov = OnnxIdentity(OnnxAbs('X') <= 2, output_names=['Y'])
+            onx = ov.to_onnx(numpy.float32, numpy.bool_, verbose=0)
+            self.assertNotIn("elem_type: 0", str(onx))
+            oinf = OnnxInference(onx)
+            x = numpy.array([-2, 2], dtype=numpy.float32)
+            got = oinf.run({'X': x})
+            self.assertEqualArray(numpy.abs(x) <= 2, got['Y'])
+
     def test_onnx_abs_z(self):
         OnnxAbs = loadop("Abs")
         ov = OnnxAbs('X', output_names=['Z'])
@@ -1214,5 +1308,5 @@ class TestXOps(ExtTestCase):
 if __name__ == "__main__":
     # import logging
     # logging.basicConfig(level=logging.DEBUG)
-    # TestXOps().test_zif_onnx_common_intermediate_level2()
+    # TestXOps().test_onnx_abs_1()
     unittest.main(verbosity=2)
