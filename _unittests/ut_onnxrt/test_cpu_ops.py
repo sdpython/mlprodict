@@ -406,7 +406,8 @@ class TestCpuOps(ExtTestCase):
         col = nn_im2col_2d(data.reshape(data.shape[2:]), (3, 3), (1, 1), (0, 0))
         self.assertEqualArray(got.ravel(), col.ravel())
         res = nn_col2im_2d(col, (5, 7), (3, 3), (1, 1), (0, 0))
-        self.assertEqualArray(bck.reshape(bck.shape[2:]), res)
+        self.assertEqualArray(bck.reshape(bck.shape[2:]).astype(numpy.int16),
+                              res.astype(numpy.int16))
 
 
 if __name__ == "__main__":
