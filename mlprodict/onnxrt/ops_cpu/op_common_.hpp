@@ -122,7 +122,6 @@ enum class AutoPadType {
 AutoPadType to_AutoPadType(const std::string& value);
 
 
-
 static inline float ErfInv(float x) {
     float sgn = x < 0 ? -1.0f : 1.0f;
     x = (1 - x) * (1 + x);
