@@ -18,7 +18,7 @@ from mlprodict.onnxrt.ops_cpu._op_helper import dtype_name
 from mlprodict.onnxrt.ops_cpu.op_conv_helper import (
     im2col, im2col_indices, col2im_indices, im2col_recursive, im2col_nn,
     im2col_naive_implementation, nn_im2col_2d, nn_col2im_2d, new_array,
-    col2im_infer_output_shape, im2col_nchw)
+    im2col_infer_output_shape, im2col_nchw)
 from mlprodict.npy.xop import loadop
 from mlprodict.onnxrt import OnnxInference
 
@@ -351,20 +351,20 @@ class TestCpuOps(ExtTestCase):
             self.assertEqualArray(th.numpy().reshape(data.shape).astype(numpy.int16),
                                   res.astype(numpy.int16))
 
-    def test_col2im_infer_output_shape(self):
-        o, p = col2im_infer_output_shape([3, 3], [3, 3], [1, 1], [1, 1], [1, 1, 1, 1])
+    def test_im2col_infer_output_shape(self):
+        o, p = im2col_infer_output_shape([3, 3], [3, 3], [1, 1], [1, 1], [1, 1, 1, 1])
         self.assertEqual(o, [9, 3, 3])
         self.assertEqual(p, [1, 1, 1, 1])
-        o, p = col2im_infer_output_shape([3, 3], [5, 5], [1, 1], [1, 1], [1, 1, 1, 1])
+        o, p = im2col_infer_output_shape([3, 3], [5, 5], [1, 1], [1, 1], [1, 1, 1, 1])
         self.assertEqual(o, [25, 1, 1])
         self.assertEqual(p, [1, 1, 1, 1])
-        o, p = col2im_infer_output_shape([11, 7], [5, 5], [1, 1], [1, 1], [1, 1, 2, 2])
+        o, p = im2col_infer_output_shape([11, 7], [5, 5], [1, 1], [1, 1], [1, 1, 2, 2])
         self.assertEqual(o, [25, 10, 6])
         self.assertEqual(p, [1, 1, 2, 2])
-        o, p = col2im_infer_output_shape([3, 5], [3, 3], [1, 1], [1, 1], [1, 1, 1, 1])
+        o, p = im2col_infer_output_shape([3, 5], [3, 3], [1, 1], [1, 1], [1, 1, 1, 1])
         self.assertEqual(o, [9, 3, 5])
         self.assertEqual(p, [1, 1, 1, 1])
-        o, p = col2im_infer_output_shape([3, 5], [3, 3], [1, 1], [1, 1], [0, 0, 0, 0])
+        o, p = im2col_infer_output_shape([3, 5], [3, 3], [1, 1], [1, 1], [0, 0, 0, 0])
         self.assertEqual(o, [9, 1, 3])
         self.assertEqual(p, [0, 0, 0, 0])
 
