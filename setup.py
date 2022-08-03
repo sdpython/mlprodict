@@ -336,6 +336,7 @@ def get_extensions():
     ext_conv_helper = Extension(
         'mlprodict.onnxrt.ops_cpu.op_conv_helper_',
         [os.path.join(root, 'mlprodict/onnxrt/ops_cpu/op_conv_helper_.cpp'),
+         os.path.join(root, 'mlprodict/onnxrt/ops_cpu/op_conv_matrices_.cpp'),
          os.path.join(root, 'mlprodict/onnxrt/ops_cpu/op_common_.cpp')],
         extra_compile_args=extra_compile_args,
         extra_link_args=extra_link_args,
