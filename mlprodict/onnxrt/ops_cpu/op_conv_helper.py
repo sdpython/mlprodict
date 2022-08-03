@@ -9,7 +9,7 @@ from .op_conv_helper_ import (  # pylint: disable=E0611
     im2col_1d_inplace_float,
     tch_im2col_2d_float, tch_col2im_2d_float,
     new_array as _new_array,
-    im2col_NCHW_float,
+    im2col_NCHW_float, col2im_NCHW_float,
     col2im_infer_output_shape as col2im_infer_output_shape_c)
 
 
@@ -337,7 +337,7 @@ def im2col_nchw(image_id, group_id, group, image, kernel_shape, padding, dilatio
     
     output_shape, padding = im2col_infer_output_shape(
         img, kernel_shape, strides, dilations, padding)
-    result = numpy.full(mul + tuple(output_shape), dtype=image.dtype, fill_value=-555)
+    result = numpy.empty(mul + tuple(output_shape), dtype=image.dtype)
     im2col_NCHW_float(image_id, group_id, group,
                       result, image, output_shape,
                       kernel_shape, dilations, padding)
@@ -361,3 +361,24 @@ def im2col_infer_output_shape(
     return col2im_infer_output_shape_c(
         input_shape, kernel_shape, strides, dilations,
         padding, auto_padding)
+
+
+def col2im_nchw(data_col, image_shape, kernel_shape, padding, dilations):
+    """
+    C implementation of a partial col2im.
+
+    :param data_col: image (float)
+    :param image_shape: expected image shape
+    :param kernel_shape: kernel shape
+    :param padding: padding
+    :param dilations: dilations
+    :return: result
+    """
+    if not data_col.flags['C_CONTIGUOUS']:
+        data_col = numpy.ascontiguousarray(data_col)
+
+    result = numpy.full(data_col.shape[:2] + tuple(image_shape),
+                        dtype=data_col.dtype, fill_value=-555)
+    col2im_NCHW_float(result, data_col, image_shape,
+                      kernel_shape, dilations, padding)
+    return result

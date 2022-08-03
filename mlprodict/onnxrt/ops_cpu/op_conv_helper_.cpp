@@ -115,6 +115,8 @@ void im2col_NCHW(int64_t image_id, int64_t group_id, int64_t group, py::buffer& 
 
     if (x_dims.size() != 4)
         throw std::runtime_error(MakeString("Unexpected number of dimensions (input): ", x_dims.size(), "."));
+    if (x_dims[0] != 1 || x_dims[1] != 1)
+        throw std::runtime_error(MakeString("batch size should be 1, the channel should be 1 too, x_dims=", x_dims, "\n"));
     if (output_shape.ndim() != 1)
         throw std::runtime_error(MakeString("Unexpected number of dimensions (output): ", kernel_shape.ndim(), "."));
     if (output_shape.shape(0) != 3)
@@ -155,7 +157,7 @@ void im2col_NCHW(int64_t image_id, int64_t group_id, int64_t group, py::buffer& 
 
     std::vector<int64_t> col_buffer_shape{kernel_dim};
     col_buffer_shape.insert(col_buffer_shape.end(), output_shape.data(), output_shape.data() + output_shape.ndim());
-    
+
     if (kernel_rank == 2) {
         Im2col_NCHW<T>(
             p_data + group_id * X_offset,
@@ -173,6 +175,57 @@ void im2col_NCHW(int64_t image_id, int64_t group_id, int64_t group, py::buffer& 
 }
 
 
+template <typename T>
+void col2im_NCHW(py::buffer& result,
+                 const py::array_t<T, py::array::c_style | py::array::forcecast>& data_col,
+                 const py::array_t<int64_t, py::array::c_style | py::array::forcecast>& output_shape,
+                 const py::array_t<int64_t, py::array::c_style | py::array::forcecast>& kernel_shape,
+                 const py::array_t<int64_t, py::array::c_style | py::array::forcecast>& dilations,
+                 const py::array_t<int64_t, py::array::c_style | py::array::forcecast>& pads) {
+    
+    std::vector<int64_t> col_dims, kernel_dims;
+    arrayshape2vector(col_dims, data_col);
+    arrayshape2vector(kernel_dims, kernel_shape);
+
+    if (col_dims.size() != 5)
+        throw std::runtime_error(MakeString("Unexpected number of dimensions (input): ", col_dims.size(), "."));
+    if (col_dims[0] != 1 || col_dims[1] != 1)
+        throw std::runtime_error(MakeString("batch size should be 1, the channel should be 1 too, col_dims=", col_dims, "\n"));
+    if (output_shape.ndim() != 1)
+        throw std::runtime_error(MakeString("Unexpected number of dimensions (output): ", kernel_shape.ndim(), "."));
+    if (output_shape.shape(0) != 2)
+        throw std::runtime_error(MakeString("Unexpected number of values (output): ", output_shape.shape(0), "."));
+    if (kernel_shape.ndim() != 1)
+        throw std::runtime_error(MakeString("Unexpected number of dimensions (kernel): ", kernel_shape.ndim(), "."));
+    if (kernel_shape.shape(0) != 2)
+        throw std::runtime_error(MakeString("Unexpected number of values (kernel): ", kernel_shape.shape(0), "."));
+    if (dilations.ndim() != 1)
+        throw std::runtime_error(MakeString("Unexpected number of dimensions (dilations): ", dilations.ndim(), "."));
+    if (dilations.shape(0) != 2)
+        throw std::runtime_error(MakeString("Unexpected number of values (dilations): ", dilations.shape(0), "."));
+    if (pads.ndim() != 1)
+        throw std::runtime_error(MakeString("Unexpected number of dimensions (pad): ", pads.ndim(), "."));
+    if (pads.shape(0) != 4)
+        throw std::runtime_error(MakeString("Unexpected number of values (pad): ", pads.shape(0), "."));
+
+    py::buffer_info buffer_result = result.request();
+    if (buffer_result.ndim != 4)
+        throw std::runtime_error(MakeString("Unexpected number of dimensions (result): ", buffer_result.ndim, "."));
+
+    const int64_t* p_kernel_shape = kernel_shape.data();
+    const int64_t* p_output_shape = output_shape.data();
+    const int64_t* p_dilations = dilations.data();
+    const int64_t* p_pads = pads.data();
+
+    Col2im_NCHW(data_col.data(), col_dims[1],
+                p_output_shape[0], p_output_shape[1],
+                p_kernel_shape[0], p_kernel_shape[1],
+                p_dilations[0], p_dilations[1],
+                p_pads[0], p_pads[1], p_pads[2], p_pads[3],
+                1, 1, (T*)buffer_result.ptr);
+}
+
+                     
 #ifndef SKIP_PYTHON
 
 PYBIND11_MODULE(op_conv_helper_, m) {
@@ -244,6 +297,12 @@ a matrix `Nxk` where *N* is the tensor dimension and *k* the kernal shape.)pbdoc
                 Size is defined by @see fn col2im_infer_output_shape.)pbdoc",
         py::arg("image_id"), py::arg("group_id"), py::arg("group"),
         py::arg("result"), py::arg("data"), py::arg("output_shape"),
+        py::arg("kernel_shape"), py::arg("dilations"), py::arg("padding"));
+
+    m.def("col2im_NCHW_float", &col2im_NCHW<float>,
+        R"pbdoc(Applies col2im on an image NCHW.
+                Parameter *result* must be an allocated matrix.)pbdoc",
+        py::arg("result"), py::arg("data_col"), py::arg("output_shape"),
         py::arg("kernel_shape"), py::arg("dilations"), py::arg("padding"));
 }
 

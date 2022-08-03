@@ -18,7 +18,7 @@ from mlprodict.onnxrt.ops_cpu._op_helper import dtype_name
 from mlprodict.onnxrt.ops_cpu.op_conv_helper import (
     im2col, im2col_indices, col2im_indices, im2col_recursive, im2col_nn,
     im2col_naive_implementation, nn_im2col_2d, nn_col2im_2d, new_array,
-    im2col_infer_output_shape, im2col_nchw)
+    im2col_infer_output_shape, im2col_nchw, col2im_nchw)
 from mlprodict.npy.xop import loadop
 from mlprodict.onnxrt import OnnxInference
 
@@ -380,7 +380,35 @@ class TestCpuOps(ExtTestCase):
         got = im2col_nchw(0, 0, 1, data, kernel_shape, padding, dilations)
         self.assertEqualArray(res, got.reshape(res.shape))
 
+    def test_col2im_c(self):
+        kernel_shape = (3, 3)
+        padding = [1, 1, 1, 1]
+        dilations = [1, 1]
+        data = numpy.arange(3 * 5).astype(numpy.float32) + 10
+        data = data.reshape((3, 5))
+        data = data.reshape((1, 1) + data.shape)
+        got = im2col_nchw(0, 0, 1, data, kernel_shape, padding, dilations)
+        bck = col2im_nchw(got, (3, 5), kernel_shape, padding, dilations)
+        col = nn_im2col_2d(data.reshape(data.shape[2:]), (3, 3), (1, 1), (1, 1))
+        self.assertEqualArray(got.ravel(), col.ravel())
+        res = nn_col2im_2d(col, (3, 5), (3, 3), (1, 1), (1, 1))
+        self.assertEqualArray(bck.reshape(bck.shape[2:]), res)
+
+    def test_col2im_c00(self):
+        kernel_shape = (3, 3)
+        padding = [0, 0, 0, 0]
+        dilations = [1, 1]
+        data = numpy.arange(5 * 7).astype(numpy.float32) + 10
+        data = data.reshape((5, 7))
+        data = data.reshape((1, 1) + data.shape)
+        got = im2col_nchw(0, 0, 1, data, kernel_shape, padding, dilations)
+        bck = col2im_nchw(got, (5, 7), kernel_shape, padding, dilations)
+        col = nn_im2col_2d(data.reshape(data.shape[2:]), (3, 3), (1, 1), (0, 0))
+        self.assertEqualArray(got.ravel(), col.ravel())
+        res = nn_col2im_2d(col, (5, 7), (3, 3), (1, 1), (0, 0))
+        self.assertEqualArray(bck.reshape(bck.shape[2:]), res)
+
 
 if __name__ == "__main__":
-    # TestCpuOps().test_im2col_c()
+    # TestCpuOps().test_col2im_c()
     unittest.main(verbosity=2)
