@@ -882,41 +882,6 @@ void Col2im_NCHW(const T* data_col, int64_t channels, int64_t height,
 
 
 template <typename T>
-void Col2im_NHCW(const T* data_col, int64_t channels, int64_t height,
-                 int64_t width, int64_t kernel_h, int64_t kernel_w,
-                 int64_t dilation_h, int64_t dilation_w, int64_t pad_t,
-                 int64_t pad_l, int64_t pad_b, int64_t pad_r, int64_t stride_h,
-                 int64_t stride_w, T* data_im) {
-    const int64_t dkernel_h = dilation_h * (kernel_h - 1) + 1;
-    const int64_t dkernel_w = dilation_w * (kernel_w - 1) + 1;
-
-    const int64_t hwc = height * width * channels;
-    memset(data_im, 0, hwc * sizeof(T));
-                        
-    int64_t height_col = (height + pad_t + pad_b - dkernel_h) / stride_h + 1;
-    int64_t width_col = (width + pad_l + pad_r - dkernel_w) / stride_w + 1;
-    int64_t h_pad = -pad_t;
-    for (int64_t h = 0; h < height_col; ++h) {
-        int64_t w_pad = -pad_l;
-        for (int64_t w = 0; w < width_col; ++w) {
-            for (int64_t ih = h_pad; ih < h_pad + dkernel_h; ih += dilation_h) {
-                for (int64_t iw = w_pad; iw < w_pad + dkernel_w; iw += dilation_w) {
-                    if (ih >= 0 && ih < height && iw >= 0 && iw < width) {
-                        auto* data_im_patch = data_im + (ih * width + iw) * channels;
-                        Add<float, CPUMathUtil>(
-                            static_cast<int>(channels), data_im_patch, data_col, data_im_patch, context);
-                    }
-                    data_col += channels;
-                }
-            }
-            w_pad += stride_w;
-        }
-        h_pad += stride_h;
-    }
-}
-
-
-template <typename T>
 void Col2imNd_NCHW(const T* data_col,
                    const int64_t* img_shape,
                    const int64_t* output_shape,
