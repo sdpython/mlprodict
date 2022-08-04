@@ -113,7 +113,7 @@ class TestSklearnHelper(ExtTestCase):
                 onx = to_onnx(clr, X_train[:1].astype(dtype),
                               target_opset=TARGET_OPSETS)
                 ostats = onnx_statistics(onx)
-                for k, v in {'nnodes': (expected[dtype],  expected[dtype] + 1),
+                for k, v in {'nnodes': (expected[dtype], expected[dtype] + 1),
                              'doc_string': '', 'domain': 'ai.onnx', 'model_version': 0,
                              'producer_name': 'skl2onnx', 'ai.onnx.ml': 3}.items():
                     if k == 'ai.onnx.ml' and k not in ostats:
