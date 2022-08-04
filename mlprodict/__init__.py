@@ -5,7 +5,7 @@
 converting investigate issues with ONNX models.
 """
 
-__version__ = "0.8.1863"
+__version__ = "0.8.1871"
 __author__ = "Xavier Dupré"
 __max_supported_opset__ = 17  # Converters are tested up to this version.
 __max_supported_opsets__ = {

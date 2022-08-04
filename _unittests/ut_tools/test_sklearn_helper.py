@@ -82,7 +82,8 @@ class TestSklearnHelper(ExtTestCase):
                     if k == 'ai.onnx.ml' and k not in ostats:
                         continue
                     if (isinstance(v, tuple) and ostats[k] not in v) and ostats[k] != v:
-                        raise AssertionError(f"ostats[{k!r}]={ostats[k]!r} != v={v!r}.")
+                        raise AssertionError(
+                            f"ostats[{k!r}]={ostats[k]!r} != v={v!r}.")
 
     @ignore_warnings(category=(UserWarning, RuntimeWarning, DeprecationWarning))
     def test_statistics_adaboost(self):
@@ -119,7 +120,8 @@ class TestSklearnHelper(ExtTestCase):
                     if k == 'ai.onnx.ml' and k not in ostats:
                         continue
                     if (isinstance(v, tuple) and ostats[k] not in v) and ostats[k] != v:
-                        raise AssertionError(f"ostats[{k!r}]={ostats[k]!r} != v={v!r}.")
+                        raise AssertionError(
+                            f"ostats[{k!r}]={ostats[k]!r} != v={v!r}.")
 
     @ignore_warnings(category=(UserWarning, RuntimeWarning, DeprecationWarning))
     def test_statistics_lin(self):

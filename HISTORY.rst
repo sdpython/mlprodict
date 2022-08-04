@@ -5,16 +5,25 @@
 History
 =======
 
-current - 2022-07-23 - 0.00Mb
+current - 2022-08-04 - 0.00Mb
 =============================
+
+* #460: Improves C++ implementation, im2col, col2im (2022-08-04)
+* #461: Upgrades default supported opset to 17 (2022-08-04)
+* #459: Supports OnnxOperator(...) + int or float with CastLike (2022-08-02)
+* #458: Changes subgraph separator from :: to :/: in onnx_simple_text_plot (2022-08-01)
+* #457: Fix delimiter in extras_require (2022-07-25)
+
+0.8.1863 - 2022-07-23 - 0.79Mb
+==============================
 
 * #456: Fixes python runtime for TfIdfVectorizer (2022-07-22)
 * #455: Fixes division by zero in Normalizer (2022-07-21)
-* #454: Fixes compilation issues on windows and python 3.10 (2022-07-20)
 
 0.8.1858 - 2022-07-20 - 2.42Mb
 ==============================
 
+* #454: Fixes compilation issues on windows and python 3.10 (2022-07-20)
 * #453: Uses f strings (2022-07-19)
 * #452: Extends code coverage (2022-07-18)
 * #451: Adds a table for all versions and all operators (2022-07-13)

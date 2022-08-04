@@ -45,7 +45,8 @@ class CumSum(OpRun):
             indices_c[axis] = slice(0, -1)
             indices_d[axis] = slice(1, x.shape[axis])
             res = numpy.zeros(x.shape, dtype=x.dtype)
-            numpy.cumsum(x[tuple(indices_c)], axis=axis, out=res[tuple(indices_d)])
+            numpy.cumsum(x[tuple(indices_c)], axis=axis,
+                         out=res[tuple(indices_d)])
         else:
             if self.inplaces.get(0, False) and x.flags['WRITEABLE']:
                 res = numpy.cumsum(x, axis=axis, out=x)

@@ -481,7 +481,8 @@ class TestOnnxConvKNN(ExtTestCase):
         clr = NearestNeighbors(n_neighbors=3)
         clr.fit(X_train)
 
-        for to in (10, 11, 12, 13, 14, 15, 16, TARGET_OPSET):  # opset=13, 14, ...
+        # opset=13, 14, ...
+        for to in (10, 11, 12, 13, 14, 15, 16, TARGET_OPSET):
             if to > TARGET_OPSET:
                 break
             try:

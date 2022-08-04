@@ -350,19 +350,24 @@ class TestCpuOps(ExtTestCase):
                                   res.astype(numpy.int16))
 
     def test_im2col_infer_output_shape(self):
-        o, p = im2col_infer_output_shape([3, 3], [3, 3], [1, 1], [1, 1], [1, 1, 1, 1])
+        o, p = im2col_infer_output_shape(
+            [3, 3], [3, 3], [1, 1], [1, 1], [1, 1, 1, 1])
         self.assertEqual(o, [9, 3, 3])
         self.assertEqual(p, [1, 1, 1, 1])
-        o, p = im2col_infer_output_shape([3, 3], [5, 5], [1, 1], [1, 1], [1, 1, 1, 1])
+        o, p = im2col_infer_output_shape(
+            [3, 3], [5, 5], [1, 1], [1, 1], [1, 1, 1, 1])
         self.assertEqual(o, [25, 1, 1])
         self.assertEqual(p, [1, 1, 1, 1])
-        o, p = im2col_infer_output_shape([11, 7], [5, 5], [1, 1], [1, 1], [1, 1, 2, 2])
+        o, p = im2col_infer_output_shape(
+            [11, 7], [5, 5], [1, 1], [1, 1], [1, 1, 2, 2])
         self.assertEqual(o, [25, 10, 6])
         self.assertEqual(p, [1, 1, 2, 2])
-        o, p = im2col_infer_output_shape([3, 5], [3, 3], [1, 1], [1, 1], [1, 1, 1, 1])
+        o, p = im2col_infer_output_shape(
+            [3, 5], [3, 3], [1, 1], [1, 1], [1, 1, 1, 1])
         self.assertEqual(o, [9, 3, 5])
         self.assertEqual(p, [1, 1, 1, 1])
-        o, p = im2col_infer_output_shape([3, 5], [3, 3], [1, 1], [1, 1], [0, 0, 0, 0])
+        o, p = im2col_infer_output_shape(
+            [3, 5], [3, 3], [1, 1], [1, 1], [0, 0, 0, 0])
         self.assertEqual(o, [9, 1, 3])
         self.assertEqual(p, [0, 0, 0, 0])
 
@@ -387,7 +392,8 @@ class TestCpuOps(ExtTestCase):
         data = data.reshape((1, 1) + data.shape)
         got = im2col_nchw(0, 0, 1, data, kernel_shape, padding, dilations)
         bck = col2im_nchw(got, (3, 5), kernel_shape, padding, dilations)
-        col = nn_im2col_2d(data.reshape(data.shape[2:]), (3, 3), (1, 1), (1, 1))
+        col = nn_im2col_2d(data.reshape(
+            data.shape[2:]), (3, 3), (1, 1), (1, 1))
         self.assertEqualArray(got.ravel(), col.ravel())
         res = nn_col2im_2d(col, (3, 5), (3, 3), (1, 1), (1, 1))
         self.assertEqualArray(bck.reshape(bck.shape[2:]), res)
@@ -401,7 +407,8 @@ class TestCpuOps(ExtTestCase):
         data = data.reshape((1, 1) + data.shape)
         got = im2col_nchw(0, 0, 1, data, kernel_shape, padding, dilations)
         bck = col2im_nchw(got, (5, 7), kernel_shape, padding, dilations)
-        col = nn_im2col_2d(data.reshape(data.shape[2:]), (3, 3), (1, 1), (0, 0))
+        col = nn_im2col_2d(data.reshape(
+            data.shape[2:]), (3, 3), (1, 1), (0, 0))
         self.assertEqualArray(got.ravel(), col.ravel())
         res = nn_col2im_2d(col, (5, 7), (3, 3), (1, 1), (0, 0))
         self.assertEqual(bck.size, res.size)
