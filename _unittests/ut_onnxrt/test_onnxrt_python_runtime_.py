@@ -525,9 +525,9 @@ class TestOnnxrtPythonRuntime(ExtTestCase):  # pylint: disable=R0904
             (11, OnnxConstant_11),
             (9, OnnxConstant_9)]
 
-        expected_type = {17: Constant_13, 16: Constant_13,
-                         15: Constant_13, 14: Constant_13,
-                         12: Constant_12, 13: Constant_13,
+        expected_type = {17: Constant_12, 16: Constant_12,
+                         15: Constant_12, 14: Constant_12,
+                         12: Constant_12, 13: Constant_12,
                          11: Constant_11, 9: Constant_9}
 
         if (not sys.platform.startswith('win') or
