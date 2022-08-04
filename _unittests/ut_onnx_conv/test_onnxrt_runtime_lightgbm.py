@@ -616,7 +616,7 @@ class TestOnnxrtRuntimeLightGbm(ExtTestCase):
 
         # double
         onx = to_onnx(reg, X_train.astype(numpy.float64),
-                      rewrite_ops=True, target_opset=TARGET_OPSET)
+                      rewrite_ops=True, target_opset={'': 15, 'ai.onnx.ml': 1})
         self.assertIn("TreeEnsembleRegressorDouble", str(onx))
         oinf = OnnxInference(onx)
         got0 = oinf.run(

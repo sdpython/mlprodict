@@ -38,7 +38,7 @@ pyquickhelper>=1.11.3755
 pyquicksetup
 scikit-learn
 scipy
-skl2onnx>=1.11.1
+skl2onnx>=1.12
 Sphinx
 sphinxcontrib.blockdiag
 sphinx-gallery

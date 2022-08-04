@@ -12,7 +12,7 @@ from mlprodict.npy.xop import loadop, OnnxOperatorFunction
 class TestXOpsOpset(ExtTestCase):
 
     def test_onnx_function_init(self):
-        opset = 15
+        opset = 17
         OnnxAbs, OnnxAdd, OnnxDiv = loadop("Abs", "Add", "Div")
         ov = OnnxAbs[opset]('X')
         ad = OnnxAdd[opset]('X', ov, output_names=['Y'])

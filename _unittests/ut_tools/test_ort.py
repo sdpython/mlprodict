@@ -13,7 +13,7 @@ from mlprodict.tools.onnx_inference_ort_helper import (
 
 class TestOrt(ExtTestCase):
 
-    opset = 15  # opset = 13, 14, ...
+    opset = 17  # opset = 13, 14, ...
 
     def test_prepare_c_profiling(self):
         OnnxAdd, OnnxMul, OnnxSub = loadop('Add', 'Mul', 'Sub')
