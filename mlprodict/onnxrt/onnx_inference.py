@@ -1728,7 +1728,7 @@ class OnnxInference:
         if as_df:
             import pandas
             return pandas.DataFrame(prof)
-        return prof
+        return prof  # pragma: no cover
 
     def get_execution_order(self):
         """

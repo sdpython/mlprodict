@@ -30,7 +30,7 @@ def calculate_lightgbm_output_shapes(operator):
     """
     op = operator.raw_operator
     if hasattr(op, "_model_dict"):
-        objective = op._model_dict['objective']
+        objective = op._model_dict['objective']  # pragma: no cover
     elif hasattr(op, 'objective_'):
         objective = op.objective_
     else:

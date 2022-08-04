@@ -93,7 +93,7 @@ class If(OpRun):
                                               attributes=attributes,
                                               verbose=verbose, fLOG=fLOG)
                 if verbose > 0 and fLOG is not None:
-                    fLOG('  -- then<')
+                    fLOG('  -- then<')  # pragma: no cover
                 final = tuple([outputs[name]
                               for name in self.then_branch.output_names])
                 branch = 'then'

@@ -2025,19 +2025,20 @@ class OnnxOperator(OnnxOperatorBase):
 
         *inputs* and *outputs* parameters work the same way.
         Here is some possible walues:
-            - `inputs=numpy.float32`: all inputs are dense tensors of
-              unknown shapes sharing the same element type
-            - `inputs={'X': numpy.float32`, 'Y': numpy.in64}`:
-              input `X` is a dense tensor of float32,
-              input `Y` is a dense tensor of int64,
-            - `{'X': numpy.array(...)}}`: input `X` is a dense
-              tensor with a precise shape
-            - `inputs=[Variable('X', numpy.float32, [1, 2])]`:
-              input `X` is a dense tensor of float32 with shape `[1, 2]`
-            - `inputs=[Variable('X', numpy.float32, [None, 2])]`:
-              input `X` is a dense tensor of float32 with a 2D tensor
-              with an unknown dimension (first one)
-            - see @see cl Variable
+
+        - `inputs=numpy.float32`: all inputs are dense tensors of
+          unknown shapes sharing the same element type
+        - `inputs={'X': numpy.float32`, 'Y': numpy.in64}`:
+          input `X` is a dense tensor of float32,
+          input `Y` is a dense tensor of int64,
+        - `{'X': numpy.array(...)}}`: input `X` is a dense
+          tensor with a precise shape
+        - `inputs=[Variable('X', numpy.float32, [1, 2])]`:
+          input `X` is a dense tensor of float32 with shape `[1, 2]`
+        - `inputs=[Variable('X', numpy.float32, [None, 2])]`:
+          input `X` is a dense tensor of float32 with a 2D tensor
+          with an unknown dimension (first one)
+        - see @see cl Variable
 
         (OnnxOperator)
         """
@@ -3170,8 +3171,6 @@ class _GraphBuilder:
         :param opset: node opset
         :return: created node
         """
-        if domain is None:
-            domain = ''
         logger.debug("_GraphBuilder-%d.add_node(%r, %r, "
                      "inputs=%r, outputs=%r, domain=%r, opset=%r)",
                      id(self), op_type, name, inputs, outputs, domain, opset)

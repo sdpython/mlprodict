@@ -31,13 +31,14 @@ class WrappedLightGbmBooster:
         else:  # pragma: no cover
             raise NotImplementedError(
                 f'Unsupported LightGbm objective: {self.objective_!r}.')
-        average_output = self.booster_.attr('average_output')
-        if average_output:
-            self.boosting_type = 'rf'
-        else:
-            # Other than random forest, other boosting types do not affect later conversion.
-            # Here `gbdt` is chosen for no reason.
-            self.boosting_type = 'gbdt'
+        bt = self.booster_.attr('boosting_type')
+        if bt is None:
+            bt = self.booster_.params['boosting_type']
+        self.boosting_type = bt
+        # if average_output:
+        #     self.boosting_type = 'rf'
+        # else:
+        #     self.boosting_type = 'gbdt'
 
     @staticmethod
     def _generate_classes(booster):

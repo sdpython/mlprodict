@@ -213,4 +213,4 @@ class TreeEnsembleClassifierDoubleSchema(OperatorSchema):
 if onnx_opset_version() >= 16:
     TreeEnsembleClassifier = TreeEnsembleClassifier_3
 else:
-    TreeEnsembleClassifier = TreeEnsembleClassifier_1
+    TreeEnsembleClassifier = TreeEnsembleClassifier_1  # pragma: no cover

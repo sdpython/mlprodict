@@ -15,6 +15,9 @@ from mlprodict.onnxrt.ops_cpu._op_numpy_helper import (
     _numpy_dot_inplace_right)
 from mlprodict.onnxrt.ops_cpu.op_argmax import _argmax_use_numpy_select_last_index
 from mlprodict.onnxrt.ops_cpu.op_argmin import _argmin_use_numpy_select_last_index
+from mlprodict.onnx_tools.exports.numpy_helper import (
+    argmax_use_numpy_select_last_index,
+    argmin_use_numpy_select_last_index)
 
 
 class TestCoverageAny(ExtTestCase):
@@ -28,6 +31,18 @@ class TestCoverageAny(ExtTestCase):
     def test__argmin_use_numpy_select_last_index(self):
         data = numpy.array([[0, 1], [1, 0]], dtype=numpy.float32)
         res = _argmin_use_numpy_select_last_index(data, axis=1)
+        self.assertEqualArray(
+            res, numpy.array([[0], [1]], dtype=numpy.float32))
+
+    def test_argmax_use_numpy_select_last_index(self):
+        data = numpy.array([[0, 1], [1, 0]], dtype=numpy.float32)
+        res = argmax_use_numpy_select_last_index(data, axis=1)
+        self.assertEqualArray(
+            res, numpy.array([[1], [0]], dtype=numpy.float32))
+
+    def test_argmin_use_numpy_select_last_index(self):
+        data = numpy.array([[0, 1], [1, 0]], dtype=numpy.float32)
+        res = argmin_use_numpy_select_last_index(data, axis=1)
         self.assertEqualArray(
             res, numpy.array([[0], [1]], dtype=numpy.float32))
 

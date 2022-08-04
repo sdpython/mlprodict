@@ -650,4 +650,5 @@ class TestOnnxrtRuntimeLightGbm(ExtTestCase):
 
 
 if __name__ == "__main__":
+    # TestOnnxrtRuntimeLightGbm().test_lightgbm_booster_classifier()
     unittest.main(verbosity=2)
