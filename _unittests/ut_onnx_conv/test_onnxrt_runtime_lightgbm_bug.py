@@ -35,7 +35,7 @@ class TestOnnxrtRuntimeLightGbmBug(ExtTestCase):
             from onnxmltools import __version__
         except ImportError:
             return
-        if compare_module_version(__version__, '1.11') <= 0:
+        if compare_module_version(__version__, '1.11.1') <= 0:
             return
         from xgboost import XGBRegressor
         try:
@@ -106,7 +106,7 @@ class TestOnnxrtRuntimeLightGbmBug(ExtTestCase):
             from onnxmltools import __version__
         except ImportError:
             return
-        if compare_module_version(__version__, '1.11') <= 0:
+        if compare_module_version(__version__, '1.11.1') <= 0:
             return
         from lightgbm import LGBMRegressor
         try:
@@ -182,10 +182,19 @@ class TestOnnxrtRuntimeLightGbmBug(ExtTestCase):
                             if rt == 'onnxruntime1':
                                 continue
                         else:
-                            x = X
-                        with self.subTest(i=i, rt=rt, max_depth=mx, n_est=ne):
+                            if mo.graph.input[0].type.tensor_type.elem_type == 1:
+                                x = X.astype(numpy.float32)
+                            else:
+                                x = X.astype(numpy.float64)
+                        with self.subTest(i=i, rt=rt, max_depth=mx, n_est=ne,
+                                          TARGET_OPSETS=TARGET_OPSETS,
+                                          dtype=x.dtype):
                             oinf = OnnxInference(mo, runtime=rt)
-                            got = oinf.run({'X': x})['variable']
+                            try:
+                                got = oinf.run({'X': x})['variable']
+                            except Exception as e:
+                                raise AssertionError(
+                                    f"Unable to run onnx due to {e!r}\n{mo}\n.") from e
                             diff = numpy.abs(
                                 got.ravel() - expected.ravel()).max()
                             if __name__ == "__main__":

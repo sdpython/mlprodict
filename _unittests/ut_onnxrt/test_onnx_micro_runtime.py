@@ -12,7 +12,7 @@ from mlprodict.onnxrt.onnx_micro_runtime import OnnxMicroRuntime
 
 class TestOnnxMicroRuntime(ExtTestCase):
 
-    opset = 15  # opset=13, 14, ...
+    opset = 17  # opset=13, 14, ...
 
     def test_onnx_micro_runtime(self):
         opset = TestOnnxMicroRuntime.opset

@@ -56,7 +56,7 @@ class TestOnnxConvTreeEnsemble(ExtTestCase):
             gbm.fit(X_train, y_train)
             exp = gbm.predict(X_test).ravel()
             for dtype in dtypes:
-                decimal = {numpy.float32: 5, numpy.float64: 12}[dtype]
+                decimal = {numpy.float32: 5, numpy.float64: 7}[dtype]
                 if (dtype == numpy.float64 and gbm.__class__ in {
                         LGBMRegressor}):
                     decimal = 7
@@ -99,7 +99,8 @@ class TestOnnxConvTreeEnsemble(ExtTestCase):
                                                   decimal=decimal)
                         except AssertionError as e:
                             raise AssertionError(
-                                f"Discrepancies {str(onx)}.") from e
+                                f"Discrepancies, decimal={decimal}, opset={opset}\n"
+                                f"{str(onx)}.") from e
                         self.assertEqual(got['variable'].dtype, dtype)
 
     @ignore_warnings((RuntimeWarning, UserWarning))

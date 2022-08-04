@@ -459,25 +459,23 @@ setup(
     packages=packages,
     package_dir=package_dir,
     package_data=package_data,
-    setup_requires=["pybind11", "numpy", "onnx>=1.7.0", "scikit-learn>=0.23",
+    setup_requires=["pybind11", "numpy>=1.21.5", "onnx>=1.12.0", "scikit-learn>=1.0",
                     'cython', 'pyquicksetup'],
-    install_requires=["pybind11", "numpy>=1.17", "onnx>=1.7.0", 'scipy>=1.0.0',
+    install_requires=["pybind11", "numpy>=1.21.5", "onnx>=1.12.0", 'scipy>=1.0.0',
                       'cython'],
     extras_require={
-        'npy': ['scikit-learn>=0.24', 'skl2onnx>=1.10.2'],
+        'npy': ['scikit-learn>=1.0', 'skl2onnx>=1.12'],
         'onnx_conv': [
-            'scikit-learn>=0.24', 'skl2onnx>=1.10.2', 'lightgbm',
-            'joblib', 'threadpoolctl', 'mlinsights>=0.3', 'xgboost'],
+            'scikit-learn>=1.0', 'skl2onnx>=1.12', 'lightgbm',
+            'mlinsights>=0.3', 'xgboost'],
         'onnx_val': [
-            'scikit-learn>=0.24', 'skl2onnx>=1.10.2',
-            'onnxruntime>=1.10.0', 'joblib', 'threadpoolctl'],
+            'scikit-learn>=1.0', 'skl2onnx>=1.12', 'onnxruntime>=1.12'],
         'sklapi': [
-            'scikit-learn>=0.24', 'joblib', 'threadpoolctl',
-            'onnxruntime>=1.19.0', 'onnxruntime-extensions'],
+            'scikit-learn>=1.0', 'onnxruntime>=1.12.0', 'onnxruntime-extensions'],
         'all': [
-            'jinja2', 'scikit-learn>=0.24', 'skl2onnx>=1.10.2',
-            'onnxruntime>=1.10.0', 'scipy', 'joblib', 'pandas',
-            'threadpoolctl', 'mlinsights>=0.3', 'lightgbm',
-            'xgboost', 'mlstatpy>=0.3.593', 'onnxruntime-extensions'],
+            'jinja2', 'scikit-learn>=1.0', 'skl2onnx>=1.12',
+            'onnxruntime>=1.12.0', 'scipy', 'pandas',
+            'mlinsights>=0.3', 'lightgbm', 'xgboost', 'mlstatpy>=0.3.593',
+            'onnxruntime-extensions'],
     },
 )

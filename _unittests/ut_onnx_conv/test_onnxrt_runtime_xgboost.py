@@ -164,7 +164,7 @@ class TestOnnxrtRuntimeXGBoost(ExtTestCase):
                           (x_test, y_test)], verbose=0)
 
             model_onnx_skl = to_onnx(model_skl, x_train, rewrite_ops=True,
-                                     target_opset={'': 15, 'ai.onnx.ml': 2},
+                                     target_opset={'': 17, 'ai.onnx.ml': 3},
                                      options={'zipmap': False})
             for rt in ['onnxruntime1', 'python']:
                 with self.subTest(base_score=bm, runtime=rt, n_estimators=n_est):

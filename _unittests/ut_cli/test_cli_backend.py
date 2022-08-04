@@ -86,7 +86,7 @@ class TestCliBackend(ExtTestCase):
         temp = get_temp_folder(__file__, 'temp_backend_micro')
         model_file = os.path.join(temp, "model.onnx")
 
-        opset = 15
+        opset = 17
         dtype = numpy.float32
         OnnxAdd = loadop('Add')
         x = numpy.array([1, 2, 4, 5, 5, 4]).astype(
@@ -110,7 +110,7 @@ class TestCliBackend(ExtTestCase):
         temp = get_temp_folder(__file__, 'temp_backend_shape')
         model_file = os.path.join(temp, "model.onnx")
 
-        opset = 15
+        opset = 17
         dtype = numpy.float32
         OnnxAdd = loadop('Add')
         x = numpy.array([1, 2, 4, 5, 5, 4, 1, 2, 4, 5, 5, 4]).astype(
@@ -134,7 +134,7 @@ class TestCliBackend(ExtTestCase):
         temp = get_temp_folder(__file__, 'temp_backend_shape')
         model_file = os.path.join(temp, "model.onnx")
 
-        opset = 15
+        opset = 17
         dtype = numpy.float32
         OnnxAdd = loadop('Add')
         x = numpy.array([1, 2, 4, 5, 5, 4, 1, 2, 4, 5, 5, 4]).astype(

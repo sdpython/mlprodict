@@ -525,7 +525,8 @@ class TestOnnxrtPythonRuntime(ExtTestCase):  # pylint: disable=R0904
             (11, OnnxConstant_11),
             (9, OnnxConstant_9)]
 
-        expected_type = {15: Constant_12, 14: Constant_12,
+        expected_type = {17: Constant_12, 16: Constant_12,
+                         15: Constant_12, 14: Constant_12,
                          12: Constant_12, 13: Constant_12,
                          11: Constant_11, 9: Constant_9}
 
@@ -565,7 +566,7 @@ class TestOnnxrtPythonRuntime(ExtTestCase):  # pylint: disable=R0904
                     self.assertEqualArray(exp, got['Ad_C0'])
 
     def test_op_constant(self):
-        for opv in [9, 10, 11, 12, 13, 14, 15]:  # opset=13, 14, ...
+        for opv in [9, 10, 11, 12, 13, 14, 15, 16, TARGET_OPSET]:  # opset=13, 14, ...
             for dtype in [numpy.float32, numpy.float64,
                           numpy.int32, numpy.int64]:
                 with self.subTest(opv=opv, dtype=dtype):
@@ -4248,7 +4249,7 @@ class TestOnnxrtPythonRuntime(ExtTestCase):  # pylint: disable=R0904
         X = numpy.array([[2, 1], [0, 1]], dtype=float)
 
         # opset=13, 14, ...
-        for opset in (10, 11, 12, 13, 14, 15, TARGET_OPSET):
+        for opset in (10, 11, 12, 13, 14, 15, 16, TARGET_OPSET):
             if onnx_opset_version() < opset:
                 continue
             if opset < 13:
@@ -4934,7 +4935,7 @@ class TestOnnxrtPythonRuntime(ExtTestCase):  # pylint: disable=R0904
     @wraplog()
     def test_onnxt_runtime_split(self):
         # opset=13, 14, ...
-        for opset in [10, 11, 12, 13, 14, 15, TARGET_OPSET]:
+        for opset in [10, 11, 12, 13, 14, 15, 16, TARGET_OPSET]:
             if opset > TARGET_OPSET:
                 continue
             with self.subTest(opset=opset):
@@ -4986,7 +4987,7 @@ class TestOnnxrtPythonRuntime(ExtTestCase):  # pylint: disable=R0904
     @wraplog()
     def test_onnxt_runtime_squeeze(self):
         # opset=13, 14, ...
-        for opset in [10, 11, 12, 13, 14, 15, TARGET_OPSET]:
+        for opset in [10, 11, 12, 13, 14, 15, 16, TARGET_OPSET]:
             if opset > TARGET_OPSET:
                 continue
             with self.subTest(opset=opset):
@@ -5283,7 +5284,7 @@ class TestOnnxrtPythonRuntime(ExtTestCase):  # pylint: disable=R0904
     @wraplog()
     def test_onnxt_runtime_unsqueeze(self):
         # opset=13, 14, ...
-        for opset in [10, 11, 12, 13, 14, 15, TARGET_OPSET]:
+        for opset in [10, 11, 12, 13, 14, 15, 16, TARGET_OPSET]:
             if opset > TARGET_OPSET:
                 continue
             with self.subTest(opset=opset):

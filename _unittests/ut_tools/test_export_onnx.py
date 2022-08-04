@@ -1618,15 +1618,15 @@ class TestExportOnnx(ExtTestCase):
                 self.version = version
 
         mlprodict1 = LocalDomain('mlprodict', 1)
-        opset15 = LocalDomain('', 15)
-        opset15.ReduceSum = numpy.sum
-        opset15.Identity = lambda i: i
-        opset15.Constant = lambda value: numpy_helper.to_array(value)
+        opset = LocalDomain('', 17)
+        opset.ReduceSum = numpy.sum
+        opset.Identity = lambda i: i
+        opset.Constant = lambda value: numpy_helper.to_array(value)
 
         _, loc = self.verify(
             new_onnx, more_context={
                 'mlprodict1': mlprodict1,
-                'opset15': opset15})
+                'opset17': opset})
 
         fct = loc['main']
         x = numpy.random.randn(3, 4).astype(numpy.float32)
