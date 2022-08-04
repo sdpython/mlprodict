@@ -246,8 +246,8 @@ py::array_t<T> GridSample<T>::compute(
                     auto y = GsDenormalize(ny, H_in, align_corners_);
 
                     if (mode_ == Nearest) {
-                        x = static_cast<T>(std::nearbyintf(static_cast<T>(x)));
-                        y = static_cast<T>(std::nearbyintf(static_cast<T>(y)));
+                        x = static_cast<T>(std::nearbyintf(static_cast<float>(x)));
+                        y = static_cast<T>(std::nearbyintf(static_cast<float>(y)));
                     }
 
                     if (x < x_min || x > x_max || y < y_min || y > y_max) {  // out of bound
