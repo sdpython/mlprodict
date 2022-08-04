@@ -63,7 +63,7 @@ def nn_im2col_2d(data, kernel_shape, dilations, padding, fill_value=0):
             kernel_shape[1] - 1) - 1) // strides[1] + 1)
     kernel_size = kernel_shape[0] * kernel_shape[1]
     shape = (kernel_size, ext_shape[0] * ext_shape[1])
-    result = numpy.empty(shape, dtype=data.dtype)
+    result = numpy.full(shape, dtype=data.dtype, fill_value=-5555)
     if data.dtype == numpy.float32:
         tch_im2col_2d_float(result, data,
                             numpy.array(kernel_shape, dtype=numpy.int64),
@@ -87,7 +87,7 @@ def nn_col2im_2d(data, output_shape, kernel_shape, dilations, padding):
     :param padding: padding
     :return: result
     """
-    result = numpy.empty(output_shape, dtype=data.dtype)
+    result = numpy.zeros(output_shape, dtype=data.dtype)
     if data.dtype == numpy.float32:
         tch_col2im_2d_float(result, data,
                             numpy.array(output_shape, dtype=numpy.int64),

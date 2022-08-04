@@ -38,21 +38,21 @@ class CumSum(OpRun):
         if self.reverse:
             rev_indices = [slice(0, s) for s in x.shape]
             rev_indices[axis] = slice(None, None, -1)
-            x = x[rev_indices]
+            x = x[tuple(rev_indices)]
         if self.exclusive:
             indices_c = [slice(0, s) for s in x.shape]
             indices_d = [slice(0, s) for s in x.shape]
             indices_c[axis] = slice(0, -1)
             indices_d[axis] = slice(1, x.shape[axis])
             res = numpy.zeros(x.shape, dtype=x.dtype)
-            numpy.cumsum(x[indices_c], axis=axis, out=res[indices_d])
+            numpy.cumsum(x[tuple(indices_c)], axis=axis, out=res[tuple(indices_d)])
         else:
             if self.inplaces.get(0, False) and x.flags['WRITEABLE']:
                 res = numpy.cumsum(x, axis=axis, out=x)
             else:
                 res = numpy.cumsum(x, axis=axis)
         if self.reverse:
-            res = res[rev_indices]
+            res = res[tuple(rev_indices)]
         return (res, )
 
     def to_python(self, inputs):

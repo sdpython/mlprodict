@@ -2,7 +2,6 @@
 @brief      test log(time=7s)
 """
 import unittest
-from logging import getLogger
 import numpy
 import onnx
 from sklearn.ensemble import RandomForestClassifier
@@ -20,7 +19,6 @@ from mlprodict.onnxrt.ops_cpu.op_conv_helper import (
     im2col_naive_implementation, nn_im2col_2d, nn_col2im_2d, new_array,
     im2col_infer_output_shape, im2col_nchw, col2im_nchw)
 from mlprodict.npy.xop import loadop
-from mlprodict.onnxrt import OnnxInference
 
 
 class TestCpuOps(ExtTestCase):
