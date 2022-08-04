@@ -72,16 +72,16 @@ class TestSklearnHelper(ExtTestCase):
         self.assertEqual(res['max_depth'], 4)
         self.assertEqual(res['ntrees'], 10)
         for dtype in [numpy.float32, numpy.float64]:
-            with self.subTest(dtype=dtype):
+            with self.subTest(dtype=dtype, target_opset=TARGET_OPSETS):
                 onx = to_onnx(clr, X_train[:1].astype(dtype),
                               target_opset=TARGET_OPSETS)
                 ostats = onnx_statistics(onx)
-                for k, v in {'nnodes': 1, 'doc_string': '',
+                for k, v in {'nnodes': (1, 2), 'doc_string': '',
                              'domain': 'ai.onnx', 'model_version': 0,
-                             'producer_name': 'skl2onnx', 'ai.onnx.ml': 1}.items():
+                             'producer_name': 'skl2onnx', 'ai.onnx.ml': 3}.items():
                     if k == 'ai.onnx.ml' and k not in ostats:
                         continue
-                    if ostats[k] != v:
+                    if (isinstance(v, tuple) and ostats[k] not in v) and ostats[k] != v:
                         raise AssertionError(f"ostats[{k!r}]={ostats[k]!r} != v={v!r}.")
 
     @ignore_warnings(category=(UserWarning, RuntimeWarning, DeprecationWarning))

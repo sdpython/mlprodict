@@ -214,7 +214,8 @@ class TestOnnxrtPythonRuntimeMlTree(ExtTestCase):
         lexp = clr.predict(X_test)
 
         model_def64 = to_onnx(clr, X_train.astype(numpy.float64),
-                              rewrite_ops=True)
+                              rewrite_ops=True,
+                              target_opset={'': 15, 'ai.onnx.ml': 1})
         smodel_def64 = str(model_def64)
         self.assertIn('TreeEnsembleRegressorDouble', smodel_def64)
         self.assertIn('double_data', smodel_def64)
@@ -229,7 +230,8 @@ class TestOnnxrtPythonRuntimeMlTree(ExtTestCase):
         self.assertEqualArray(lexp, y64['variable'])
 
         model_def32 = to_onnx(clr, X_train.astype(numpy.float32),
-                              rewrite_ops=True)
+                              rewrite_ops=True,
+                              target_opset={'': 15, 'ai.onnx.ml': 1})
         oinf32 = OnnxInference(model_def32)
         text = "\n".join(map(lambda x: str(x.ops_), oinf32.sequence_))
         self.assertIn("TreeEnsembleRegressor", text)
@@ -264,11 +266,12 @@ class TestOnnxrtPythonRuntimeMlTree(ExtTestCase):
         lexp = clr.predict(X_test)
 
         model_def64 = to_onnx(clr, X_train.astype(numpy.float64),
-                              rewrite_ops=True)
+                              rewrite_ops=True,
+                              target_opset={'': 15, 'ai.onnx.ml': 1})
         oinf64 = OnnxInference(model_def64)
         text = "\n".join(map(lambda x: str(x.ops_), oinf64.sequence_))
         self.assertIn("TreeEnsembleRegressor", text)
-        #self.assertIn("TreeEnsembleRegressorDouble", text)
+        self.assertIn("TreeEnsembleRegressorDouble", text)
         smodel_def64 = str(model_def64)
         self.assertIn('double_data', smodel_def64)
         self.assertNotIn('floats', smodel_def64)
@@ -278,7 +281,8 @@ class TestOnnxrtPythonRuntimeMlTree(ExtTestCase):
         self.assertEqualArray(lexp, y64['variable'])
 
         model_def32 = to_onnx(clr, X_train.astype(numpy.float32),
-                              rewrite_ops=True)
+                              rewrite_ops=True,
+                              target_opset={'': 15, 'ai.onnx.ml': 1})
         oinf32 = OnnxInference(model_def32)
         text = "\n".join(map(lambda x: str(x.ops_), oinf32.sequence_))
         self.assertIn("TreeEnsembleRegressor", text)
@@ -763,4 +767,4 @@ class TestOnnxrtPythonRuntimeMlTree(ExtTestCase):
 
 
 if __name__ == "__main__":
-    unittest.main()
+    unittest.main(verbosity=2)
