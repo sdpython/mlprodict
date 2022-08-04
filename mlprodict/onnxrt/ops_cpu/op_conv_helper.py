@@ -334,7 +334,7 @@ def im2col_nchw(image_id, group_id, group, image, kernel_shape, padding, dilatio
     group = 1
     mul, img = image.shape[:-2], image.shape[-2:]
     strides = [1] * len(image.shape)
-    
+
     output_shape, padding = im2col_infer_output_shape(
         img, kernel_shape, strides, dilations, padding)
     result = numpy.empty(mul + tuple(output_shape), dtype=image.dtype)
