@@ -24,7 +24,13 @@ def make_slice(data, starts, ends, axes=None, steps=None):
             slices[a] = slice(starts[i], ends[i])
         else:
             slices[a] = slice(starts[i], ends[i], steps[i])
-    return data[slices]
+    tslices = tuple(slices)
+    try:
+        return data[tslices]
+    except IndexError as e:
+        raise IndexError(
+            f"Unable to run `data[tslices]` with type(data)={type(data)} "
+            f"and type(tslices)={type(tslices)}.") from e
 
 
 def argmax_use_numpy_select_last_index(
