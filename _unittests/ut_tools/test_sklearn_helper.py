@@ -113,16 +113,13 @@ class TestSklearnHelper(ExtTestCase):
                 onx = to_onnx(clr, X_train[:1].astype(dtype),
                               target_opset=TARGET_OPSETS)
                 ostats = onnx_statistics(onx)
-                for k, v in {'nnodes': expected[dtype], 'doc_string': '',
-                             'domain': 'ai.onnx', 'model_version': 0,
+                for k, v in {'nnodes': (expected[dtype],  expected[dtype] + 1),
+                             'doc_string': '', 'domain': 'ai.onnx', 'model_version': 0,
                              'producer_name': 'skl2onnx', 'ai.onnx.ml': 3}.items():
                     if k == 'ai.onnx.ml' and k not in ostats:
                         continue
-                    try:
-                        self.assertEqual(ostats[k], v)
-                    except AssertionError as e:
-                        raise AssertionError(
-                            f"Issue with '{k}' -> {v}\n{onx}") from e
+                    if (isinstance(v, tuple) and ostats[k] not in v) and ostats[k] != v:
+                        raise AssertionError(f"ostats[{k!r}]={ostats[k]!r} != v={v!r}.")
 
     @ignore_warnings(category=(UserWarning, RuntimeWarning, DeprecationWarning))
     def test_statistics_lin(self):
