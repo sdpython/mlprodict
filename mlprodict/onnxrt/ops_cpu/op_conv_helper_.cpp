@@ -152,9 +152,6 @@ void im2col_NCHW(int64_t image_id, int64_t group_id, int64_t group, py::buffer& 
     const int64_t X_offset = C / group * input_image_size;
     const int64_t kernel_dim = C / group * kernel_size;
 
-    const int64_t output_image_size = shape2size(output_shape);
-    const int64_t col_buffer_size = kernel_dim * output_image_size;
-
     std::vector<int64_t> col_buffer_shape{kernel_dim};
     col_buffer_shape.insert(col_buffer_shape.end(), output_shape.data(), output_shape.data() + output_shape.ndim());
 

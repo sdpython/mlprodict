@@ -452,6 +452,12 @@ inline void MakeStringInternal(std::ostringstream& ss, const std::vector<int32_t
 }
 
 template <>
+inline void MakeStringInternal(std::ostringstream& ss, const std::vector<int64_t>& t) noexcept {
+    for(auto it: t)
+        ss << "x" << it;
+}
+
+template <>
 inline void MakeStringInternal(std::ostringstream& ss, const std::vector<uint32_t>& t) noexcept {
     for(auto it: t)
         ss << "x" << it;
