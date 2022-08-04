@@ -25,7 +25,8 @@ from mlprodict.onnx_tools.optim.sklearn_helper import (
     enumerate_pipeline_models, inspect_sklearn_model, set_n_jobs)
 from mlprodict.onnx_tools.optim.onnx_helper import onnx_statistics
 from mlprodict.onnx_conv import to_onnx
-from mlprodict import __max_supported_opset__
+from mlprodict import (
+    __max_supported_opset__, __max_supported_opsets__ as TARGET_OPSETS)
 
 
 class TestSklearnHelper(ExtTestCase):
@@ -72,14 +73,16 @@ class TestSklearnHelper(ExtTestCase):
         self.assertEqual(res['ntrees'], 10)
         for dtype in [numpy.float32, numpy.float64]:
             with self.subTest(dtype=dtype):
-                onx = to_onnx(clr, X_train[:1].astype(dtype))
+                onx = to_onnx(clr, X_train[:1].astype(dtype),
+                              target_opset=TARGET_OPSETS)
                 ostats = onnx_statistics(onx)
                 for k, v in {'nnodes': 1, 'doc_string': '',
                              'domain': 'ai.onnx', 'model_version': 0,
                              'producer_name': 'skl2onnx', 'ai.onnx.ml': 1}.items():
                     if k == 'ai.onnx.ml' and k not in ostats:
                         continue
-                    self.assertEqual(ostats[k], v)
+                    if ostats[k] != v:
+                        raise AssertionError(f"ostats[{k!r}]={ostats[k]!r} != v={v!r}.")
 
     @ignore_warnings(category=(UserWarning, RuntimeWarning, DeprecationWarning))
     def test_statistics_adaboost(self):
@@ -107,7 +110,8 @@ class TestSklearnHelper(ExtTestCase):
         expected = {numpy.float32: 2, numpy.float64: 3}
         for dtype in [numpy.float32, numpy.float64]:
             with self.subTest(dtype=dtype):
-                onx = to_onnx(clr, X_train[:1].astype(dtype))
+                onx = to_onnx(clr, X_train[:1].astype(dtype),
+                              target_opset=TARGET_OPSETS)
                 ostats = onnx_statistics(onx)
                 for k, v in {'nnodes': expected[dtype], 'doc_string': '',
                              'domain': 'ai.onnx', 'model_version': 0,
@@ -133,7 +137,8 @@ class TestSklearnHelper(ExtTestCase):
         X_train, __, y_train, _ = train_test_split(X, y, random_state=11)
         clr = SGDClassifier()
         clr.fit(X_train, y_train)
-        onx = to_onnx(clr, X_train[:1].astype(numpy.float32))
+        onx = to_onnx(clr, X_train[:1].astype(numpy.float32),
+                      target_opset=TARGET_OPSETS)
         ostats = onnx_statistics(onx)
         for k, v in {'nnodes': 8, 'doc_string': '', 'domain': 'ai.onnx',
                      'model_version': 0, 'producer_name': 'skl2onnx',
@@ -159,7 +164,7 @@ class TestSklearnHelper(ExtTestCase):
         model_def = cop2.to_onnx(
             {'input': FloatTensorType()},
             outputs=[('cdist', FloatTensorType())],
-            target_opset=__max_supported_opset__)
+            target_opset=TARGET_OPSETS)
         stats = onnx_statistics(model_def)
         self.assertIn('subgraphs', stats)
         self.assertGreater(stats['subgraphs'], 1)
