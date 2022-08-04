@@ -112,6 +112,17 @@ void TensorTranspose(const T* input, T* output, size_t M, size_t N) {
 }
 
 
+void infer_output_shape(
+        const std::vector<int64_t>& input_shape,
+        const std::vector<int64_t>& kernel_shape,
+        const std::vector<int64_t>& strides_p,
+        const std::vector<int64_t>& dilations_p,
+        std::vector<int64_t>& pads_p,
+        std::vector<int64_t>& output_shape,
+        bool ForceSymmetricAutoPadding,
+        AutoPadType auto_pad);
+
+
 template <typename T, typename TF, typename TI = int32_t>
 void QConvDepthwise(const T** Input, TI InputZeroPoint, const TF* Filter,
                     TI FilterZeroPoint, bool FilterIsSigned, TI* Output,
@@ -792,3 +803,95 @@ public:
         std::vector<int64_t> strides);
 };
 
+
+//////////
+// Col2Im
+//////////
+
+
+template <typename T>
+void Col2im_NCHW(const T* data_col, int64_t channels, int64_t height,
+                 int64_t width, int64_t kernel_h, int64_t kernel_w,
+                 int64_t dilation_h, int64_t dilation_w, int64_t pad_t,
+                 int64_t pad_l, int64_t pad_b, int64_t pad_r, int64_t stride_h,
+                 int64_t stride_w, T* data_im) {
+    const int64_t output_h = (height + pad_b + pad_t - (dilation_h * (kernel_h - 1) + 1)) / stride_h + 1;
+    const int64_t output_w = (width + pad_l + pad_r - (dilation_w * (kernel_w - 1) + 1)) / stride_w + 1;
+    const int64_t output_hw = output_h * output_w;
+    const int64_t hw = height * width;
+    const int64_t hwc = hw * channels;
+
+    memset(data_im, 0, hwc * sizeof(T));
+
+    if (dilation_h == 1 && dilation_w == 1 && pad_l == 0 && pad_r == 0 && pad_t == 0 && pad_b == 0) {
+        auto* src = data_col;
+        auto* dst_end = data_im + hwc;
+        auto dst_row_step = stride_h * width - stride_w * output_w;
+        for (auto* dst_cb = data_im; dst_cb < dst_end; dst_cb += hw) {
+            auto* dst_hb = dst_cb;
+            for (auto kh = 0; kh < kernel_h; ++kh, dst_hb += width) {
+                auto* dst_wb = dst_hb;
+                for (auto kw = 0; kw < kernel_w; ++kw, ++dst_wb) {
+                    auto* dst = dst_wb;
+                    for (auto* src_he = src + output_hw; src < src_he; dst += dst_row_step) {
+                        auto* src_we = src + output_w;
+                        if (stride_w == 1) {
+                            for (; src < src_we; ++src, ++dst) {
+                                *dst += *src;
+                            }
+                        } 
+                        else {
+                            for (; src < src_we; ++src, dst += stride_w) {
+                                *dst += *src;
+                            }
+                        }
+                    }
+                }
+            }
+        }
+        return;
+    }
+
+    auto* src = data_col;
+    auto* dst_end = data_im + hwc;
+    for (auto* dst = data_im; dst < dst_end; dst += hw) {
+        int64_t h_offset = -pad_t * width;
+        int64_t h_offset_end = h_offset + kernel_h * dilation_h * width;
+        for (; h_offset < h_offset_end; h_offset += dilation_h * width) {
+            int64_t w_offset = -pad_l;
+            int64_t w_offset_end = w_offset + kernel_w * dilation_w;
+            for (; w_offset < w_offset_end; w_offset += dilation_w) {
+                auto* src_ce = src + output_hw;
+                for (int64_t h = h_offset; src < src_ce; h += stride_h * width) {
+                    auto* src_we = src + output_w;
+                    if (is_a_ge_zero_and_a_lt_b(h, hw)) {
+                        for (int64_t w = w_offset; src < src_we; src++, w += stride_w) {
+                            if (is_a_ge_zero_and_a_lt_b(w, width)) {
+                                dst[h + w] += *src;
+                            }
+                        }
+                    }
+                    else {
+                        src = src_we;
+                    }
+                }
+            }
+        }
+    }
+}
+
+
+template <typename T>
+void Col2imNd_NCHW(const T* data_col,
+                   const int64_t* img_shape,
+                   const int64_t* output_shape,
+                   int64_t channels_col,
+                   int64_t img_size,
+                   const int64_t* kernel_shape,
+                   const int64_t* stride,
+                   const int64_t* dilation,
+                   const int64_t* pad,
+                   int64_t N,
+                   T* data_img) {
+    throw std::runtime_error("not implemented.");
+}

@@ -122,7 +122,6 @@ enum class AutoPadType {
 AutoPadType to_AutoPadType(const std::string& value);
 
 
-
 static inline float ErfInv(float x) {
     float sgn = x < 0 ? -1.0f : 1.0f;
     x = (1 - x) * (1 + x);
@@ -459,7 +458,25 @@ inline void MakeStringInternal(std::ostringstream& ss, const std::vector<uint32_
 }
 
 template <>
-inline void MakeStringInternal(std::ostringstream& ss, const std::vector<pybind11::ssize_t>& t) noexcept {
+inline void MakeStringInternal(std::ostringstream& ss, const std::vector<int64_t>& t) noexcept {
+    for(auto it: t)
+        ss << "x" << it;
+}
+
+template <>
+inline void MakeStringInternal(std::ostringstream& ss, const std::vector<uint64_t>& t) noexcept {
+    for(auto it: t)
+        ss << "x" << it;
+}
+
+template <>
+inline void MakeStringInternal(std::ostringstream& ss, const std::vector<int16_t>& t) noexcept {
+    for(auto it: t)
+        ss << "x" << it;
+}
+
+template <>
+inline void MakeStringInternal(std::ostringstream& ss, const std::vector<uint16_t>& t) noexcept {
     for(auto it: t)
         ss << "x" << it;
 }

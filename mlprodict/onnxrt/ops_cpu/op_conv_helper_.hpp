@@ -23,6 +23,16 @@ namespace py = pybind11;
 #endif
 
 
+int64_t shape2size(const py::array_t<int64_t, py::array::c_style | py::array::forcecast>& shape) {
+    int64_t n = shape.ndim();
+    const int64_t* p_shape = shape.data();
+    int64_t size = 1;
+    for ( ; n > 0; --n, ++p_shape)
+        size *= *p_shape;
+    return size;
+}
+
+
 template <typename T>
 void im2col_1d_inplace(
         py::array_t<T, py::array::c_style | py::array::forcecast>& result,

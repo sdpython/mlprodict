@@ -150,8 +150,7 @@ void Conv<T>::compute_gil_free(
 
     std::vector<int64_t> image_shape(x_dims.begin() + 1, x_dims.end());
     std::vector<int64_t> col_buffer_shape{kernel_dim};
-    col_buffer_shape.insert(col_buffer_shape.end(), output_shape.begin(),
-                            output_shape.end());
+    col_buffer_shape.insert(col_buffer_shape.end(), output_shape.begin(), output_shape.end());
 
     const size_t kernel_rank = kernel_shape.size();
 

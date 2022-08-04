@@ -1,15 +1,12 @@
 """
-@brief      test log(time=5s)
+@brief      test log(time=7s)
 """
 import unittest
-from logging import getLogger
 import numpy
 import onnx
 from sklearn.ensemble import RandomForestClassifier
 from sklearn.multiclass import OneVsRestClassifier
 from pyquickhelper.pycode import ExtTestCase, ignore_warnings
-from skl2onnx.algebra.onnx_ops import (  # pylint: disable=E0611
-    OnnxConv)
 from mlprodict.onnx_conv import to_onnx
 from mlprodict.onnxrt.ops_cpu.op_conv import Conv
 from mlprodict.onnx_tools.onnx2py_helper import _var_as_dict
@@ -19,14 +16,12 @@ from mlprodict import __max_supported_opset__ as TARGET_OPSET
 from mlprodict.onnxrt.ops_cpu._op_helper import dtype_name
 from mlprodict.onnxrt.ops_cpu.op_conv_helper import (
     im2col, im2col_indices, col2im_indices, im2col_recursive, im2col_nn,
-    im2col_naive_implementation, nn_im2col_2d, nn_col2im_2d, new_array)
+    im2col_naive_implementation, nn_im2col_2d, nn_col2im_2d, new_array,
+    im2col_infer_output_shape, im2col_nchw, col2im_nchw)
+from mlprodict.npy.xop import loadop
 
 
 class TestCpuOps(ExtTestCase):
-
-    def setUp(self):
-        logger = getLogger('skl2onnx')
-        logger.disabled = True
 
     def test_dtype_name(self):
         self.assertEqual(dtype_name(numpy.float32), "float32")
@@ -74,6 +69,7 @@ class TestCpuOps(ExtTestCase):
 
     @ignore_warnings((DeprecationWarning, FutureWarning))
     def test_cpu_conv_init(self):
+        OnnxConv = loadop(('', 'Conv'))
         x = numpy.random.rand(1, 96, 56, 56).astype(numpy.float32)
         W = numpy.random.rand(24, 96, 1, 1).astype(numpy.float32)
 
@@ -105,6 +101,7 @@ class TestCpuOps(ExtTestCase):
 
     @ignore_warnings((DeprecationWarning, FutureWarning))
     def test_cpu_conv_group(self):
+        OnnxConv = loadop(('', 'Conv'))
         x = numpy.random.rand(1, 3, 3, 4).astype(numpy.float32)
         W = numpy.random.rand(9, 1, 3, 3).astype(numpy.float32)
 
@@ -352,7 +349,69 @@ class TestCpuOps(ExtTestCase):
             self.assertEqualArray(th.numpy().reshape(data.shape).astype(numpy.int16),
                                   res.astype(numpy.int16))
 
+    def test_im2col_infer_output_shape(self):
+        o, p = im2col_infer_output_shape([3, 3], [3, 3], [1, 1], [1, 1], [1, 1, 1, 1])
+        self.assertEqual(o, [9, 3, 3])
+        self.assertEqual(p, [1, 1, 1, 1])
+        o, p = im2col_infer_output_shape([3, 3], [5, 5], [1, 1], [1, 1], [1, 1, 1, 1])
+        self.assertEqual(o, [25, 1, 1])
+        self.assertEqual(p, [1, 1, 1, 1])
+        o, p = im2col_infer_output_shape([11, 7], [5, 5], [1, 1], [1, 1], [1, 1, 2, 2])
+        self.assertEqual(o, [25, 10, 6])
+        self.assertEqual(p, [1, 1, 2, 2])
+        o, p = im2col_infer_output_shape([3, 5], [3, 3], [1, 1], [1, 1], [1, 1, 1, 1])
+        self.assertEqual(o, [9, 3, 5])
+        self.assertEqual(p, [1, 1, 1, 1])
+        o, p = im2col_infer_output_shape([3, 5], [3, 3], [1, 1], [1, 1], [0, 0, 0, 0])
+        self.assertEqual(o, [9, 1, 3])
+        self.assertEqual(p, [0, 0, 0, 0])
+
+    def test_im2col_c(self):
+        kernel_shape = (3, 3)
+        padding = [1, 1, 1, 1]
+        dilations = [1, 1]
+        data = numpy.arange(3 * 5).astype(numpy.float32) + 10
+        data = data.reshape((3, 5))
+        res = im2col(data, kernel_shape, fill_value=0)
+        res = numpy.transpose(res, (2, 3, 0, 1))
+        data = data.reshape((1, 1) + data.shape)
+        got = im2col_nchw(0, 0, 1, data, kernel_shape, padding, dilations)
+        self.assertEqualArray(res, got.reshape(res.shape))
+
+    def test_col2im_c(self):
+        kernel_shape = (3, 3)
+        padding = [1, 1, 1, 1]
+        dilations = [1, 1]
+        data = numpy.arange(3 * 5).astype(numpy.float32) + 10
+        data = data.reshape((3, 5))
+        data = data.reshape((1, 1) + data.shape)
+        got = im2col_nchw(0, 0, 1, data, kernel_shape, padding, dilations)
+        bck = col2im_nchw(got, (3, 5), kernel_shape, padding, dilations)
+        col = nn_im2col_2d(data.reshape(data.shape[2:]), (3, 3), (1, 1), (1, 1))
+        self.assertEqualArray(got.ravel(), col.ravel())
+        res = nn_col2im_2d(col, (3, 5), (3, 3), (1, 1), (1, 1))
+        self.assertEqualArray(bck.reshape(bck.shape[2:]), res)
+
+    def test_col2im_c00(self):
+        kernel_shape = (3, 3)
+        padding = [0, 0, 0, 0]
+        dilations = [1, 1]
+        data = numpy.arange(5 * 7).astype(numpy.float32) + 10
+        data = data.reshape((5, 7))
+        data = data.reshape((1, 1) + data.shape)
+        got = im2col_nchw(0, 0, 1, data, kernel_shape, padding, dilations)
+        bck = col2im_nchw(got, (5, 7), kernel_shape, padding, dilations)
+        col = nn_im2col_2d(data.reshape(data.shape[2:]), (3, 3), (1, 1), (0, 0))
+        self.assertEqualArray(got.ravel(), col.ravel())
+        res = nn_col2im_2d(col, (5, 7), (3, 3), (1, 1), (0, 0))
+        self.assertEqual(bck.size, res.size)
+        b = bck.reshape(bck.shape[2:]).astype(numpy.int16)
+        c = res.astype(numpy.int16)
+        for i, (x, y) in enumerate(zip(b, c)):
+            with self.subTest(i=i):
+                self.assertEqualArray(x, y)
+
 
 if __name__ == "__main__":
-    TestCpuOps().test_nn_col2im_2d()
-    unittest.main()
+    # TestCpuOps().test_col2im_c()
+    unittest.main(verbosity=2)

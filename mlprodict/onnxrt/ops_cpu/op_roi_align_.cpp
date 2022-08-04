@@ -50,7 +50,7 @@ class RoiAlign {
         bool half_pixel_;
         int64_t output_height_;
         int64_t output_width_;
-        T sampling_ratio_;
+        int64_t sampling_ratio_;
         T spatial_scale_;
     
     public:
@@ -58,7 +58,7 @@ class RoiAlign {
         RoiAlign();
         void init(const std::string &coordinate_transformation_mode,
                   const std::string &mode,
-                  int64_t output_height, int64_t output_width, T sampling_ratio, T spatial_scale);
+                  int64_t output_height, int64_t output_width, int64_t sampling_ratio, T spatial_scale);
         py::array_t<T> compute(py::array_t<T, py::array::c_style | py::array::forcecast> X,
                                py::array_t<T, py::array::c_style | py::array::forcecast> rois,
                                py::array_t<int64_t, py::array::c_style | py::array::forcecast> batch_indices) const;
@@ -68,13 +68,23 @@ class RoiAlign {
         void PreCalcForBilinearInterpolate(
             int64_t height, int64_t width, int64_t pooled_height,
             int64_t pooled_width, int64_t iy_upper, int64_t ix_upper,
-            T roi_start_h, T roi_start_w, T bin_size_h, T bin_size_w, int64_t roi_bin_grid_h,
-            int64_t roi_bin_grid_w, std::vector<PreCalc<T>>& pre_calc) const;
+            T roi_start_h, T roi_start_w, T bin_size_h, T bin_size_w,
+            int64_t roi_bin_grid_h, int64_t roi_bin_grid_w,
+            std::vector<PreCalc<T>>& pre_calc) const;
     
         void RoiAlignForward(
-            const std::vector<int64_t>& output_shape, const T* bottom_data, float spatial_scale, int64_t height,
-            int64_t width, int64_t sampling_ratio, const T* bottom_rois, int64_t num_roi_cols, T* top_data,
-            RoiAlignMode mode, bool half_pixel, const int64_t* batch_indices_ptr) const;
+            const std::vector<int64_t>& output_shape,  // 0
+            const T* bottom_data,  // 1
+            T spatial_scale,  // 2
+            int64_t height,  // 3
+            int64_t width,  // 4
+            int64_t sampling_ratio, // 5
+            const T* bottom_rois,
+            int64_t num_roi_cols,
+            T* top_data,
+            RoiAlignMode mode,
+            bool half_pixel,
+            const int64_t* batch_indices_ptr) const;
 
 };
 
@@ -87,7 +97,7 @@ template<typename T>
 void RoiAlign<T>::init(const std::string &coordinate_transformation_mode,
                        const std::string &mode,
                        int64_t output_height, int64_t output_width,
-                       T sampling_ratio, T spatial_scale) {
+                       int64_t sampling_ratio, T spatial_scale) {
     output_width_ = output_width;
     output_height_ = output_height;
     sampling_ratio_ = sampling_ratio;
@@ -195,11 +205,18 @@ void RoiAlign<T>::PreCalcForBilinearInterpolate(
 
 template <typename T>
 void RoiAlign<T>::RoiAlignForward(
-        const std::vector<int64_t>& output_shape, const T* bottom_data,
-        float spatial_scale, int64_t height,
-        int64_t width, int64_t sampling_ratio, const T* bottom_rois,
-        int64_t num_roi_cols, T* top_data,
-        RoiAlignMode mode, bool half_pixel, const int64_t* batch_indices_ptr) const {
+        const std::vector<int64_t>& output_shape,
+        const T* bottom_data,
+        T spatial_scale,
+        int64_t height,
+        int64_t width,
+        int64_t sampling_ratio,
+        const T* bottom_rois,
+        int64_t num_roi_cols,
+        T* top_data,
+        RoiAlignMode mode,
+        bool half_pixel,
+        const int64_t* batch_indices_ptr) const {
     int64_t n_rois = output_shape[0];
     int64_t channels = output_shape[1];
     int64_t pooled_height = output_shape[2];
@@ -234,9 +251,12 @@ void RoiAlign<T>::RoiAlignForward(
         T bin_size_w = static_cast<T>(roi_width) / static_cast<T>(pooled_width);
 
         // We use roi_bin_grid to sample the grid and mimic integral
-        int64_t roi_bin_grid_h = (sampling_ratio > 0) ? sampling_ratio : static_cast<int64_t>(std::ceil(roi_height / pooled_height));  // e.g., = 2
-        int64_t roi_bin_grid_w =
-            (sampling_ratio > 0) ? sampling_ratio : static_cast<int64_t>(std::ceil(roi_width / pooled_width));
+        int64_t roi_bin_grid_h =
+            (sampling_ratio > 0) ? sampling_ratio
+                                 : static_cast<int64_t>(std::ceil(roi_height / pooled_height));
+        int64_t roi_bin_grid_w = 
+            (sampling_ratio > 0) ? sampling_ratio
+                                 : static_cast<int64_t>(std::ceil(roi_width / pooled_width));
 
         // We do average (integral) pooling inside a bin
         const int64_t count = std::max(roi_bin_grid_h * roi_bin_grid_w, static_cast<int64_t>(1)); // e.g. = 4
@@ -278,10 +298,11 @@ void RoiAlign<T>::RoiAlignForward(
                         for (int64_t iy = 0; iy < roi_bin_grid_h; iy++) {
                             for (int64_t ix = 0; ix < roi_bin_grid_w; ix++) {
                                 const auto& pc = pre_calc[pre_calc_index];
-                                T val = std::max(
-                                std::max(std::max(pc.w1 * offset_bottom_data[pc.pos1], pc.w2 * offset_bottom_data[pc.pos2]),
-                                                  pc.w3 * offset_bottom_data[pc.pos3]),
-                                         pc.w4 * offset_bottom_data[pc.pos4]);
+                                T val = std::max(std::max(std::max(
+                                    pc.w1 * offset_bottom_data[pc.pos1],
+                                    pc.w2 * offset_bottom_data[pc.pos2]),
+                                    pc.w3 * offset_bottom_data[pc.pos3]),
+                                    pc.w4 * offset_bottom_data[pc.pos4]);
                                 if (!max_flag) {
                                     output_val = val;
                                     max_flag = true;
@@ -326,11 +347,17 @@ py::array_t<T> RoiAlign<T>::compute(
     py::array_t<T, py::array::c_style | py::array::forcecast> Y(y_dims);
             
     RoiAlignForward(
-        y_dims, X_ptr, this->spatial_scale_,
-        x_dims[2],  // height
-        x_dims[3],  // width
-        this->sampling_ratio_, rois_ptr, num_roi_cols,
-        (T*)Y.data(0), this->mode_, this->half_pixel_,
+        y_dims,  // 0
+        X_ptr,  // 1
+        this->spatial_scale_,  // 2
+        x_dims[2],  // height, 3
+        x_dims[3],  // width, 4
+        this->sampling_ratio_,  // 5
+        rois_ptr,
+        num_roi_cols,
+        (T*)Y.data(0),
+        this->mode_,
+        this->half_pixel_,
         batch_indices_ptr);
     return Y;
 }

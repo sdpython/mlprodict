@@ -8,7 +8,9 @@ import numpy
 from .op_conv_helper_ import (  # pylint: disable=E0611
     im2col_1d_inplace_float,
     tch_im2col_2d_float, tch_col2im_2d_float,
-    new_array as _new_array)
+    new_array as _new_array,
+    im2col_NCHW_float, col2im_NCHW_float,
+    col2im_infer_output_shape as col2im_infer_output_shape_c)
 
 
 def im2col_nn(res):
@@ -61,7 +63,7 @@ def nn_im2col_2d(data, kernel_shape, dilations, padding, fill_value=0):
             kernel_shape[1] - 1) - 1) // strides[1] + 1)
     kernel_size = kernel_shape[0] * kernel_shape[1]
     shape = (kernel_size, ext_shape[0] * ext_shape[1])
-    result = numpy.empty(shape, dtype=data.dtype)
+    result = numpy.full(shape, dtype=data.dtype, fill_value=-5555)
     if data.dtype == numpy.float32:
         tch_im2col_2d_float(result, data,
                             numpy.array(kernel_shape, dtype=numpy.int64),
@@ -85,7 +87,7 @@ def nn_col2im_2d(data, output_shape, kernel_shape, dilations, padding):
     :param padding: padding
     :return: result
     """
-    result = numpy.empty(output_shape, dtype=data.dtype)
+    result = numpy.zeros(output_shape, dtype=data.dtype)
     if data.dtype == numpy.float32:
         tch_col2im_2d_float(result, data,
                             numpy.array(output_shape, dtype=numpy.int64),
@@ -315,3 +317,68 @@ def col2im_indices(cols, x_shape, field_height=3, field_width=3, padding=0,
     if padding == 0:
         return x_padded
     return x_padded[:, :, padding:-padding, padding:-padding]
+
+
+def im2col_nchw(image_id, group_id, group, image, kernel_shape, padding, dilations):
+    """
+    C implementation of a partial im2col.
+
+    :param image: image (float)
+    :param kernel_shape: kernel shape
+    :param padding: padding
+    :param dilations: dilations
+    :return: result
+    """
+    if not image.flags['C_CONTIGUOUS']:
+        image = numpy.ascontiguousarray(image)
+    group = 1
+    mul, img = image.shape[:-2], image.shape[-2:]
+    strides = [1] * len(image.shape)
+
+    output_shape, padding = im2col_infer_output_shape(
+        img, kernel_shape, strides, dilations, padding)
+    result = numpy.empty(mul + tuple(output_shape), dtype=image.dtype)
+    im2col_NCHW_float(image_id, group_id, group,
+                      result, image, output_shape,
+                      kernel_shape, dilations, padding)
+    return result
+
+
+def im2col_infer_output_shape(
+        input_shape, kernel_shape, strides, dilations,
+        padding, auto_padding="NOTSET"):
+    """
+    Computes the ouput shape of im2col.
+
+    :param input_shape: input _shape
+    :param kernel_shape: kernel shape
+    :param strides: strides
+    :param dilations: dilations
+    :param padding: padding
+    :param auto_padding: among NOTSET, VALID, SAME_UPPER, SAME_LOWER
+    :return output_shape, modified padding
+    """
+    return col2im_infer_output_shape_c(
+        input_shape, kernel_shape, strides, dilations,
+        padding, auto_padding)
+
+
+def col2im_nchw(data_col, image_shape, kernel_shape, padding, dilations):
+    """
+    C implementation of a partial col2im.
+
+    :param data_col: image (float)
+    :param image_shape: expected image shape
+    :param kernel_shape: kernel shape
+    :param padding: padding
+    :param dilations: dilations
+    :return: result
+    """
+    if not data_col.flags['C_CONTIGUOUS']:
+        data_col = numpy.ascontiguousarray(data_col)
+
+    result = numpy.full(data_col.shape[:2] + tuple(image_shape),
+                        dtype=data_col.dtype, fill_value=-555)
+    col2im_NCHW_float(result, data_col, image_shape,
+                      kernel_shape, dilations, padding)
+    return result
