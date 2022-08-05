@@ -50,7 +50,8 @@ class Expression(OpRun):
              attributes=None, verbose=0, fLOG=None):
 
         if verbose > 0 and fLOG is not None:
-            fLOG(f'  -- expression> {list(context)!r}')
+            fLOG(  # pragma: no cover
+                f'  -- expression> {list(context)!r}')
         if named_inputs is None:
             if len(inputs) != len(self.input_names):
                 raise RuntimeError(  # pragma: no cover
@@ -62,7 +63,7 @@ class Expression(OpRun):
                                        attributes=attributes,
                                        verbose=verbose, fLOG=fLOG)
         if verbose > 0 and fLOG is not None:
-            fLOG('  -- expression<')
+            fLOG('  -- expression<')  # pragma: no cover
         final = tuple([outputs[name]
                       for name in self.expression.output_names])
         return final
@@ -72,7 +73,7 @@ class Expression(OpRun):
             return res[name]
         out = {o.name: o for o in self.expression.obj.graph.output}
         if name not in out:
-            raise ValueError(
+            raise ValueError(  # pragma: no cover
                 "Unable to find name=%r in %r or %r." % (
                     name, list(sorted(res)), list(sorted(out))))
         dt = out[name].type.tensor_type.elem_type

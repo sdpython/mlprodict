@@ -12,6 +12,7 @@ import onnx.defs
 from pyquickhelper.pycode import ExtTestCase
 from mlprodict.onnx_tools._onnx_check_model import (
     check_model as check_model_py, OnnxCheckError)
+from mlprodict.onnx_tools.onnx2py_helper import copy_value_info
 
 
 def _cmp_error(exc, exc2):
@@ -386,6 +387,8 @@ class TestCheckModel(ExtTestCase):
 
         input_x = onnx.ValueInfoProto()
         input_x.name = "X"
+        copy = copy_value_info(input_x)
+        self.assertEqual(copy.name, input_x.name)
         graph = helper.make_graph(
             [n1, n2],
             "nested",

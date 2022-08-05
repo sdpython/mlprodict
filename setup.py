@@ -469,12 +469,12 @@ setup(
             'scikit-learn>=1.0', 'skl2onnx>=1.12', 'lightgbm',
             'mlinsights>=0.3', 'xgboost'],
         'onnx_val': [
-            'scikit-learn>=1.0', 'skl2onnx>=1.12', 'onnxruntime>=1.12'],
+            'scikit-learn>=1.0', 'skl2onnx>=1.12', 'onnxruntime>=1.12.1'],
         'sklapi': [
-            'scikit-learn>=1.0', 'onnxruntime>=1.12.0', 'onnxruntime-extensions'],
+            'scikit-learn>=1.0', 'onnxruntime>=1.12.1', 'onnxruntime-extensions'],
         'all': [
             'jinja2', 'scikit-learn>=1.0', 'skl2onnx>=1.12',
-            'onnxruntime>=1.12.0', 'scipy', 'pandas',
+            'onnxruntime>=1.12.1', 'scipy', 'pandas',
             'mlinsights>=0.3', 'lightgbm', 'xgboost', 'mlstatpy>=0.3.593',
             'onnxruntime-extensions'],
     },

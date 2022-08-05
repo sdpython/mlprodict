@@ -74,7 +74,7 @@ class TestBugOrt(ExtTestCase):
                 self.assertEqualArray(res1[output], res2[output])
         return err
 
-    @unittest.skipIf(compare_module_version(get_ort_version(), '1.12') <= 0,
+    @unittest.skipIf(compare_module_version(get_ort_version(), '1.13') < 0,
                      reason="see https://github.com/microsoft/onnxruntime/issues/11614")
     def test_weird_behaviour1(self):
         inputs = {'x': numpy.random.randn(3, 4, 5, 1).astype(numpy.float32),
@@ -105,4 +105,5 @@ class TestBugOrt(ExtTestCase):
 
 
 if __name__ == "__main__":
+    # TestBugOrt().test_weird_behaviour1()
     unittest.main(verbosity=2)

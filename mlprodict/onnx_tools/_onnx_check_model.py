@@ -166,7 +166,7 @@ class Schema(object):
         # An internal symbol is defined as starting with two underscores. Attributes
         # with names meeting this condition are considered implementation details
         # and should be ignored for the purpose of schema checking.
-        def isInternalSymbol(sym):
+        def isInternalSymbol(sym):  # pragma: no cover
             return len(sym) >= 2 and sym[0] == '_' and sym[1] == '_'
 
         # Check attributes
@@ -409,7 +409,7 @@ def _enforce_has_field(proto, field):
 
 
 def _enforce_has_repeated_field(proto, field):
-    if not getattr(proto, field + '_size')():
+    if not getattr(proto, field + '_size')():  # pragma: no cover
         raise OnnxCheckError(  # pragma: no cover
             f"Repeated field '{field}' of '{proto}' is required but missing.", proto)
 
@@ -472,7 +472,7 @@ def _check_data_field(tensor, field, num_value_fields):
 
 
 def _check_field(tensor, field, value_field, nelem):
-    if nelem != 0 and len(getattr(tensor, field)):
+    if nelem != 0 and len(getattr(tensor, field)):  # pragma: no cover
         raise OnnxCheckError(  # pragma: no cover
             f"values of data_type '{tensor.data_type} "
             f"should be stored in field '{field}' "
@@ -505,7 +505,7 @@ def _check_tensor(tensor, ctx):
         hasattr(tensor, 'data_location') and
         tensor.data_location == TensorProto.EXTERNAL)
     if stored_externally:
-        if num_value_fields != 0:
+        if num_value_fields != 0:  # pragma: no cover
             raise OnnxCheckError(  # pragma: no cover
                 f"Data of TensorProto ( tensor name: f{tensor.name}) "
                 f"is stored externally and should not have data field: "
@@ -682,7 +682,7 @@ def _parse_data(dtype, indices):
 
 
 def _check_sparse_tensor_indices_1(  # pragma: no cover
-        indices, sparse_tensor_proto, nnz):
+        indices, sparse_tensor_proto, nnz):  # pragma: no cover
     """
     Check that the index data stored in a SparseTensorProto is valid.
     indices: a 1-dimensional tensor; indices[i] represents the
@@ -720,7 +720,7 @@ def _check_sparse_tensor_indices_1(  # pragma: no cover
 
 
 def _check_sparse_tensor_indices_2(  # pragma: no cover
-        indices, sparse_tensor_proto, nnz):
+        indices, sparse_tensor_proto, nnz):  # pragma: no cover
     """
     Check that the index data stored in a SparseTensorProto is valid.
     indices: a 2-dimensional tensor; indices[i,j] represents the j-th
@@ -937,7 +937,7 @@ def _check_node(node, ctx, lex_ctx):
     schema = ctx.get_schema_registry().GetSchema(
         node.op_type, domain_version, node.domain)
     if not schema:
-        if node.domain in (ONNX_DOMAIN, AI_ONNX_ML_DOMAIN,
+        if node.domain in (ONNX_DOMAIN, AI_ONNX_ML_DOMAIN,  # pragma: no cover
                            "ai.onnx", AI_ONNX_TRAINING_DOMAIN):
             # fail the checker if op in built-in domains has no schema
             raise OnnxCheckError(  # pragma: no cover
@@ -948,7 +948,7 @@ def _check_node(node, ctx, lex_ctx):
             # TODO: expose the registration of the op schemas appropriately in
             # python, so we can load and register operators in other domains
             # before we complete the above todo, let's skip the schema check for now
-            pass
+            pass  # pragma: no cover
     elif schema.deprecated_:
         raise OnnxCheckError(  # pragma: no cover
             f"Op registered for '{node.op_type}' is deprecated "
@@ -1035,7 +1035,7 @@ def _check_graph(graph, ctx, parent_lex):
         for input in node.input:
             # explicit optional input
             if not input:
-                continue
+                continue  # pragma: no cover
             if not lex_ctx.this_or_ancestor_graph_has(input):
                 raise OnnxCheckError(  # pragma: no cover
                     f"Nodes in a graph must be topologically sorted, however "
@@ -1076,7 +1076,7 @@ def _get_version_for_domain(domain, opset_imports):  # pragma: no cover
 
 
 def _check_opset_compatibility(  # pragma: no cover
-        node, ctx, func_opset_imports, model_opset_imports):
+        node, ctx, func_opset_imports, model_opset_imports):  # pragma: no cover
     func_opset_version = _get_version_for_domain(
         node.domain, func_opset_imports)
     model_opset_version = _get_version_for_domain(
@@ -1140,7 +1140,7 @@ def _check_model_local_functions(model, ctx, parent_lex):  # pragma: no cover
         _check_function(function_proto, ctx_copy, parent_lex)
 
 
-def _check_function(function, ctx, parent_lex):
+def _check_function(function, ctx, parent_lex):  # pragma: no cover
     _enforce_non_empty_field(function, "name")
 
     if ctx.get_ir_version() >= 0x00000008:
@@ -1247,7 +1247,7 @@ def _check_model(model, ctx):
                 f"Model with IR version >= 3 must specify opset_import for "
                 f"ONNX ({opset_imports}).",
                 model)
-    elif not opset_imports:
+    elif not opset_imports:  # pragma: no cover
         opset_imports[ONNX_DOMAIN] = 1
     else:
         raise OnnxCheckError(  # pragma: no cover

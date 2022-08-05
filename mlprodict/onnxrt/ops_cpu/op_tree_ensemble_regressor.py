@@ -247,4 +247,4 @@ class TreeEnsembleRegressorDoubleSchema(OperatorSchema):
 if onnx_opset_version() >= 16:
     TreeEnsembleRegressor = TreeEnsembleRegressor_3
 else:
-    TreeEnsembleRegressor = TreeEnsembleRegressor_1
+    TreeEnsembleRegressor = TreeEnsembleRegressor_1  # pragma: no cover

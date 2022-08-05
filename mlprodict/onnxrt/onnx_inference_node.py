@@ -366,8 +366,8 @@ class OnnxInferenceNode:
         for n in sorted(input_list):
             try:
                 v = values[self._global_index(n)]
-            except IndexError as e:
-                raise IndexError(  # pragma: no cover
+            except IndexError as e:  # pragma: no cover
+                raise IndexError(
                     f"Unable to find an index for result {n!r} in onnx object.") from e
             if v is None:
                 raise ValueError(  # pragma: no cover

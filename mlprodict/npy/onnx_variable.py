@@ -102,8 +102,8 @@ class OnnxVar:
             else:
                 try:
                     dtype = guess_numpy_type(inp)
-                except NotImplementedError as e:
-                    raise TypeError(  # pragma: no cover
+                except NotImplementedError as e:  # pragma: no cover
+                    raise TypeError(
                         "Unexpected type for input %i type=%r." % (
                             i, type(inp))) from e
                 dtypes.append(dtype)

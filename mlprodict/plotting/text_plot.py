@@ -694,6 +694,9 @@ def onnx_simple_text_plot(model, verbose=False, att_display=None,  # pylint: dis
         if hasattr(node, 'attribute'):
             for att in node.attribute:
                 done = True
+                if hasattr(att, "ref_attr_name") and att.ref_attr_name:
+                    atts.append(f"{att.name}=${att.ref_attr_name}")
+                    continue
                 if att.name in att_display:
                     if att.type == AttributeProto.INT:  # pylint: disable=E1101
                         atts.append("%s=%d" % (att.name, att.i))
@@ -707,8 +710,6 @@ def onnx_simple_text_plot(model, verbose=False, att_display=None,  # pylint: dis
                 elif (att.type == AttributeProto.GRAPH and  # pylint: disable=E1101
                         hasattr(att, 'g') and att.g is not None):
                     atts.append(f"{att.name}={_get_subgraph_name(id(att.g))}")
-                elif att.ref_attr_name:
-                    atts.append(f"{att.name}=${att.ref_attr_name}")
                 else:
                     done = False
                 if done:

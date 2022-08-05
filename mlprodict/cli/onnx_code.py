@@ -35,9 +35,9 @@ def onnx_code(filename, format="onnx", output=None, verbose=0, name=None,
         export2onnx, export2tf2onnx, export2numpy)
 
     if name == '':
-        name = None
+        name = None  # pragma: no cover
     if opset == '':
-        opset = None
+        opset = None  # pragma: no cover
     try:
         v = int(opset)
         opset = v

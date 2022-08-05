@@ -191,7 +191,7 @@ def compress_proto(proto, verbose=0):
             # unchanged
             return proto
         if verbose:
-            logger.debug(
+            logger.debug(  # pragma: no cover
                 "Compressed function %r/%r from %d nodes to %d.",
                 proto.domain, proto.name, len(proto.node), len(nodes))
         opsets = {op.domain: op.version for op in proto.opset_import}
@@ -221,7 +221,7 @@ def compress_proto(proto, verbose=0):
         opsets = {op.domain: op.version for op in proto.opset_import}
         opsets['mlprodict'] = 1
         if verbose:
-            logger.debug(
+            logger.debug(  # pragma: no cover
                 "Compressed model %s modified=%d.", proto.name, modified)
         return make_model(
             new_graph, functions=fcts,
@@ -240,7 +240,7 @@ def compress_proto(proto, verbose=0):
             # unchanged
             return proto
         if verbose:
-            logger.debug(
+            logger.debug(  # pragma: no cover
                 "Compressed graph %s from %d nodes to %d.",
                 proto.name, len(proto.node), len(nodes))
         return make_graph(

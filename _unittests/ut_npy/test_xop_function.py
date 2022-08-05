@@ -13,7 +13,8 @@ from pyquickhelper.pycode import ExtTestCase
 from mlprodict.plotting.text_plot import onnx_simple_text_plot
 from mlprodict.onnxrt import OnnxInference
 from mlprodict.npy.xop import loadop, OnnxOperatorFunction
-from mlprodict.onnx_tools.onnx_manipulations import onnx_model_to_function
+from mlprodict.onnx_tools.onnx_manipulations import (
+    onnx_model_to_function, get_opsets)
 from mlprodict.onnx_tools.model_checker import check_onnx
 
 
@@ -132,6 +133,9 @@ class TestXOpsFunction(ExtTestCase):
         x = numpy.array([-2, 2], dtype=numpy.float32)
         got = oinf.run({'X': x})
         self.assertEqualArray((x + numpy.abs(x)) / 2, got['Y'])
+
+        opsets = get_opsets(fonx)
+        self.assertEqual(len(opsets), 1)
 
     def test_onnx_function_name2(self):
         OnnxAbs, OnnxAdd = loadop("Abs", "Add")

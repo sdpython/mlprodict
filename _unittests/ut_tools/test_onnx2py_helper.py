@@ -79,6 +79,9 @@ class TestOnnx2PyHelper(ExtTestCase):
         self.assertEqual(guess_numpy_type_from_string('int32'), numpy.int32)
         self.assertEqual(guess_numpy_type_from_string('int16'), numpy.int16)
         self.assertEqual(guess_numpy_type_from_string('str'), numpy.str_)
+        self.assertEqual(guess_numpy_type_from_string('bool'), numpy.bool_)
+        self.assertEqual(
+            guess_numpy_type_from_string('float32'), numpy.float32)
 
     def test_get_onnx_schema(self):
         for opset in ([None] + list(range(16, 11, -1))):

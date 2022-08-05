@@ -341,6 +341,13 @@ class TestPlotTextPlotting(ExtTestCase):
         res2 = onnx_simple_text_plot(onx, raise_exc=True)
         self.assertEqual(res, res2)
 
+    def test_simple_text_plot_ref_attr_name(self):
+        data = os.path.join(os.path.dirname(__file__), "data")
+        onx_file = os.path.join(data, "bug_Hardmax.onnx")
+        onx = load(onx_file)
+        res = onnx_simple_text_plot(onx, raise_exc=False)
+        self.assertIn("start=$axis", res)
+
 
 if __name__ == "__main__":
     unittest.main()
