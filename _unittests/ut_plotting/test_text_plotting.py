@@ -343,7 +343,7 @@ class TestPlotTextPlotting(ExtTestCase):
 
     def test_simple_text_plot_ref_attr_name(self):
         data = os.path.join(os.path.dirname(__file__), "data")
-        onx_file = os.path.join(data, "bug_HardMax.onnx")
+        onx_file = os.path.join(data, "bug_Hardmax.onnx")
         onx = load(onx_file)
         res = onnx_simple_text_plot(onx, raise_exc=False)
         self.assertIn("start=$axis", res)
