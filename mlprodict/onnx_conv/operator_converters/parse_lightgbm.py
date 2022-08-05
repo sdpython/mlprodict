@@ -31,9 +31,15 @@ class WrappedLightGbmBooster:
         else:  # pragma: no cover
             raise NotImplementedError(
                 f'Unsupported LightGbm objective: {self.objective_!r}.')
-        bt = self.booster_.attr('boosting_type')
+        try:
+            bt = self.booster_.attr('boosting_type')
+        except KeyError:
+            bt = None
         if bt is None:
-            bt = self.booster_.params['boosting_type']
+            try:
+                bt = self.booster_.params['boosting_type']
+            except AttributeError:
+                bt = 'gbdt'
         self.boosting_type = bt
         # if average_output:
         #     self.boosting_type = 'rf'
