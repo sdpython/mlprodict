@@ -1713,8 +1713,13 @@ class OnnxOperator(OnnxOperatorBase):
                         node, inp.copy_merge(inputs[inp.name]))
                     new_inputs.append(var)
                 else:
+                    # The fails is inp is coming from external_inputs.
                     raise ValueError(  # pragma: no cover
-                        f"Unable to find input {inp!r} in {inputs!r}.")
+                        f"Unable to find input {inp!r} in {inputs!r}, "
+                        f"new_inputs={new_inputs!r}, "
+                        f"type(node)={type(node)!r}, "
+                        f"node.external_inputs={node.external_inputs!r}, "
+                        f"node={node!r}.")
             elif inputs_dtype is not None:
                 new_inputs.append(
                     InputDetectedVariable(node, inp.copy_add(inputs_dtype)))
@@ -1787,6 +1792,8 @@ class OnnxOperator(OnnxOperatorBase):
 
         def has_input(self, inp):
             "Checks that input *inp* is part the list of names."
+            if isinstance(inp, str):
+                return inp in self._names
             if inp.name in self._names:
                 return True
             return False

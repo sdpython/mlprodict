@@ -1254,7 +1254,6 @@ class TestXOps(ExtTestCase):
         got = OnnxInference(model_def).run({'X': x, 'Y': y, 'Z': z})
         self.assertEqualArray(z, got['A'])
 
-    @unittest.skipIf(True, reason="Still an error")
     def test_zif_onnx_common_intermediate_level2(self):
         OnnxIf, OnnxTranspose, OnnxShape, OnnxSize, OnnxIdentity = loadop(
             "If", "Transpose", "Shape", "Size", "Identity")
@@ -1269,7 +1268,7 @@ class TestXOps(ExtTestCase):
          .else_do(
             OnnxIf(
                 OnnxExisting(A) == numpy.array([0], dtype=numpy.int64)
-            ).then_do('X')
+            ).then_do('X') \
              .else_do(OnnxTranspose('Y', perm=[1, 0]))
         )
 
@@ -1308,5 +1307,5 @@ class TestXOps(ExtTestCase):
 if __name__ == "__main__":
     # import logging
     # logging.basicConfig(level=logging.DEBUG)
-    # TestXOps().test_onnx_abs_1()
+    TestXOps().test_zif_onnx_common_intermediate_level2()
     unittest.main(verbosity=2)
