@@ -1713,13 +1713,24 @@ class OnnxOperator(OnnxOperatorBase):
                         node, inp.copy_merge(inputs[inp.name]))
                     new_inputs.append(var)
                 else:
-                    # The fails is inp is coming from external_inputs.
-                    raise ValueError(  # pragma: no cover
-                        f"Unable to find input {inp!r} in {inputs!r}, "
-                        f"new_inputs={new_inputs!r}, "
-                        f"type(node)={type(node)!r}, "
-                        f"node.external_inputs={node.external_inputs!r}, "
-                        f"node={node!r}.")
+                    external_inputs = {
+                        ei.name: ei for ei in node.external_inputs
+                        if isinstance(ei, Variable)}
+                    if inp.name not in external_inputs:
+                        # This happens when an input is used for the first time
+                        # inside a sub-sub-graph.
+                        var = InputDetectedVariable(node, Variable(inp.name))
+                    elif inp.name in set_inputs:
+                        var = InputDetectedVariable(
+                            node, inp.copy_merge(external_inputs[inp.name]))
+                    else:
+                        raise ValueError(  # pragma: no cover
+                            f"Unable to find input {inp!r} in {inputs!r}, "
+                            f"new_inputs={new_inputs!r}, "
+                            f"type(node)={type(node)!r}, "
+                            f"node.external_inputs={node.external_inputs!r}, "
+                            f"node={node!r}.")
+                    new_inputs.append(var)
             elif inputs_dtype is not None:
                 new_inputs.append(
                     InputDetectedVariable(node, inp.copy_add(inputs_dtype)))
