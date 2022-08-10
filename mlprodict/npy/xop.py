@@ -1372,6 +1372,23 @@ class OnnxOperator(OnnxOperatorBase):
                      self.__class__.__name__, op)
         self.external_inputs.append(op)
 
+    def do(self, body, subgraph_inputs=None):
+        """
+        Fills attribute *body*.
+
+        :param branch: onnx graph or @see cl OnnxOperator
+        :param subgraph_inputs: additional parameter to convert
+            the subgraph into ONNX
+        :return: self
+        """
+        if (isinstance(body, (onnx.GraphProto, onnx.ModelProto)) and
+                inputs is not None):
+            raise RuntimeError(  # pragma: no cover
+                "inputs cannot be defined if body is a "
+                "GraphProto or a ModelProto.")
+        return self._add_subgraph(
+            'body', body, subgraph_inputs=subgraph_inputs)
+
     def then_do(self, branch):
         """
         Fills attribute *then_branch*.
@@ -1396,12 +1413,14 @@ class OnnxOperator(OnnxOperatorBase):
                 "else_branch subgraph cannot have any input.")
         return self._add_subgraph('else_branch', branch)
 
-    def _add_subgraph(self, attribute, branch):
+    def _add_subgraph(self, attribute, branch, subgraph_inputs=None):
         """
         Fills attribute *attribute*.
 
         :param attribute: attribute name
         :param branch: onnx graph or @see cl OnnxOperator
+        :param subgraph_inputs: additional parameter to convert
+            the subgraph into ONNX
         :return: self
         """
         if isinstance(branch, str):
@@ -1418,19 +1437,24 @@ class OnnxOperator(OnnxOperatorBase):
             return self
         if isinstance(branch, OnnxOperator):
             self.kwargs[attribute] = branch
-            branch._set_control_op(self)
+            branch._set_control_op(self, subgraph_inputs=subgraph_inputs)
             return self
         raise TypeError(  # pragma: no cover
             "Unexpected type %r for a subgraph, attribute %r "
             "and class %r." % (
                 type(branch), attribute, self.__class__.__name__))
 
-    def _set_control_op(self, op):
+    def _set_control_op(self, op, subgraph_inputs=None):
         """
         Sets *control_op* for every instance of @see cl OnnxExisting node.
 
         :param op: operator calling the subgraph.
+        :param inputs: additional parameters to convert
+            into ONNX
         """
+        if subgraph_inputs is not None:
+            self.subgraph_inputs = subgraph_inputs
+
         for i, inp in enumerate(self.inputs):
             if isinstance(inp, OnnxOperatorBase):
                 logger.debug("op:%s-%d:_set_control_op:propagate-into-input:%d:p:%d",
@@ -2126,6 +2150,15 @@ class OnnxOperator(OnnxOperatorBase):
         nodes, graph_inputs, graph_outputs, run_shape2 = self._node_to_graph(
             other_outputs, inputs, outputs, as_function=function_name is not None,
             processed=processed)
+        if hasattr(self, 'subgraph_inputs'):
+            if any(map(lambda o: not isinstance(o, Variable),
+                       self.subgraph_inputs)):
+                raise TypeError(  # pragma: no cover
+                    f"Unexpected type, all type should be Variable in "
+                    f"{self.subgraph_inputs!r}.")
+            graph_inputs = [
+                InputDetectedVariable(None, v) for v in self.subgraph_inputs
+            ] + graph_inputs
         logger.dedent()
 
         logger.debug("op:%s.to_onnx:graph_inputs=%r",
@@ -2182,11 +2215,10 @@ class OnnxOperator(OnnxOperatorBase):
 
         logger.debug(
             "op:%s-%d.to_onnx:to_onnx:a", self.__class__.__name__, id(self))
-
         logger.indent()
 
+        # fix missing inputs
         if isinstance(inputs, dict):
-            # fix missing inputs
             known = set()
             for gi in graph_inputs:
                 known.add(gi.var.name)
@@ -2199,6 +2231,9 @@ class OnnxOperator(OnnxOperatorBase):
                         None, Variable(name, dtype=dtype))
                     graph_inputs.append(var)
                     builder.input_names[name] = var
+        for v in graph_inputs:
+            if v.var.name not in builder.input_names:
+                builder.input_names[v.var.name] = v
 
         onx = builder.to_onnx(
             inputs=graph_inputs, outputs=graph_outputs,
