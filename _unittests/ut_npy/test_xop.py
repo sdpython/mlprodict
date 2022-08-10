@@ -1268,7 +1268,7 @@ class TestXOps(ExtTestCase):
          .else_do(
             OnnxIf(
                 OnnxExisting(A) == numpy.array([0], dtype=numpy.int64)
-            ).then_do('X') \
+            ).then_do('X')
              .else_do(OnnxTranspose('Y', perm=[1, 0]))
         )
 
@@ -1285,27 +1285,21 @@ class TestXOps(ExtTestCase):
         self.assertIn("If", text)
 
         a = numpy.array([0], dtype=numpy.int64)
-        got = OnnxInference(model_def).run(
-            {'X': x, 'A': a, 'Y': y, 'T': t}, verbose=0, fLOG=print)
-        self.assertEqualArray(x, got['Z'])
+        got = OnnxInference(model_def).run({'X': x, 'A': a, 'Y': y, 'T': t})
+        self.assertEqualArray(t, got['Z'])
 
         x = x.reshape((-1, 1))
-        y = x + 10
-        t = x + 100
-        got = OnnxInference(model_def).run(
-            {'X': x, 'A': a, 'Y': y, 'T': t}, verbose=0, fLOG=print)
+        got = OnnxInference(model_def).run({'X': x, 'A': a, 'Y': y, 'T': t})
         self.assertEqualArray(x, got['Z'])
 
         a = numpy.array([1], dtype=numpy.int64)
         y = x + 10
-        t = x + 100
-        got = OnnxInference(model_def).run(
-            {'X': x, 'A': a, 'Y': y, 'T': t}, verbose=0, fLOG=print)
-        self.assertEqualArray(x.T, got['Z'])
+        got = OnnxInference(model_def).run({'X': x, 'A': a, 'Y': y, 'T': t})
+        self.assertEqualArray(y.T, got['Z'])
 
 
 if __name__ == "__main__":
     # import logging
     # logging.basicConfig(level=logging.DEBUG)
-    TestXOps().test_zif_onnx_common_intermediate_level2()
+    # TestXOps().test_zif_onnx_common_intermediate_level2()
     unittest.main(verbosity=2)

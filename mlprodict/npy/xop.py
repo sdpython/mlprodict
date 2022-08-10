@@ -58,7 +58,32 @@ class _WrapperLogger:
                 "Indentation cannot be negative.")
 
 
+class _WrapperPrint(_WrapperLogger):
+    """
+    Wrappers around print to help debugging.
+    """
+
+    def __init__(self):
+        "constructor"
+        _WrapperLogger.__init__(self, None)
+
+    def debug(self, msg, *args, indent=None):
+        "debug"
+        sign = ""
+        if indent is not None:
+            if not indent:
+                self.dedent()
+                sign = '< '
+            else:
+                sign = '> '
+        print(f"{'  ' * self._indent}{sign}{msg} {' '.join(map(str, args))}")
+        if indent is not None:
+            if indent:
+                self.indent()
+
+
 logger = _WrapperLogger(logging.getLogger('xop'))
+local_print = _WrapperPrint().debug
 
 
 def _default_OPSET_TO_IR_VERSION():
@@ -1088,7 +1113,9 @@ class OnnxOperatorTuple(OnnxOperatorBase):
         method of the unique input object or the first one
         if there are several. In that case, other inputs in
         attribute `values` are moved into container
-        `other_outputs`. (OnnxOperatorTuple)
+        `other_outputs`.
+
+        (OnnxOperatorTuple)
         """
         logger.debug('op:%s-%d.to_onnx:%r:%r:%r',
                      self.__class__.__name__, id(self),
@@ -2157,6 +2184,22 @@ class OnnxOperator(OnnxOperatorBase):
             "op:%s-%d.to_onnx:to_onnx:a", self.__class__.__name__, id(self))
 
         logger.indent()
+
+        if isinstance(inputs, dict):
+            # fix missing inputs
+            known = set()
+            for gi in graph_inputs:
+                known.add(gi.var.name)
+            for name, dtype in inputs.items():
+                if name not in known:
+                    logger.debug(
+                        "%s-%d.to_onnx:+:%s:%r",
+                        self.__class__.__name__, id(self), name, dtype)
+                    var = InputDetectedVariable(
+                        None, Variable(name, dtype=dtype))
+                    graph_inputs.append(var)
+                    builder.input_names[name] = var
+
         onx = builder.to_onnx(
             inputs=graph_inputs, outputs=graph_outputs,
             target_opset=target_opset, verbose=verbose,
@@ -2194,13 +2237,14 @@ class OnnxOperator(OnnxOperatorBase):
                     '[OnnxOperator._to_onnx_attributes] process %r of type %r.'
                     '' % (name, type(self.kwargs[name])))
             model, hidden = self._to_onnx_attribute(
-                self.kwargs[name], inputs=inputs, target_opset=target_opset,
+                name, self.kwargs[name], inputs=inputs, target_opset=target_opset,
                 optim=optim, verbose=verbose, run_shape=run_shape, fLOG=fLOG,
                 processed=processed)
+
             hidden_inputs.extend(hidden)
             if len(model.graph.node) == 0:
                 _, hidden = self._to_onnx_attribute(
-                    self.kwargs[name], inputs=inputs, target_opset=target_opset,
+                    name, self.kwargs[name], inputs=inputs, target_opset=target_opset,
                     optim=False, verbose=verbose, run_shape=run_shape, fLOG=fLOG,
                     processed=processed)
                 raise RuntimeError(  # pragma: no cover
@@ -2215,7 +2259,7 @@ class OnnxOperator(OnnxOperatorBase):
             self.kwargs[name] = model.graph
         return hidden_inputs
 
-    def _to_onnx_attribute(self, oxop, inputs=None, target_opset=None,
+    def _to_onnx_attribute(self, att_name, oxop, inputs=None, target_opset=None,
                            optim=True, verbose=0, run_shape=True,
                            fLOG=print, processed=None):
         """
@@ -2239,8 +2283,8 @@ class OnnxOperator(OnnxOperatorBase):
             if verbose > 0:
                 fLOG(  # pragma: no cover
                     f'[OnnxOperator._to_onnx_attribute] inputs={vars!r}')
-            logger.debug("op:%s._to_onnx_attribute:inputs(%r)",
-                         self.__class__.__name__, vars)
+            logger.debug("op:%s._to_onnx_attribute:%s:inputs(%r)",
+                         self.__class__.__name__, att_name, vars)
         logger.indent()
         onx, att_builder = oxop.to_onnx(
             inputs=vars, target_opset=target_opset, run_shape=run_shape,
@@ -2342,6 +2386,8 @@ class OnnxOperator(OnnxOperatorBase):
 
         :param evaluated_inputs: inputs as a list
         :return: ONNX graph
+
+        (OnnxOperator)
         """
         logger.debug('op:%s-%d.to_onnx_this:%r',
                      self.__class__.__name__, id(self),
@@ -3418,6 +3464,7 @@ class _GraphBuilder:
                      len(self.node), len(self.output))
 
         if function_name is not None:
+            # function
             if function_domain is None:
                 function_domain = 'mlprodict'
             if len(self.initializer) > 0:
@@ -3446,6 +3493,7 @@ class _GraphBuilder:
             logger.debug("_GraphBuilder-%d:fct:to_onnx:#####", id(self))
             return fct
         else:
+            # graph
             graph = make_graph(
                 self.node, 'XOP', self.input, self.output, self.initializer)
             onnx_model = make_model(
@@ -3550,10 +3598,6 @@ class _StaticVariables:
         (self._all_schemas_, self._all_schemas_versions_,
          self._all_domains_) = _populate_schemas()
         self._all_classes_ = {}
-
-
-_S = _StaticVariables()
-onnx_load_factory = Xop = OnnxLoadFactory()
 
 
 class OnnxExisting(OnnxOperator):
@@ -3664,3 +3708,7 @@ class OnnxExisting(OnnxOperator):
             self.control_ops_ = []
         self.control_ops_.append(op)
         op.add_external_input(self.inputs[0])
+
+
+_S = _StaticVariables()
+onnx_load_factory = Xop = OnnxLoadFactory()

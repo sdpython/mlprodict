@@ -272,7 +272,8 @@ def get_hidden_inputs(nodes):
                     not hasattr(att, 'g') or att.g is None):
                 continue
             hidden = get_hidden_inputs(att.g.node)
-            inits = set(att.g.initializer)
+            inits = set(i.name for i in att.g.initializer)
+            inits |= set(i.name for i in att.g.sparse_initializer)
             inputs |= hidden - (inits & hidden)
     return inputs - (outputs & inputs)
 
