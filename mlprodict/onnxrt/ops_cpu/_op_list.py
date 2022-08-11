@@ -149,6 +149,7 @@ from .op_shape import Shape
 from .op_shrink import Shrink
 from .op_sigmoid import Sigmoid
 from .op_sign import Sign
+from .op_signal import DFT
 from .op_sin import Sin
 from .op_sinh import Sinh
 from .op_size import Size
@@ -181,6 +182,7 @@ from .op_trilu import Trilu
 from .op_unique import Unique
 from .op_unsqueeze import Unsqueeze, Unsqueeze_1, Unsqueeze_11, Unsqueeze_13
 from .op_where import Where
+from .op_window import BlackmanWindow, HannWindow, HammingWindow
 from .op_xor import Xor
 from .op_yield_op import YieldOp
 from .op_zipmap import ZipMap

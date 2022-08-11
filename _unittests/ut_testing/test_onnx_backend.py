@@ -1444,7 +1444,85 @@ class TestOnnxBackEnd(ExtTestCase):
             done += 1
         self.assertEqual(done, 1)
 
+    def test_enumerate_onnx_test_blackman_window(self):
+        # The test may fail but the numerical result may be different
+        # depending on the machine.
+        done = 0
+        for te in enumerate_onnx_tests(
+                'node', lambda folder: folder == 'test_blackmanwindow'):
+            self.assertIn(te.name, repr(te))
+            self.assertGreater(len(te), 0)
+            te.run(TestOnnxBackEnd.load_fct, TestOnnxBackEnd.run_fct,
+                   decimal=2)
+            done += 1
+        self.assertEqual(done, 1)
+
+    def test_enumerate_onnx_test_hann_window(self):
+        # The test may fail but the numerical result may be different
+        # depending on the machine.
+        done = 0
+        for te in enumerate_onnx_tests(
+                'node', lambda folder: folder == 'test_hannwindow'):
+            self.assertIn(te.name, repr(te))
+            self.assertGreater(len(te), 0)
+            te.run(TestOnnxBackEnd.load_fct, TestOnnxBackEnd.run_fct,
+                   decimal=2)
+            done += 1
+        self.assertEqual(done, 1)
+
+    def test_enumerate_onnx_test_hamming_window(self):
+        # The test may fail but the numerical result may be different
+        # depending on the machine.
+        done = 0
+        for te in enumerate_onnx_tests(
+                'node', lambda folder: folder == 'test_hammingwindow'):
+            self.assertIn(te.name, repr(te))
+            self.assertGreater(len(te), 0)
+            te.run(TestOnnxBackEnd.load_fct, TestOnnxBackEnd.run_fct,
+                   decimal=2)
+            done += 1
+        self.assertEqual(done, 1)
+
+    def test_enumerate_onnx_test_dft_axis(self):
+        # The test may fail but the numerical result may be different
+        # depending on the machine.
+        done = 0
+        for te in enumerate_onnx_tests(
+                'node', lambda folder: folder == 'test_dft_axis'):
+            self.assertIn(te.name, repr(te))
+            self.assertGreater(len(te), 0)
+            te.run(TestOnnxBackEnd.load_fct, TestOnnxBackEnd.run_fct,
+                   decimal=2)
+            done += 1
+        self.assertEqual(done, 1)
+
+    def test_enumerate_onnx_test_dft_axis(self):
+        # The test may fail but the numerical result may be different
+        # depending on the machine.
+        done = 0
+        for te in enumerate_onnx_tests(
+                'node', lambda folder: folder == 'test_dft_axis'):
+            self.assertIn(te.name, repr(te))
+            self.assertGreater(len(te), 0)
+            te.run(TestOnnxBackEnd.load_fct, TestOnnxBackEnd.run_fct,
+                   decimal=2)
+            done += 1
+        self.assertEqual(done, 1)
+
+    def test_enumerate_onnx_test_dft_inverse(self):
+        # The test may fail but the numerical result may be different
+        # depending on the machine.
+        done = 0
+        for te in enumerate_onnx_tests(
+                'node', lambda folder: folder == 'test_dft_inverse'):
+            self.assertIn(te.name, repr(te))
+            self.assertGreater(len(te), 0)
+            te.run(TestOnnxBackEnd.load_fct, TestOnnxBackEnd.run_fct,
+                   decimal=2)
+            done += 1
+        self.assertEqual(done, 1)
+
 
 if __name__ == "__main__":
-    # TestOnnxBackEnd().test_enumerate_onnx_test_simple_rnn_batchwise()
+    # TestOnnxBackEnd().test_enumerate_onnx_test_dft_inverse()
     unittest.main()

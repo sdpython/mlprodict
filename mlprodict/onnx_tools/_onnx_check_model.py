@@ -436,29 +436,30 @@ def _check_value_info(value_info, ctx):
                         f"Value_info {value_info} has multiple types.",
                         value_info)
                 value_case = n
+
     if value_case == "tensor_type":
         _enforce_has_field(tt, "elem_type")
         _enforce_has_field(tt, "shape")
-    elif value_case == TypeProto.kOptionalType:  # pragma: no cover
+    elif value_case == "optional_type":  # pragma: no cover
         tt = value_info.type.optional_type
         _enforce_has_field(tt, "elem_type")
-    elif value_case == TypeProto.kSequenceType:  # pragma: no cover
+    elif value_case == "sequence_type":  # pragma: no cover
         tt = value_info.type.sequence_type
         _enforce_has_field(tt, "elem_type")
-    elif value_case == TypeProto.kMapType:  # pragma: no cover
+    elif value_case == "map_type":  # pragma: no cover
         tt = value_info.type.map_type
         _enforce_has_field(tt, "key_type")
         _enforce_has_field(tt, "value_type")
-    elif value_case == TypeProto.kOpaqueType:  # pragma: no cover
+    elif value_case == "opaque_type":  # pragma: no cover
         pass
-    elif value_case == TypeProto.kSparseTensorType:  # pragma: no cover
+    elif value_case == "sparse_tensor_type":  # pragma: no cover
         tt = value_info.type.sparse_tensor_type
         _enforce_has_field(tt, "elem_type")
         _enforce_has_field(tt, "shape")
     else:
         raise OnnxCheckError(  # pragma: no cover
             f"Unrecognized type value case (value_info name '{value_info.name}' "
-            f"value_case={value_case}.", value_info)
+            f"value_case={value_case!r}.", value_info)
 
 
 def _check_data_field(tensor, field, num_value_fields):
