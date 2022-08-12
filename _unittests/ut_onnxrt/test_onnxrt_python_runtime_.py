@@ -5171,11 +5171,11 @@ class TestOnnxrtPythonRuntime(ExtTestCase):  # pylint: disable=R0904
     @wraplog()
     def test_onnxt_runtime_stft(self):
         X0 = numpy.array([[0, 1, 2, 3, 4],
-                         [1, -1, -2, 4, 5],
-                         [1, -1, -2, 4, 6],
-                         [1, -1, -2, 4, 7],
-                         [2, -2, -3, 5, -4]],
-                        dtype=numpy.float32)
+                          [1, -1, -2, 4, 5],
+                          [1, -1, -2, 4, 6],
+                          [1, -1, -2, 4, 7],
+                          [2, -2, -3, 5, -4]],
+                         dtype=numpy.float32)
         new_shape = X0.shape + (1, )
         X = X0.reshape(new_shape)
 

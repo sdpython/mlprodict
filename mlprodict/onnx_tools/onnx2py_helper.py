@@ -349,7 +349,7 @@ def _to_array(var):
     return data
 
 
-def _var_as_dict(var):
+def _var_as_dict(var):  # pylint: disable=R0912
     """
     Converts a protobuf object into something readable.
     The current implementation relies on :epkg:`json`.

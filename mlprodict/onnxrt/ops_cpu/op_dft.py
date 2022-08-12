@@ -61,9 +61,9 @@ def _ifft(x, fft_length, axis=-1, onesided=False):
             f"Unexpected shape {tr.shape}, x.shape={x.shape} "
             f"fft_length={fft_length}.")
     if onesided:
-        slices = [slice() for a in res.shape]
-        slices[axis] = slice(0, res.shape[axis] // 2 + 1)
-        return res[tuple(slices)]
+        slices = [slice() for a in tr.shape]
+        slices[axis] = slice(0, tr.shape[axis] // 2 + 1)
+        return tr[tuple(slices)]
     return tr
 
 

@@ -48,7 +48,7 @@ class BlackmanWindow(OpRun, _CommonWindow):
         alpha = 0.42
         beta = 0.08
         pi = 3.1415
-        y = 0.42
+        y = alpha
         y -= numpy.cos((ni * (pi * 2)) / N_1) / 2
         y += numpy.cos((ni * (pi * 4)) / N_1) * beta
         return (self._end(size, y), )

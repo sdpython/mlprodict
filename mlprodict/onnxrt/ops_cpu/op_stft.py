@@ -75,15 +75,13 @@ def _stft(x, fft_length, hop_length, n_frames, window, onesided=False):
     return _switch_axes(result, ax1, ax2)
 
 
-def _istft(x, fft_length, hop_length, window, onesided=False):
+def _istft(x, fft_length, hop_length, window, onesided=False):  # pylint: disable=R0914
     """
     Reverses of `stft`.
     """
     zero = [0]
     one = [1]
     two = [2]
-    mone = [-1]
-    wone = numpy.full(window.shape, fill_value=1, dtype=x.dtype)
     axisf = [-2]
     n_frames = x.shape[-2]
     print(fft_length, hop_length, n_frames)
@@ -154,7 +152,6 @@ def _istft(x, fft_length, hop_length, window, onesided=False):
 
     # rotation, bring first dimension to the last position
     result_shape = conc.shape
-    shape_cpl = [2, -1]
     reshaped_result = conc.reshape((2, -1))
     transposed = numpy.transpose(reshaped_result, (1, 0))
     other_dimensions = result_shape[1:]
@@ -172,7 +169,7 @@ class STFT(OpRun):
                        expected_attributes=STFT.atts,
                        **options)
 
-    def _run(self, x, frame_step, window=None, frame_length=None,
+    def _run(self, x, frame_step, window=None, frame_length=None,  # pylint: disable=W0221
              attributes=None, verbose=0, fLOG=None):  # pylint: disable=W0221
         if frame_length is None:
             frame_length = x.shape[-2]
