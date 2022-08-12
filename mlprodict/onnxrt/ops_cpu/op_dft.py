@@ -9,6 +9,8 @@ from ._op import OpRun
 
 
 def _fft(x, fft_length, axis):
+    if fft_length is None:
+        fft_length = [x.shape[axis]]
     ft = numpy.fft.fft(x, fft_length[0], axis=axis)
     r = numpy.real(ft)
     i = numpy.imag(ft)
@@ -24,7 +26,7 @@ def _fft(x, fft_length, axis):
     return tr
 
 
-def _cfft(x, fft_length, axis):
+def _cfft(x, fft_length, axis, onesided=False):
     if x.shape[-1] == 1:
         tmp = x
     else:
@@ -35,7 +37,12 @@ def _cfft(x, fft_length, axis):
         imag = x[tuple(slices)]
         tmp = real + 1j * imag
     c = numpy.squeeze(tmp, -1)
-    return _fft(c, fft_length, axis=axis)
+    res = _fft(c, fft_length, axis=axis)
+    if onesided:
+        slices = [slice(0, a) for a in res.shape]
+        slices[axis] = slice(0, res.shape[axis] // 2 + 1)
+        return res[tuple(slices)]
+    return res
 
 
 def _cifft(x, fft_length, axis=-1):
@@ -52,7 +59,7 @@ def _cifft(x, fft_length, axis=-1):
     return DFT._ifft(c, fft_length, axis=axis)
 
 
-def _ifft(x, fft_length, axis=-1):
+def _ifft(x, fft_length, axis=-1, onesided=False):
     ft = numpy.fft.ifft(x, fft_length[0], axis=axis)
     r = numpy.real(ft)
     i = numpy.imag(ft)
@@ -65,6 +72,10 @@ def _ifft(x, fft_length, axis=-1):
         raise RuntimeError(
             f"Unexpected shape {tr.shape}, x.shape={x.shape} "
             f"fft_length={fft_length}.")
+    if onesided:
+        slices = [slice() for a in res.shape]
+        slices[axis] = slice(0, res.shape[axis] // 2 + 1)
+        return res[tuple(slices)]
     return tr
 
 
@@ -81,10 +92,7 @@ class DFT(OpRun):
         if dft_length is None:
             dft_length = numpy.array([x.shape[self.axis]], dtype=numpy.int64)
         if self.inverse:
-            res = _cifft(x, dft_length, axis=self.axis)
+            res = _cifft(x, dft_length, axis=self.axis, onesided=self.onesided)
         else:
-            if self.onesided:
-                raise NotImplementedError("not yet")
-            else:
-                res = _cfft(x, dft_length, axis=self.axis)
+            res = _cfft(x, dft_length, axis=self.axis, onesided=self.onesided)
         return (res.astype(x.dtype), )

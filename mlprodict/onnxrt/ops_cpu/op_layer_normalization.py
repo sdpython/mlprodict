@@ -74,5 +74,6 @@ class LayerNormalization(OpRun):
                        **options)
 
     def _run(self, X, Scale, B=None, attributes=None, verbose=0, fLOG=None):  # pylint: disable=W0221
-        res = _layer_normalization(X, Scale, B, axis=self.axis, epsilon=self.epsilon)
+        res = _layer_normalization(
+            X, Scale, B, axis=self.axis, epsilon=self.epsilon)
         return res

@@ -8,6 +8,15 @@ import numpy
 from ._op import OpRun
 
 
+def _concat_from_sequence(seq, axis, new_axis=0):
+    if new_axis == 1:
+        seq2 = [s[..., numpy.newaxis] for s in seq]
+        res = numpy.concatenate(seq2, axis=-1)
+    else:
+        res = numpy.concatenate(seq, axis=axis)
+    return res
+
+
 class ConcatFromSequence(OpRun):
 
     atts = {'axis': 0, 'new_axis': 0}
@@ -21,9 +30,5 @@ class ConcatFromSequence(OpRun):
         if seq is None:
             raise RuntimeError(  # pragma: no cover
                 "A sequence cannot be null.")
-        if self.new_axis == 1:
-            seq2 = [s[..., numpy.newaxis] for s in seq]
-            res = numpy.concatenate(seq2, axis=-1)
-        else:
-            res = numpy.concatenate(seq, axis=self.axis)
+        res = _concat_from_sequence(seq, self.axis, new_axis=self.new_axis)
         return (res, )

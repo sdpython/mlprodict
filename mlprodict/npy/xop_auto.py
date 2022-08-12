@@ -474,7 +474,7 @@ def get_onnx_example(op_name):
         code_cls = inspect.getsource(v)
         codes = code_cls.split('@staticmethod')
         for me in v.__dict__:
-            if not me.startswith('export_'):
+            if not me.startswith('export'):
                 continue
             sub = f' {me}()'
             found = None
@@ -491,7 +491,7 @@ def get_onnx_example(op_name):
                 if lines[i].startswith('def '):
                     first = i + 1
             found = textwrap.dedent('\n'.join(lines[first:]))
-            results[me[len('export_'):]] = found
+            results[me[len('export'):]] = found
     return results
 
 
