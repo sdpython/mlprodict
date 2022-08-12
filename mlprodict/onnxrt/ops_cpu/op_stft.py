@@ -31,16 +31,9 @@ def _stft(x, fft_length, hop_length, n_frames, window, onesided=False):
     torch defines the number of frames as:
     `n_frames = 1 + (len - n_fft) / hop_length`.
     """
-    # one = op.Constant(value=make_tensor('one', TensorProto.INT64, [1], [1]))
-    # mtwo = op.Constant(value=make_tensor('mtwo', TensorProto.INT64, [1], [-2]))
-    # zero = op.Constant(value=make_tensor('zero', TensorProto.INT64, [1], [0]))
     last_axis = len(x.shape) - 1  # op.Sub(op.Shape(op.Shape(x)), one)
-    # op.Constant(value=make_tensor('axis', TensorProto.INT64, [1], [-2]))
     axis = [-2]
-    # op.Constant(value=make_tensor('axis2', TensorProto.INT64, [1], [-3]))
     axis2 = [-3]
-    if window is None:
-        window = numpy.ones(x.shape[axis[0]], dtype=x.dtype)
     window_size = window.shape[0]
 
     # building frames
@@ -48,7 +41,7 @@ def _stft(x, fft_length, hop_length, n_frames, window, onesided=False):
     for fs in range(n_frames):
         begin = fs * hop_length
         end = begin + window_size
-        sliced_x = _slice(x, begin, end, axis)
+        sliced_x = _slice(x, numpy.array([begin]), numpy.array([end]), axis)
 
         # sliced_x may be smaller
         new_dim = sliced_x.shape[-2:-1]
@@ -86,19 +79,15 @@ def _istft(x, fft_length, hop_length, window, onesided=False):
     """
     Reverses of `stft`.
     """
-    zero = [
-        0]  # op.Constant(value=make_tensor('zero', TensorProto.INT64, [1], [0]))
-    # op.Constant(value=make_tensor('one', TensorProto.INT64, [1], [1]))
+    zero = [0]
     one = [1]
-    # op.Constant(value=make_tensor('two', TensorProto.INT64, [1], [2]))
     two = [2]
-    # op.Constant(value=make_tensor('mone', TensorProto.INT64, [1], [-1]))
     mone = [-1]
     wone = numpy.full(window.shape, fill_value=1, dtype=x.dtype)
-    # op.Constant(value=make_tensor('axis3', TensorProto.INT64, [1], [-2]))
     axisf = [-2]
-    n_frames = x.shape[-2: -1]
-    expected_signal_len = fft_length + hop_length * (n_frames - 1)
+    n_frames = x.shape[-2]
+    print(fft_length, hop_length, n_frames)
+    expected_signal_len = fft_length[0] + hop_length * (n_frames - 1)
 
     # building frames
     seqr = []
@@ -106,25 +95,30 @@ def _istft(x, fft_length, hop_length, window, onesided=False):
     seqc = []
     for fs in range(n_frames):
         begin = fs
-        end = fs64 + 1
-        frame_x = numpy.squeeze(_slice(x, begin, end, axisf), axis=axisf)
+        end = fs + 1
+        frame_x = numpy.squeeze(_slice(x, numpy.array([begin]),
+                                       numpy.array([end]), axisf),
+                                axis=axisf[0])
 
         # ifft
-        ift = _dft(frame_x, fft_length, mone, onesided, True)
+        ift = _dft(frame_x, fft_length, axis=-1, onesided=onesided,
+                   normalize=True)
         n_dims = len(ift.shape)
 
         # real part
         n_dims_1 = n_dims - 1
-        ytmp = numpy.squeeze(_slice(ift, zero, one, n_dims_1), axis=n_dims_1)
+        sliced = _slice(ift, numpy.array(zero),
+                        numpy.array(one), [n_dims_1])
+        ytmp = numpy.squeeze(sliced, axis=n_dims_1)
         ctmp = numpy.full(ytmp.shape, fill_value=1, dtype=x.dtype) * window
 
         shape_begin = ytmp.shape[:-1]
-        n_left = fs64 * hop_length
-        size = ytmp.shape[-1:]
+        n_left = fs * hop_length
+        size = ytmp.shape[-1]
         n_right = expected_signal_len - (n_left + size)
 
-        left_shape = _concat(shape_begin, n_left, axis=0)
-        right_shape = _concat(shape_begin, n_right, axis=0)
+        left_shape = shape_begin + (n_left, )
+        right_shape = shape_begin + (n_right, )
         right = numpy.zeros(right_shape, dtype=x.dtype)
         left = numpy.zeros(left_shape, dtype=x.dtype)
 
@@ -132,7 +126,8 @@ def _istft(x, fft_length, hop_length, window, onesided=False):
         yc = _concat(left, ctmp, right, axis=-1)
 
         # imaginary part
-        itmp = numpy.squeeze(_slice(ift, one, two, n_dims_1), axis=n_dims_1)
+        sliced = _slice(ift, numpy.array(one), numpy.array(two), [n_dims_1])
+        itmp = numpy.squeeze(sliced, axis=n_dims_1)
         yi = _concat(left, itmp, right, axis=-1)
 
         # append
@@ -153,16 +148,16 @@ def _istft(x, fft_length, hop_length, window, onesided=False):
     ri = resi / resc
 
     # Make complex
-    rr0 = numpy.unsqueeze(rr, axis=0)
-    ri0 = numpy.unsqueeze(ri, axis=0)
+    rr0 = numpy.expand_dims(rr, axis=0)
+    ri0 = numpy.expand_dims(ri, axis=0)
     conc = _concat(rr0, ri0, axis=0)
 
     # rotation, bring first dimension to the last position
     result_shape = conc.shape
     shape_cpl = [2, -1]
     reshaped_result = conc.reshape((2, -1))
-    transposed = numpy.transpose(reshaped_result, perm=(1, 0))
-    other_dimensions = _slice(result_shape, 1, result_shape.shape, 0)
+    transposed = numpy.transpose(reshaped_result, (1, 0))
+    other_dimensions = result_shape[1:]
     final_shape = _concat(other_dimensions, two, axis=0)
     final = transposed.reshape(final_shape)
     return final
@@ -179,11 +174,16 @@ class STFT(OpRun):
 
     def _run(self, x, frame_step, window=None, frame_length=None,
              attributes=None, verbose=0, fLOG=None):  # pylint: disable=W0221
-        fft_length = None
+        if frame_length is None:
+            frame_length = x.shape[-2]
+        hop_length = frame_length // 4
+        if window is None:
+            window = numpy.ones(x.shape[-2], dtype=x.dtype)
         if self.inverse:
-            res = _istft(x, fft_length, frame_step, window,
+            res = _istft(x, [frame_length], hop_length, window,
                          onesided=self.onesided)
         else:
-            res = _stft(x, fft_length, frame_step, frame_length, window,
+            n_frames = 1  # int(1 + (x.shape[-2] - frame_length) / hop_length)
+            res = _stft(x, [frame_length], hop_length, n_frames, window,
                         onesided=self.onesided)
         return (res.astype(x.dtype), )

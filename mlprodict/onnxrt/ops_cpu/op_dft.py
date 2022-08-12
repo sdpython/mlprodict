@@ -26,7 +26,9 @@ def _fft(x, fft_length, axis):
     return tr
 
 
-def _cfft(x, fft_length, axis, onesided=False):
+def _cfft(x, fft_length, axis, onesided=False, normalize=False):
+    # if normalize:
+    #    raise NotImplementedError()
     if x.shape[-1] == 1:
         tmp = x
     else:
@@ -43,20 +45,6 @@ def _cfft(x, fft_length, axis, onesided=False):
         slices[axis] = slice(0, res.shape[axis] // 2 + 1)
         return res[tuple(slices)]
     return res
-
-
-def _cifft(x, fft_length, axis=-1):
-    if x.shape[-1] == 1:
-        tmp = x
-    else:
-        slices = [slice(0, x) for x in x.shape]
-        slices[-1] = slice(0, x.shape[-1], 2)
-        real = x[tuple(slices)]
-        slices[-1] = slice(1, x.shape[-1], 2)
-        imag = x[tuple(slices)]
-        tmp = real + 1j * imag
-    c = numpy.squeeze(tmp, -1)
-    return DFT._ifft(c, fft_length, axis=axis)
 
 
 def _ifft(x, fft_length, axis=-1, onesided=False):
@@ -77,6 +65,20 @@ def _ifft(x, fft_length, axis=-1, onesided=False):
         slices[axis] = slice(0, res.shape[axis] // 2 + 1)
         return res[tuple(slices)]
     return tr
+
+
+def _cifft(x, fft_length, axis=-1, onesided=False):
+    if x.shape[-1] == 1:
+        tmp = x
+    else:
+        slices = [slice(0, x) for x in x.shape]
+        slices[-1] = slice(0, x.shape[-1], 2)
+        real = x[tuple(slices)]
+        slices[-1] = slice(1, x.shape[-1], 2)
+        imag = x[tuple(slices)]
+        tmp = real + 1j * imag
+    c = numpy.squeeze(tmp, -1)
+    return _ifft(c, fft_length, axis=axis, onesided=onesided)
 
 
 class DFT(OpRun):
