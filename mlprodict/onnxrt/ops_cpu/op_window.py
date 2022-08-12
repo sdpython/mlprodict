@@ -14,20 +14,13 @@ class _CommonWindow:
 
     def _begin(self, size):
         if self.periodic == 1:
-            asize = size // 2 + 1
             N_1 = size
         else:
-            asize = size
             N_1 = size - 1
-        ni = numpy.arange(asize)
+        ni = numpy.arange(size, dtype=self.dtype)
         return ni, N_1
 
     def _end(self, size, res):
-        if self.periodic == 1:
-            final = numpy.empty((size, ), dtype=self.dtype)
-            final[:res.shape[0]] = res
-            final[res.shape[0]:] = res[::-1][1:-1]
-            return (final.astype(self.dtype), )
         return (res.astype(self.dtype), )
 
 
@@ -50,13 +43,15 @@ class BlackmanWindow(OpRun, _CommonWindow):
         self.dtype = TENSOR_TYPE_TO_NP_TYPE[self.output_datatype]
 
     def _run(self, size, attributes=None, verbose=0, fLOG=None):  # pylint: disable=W0221
-        ni, N_1 = self._begin(size)
+        # ni, N_1 = self._begin(size)
+        ni, N_1 = numpy.arange(size, dtype=self.dtype), size
         alpha = 0.42
         beta = 0.08
-        cos2 = numpy.cos(ni * (numpy.pi * 2) / N_1)
-        cos4 = numpy.cos(ni * (numpy.pi * 4) / N_1)
-        res = alpha - cos2 / 2 + cos4 * beta
-        return self._end(size, res)
+        pi = 3.1415
+        y = 0.42
+        y -= numpy.cos((ni * (pi * 2)) / N_1) / 2
+        y += numpy.cos((ni * (pi * 4)) / N_1) * beta
+        return (self._end(size, y), )
 
 
 class HannWindow(OpRun, _CommonWindow):
@@ -78,7 +73,7 @@ class HannWindow(OpRun, _CommonWindow):
 
     def _run(self, size, attributes=None, verbose=0, fLOG=None):  # pylint: disable=W0221
         ni, N_1 = self._begin(size)
-        res = numpy.sin(ni * numpy.pi / N_1) ** 2
+        res = numpy.sin(ni * 3.1415 / N_1) ** 2
         return self._end(size, res)
 
 
@@ -102,7 +97,7 @@ class HammingWindow(OpRun, _CommonWindow):
 
     def _run(self, size, attributes=None, verbose=0, fLOG=None):  # pylint: disable=W0221
         ni, N_1 = self._begin(size)
-        alpha = 0.54
-        beta = 0.46
-        res = alpha - numpy.cos(ni * numpy.pi * 2 / N_1) * beta
+        alpha = 25. / 46.
+        beta = 1 - alpha
+        res = alpha - numpy.cos(ni * 3.1415 * 2 / N_1) * beta
         return self._end(size, res)

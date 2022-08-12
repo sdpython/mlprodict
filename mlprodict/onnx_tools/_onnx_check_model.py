@@ -6,7 +6,7 @@
 import os
 import warnings
 import numpy
-from onnx import (
+from onnx import (  # pylint: disable=W0611
     TensorProto, TypeProto, ModelProto, AttributeProto, SequenceProto,
     OptionalProto)
 from onnx.defs import onnx_opset_version, get_schema, OpSchema

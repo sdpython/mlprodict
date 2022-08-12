@@ -9,7 +9,7 @@ import numpy
 from scipy.sparse import coo_matrix
 from onnx.defs import get_schema, get_function_ops, onnx_opset_version
 from onnx.mapping import NP_TYPE_TO_TENSOR_TYPE, TENSOR_TYPE_TO_NP_TYPE
-from onnx import TensorProto, ValueInfoProto, TypeProto
+from onnx import TensorProto, ValueInfoProto, TypeProto, TensorShapeProto
 from onnx.helper import make_tensor_type_proto
 from onnx.numpy_helper import to_array, from_array as onnx_from_array
 
@@ -503,11 +503,34 @@ def _var_as_dict(var):
     if isinstance(var, ValueInfoProto):
         return dict(name=var.name,
                     type=dict(elem='unk', kind='tensor', shape=('?', )))
+    if isinstance(var, TensorShapeProto):
+        ds = []
+        for dim in var.dim:
+            d = {}
+            if dim.dim_value:
+                d['dim_value'] = dim.dim_value
+            if dim.dim_param:
+                d['dim_param'] = dim.dim_param
+            ds.append(d)
+        return dict(dim=ds)
+    if isinstance(var, TypeProto):
+        d = dict(denotation=var.denotation)
+        for n in dir(var):
+            if n.endswith('_type'):
+                at = getattr(var, n)
+                d[n] = _var_as_dict(at)
+        return d
+    if var.__class__.__name__ == "Tensor":
+        return dict(elem_type=var.elem_type, shape=_var_as_dict(var.shape))
+    if var.__class__.__name__ == "Optional":
+        return dict(optional=True, elem_type=_var_as_dict(var.elem_type))
+
     raise NotImplementedError(  # pragma: no cover
         "Unable to guess which object it is type is %r value is %r "
-        "(hasattr(var,'type')=%r, var.type=%s."
+        "(hasattr(var,'type')=%r, var.type=%s\n%s"
         "" % (type(var), str(var), hasattr(var, 'type'),
-              str(getattr(var, 'type', None))))
+              str(getattr(var, 'type', None)),
+              '\n'.join(dir(var))))
 
 
 def get_dtype_shape(obj):
