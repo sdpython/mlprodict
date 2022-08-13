@@ -91,6 +91,7 @@ from skl2onnx.algebra.onnx_ops import (  # pylint: disable=E0611
     OnnxSpaceToDepth, OnnxSplit, OnnxSplitApi11,
     OnnxSqrt, OnnxSub, OnnxSum,
     OnnxSqueeze, OnnxSqueezeApi11,
+    OnnxSTFT,
     OnnxTan, OnnxTanh, OnnxThresholdedRelu,
     OnnxTopK, OnnxTranspose, OnnxTrilu,
     OnnxUnique, OnnxUnsqueeze, OnnxUnsqueezeApi11,
@@ -138,6 +139,7 @@ from mlprodict import __max_supported_opset__ as TARGET_OPSET, get_ir_version
 from mlprodict.onnxrt.ops_cpu.op_negative_log_likelihood_loss import (
     _compute_negative_log_likelihood_loss)
 from mlprodict.onnxrt.ops_cpu.op_resize import _interpolate_nd, _linear_coeffs
+from mlprodict.onnxrt.ops_cpu.op_stft import _istft
 
 from skl2onnx.common.data_types import (  # pylint: disable=C0412
     FloatTensorType, Int64TensorType, DoubleTensorType, StringTensorType,
@@ -5167,6 +5169,31 @@ class TestOnnxrtPythonRuntime(ExtTestCase):  # pylint: disable=R0904
         self.common_test_onnxt_runtime_unary(OnnxSoftsign, sp)
 
     @wraplog()
+    def test_onnxt_runtime_stft(self):
+        X0 = numpy.array([[0, 1, 2, 3, 4],
+                          [1, -1, -2, 4, 5],
+                          [1, -1, -2, 4, 6],
+                          [1, -1, -2, 4, 7],
+                          [2, -2, -3, 5, -4]],
+                         dtype=numpy.float32)
+        new_shape = X0.shape + (1, )
+        X = X0.reshape(new_shape)
+
+        # axis=1, k=0
+        onx = OnnxSTFT('X', numpy.array([1], dtype=numpy.int64),
+                       output_names=['Y'], op_version=TARGET_OPSET)
+        model_def = onx.to_onnx({'X': X.astype(numpy.float32)},
+                                outputs=[('Y', FloatTensorType(X.shape))])
+        oinf = OnnxInference(model_def)
+        got = oinf.run({'X': X})['Y']
+        self.assertNotEmpty(got)
+        python_tested.append(OnnxSTFT)
+
+        res = _istft(X, X.shape[-2:-1], 1,
+                     numpy.ones((X.shape[-2], ), dtype=numpy.float32))
+        self.assertNotEmpty(res)
+
+    @wraplog()
     def test_onnxt_runtime_sub(self):
         self.common_test_onnxt_runtime_binary(OnnxSub, lambda x, y: x - y)
 
@@ -5446,5 +5473,5 @@ class TestOnnxrtPythonRuntime(ExtTestCase):  # pylint: disable=R0904
 
 if __name__ == "__main__":
     # Working
-    # TestOnnxrtPythonRuntime().test_onnxt_runtime_gru_default()
+    TestOnnxrtPythonRuntime().test_onnxt_runtime_stft()
     unittest.main(verbosity=2)

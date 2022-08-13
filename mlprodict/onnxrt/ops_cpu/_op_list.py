@@ -46,6 +46,7 @@ from .op_debug import DEBUG
 from .op_det import Det
 from .op_depth_to_space import DepthToSpace, SpaceToDepth
 from .op_dequantize_linear import DequantizeLinear
+from .op_dft import DFT
 from .op_dict_vectorizer import DictVectorizer
 from .op_div import Div
 from .op_dropout import Dropout, Dropout_7, Dropout_12
@@ -80,6 +81,7 @@ from .op_inverse import Inverse
 from .op_isinf import IsInf
 from .op_isnan import IsNaN
 from .op_label_encoder import LabelEncoder
+from .op_layer_normalization import LayerNormalization
 from .op_leaky_relu import LeakyRelu
 from .op_less import Less, LessOrEqual
 from .op_linear_classifier import LinearClassifier
@@ -106,6 +108,7 @@ from .op_non_zero import NonZero
 from .op_not import Not
 from .op_one_hot import OneHot
 from .op_one_hot_encoder import OneHotEncoder
+from .op_optional import OptionalGetElement, OptionalHasElement
 from .op_or import Or
 from .op_pad import Pad
 from .op_pow import Pow
@@ -160,6 +163,7 @@ from .op_softsign import Softsign
 from .op_solve import Solve
 from .op_sqrt import Sqrt
 from .op_squeeze import Squeeze, Squeeze_1, Squeeze_11, Squeeze_13
+from .op_stft import STFT
 from .op_string_normalizer import StringNormalizer
 from .op_sub import Sub
 from .op_sum import Sum
@@ -181,6 +185,7 @@ from .op_trilu import Trilu
 from .op_unique import Unique
 from .op_unsqueeze import Unsqueeze, Unsqueeze_1, Unsqueeze_11, Unsqueeze_13
 from .op_where import Where
+from .op_window import BlackmanWindow, HannWindow, HammingWindow
 from .op_xor import Xor
 from .op_yield_op import YieldOp
 from .op_zipmap import ZipMap
