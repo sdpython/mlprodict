@@ -9,6 +9,33 @@ from onnx.defs import onnx_opset_version
 from ._op import OpRun
 
 
+def _slice(data, starts, ends, axes=None, steps=None):
+    if len(starts.shape) == 0:
+        starts = numpy.array([starts])
+    if len(ends.shape) == 0:
+        ends = numpy.array([ends])
+    if axes is None:
+        if steps is None:
+            slices = [slice(s, e) for s, e in zip(starts, ends)]
+        else:
+            slices = [slice(s, e, d)
+                      for s, e, d in zip(starts, ends, steps)]
+    else:
+        if steps is None:
+            slices = [slice(0, a) for a in data.shape]
+            for s, e, a in zip(starts, ends, axes):
+                slices[a] = slice(s, e)
+        else:
+            slices = [slice(0, a) for a in data.shape]
+            for s, e, a, d in zip(starts, ends, axes, steps):
+                slices[a] = slice(s, e, d)
+    try:
+        return data[tuple(slices)]
+    except TypeError as e:  # pragma: no cover
+        raise TypeError(
+            f"Unable to extract slice {slices!r} for shape {data.shape!r}.") from e
+
+
 class SliceCommon(OpRun):
 
     def __init__(self, onnx_node, desc=None, **options):
@@ -16,30 +43,8 @@ class SliceCommon(OpRun):
                        **options)
 
     def _run(self, data, starts, ends, axes=None, steps=None, attributes=None, verbose=0, fLOG=None):  # pylint: disable=W0221
-        if len(starts.shape) == 0:
-            starts = numpy.array([starts])
-        if len(ends.shape) == 0:
-            ends = numpy.array([ends])
-        if axes is None:
-            if steps is None:
-                slices = [slice(s, e) for s, e in zip(starts, ends)]
-            else:
-                slices = [slice(s, e, d)
-                          for s, e, d in zip(starts, ends, steps)]
-        else:
-            if steps is None:
-                slices = [slice(0, a) for a in data.shape]
-                for s, e, a in zip(starts, ends, axes):
-                    slices[a] = slice(s, e)
-            else:
-                slices = [slice(0, a) for a in data.shape]
-                for s, e, a, d in zip(starts, ends, axes, steps):
-                    slices[a] = slice(s, e, d)
-        try:
-            return (data[tuple(slices)], )
-        except TypeError as e:  # pragma: no cover
-            raise TypeError(
-                f"Unable to extract slice {slices!r} for shape {data.shape!r}.") from e
+        res = _slice(data, starts, ends, axes, steps)
+        return (res, )
 
 
 class Slice_10(SliceCommon):

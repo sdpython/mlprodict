@@ -193,9 +193,9 @@ class OnnxInference:
                                 break
                             # d.dim_value returns 0 whether is is 0 or empty.
                             # it may be a parameter as well
-                            raise RuntimeError(  # pragma: no cover
-                                "Wrong ONNX file, one input or output has "
-                                "an empty shape: {}.".format(xy))
+                            # raise RuntimeError(  # pragma: no cover
+                            #     "Wrong ONNX file, one input or output has "
+                            #     "an empty shape: {}.".format(xy))
 
         self.target_opset_ = self.graph_['targets']
         if self.force_target_opset is not None:
