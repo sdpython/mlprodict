@@ -19,8 +19,7 @@ from ._element_unary import (
     shape_selu, shape_shrink,
     shape_sigmoid, shape_sign, shape_sin, shape_sinh, shape_softmax,
     shape_softplus, shape_softsign,
-    shape_sqrt, shape_tan, shape_tanh, shape_thresholdedrelu,
-    shape_trilu)
+    shape_sqrt, shape_tan, shape_tanh, shape_thresholdedrelu)
 from ._element_wise import (
     shape_add, shape_and,
     shape_div,

@@ -30,7 +30,10 @@ class TestOnnxBackEnd(ExtTestCase):
 
     @staticmethod
     def load_fct(obj, runtime='python'):
-        return OnnxInference(obj, runtime)
+        try:
+            return OnnxInference(obj, runtime)
+        except Exception as e:
+            raise AssertionError(f"Unable to load model {obj}.") from e
 
     @staticmethod
     def run_fct(obj, *inputs):
@@ -1545,7 +1548,37 @@ class TestOnnxBackEnd(ExtTestCase):
             done += 1
         self.assertEqual(done, 1)
 
+    def test_enumerate_onnx_test_tril_neg(self):
+        done = 0
+        for te in enumerate_onnx_tests(
+                'node', lambda folder: folder == 'test_tril_neg'):
+            self.assertIn(te.name, repr(te))
+            self.assertGreater(len(te), 0)
+            te.run(TestOnnxBackEnd.load_fct, TestOnnxBackEnd.run_fct)
+            done += 1
+        self.assertEqual(done, 1)
+
+    def test_enumerate_onnx_test_tril_zero(self):
+        done = 0
+        for te in enumerate_onnx_tests(
+                'node', lambda folder: folder == 'test_tril_zero'):
+            self.assertIn(te.name, repr(te))
+            self.assertGreater(len(te), 0)
+            te.run(TestOnnxBackEnd.load_fct, TestOnnxBackEnd.run_fct)
+            done += 1
+        self.assertEqual(done, 1)
+
+    def test_enumerate_onnx_test_triu_neg(self):
+        done = 0
+        for te in enumerate_onnx_tests(
+                'node', lambda folder: folder == 'test_triu_neg'):
+            self.assertIn(te.name, repr(te))
+            self.assertGreater(len(te), 0)
+            te.run(TestOnnxBackEnd.load_fct, TestOnnxBackEnd.run_fct)
+            done += 1
+        self.assertEqual(done, 1)
+
 
 if __name__ == "__main__":
-    # TestOnnxBackEnd().test_enumerate_onnx_test_stft()
+    # TestOnnxBackEnd().test_enumerate_onnx_test_tril_zero()
     unittest.main()
