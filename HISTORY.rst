@@ -5,11 +5,14 @@
 History
 =======
 
-current - 2022-08-04 - 0.00Mb
+current - 2022-08-13 - 0.00Mb
 =============================
 
-* #460: Improves C++ implementation, im2col, col2im (2022-08-04)
+* #465: Supports for operator DFT, STFT, *windows (2022-08-13)
+* #463: Fixes embedded if with XOP API (2022-08-10)
+* #462: Increases code coverage, improves ligthgbm converter (2022-08-05)
 * #461: Upgrades default supported opset to 17 (2022-08-04)
+* #460: Improves C++ implementation, im2col, col2im (2022-08-04)
 * #459: Supports OnnxOperator(...) + int or float with CastLike (2022-08-02)
 * #458: Changes subgraph separator from :: to :/: in onnx_simple_text_plot (2022-08-01)
 * #457: Fix delimiter in extras_require (2022-07-25)

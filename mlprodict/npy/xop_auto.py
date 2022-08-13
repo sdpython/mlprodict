@@ -491,7 +491,10 @@ def get_onnx_example(op_name):
                 if lines[i].startswith('def '):
                     first = i + 1
             found = textwrap.dedent('\n'.join(lines[first:]))
-            results[me[len('export'):]] = found
+            key = me[len('export'):]
+            if key == '':
+                key = f'example{len(results) + 1}'
+            results[key] = found
     return results
 
 
