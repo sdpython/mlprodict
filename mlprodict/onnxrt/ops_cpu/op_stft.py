@@ -84,7 +84,6 @@ def _istft(x, fft_length, hop_length, window, onesided=False):  # pylint: disabl
     two = [2]
     axisf = [-2]
     n_frames = x.shape[-2]
-    print(fft_length, hop_length, n_frames)
     expected_signal_len = fft_length[0] + hop_length * (n_frames - 1)
 
     # building frames
