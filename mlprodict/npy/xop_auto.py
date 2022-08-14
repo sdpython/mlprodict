@@ -493,7 +493,9 @@ def get_onnx_example(op_name):
             found = textwrap.dedent('\n'.join(lines[first:]))
             key = me[len('export'):]
             if key == '':
-                key = f'example{len(results) + 1}'
+                key = 'default'
+                if key in results:
+                    key = f'example {len(results) + 1}'
             results[key] = found
     return results
 
