@@ -806,7 +806,7 @@ class OnnxOperatorBase:
         raise NotImplementedError(  # pragma: no cover
             f"Method 'f' must be overloaded for type {type(self)}.")
 
-    def _set_control_op(self, op):
+    def _set_control_op(self, op, subgraph_inputs=None):
         """
         Tells this operator is part of a subgraph.
         """
@@ -1105,7 +1105,9 @@ class OnnxOperatorTuple(OnnxOperatorBase):
 
     def to_onnx(self, inputs=None, outputs=None,
                 other_outputs=None, target_opset=None,
-                optim=True, verbose=0, run_shape=True):
+                optim=True, verbose=0, run_shape=True,
+                processed=None, check_model=True,
+                return_builder=False, fLOG=None):
         """
         Converts this operator into an ONNX graph.
         It follows the same signature as :meth:`OnnxOperator.to_onnx
@@ -1117,6 +1119,9 @@ class OnnxOperatorTuple(OnnxOperatorBase):
 
         (OnnxOperatorTuple)
         """
+        if return_builder:
+            raise NotImplementedError(  # pragma: no cover
+                "Cannot return a builder in this case.")
         logger.debug('op:%s-%d.to_onnx:%r:%r:%r',
                      self.__class__.__name__, id(self),
                      inputs, outputs, other_outputs)
@@ -1125,7 +1130,8 @@ class OnnxOperatorTuple(OnnxOperatorBase):
             res = self.unique.to_onnx(
                 inputs=inputs, outputs=outputs, other_outputs=other_outputs,
                 target_opset=target_opset, optim=optim, verbose=verbose,
-                run_shape=run_shape)
+                run_shape=run_shape, processed=processed, check_model=check_model,
+                fLOG=fLOG)
             logger.dedent()
             return res
         new_other_outputs = self.values[1:]
@@ -1134,9 +1140,36 @@ class OnnxOperatorTuple(OnnxOperatorBase):
         res = self.values[0].to_onnx(
             inputs=inputs, outputs=outputs, other_outputs=new_other_outputs,
             target_opset=target_opset, optim=optim, verbose=verbose,
-            run_shape=run_shape)
+            run_shape=run_shape, processed=processed, check_model=check_model,
+            fLOG=fLOG)
         logger.dedent()
         return res
+
+    def find_named_inputs(self):
+        """
+        Returns all inputs to the graph.
+        """
+        if self.values is None:
+            return self.unique.find_named_inputs()
+        named = []
+        for value in self.values:
+            tmp = value.find_named_inputs()
+            named.extend(tmp)
+        return named
+
+    def _set_control_op(self, op, subgraph_inputs=None):
+        """
+        Tells this operator is part of a subgraph.
+        """
+        logger.debug('op:%s-%d._set_control_op:%r',
+                     self.__class__.__name__, id(self), op)
+        logger.indent()
+        if self.values is None:
+            raise NotImplementedError(  # pragma: no cover
+                "Not implemented yet.")
+        for value in self.values:
+            value._set_control_op(op, subgraph_inputs)
+        logger.dedent()
 
 
 class OnnxOperator(OnnxOperatorBase):
@@ -1435,7 +1468,7 @@ class OnnxOperator(OnnxOperatorBase):
         if isinstance(branch, onnx.GraphProto):
             self.kwargs[attribute] = branch
             return self
-        if isinstance(branch, OnnxOperator):
+        if isinstance(branch, (OnnxOperator, OnnxOperatorTuple)):
             self.kwargs[attribute] = branch
             branch._set_control_op(self, subgraph_inputs=subgraph_inputs)
             return self
