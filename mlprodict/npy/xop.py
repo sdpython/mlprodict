@@ -1119,9 +1119,6 @@ class OnnxOperatorTuple(OnnxOperatorBase):
 
         (OnnxOperatorTuple)
         """
-        if return_builder:
-            raise NotImplementedError(  # pragma: no cover
-                "Cannot return a builder in this case.")
         logger.debug('op:%s-%d.to_onnx:%r:%r:%r',
                      self.__class__.__name__, id(self),
                      inputs, outputs, other_outputs)
@@ -1131,7 +1128,7 @@ class OnnxOperatorTuple(OnnxOperatorBase):
                 inputs=inputs, outputs=outputs, other_outputs=other_outputs,
                 target_opset=target_opset, optim=optim, verbose=verbose,
                 run_shape=run_shape, processed=processed, check_model=check_model,
-                fLOG=fLOG)
+                fLOG=fLOG, return_builder=return_builder)
             logger.dedent()
             return res
         new_other_outputs = self.values[1:]
@@ -1141,7 +1138,7 @@ class OnnxOperatorTuple(OnnxOperatorBase):
             inputs=inputs, outputs=outputs, other_outputs=new_other_outputs,
             target_opset=target_opset, optim=optim, verbose=verbose,
             run_shape=run_shape, processed=processed, check_model=check_model,
-            fLOG=fLOG)
+            fLOG=fLOG, return_builder=return_builder)
         logger.dedent()
         return res
 
@@ -2051,11 +2048,12 @@ class OnnxOperator(OnnxOperatorBase):
                         outputs_dtype=outputs_dtype)
                     if to is None:
                         run_shape = True
-                    res = '???_%d' % i
+                    res = f'xop_{id(node)}_{i}'
                     var = Variable(res, added_dtype=to, shape=shape)
                     if var.name in set_names:
                         raise RuntimeError(  # pragma: no cover
-                            f"Duplicated output name var={var!r}.")
+                            f"Duplicated output name var={var!r} in "
+                            f"{set_names!r}.")
                     set_names.add(var.name)
                     new_outputs.append(OutputDetectedVariable(node, var, i))
             else:
@@ -3450,8 +3448,11 @@ class _GraphBuilder:
                     raise RuntimeError(  # pragma: no cover
                         f"Unexpected {inp!r} != {var!r}.")
             elif inp.var != var.var:
-                raise RuntimeError(  # pragma: no cover
-                    f"Unexpected {inp!r} != {var!r}.")
+                if (inp.var.name != var.var.name or (
+                        inp.var.dtype is not None and
+                        var.var.dtype is not None)):
+                    raise RuntimeError(  # pragma: no cover
+                        f"Unexpected {inp.var!r} != {var.var!r}.")
 
             if isinstance(inp.var, ExistingVariable):
                 # The type of ExistingVariable must be known

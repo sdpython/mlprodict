@@ -1305,7 +1305,7 @@ class TestXOps(ExtTestCase):
         subgraph_inputs = [Variable('i', numpy.int64),
                            Variable('cond', numpy.bool_)]
         loop = OnnxLoop(
-            numpy.array(10, dtype=numpy.int64), t, 'A',
+            numpy.array(3, dtype=numpy.int64), t, 'A',
         ).do(OnnxOperatorTuple(
             OnnxIdentity('cond'), OnnxAdd('A', m)),
             subgraph_inputs=subgraph_inputs)
@@ -1313,10 +1313,9 @@ class TestXOps(ExtTestCase):
         onx = node.to_onnx({'A': numpy.float32}, numpy.float32)
         # print(onnx_simple_text_plot(onx, recursive=True))
         self.assertIn('Loop', str(onx))
-        print(onnx_simple_text_plot(onx, recursive=True))
         oinf = OnnxInference(onx)
         got = oinf.run({'A': m})
-        self.assertEqualArray(got['Y'], m * 10)
+        self.assertEqualArray(got['Y'], m * 4)
 
 
 if __name__ == "__main__":

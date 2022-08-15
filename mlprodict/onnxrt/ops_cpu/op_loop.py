@@ -64,12 +64,15 @@ class Loop(OpRun):
 
         it = 0
         while cond and it < M:
+            if verbose > 1:
+                fLOG(f'-- Loop-Begin-{it}<{M}')
             if len(self.body.input_names) > 0 and self.body.input_names[0] is not None:
                 inputs[self.body.input_names[0]] = numpy.array(
                     it, dtype=M.dtype)
             if len(self.body.input_names) > 1 and self.body.input_names[1] is not None:
                 inputs[self.body.input_names[1]] = cond
-            outputs = self._run_meth(inputs)
+            outputs = self._run_meth(
+                inputs, verbose=max(verbose - 1, 0), fLOG=fLOG)
             cond = outputs[cond_name]
             if cond is None:
                 raise RuntimeError(
@@ -80,6 +83,8 @@ class Loop(OpRun):
                 inputs[i] = outputs[o]
             if callback is not None:
                 callback(inputs, context=context)
+            if verbose > 1:
+                fLOG(f'-- Loop-End-{it}<{M}')
             it += 1
 
         if it == 0:
