@@ -1412,7 +1412,7 @@ class OnnxOperator(OnnxOperatorBase):
         :return: self
         """
         if (isinstance(body, (onnx.GraphProto, onnx.ModelProto)) and
-                inputs is not None):
+                subgraph_inputs is not None):
             raise RuntimeError(  # pragma: no cover
                 "inputs cannot be defined if body is a "
                 "GraphProto or a ModelProto.")
@@ -3766,7 +3766,10 @@ class OnnxExisting(OnnxOperator):
         "For the eager mode."
         raise NotImplementedError()  # pragma: no cover
 
-    def _set_control_op(self, op):
+    def _set_control_op(self, op, subgraph_inputs=None):
+        if subgraph_inputs is not None:
+            raise NotImplementedError(  # pragma: no cover
+                "Not implemented.")
         if op is None:
             raise RuntimeError(  # pragma: no cover
                 "op cannot be None in _set_control_op.")
