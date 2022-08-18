@@ -36,9 +36,14 @@ class Loop(OpRun):
         """
         return len(self.additional_inputs) > 0
 
-    def _run(self, M, cond, v_initial=None,  # pylint: disable=W0221
+    def _run(self, M, cond, # pylint: disable=W0221
              *args, callback=None, context=None,  # pylint: disable=W0221
              attributes=None, verbose=0, fLOG=None):  # pylint: disable=W0221
+        if len(args) > 0:
+            v_initial = args[0]
+            args = args[1:]
+        else:
+            v_initial = None
         loop_inputs = self.body.input_names
         inputs = {name: None for name in loop_inputs}
         if v_initial is not None:
