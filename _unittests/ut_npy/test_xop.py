@@ -11,7 +11,7 @@ from mlprodict.plotting.text_plot import onnx_simple_text_plot
 from mlprodict.onnx_tools.onnx2py_helper import get_dtype_shape
 from mlprodict.npy.xop import (
     loadop, OnnxLoadFactory, _GraphBuilder, _domain_to_class_name,
-    OnnxExisting)
+    OnnxExisting, OnnxOperatorTuple)
 from mlprodict.npy.xop_auto import get_domain_list
 from mlprodict.npy.xop_variable import (
     Variable, max_supported_opset,
@@ -1297,9 +1297,29 @@ class TestXOps(ExtTestCase):
         got = OnnxInference(model_def).run({'X': x, 'A': a, 'Y': y, 'T': t})
         self.assertEqualArray(y.T, got['Z'])
 
+    def test_loop(self):
+        OnnxLoop, OnnxAdd, OnnxIdentity = loadop("Loop", "Add", "Identity")
+
+        m = numpy.array([5.5], dtype=numpy.float32)
+        t = numpy.array([True])
+        subgraph_inputs = [Variable('i', numpy.int64),
+                           Variable('cond', numpy.bool_)]
+        loop = OnnxLoop(
+            numpy.array(3, dtype=numpy.int64), t, 'A',
+        ).do(OnnxOperatorTuple(
+            OnnxIdentity('cond'), OnnxAdd('A', m)),
+            subgraph_inputs=subgraph_inputs)
+        node = OnnxIdentity(loop, output_names=['Y'])
+        onx = node.to_onnx({'A': numpy.float32}, numpy.float32)
+        # print(onnx_simple_text_plot(onx, recursive=True))
+        self.assertIn('Loop', str(onx))
+        oinf = OnnxInference(onx)
+        got = oinf.run({'A': m})
+        self.assertEqualArray(got['Y'], m * 4)
+
 
 if __name__ == "__main__":
     # import logging
     # logging.basicConfig(level=logging.DEBUG)
-    # TestXOps().test_zif_onnx_common_intermediate_level2()
+    TestXOps().test_loop()
     unittest.main(verbosity=2)

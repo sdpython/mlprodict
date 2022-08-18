@@ -806,7 +806,7 @@ class OnnxOperatorBase:
         raise NotImplementedError(  # pragma: no cover
             f"Method 'f' must be overloaded for type {type(self)}.")
 
-    def _set_control_op(self, op):
+    def _set_control_op(self, op, subgraph_inputs=None):
         """
         Tells this operator is part of a subgraph.
         """
@@ -1105,7 +1105,9 @@ class OnnxOperatorTuple(OnnxOperatorBase):
 
     def to_onnx(self, inputs=None, outputs=None,
                 other_outputs=None, target_opset=None,
-                optim=True, verbose=0, run_shape=True):
+                optim=True, verbose=0, run_shape=True,
+                processed=None, check_model=True,
+                return_builder=False, fLOG=None):
         """
         Converts this operator into an ONNX graph.
         It follows the same signature as :meth:`OnnxOperator.to_onnx
@@ -1125,7 +1127,8 @@ class OnnxOperatorTuple(OnnxOperatorBase):
             res = self.unique.to_onnx(
                 inputs=inputs, outputs=outputs, other_outputs=other_outputs,
                 target_opset=target_opset, optim=optim, verbose=verbose,
-                run_shape=run_shape)
+                run_shape=run_shape, processed=processed, check_model=check_model,
+                fLOG=fLOG, return_builder=return_builder)
             logger.dedent()
             return res
         new_other_outputs = self.values[1:]
@@ -1134,9 +1137,36 @@ class OnnxOperatorTuple(OnnxOperatorBase):
         res = self.values[0].to_onnx(
             inputs=inputs, outputs=outputs, other_outputs=new_other_outputs,
             target_opset=target_opset, optim=optim, verbose=verbose,
-            run_shape=run_shape)
+            run_shape=run_shape, processed=processed, check_model=check_model,
+            fLOG=fLOG, return_builder=return_builder)
         logger.dedent()
         return res
+
+    def find_named_inputs(self):
+        """
+        Returns all inputs to the graph.
+        """
+        if self.values is None:
+            return self.unique.find_named_inputs()
+        named = []
+        for value in self.values:
+            tmp = value.find_named_inputs()
+            named.extend(tmp)
+        return named
+
+    def _set_control_op(self, op, subgraph_inputs=None):
+        """
+        Tells this operator is part of a subgraph.
+        """
+        logger.debug('op:%s-%d._set_control_op:%r',
+                     self.__class__.__name__, id(self), op)
+        logger.indent()
+        if self.values is None:
+            raise NotImplementedError(  # pragma: no cover
+                "Not implemented yet.")
+        for value in self.values:
+            value._set_control_op(op, subgraph_inputs)
+        logger.dedent()
 
 
 class OnnxOperator(OnnxOperatorBase):
@@ -1372,6 +1402,23 @@ class OnnxOperator(OnnxOperatorBase):
                      self.__class__.__name__, op)
         self.external_inputs.append(op)
 
+    def do(self, body, subgraph_inputs=None):
+        """
+        Fills attribute *body*.
+
+        :param branch: onnx graph or @see cl OnnxOperator
+        :param subgraph_inputs: additional parameter to convert
+            the subgraph into ONNX
+        :return: self
+        """
+        if (isinstance(body, (onnx.GraphProto, onnx.ModelProto)) and
+                subgraph_inputs is not None):
+            raise RuntimeError(  # pragma: no cover
+                "inputs cannot be defined if body is a "
+                "GraphProto or a ModelProto.")
+        return self._add_subgraph(
+            'body', body, subgraph_inputs=subgraph_inputs)
+
     def then_do(self, branch):
         """
         Fills attribute *then_branch*.
@@ -1396,12 +1443,14 @@ class OnnxOperator(OnnxOperatorBase):
                 "else_branch subgraph cannot have any input.")
         return self._add_subgraph('else_branch', branch)
 
-    def _add_subgraph(self, attribute, branch):
+    def _add_subgraph(self, attribute, branch, subgraph_inputs=None):
         """
         Fills attribute *attribute*.
 
         :param attribute: attribute name
         :param branch: onnx graph or @see cl OnnxOperator
+        :param subgraph_inputs: additional parameter to convert
+            the subgraph into ONNX
         :return: self
         """
         if isinstance(branch, str):
@@ -1416,21 +1465,26 @@ class OnnxOperator(OnnxOperatorBase):
         if isinstance(branch, onnx.GraphProto):
             self.kwargs[attribute] = branch
             return self
-        if isinstance(branch, OnnxOperator):
+        if isinstance(branch, (OnnxOperator, OnnxOperatorTuple)):
             self.kwargs[attribute] = branch
-            branch._set_control_op(self)
+            branch._set_control_op(self, subgraph_inputs=subgraph_inputs)
             return self
         raise TypeError(  # pragma: no cover
             "Unexpected type %r for a subgraph, attribute %r "
             "and class %r." % (
                 type(branch), attribute, self.__class__.__name__))
 
-    def _set_control_op(self, op):
+    def _set_control_op(self, op, subgraph_inputs=None):
         """
         Sets *control_op* for every instance of @see cl OnnxExisting node.
 
         :param op: operator calling the subgraph.
+        :param inputs: additional parameters to convert
+            into ONNX
         """
+        if subgraph_inputs is not None:
+            self.subgraph_inputs = subgraph_inputs
+
         for i, inp in enumerate(self.inputs):
             if isinstance(inp, OnnxOperatorBase):
                 logger.debug("op:%s-%d:_set_control_op:propagate-into-input:%d:p:%d",
@@ -1994,11 +2048,12 @@ class OnnxOperator(OnnxOperatorBase):
                         outputs_dtype=outputs_dtype)
                     if to is None:
                         run_shape = True
-                    res = '???_%d' % i
+                    res = f'xop_{id(node)}_{i}'
                     var = Variable(res, added_dtype=to, shape=shape)
                     if var.name in set_names:
                         raise RuntimeError(  # pragma: no cover
-                            f"Duplicated output name var={var!r}.")
+                            f"Duplicated output name var={var!r} in "
+                            f"{set_names!r}.")
                     set_names.add(var.name)
                     new_outputs.append(OutputDetectedVariable(node, var, i))
             else:
@@ -2126,6 +2181,15 @@ class OnnxOperator(OnnxOperatorBase):
         nodes, graph_inputs, graph_outputs, run_shape2 = self._node_to_graph(
             other_outputs, inputs, outputs, as_function=function_name is not None,
             processed=processed)
+        if hasattr(self, 'subgraph_inputs'):
+            if any(map(lambda o: not isinstance(o, Variable),
+                       self.subgraph_inputs)):
+                raise TypeError(  # pragma: no cover
+                    f"Unexpected type, all type should be Variable in "
+                    f"{self.subgraph_inputs!r}.")
+            graph_inputs = [
+                InputDetectedVariable(None, v) for v in self.subgraph_inputs
+            ] + graph_inputs
         logger.dedent()
 
         logger.debug("op:%s.to_onnx:graph_inputs=%r",
@@ -2182,11 +2246,10 @@ class OnnxOperator(OnnxOperatorBase):
 
         logger.debug(
             "op:%s-%d.to_onnx:to_onnx:a", self.__class__.__name__, id(self))
-
         logger.indent()
 
+        # fix missing inputs
         if isinstance(inputs, dict):
-            # fix missing inputs
             known = set()
             for gi in graph_inputs:
                 known.add(gi.var.name)
@@ -2199,6 +2262,9 @@ class OnnxOperator(OnnxOperatorBase):
                         None, Variable(name, dtype=dtype))
                     graph_inputs.append(var)
                     builder.input_names[name] = var
+        for v in graph_inputs:
+            if v.var.name not in builder.input_names:
+                builder.input_names[v.var.name] = v
 
         onx = builder.to_onnx(
             inputs=graph_inputs, outputs=graph_outputs,
@@ -3382,8 +3448,11 @@ class _GraphBuilder:
                     raise RuntimeError(  # pragma: no cover
                         f"Unexpected {inp!r} != {var!r}.")
             elif inp.var != var.var:
-                raise RuntimeError(  # pragma: no cover
-                    f"Unexpected {inp!r} != {var!r}.")
+                if (inp.var.name != var.var.name or (
+                        inp.var.dtype is not None and
+                        var.var.dtype is not None)):
+                    raise RuntimeError(  # pragma: no cover
+                        f"Unexpected {inp.var!r} != {var.var!r}.")
 
             if isinstance(inp.var, ExistingVariable):
                 # The type of ExistingVariable must be known
@@ -3697,7 +3766,10 @@ class OnnxExisting(OnnxOperator):
         "For the eager mode."
         raise NotImplementedError()  # pragma: no cover
 
-    def _set_control_op(self, op):
+    def _set_control_op(self, op, subgraph_inputs=None):
+        if subgraph_inputs is not None:
+            raise NotImplementedError(  # pragma: no cover
+                "Not implemented.")
         if op is None:
             raise RuntimeError(  # pragma: no cover
                 "op cannot be None in _set_control_op.")

@@ -299,8 +299,9 @@ class ShapeResult:
             raise TypeError(  # pragma: no cover
                 f"sh2 must be a tensor not {sh2.mtype!r}.")
         if same_type and sh1.dtype != sh2.dtype:
-            raise ShapeInferenceException(  # pragma: no cover
-                f"Cannot broadcast shapes {sh1!r} and {sh2!r} (dtypes).")
+            if sh1.dtype is not None and sh2.dtype is not None:
+                raise ShapeInferenceException(  # pragma: no cover
+                    f"Cannot broadcast shapes {sh1!r} and {sh2!r} (dtypes).")
 
         # Specific cases.
         if sh1.n_dims() != sh2.n_dims():

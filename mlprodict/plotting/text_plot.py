@@ -459,6 +459,9 @@ def _get_type(obj0):
         if (obj.data_type == TensorProto.INT32 and  # pylint: disable=E1101
                 hasattr(obj, 'int32_data')):
             return TENSOR_TYPE_TO_NP_TYPE[TensorProto.INT32]  # pylint: disable=E1101
+        if hasattr(obj, 'raw_data') and len(obj.raw_data) > 0:
+            arr = to_array(obj)
+            return arr.dtype
         raise RuntimeError(  # pragma: no cover
             f"Unable to guess type from {obj0!r}.")
     if hasattr(obj, 'type'):
@@ -486,8 +489,12 @@ def _get_shape(obj):
         if (obj.data_type == TensorProto.INT32 and  # pylint: disable=E1101
                 hasattr(obj, 'int32_data')):
             return (len(obj.int32_data), )
+        if hasattr(obj, 'raw_data') and len(obj.raw_data) > 0:
+            arr = to_array(obj)
+            return arr.shape
         raise RuntimeError(  # pragma: no cover
-            f"Unable to guess type from {obj0!r}.")
+            f"Unable to guess type from {obj0!r}, "
+            f"data_type is {obj.data_type!r}.")
     if hasattr(obj, 'type'):
         obj = obj.type
     if hasattr(obj, 'tensor_type'):
