@@ -5,9 +5,10 @@
 History
 =======
 
-current - 2022-08-13 - 0.00Mb
+current - 2022-08-18 - 0.00Mb
 =============================
 
+* #464: Implements OnnxLoop (2022-08-18)
 * #465: Supports for operator DFT, STFT, *windows (2022-08-13)
 * #463: Fixes embedded if with XOP API (2022-08-10)
 * #462: Increases code coverage, improves ligthgbm converter (2022-08-05)
