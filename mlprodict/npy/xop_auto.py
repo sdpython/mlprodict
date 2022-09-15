@@ -9,6 +9,7 @@ import os
 import textwrap
 import importlib
 import inspect
+import re
 import onnx
 import onnx.defs
 from onnx.backend.test.case.base import _Exporter
