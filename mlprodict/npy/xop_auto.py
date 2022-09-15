@@ -10,6 +10,7 @@ import textwrap
 import importlib
 import inspect
 import re
+import keyword
 import onnx
 import onnx.defs
 from onnx.backend.test.case.base import _Exporter
@@ -490,14 +491,13 @@ def get_onnx_example(op_name):
     ]
     module = None
     for m in modules:
-        if os.path.exists(module):
+        try:
+            mod = importlib.import_module(m)
             module = m
+        except ImportError:
+            continue
     if module is None:
         # Unable to find an example for 'op_name'.
-        return {}
-    try:
-        mod = importlib.import_module(module)
-    except ImportError:
         return {}
     results = {}
     for v in mod.__dict__.values():
