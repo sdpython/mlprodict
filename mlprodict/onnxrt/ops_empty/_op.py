@@ -100,7 +100,7 @@ class OpRunOnnxEmpty:
         if self.alg_class is None:
             self.onnx_ = self.onnx_node
         elif self.onnx_node.op_type == 'ConstantOfShape':
-            for k in options:
+            for k in options:  # pylint: disable=C0206
                 v = options[k]
                 if isinstance(v, numpy.ndarray):
                     options[k] = make_tensor(

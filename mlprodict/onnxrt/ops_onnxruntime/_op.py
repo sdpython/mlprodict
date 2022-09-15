@@ -144,7 +144,7 @@ class OpRunOnnxRuntime:
             self.onnx_ = self.inst_.to_onnx(inputs, outputs=outvar)
             forced = True
         elif self.onnx_node.op_type == 'ConstantOfShape':
-            for k in options:
+            for k in options:  # pylint: disable=C0206
                 v = options[k]
                 if isinstance(v, numpy.ndarray):
                     options[k] = make_tensor(

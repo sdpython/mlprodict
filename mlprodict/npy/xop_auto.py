@@ -9,6 +9,8 @@ import os
 import textwrap
 import importlib
 import inspect
+import re
+import keyword
 import onnx
 import onnx.defs
 from onnx.backend.test.case.base import _Exporter
@@ -453,6 +455,27 @@ def _insert_diff(docs, split='.. tag-diff-insert.'):
     return '\n'.join(pieces)
 
 
+def change_style(name):
+    """
+    Switches from *AaBb* into *aa_bb*.
+
+    :param name: name to convert
+    :return: converted name
+
+    Example:
+
+    .. runpython::
+        :showcode:
+
+        from mlprodict.npy.xop_auto import change_style
+
+        print("changeStyle --> {0}".format(change_style('change_style')))
+    """
+    s1 = re.sub('(.)([A-Z][a-z]+)', r'\1_\2', name)
+    s2 = re.sub('([a-z0-9])([A-Z])', r'\1_\2', s1).lower()
+    return s2 if not keyword.iskeyword(s2) else s2 + "_"
+
+
 def get_onnx_example(op_name):
     """
     Retrieves examples associated to one operator
@@ -462,10 +485,19 @@ def get_onnx_example(op_name):
     :param fmt: rendering format
     :return: dictionary
     """
-    module = f'onnx.backend.test.case.node.{op_name.lower()}'
-    try:
-        mod = importlib.import_module(module)
-    except ImportError:
+    modules = [
+        f'onnx.backend.test.case.node.{op_name.lower()}',
+        f'onnx.backend.test.case.node.{change_style(op_name).lower()}',
+    ]
+    module = None
+    for m in modules:
+        try:
+            mod = importlib.import_module(m)
+            module = m
+        except ImportError:
+            continue
+    if module is None:
+        # Unable to find an example for 'op_name'.
         return {}
     results = {}
     for v in mod.__dict__.values():
