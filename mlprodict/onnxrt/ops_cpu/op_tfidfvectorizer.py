@@ -51,7 +51,9 @@ class TfIdfVectorizer(OpRunUnary):
     def _run(self, x, attributes=None, verbose=0, fLOG=None):  # pylint: disable=W0221
         if self.mapping_ is None:
             res = self.rt_.compute(x)
-            return (res.reshape((x.shape[0], -1)), )
+            if len(x.shape) > 1:
+                return (res.reshape((x.shape[0], -1)), )
+            return (res, )
 
         xi = numpy.empty(x.shape, dtype=numpy.int64)
         for i in range(0, x.shape[0]):
