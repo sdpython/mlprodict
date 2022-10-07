@@ -46,6 +46,7 @@ class IntMap : public std::unordered_map<int64_t, NgramPartInt*> {
             for(auto it = begin(); it != end(); ++it)
                 delete it->second;
         }
+        std::string to_string(const std::string& indent = "") const; 
 };
 
 
@@ -56,7 +57,32 @@ class NgramPart<int64_t> {
         IntMap leafs_;
         NgramPart(size_t id) : id_(id) {}
         ~NgramPart() { }
+        std::string to_string(const std::string& indent="") const {
+            if (leafs_.size() == 0)
+                return MakeString("NGramPart(", id_, ")");
+            return MakeString("NGramPart(", id_, ", ", leafs_.to_string(indent), ")");
+        }
 };
+
+
+std::string IntMap::to_string(const std::string& indent) const {
+    std::vector<std::string> rows;
+    rows.push_back("{");
+    int irow = 0;
+    for (auto pair=cbegin() ; pair != cend(); ++pair, ++irow) {
+        auto v = pair->second->to_string(indent + "  ");
+        if (irow == 0) 
+            rows.push_back(MakeString(indent, pair->first, "=", v));
+        else
+            rows.push_back(MakeString(indent, pair->first, "=", v, ","));
+    }
+    rows.push_back("}");
+    std::stringstream ss;
+    for (auto line : rows) {
+        ss << line << "\n";
+    }
+    return ss.str();
+}
 
 
 // The weighting criteria.
@@ -296,6 +322,7 @@ void RuntimeTfIdfVectorizer::ComputeImpl(
         const py::array_t<int64_t, py::array::c_style | py::array::forcecast>& X,
         ptrdiff_t row_num, size_t row_size,
         std::vector<uint32_t>& frequencies) const {
+
     const auto elem_size = sizeof(int64_t);
 
     const void* row_begin = AdvanceElementPtr((void*)X.data(0), row_num * row_size, elem_size);
@@ -313,8 +340,9 @@ void RuntimeTfIdfVectorizer::ComputeImpl(
             // We went far enough so no n-grams of any size can be gathered
             auto at_least_this = AdvanceElementPtr(
                 ngram_start, skip_distance * (start_ngram_size - 1), elem_size);
-            if (at_least_this >= ngram_row_end)
+            if (at_least_this >= ngram_row_end) {
                 break;
+            }
 
             auto ngram_item = ngram_start;
             const IntMap* int_map = &int64_map_;
