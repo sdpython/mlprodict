@@ -13,7 +13,6 @@ def transformer_target_regressor_shape_calculator(operator):
     :epkg:`sklearn-onnx` to support custom functions
     implemented with :ref:`l-numpy-onnxpy`.
     """
-    op = operator.raw_operator
     input_type = operator.inputs[0].type.__class__
     # same output shape as input
     output_type = input_type([None, None])
