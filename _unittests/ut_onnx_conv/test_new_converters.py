@@ -14,20 +14,20 @@ from mlprodict.testing.test_utils import dump_data_and_model
 import mlprodict.npy.numpy_onnx_impl as npnx
 
 
-@onnxnumpy_default
-def onnx_log_1(x: NDArray[Any, np.float32]) -> NDArray[(None, None), np.float32]:
-    return npnx.log1p(x)
-
-
-@onnxnumpy_default
-def onnx_exp_1(x: NDArray[Any, np.float32]) -> NDArray[(None, None), np.float32]:
-    return npnx.exp(x) - 1
-
-
 class TestSklearnNewConverter(ExtTestCase):
 
     @ignore_warnings(UserWarning)
     def test_transformed_target_regressor(self):
+
+        @onnxnumpy_default
+        def onnx_log_1(x: NDArray[Any, np.float32]) -> NDArray[(None, None), np.float32]:
+            return npnx.log1p(x)
+
+
+        @onnxnumpy_default
+        def onnx_exp_1(x: NDArray[Any, np.float32]) -> NDArray[(None, None), np.float32]:
+            return npnx.exp(x) - 1
+
 
         model = TransformedTargetRegressor(
             regressor=LinearRegression(),
