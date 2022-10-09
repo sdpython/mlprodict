@@ -23,11 +23,9 @@ class TestSklearnNewConverter(ExtTestCase):
         def onnx_log_1(x: NDArray[Any, np.float32]) -> NDArray[(None, None), np.float32]:
             return npnx.log1p(x)
 
-
         @onnxnumpy_default
         def onnx_exp_1(x: NDArray[Any, np.float32]) -> NDArray[(None, None), np.float32]:
             return npnx.exp(x) - np.float32(1)
-
 
         model = TransformedTargetRegressor(
             regressor=LinearRegression(),
