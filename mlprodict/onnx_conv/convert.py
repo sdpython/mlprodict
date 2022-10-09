@@ -29,7 +29,8 @@ from skl2onnx.algebra.type_helper import _guess_type
 from ..onnx_tools.onnx_manipulations import onnx_rename_names
 from ..onnx_tools.onnx2py_helper import (
     guess_dtype, get_tensor_shape, get_tensor_elem_type)
-from .register_rewritten_converters import register_rewritten_operators
+from .register_rewritten_converters import (
+    register_rewritten_operators, register_new_operators)
 from .register import register_converters
 from .scorers import CustomScorerTransform
 
@@ -440,6 +441,7 @@ def to_onnx(model, X=None, name=None, initial_types=None,
 
     if rewrite_ops:
         old_values, old_shapes = register_rewritten_operators()
+        register_new_operators()
         register_converters()
     else:
         old_values, old_shapes = {}, {}

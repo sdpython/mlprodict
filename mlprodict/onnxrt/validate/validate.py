@@ -16,7 +16,9 @@ from ... import (
     __version__ as ort_version,
     __max_supported_opset__, get_ir_version,
     __max_supported_opsets__)
-from ...onnx_conv import to_onnx, register_converters, register_rewritten_operators
+from ...onnx_conv import (
+    to_onnx, register_converters, register_rewritten_operators,
+    register_new_operators)
 from ...tools.model_info import analyze_model, set_random_state
 from ..onnx_inference import OnnxInference
 from ...onnx_tools.optim.sklearn_helper import inspect_sklearn_model, set_n_jobs
@@ -846,6 +848,8 @@ def enumerate_validated_operator_opsets(verbose=0, opset_min=-1, opset_max=-1,
     """
     register_converters()
     register_rewritten_operators()
+    register_new_operators()
+
     ops = _enumerate_validated_operator_opsets_ops(
         extended_list, models, skip_models)
 
