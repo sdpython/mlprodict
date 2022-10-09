@@ -3,6 +3,7 @@
 @brief Rewrites some of the converters implemented in
 :epkg:`sklearn-onnx`.
 """
+from sklearn.compose import TransformedTargetRegressor
 from skl2onnx.common._registration import (
     _converter_pool, _shape_calculator_pool)
 try:
@@ -10,6 +11,7 @@ try:
 except ImportError:  # pragma: no cover
     # sklearn-onnx <= 1.6.0
     RegisteredConverter = lambda fct, opts: fct
+from skl2onnx import update_registered_converter
 from .sklconv.tree_converters import (
     new_convert_sklearn_decision_tree_classifier,
     new_convert_sklearn_decision_tree_regressor,
@@ -23,6 +25,9 @@ from .sklconv.svm_converters import (
 from .sklconv.function_transformer_converters import (
     new_calculate_sklearn_function_transformer_output_shapes,
     new_convert_sklearn_function_transformer)
+from .sklconv.transformed_target_regressor import (
+    transformer_target_regressor_shape_calculator,
+    transformer_target_regressor_converter)
 
 
 _overwritten_operators = {
@@ -135,5 +140,16 @@ def register_rewritten_operators(new_converters=None,
         old_shape = {k: _shape_calculator_pool[k]
                      for k in new_shape_calculators}
         _shape_calculator_pool.update(new_shape_calculators)
-
     return old_conv, old_shape
+
+
+def register_new_operators():
+    """
+    Registers new operator relying on pieces implemented in this package
+    such as the numpy API for ONNX.
+    """
+    update_registered_converter(
+        TransformedTargetRegressor, "SklearnTransformedTargetRegressor",
+        transformer_target_regressor_shape_calculator,
+        transformer_target_regressor_converter,
+        overwrite=True, options=None)

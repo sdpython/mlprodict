@@ -50,10 +50,12 @@ def benchmark_doc(runtime, black_list=None, white_list=None,
     from pyquickhelper.loghelper.run_cmd import get_interpreter_path
     from tqdm import tqdm
     from ..onnxrt.validate.validate_helper import sklearn_operators
-    from ..onnx_conv import register_converters, register_rewritten_operators
+    from ..onnx_conv import (
+        register_converters, register_rewritten_operators, register_new_operators)
     register_converters()
     try:
         register_rewritten_operators()
+        register_new_operators()
     except KeyError:  # pragma: no cover
         warnings.warn("converter for HistGradientBoosting* not not exist. "
                       "Upgrade sklearn-onnx")
