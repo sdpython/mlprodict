@@ -8,7 +8,7 @@ import numpy
 from sklearn.base import (
     TransformerMixin, ClassifierMixin, RegressorMixin, BaseEstimator)
 from sklearn.pipeline import Pipeline, FeatureUnion
-from sklearn.compose import ColumnTransformer, TransformedTargetRegressor
+from sklearn.compose import ColumnTransformer
 
 
 def enumerate_pipeline_models(pipe, coor=None, vs=None):
