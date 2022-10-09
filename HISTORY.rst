@@ -5,9 +5,13 @@
 History
 =======
 
-current - 2022-08-18 - 0.00Mb
+current - 2022-10-09 - 0.00Mb
 =============================
 
+* #469: Implements a converter for a TransformedTargetRegressor (2022-10-09)
+* #468: Adds debug functionalities in TfidfVectorizer (2022-10-07)
+* #467: Fixes TfIdfVectorizer when input is 1D (2022-10-03)
+* #466: Look into sequencemap.py or sequence_map.py to fetch examples (2022-09-15)
 * #464: Implements OnnxLoop (2022-08-18)
 * #465: Supports for operator DFT, STFT, *windows (2022-08-13)
 * #463: Fixes embedded if with XOP API (2022-08-10)
@@ -358,10 +362,6 @@ current - 2022-08-18 - 0.00Mb
 * #172: Add runtime for operator MaxPool (2020-09-16)
 * #171: Fixes #170, add operator Pad (2020-09-10)
 * #170: Add runtime for operator Pad (2020-09-10)
-
-0.4.1259 - 2020-09-03 - 1.32Mb
-==============================
-
 * #169: fix compiling issue with ubuntu 16.04 (2020-09-03)
 * #167: Add runtime for Operator Or (2020-08-25)
 * #166: Add runtime for operator And (2020-08-25)
