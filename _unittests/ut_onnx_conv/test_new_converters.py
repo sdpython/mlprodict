@@ -1,5 +1,5 @@
 """
-@brief      test tree node (time=100s)
+@brief      test tree node (time=7s)
 """
 from typing import Any
 import unittest
@@ -26,7 +26,7 @@ class TestSklearnNewConverter(ExtTestCase):
 
         @onnxnumpy_default
         def onnx_exp_1(x: NDArray[Any, np.float32]) -> NDArray[(None, None), np.float32]:
-            return npnx.exp(x) - 1
+            return npnx.exp(x) - np.float32(1)
 
 
         model = TransformedTargetRegressor(
