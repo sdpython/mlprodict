@@ -175,7 +175,7 @@ def onnx_remove_node_identity(onnx_model, recursive=True, debug_info=None, **opt
     nodes = list(filter(lambda n: n is not None, nodes))
     if len(nodes) == 0:
         # something went wrong
-        nodes = graph.node
+        nodes = list(graph.node)
     if is_function:
         logger.debug("onnx_remove_node_identity:end function with %d nodes.",
                      len(nodes))

@@ -108,7 +108,7 @@ class OnnxSubOnnx(OnnxOperator):
                 [name], [new_name])
 
         # adding nodes
-        for node in self.model.graph.node:
+        for node in list(self.model.graph.node):
             new_inputs = []
             for i in node.input:
                 if i not in mapped_names:

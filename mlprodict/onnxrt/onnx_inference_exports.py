@@ -219,7 +219,7 @@ class OnnxInferenceExport:
                 n.name for n in self.oinf.obj.graph.initializer)
             static_inputs.extend(
                 n.name for n in self.oinf.obj.graph.sparse_initializer)
-            nodes = self.oinf.obj.graph.node
+            nodes = list(self.oinf.obj.graph.node)
         else:
             static_inputs = list(self.oinf.obj.input)
             nodes = self.oinf.obj.node
@@ -476,7 +476,7 @@ class OnnxInferenceExport:
 
         # nodes
         nodes = []
-        for obj in self.oinf.obj.graph.node:
+        for obj in list(self.oinf.obj.graph.node):
             node = dict(name=obj.name, op_type=obj.op_type, domain=obj.domain,
                         inputs=[str(_) for _ in obj.input],
                         outputs=[str(_) for _ in obj.output],

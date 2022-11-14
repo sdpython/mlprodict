@@ -118,7 +118,7 @@ def plot_onnx(filename, format="onnx", verbose=0, output=None, fLOG=print):
     elif format == 'tree':
         from mlprodict.plotting.plotting import onnx_text_plot_tree
         rows = []
-        for node in content.graph.node:
+        for node in list(content.graph.node):
             if node.op_type.startswith("TreeEnsemble"):
                 rows.append(f'Node type={node.op_type!r} name={node.name!r}')
                 rows.append(onnx_text_plot_tree(node))
