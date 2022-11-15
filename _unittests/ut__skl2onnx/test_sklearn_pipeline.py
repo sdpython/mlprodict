@@ -461,7 +461,7 @@ class TestSklearnPipeline(ExtTestCase):
         self.assertEqual(len(model_onnx.functions), 5)
         rts = ['python']
         if ort_version_greater("1.13"):
-            rts.append('onnxruntime1')
+            rts.append('onnxruntime')
         dump_data_and_model(
             data, model, model_onnx,
             basename="SklearnPipelineColumnTransformerScalerFunction",
@@ -483,7 +483,7 @@ class TestSklearnPipeline(ExtTestCase):
         self.assertEqual(len(model_onnx.graph.node), 1)
         rts = ['python']
         if ort_version_greater("1.13"):
-            rts.append('onnxruntime1')
+            rts.append('onnxruntime')
         dump_data_and_model(
             data, model, model_onnx,
             basename="SklearnPipelineColumnTransformerScalerPassThroughFunction",
@@ -505,7 +505,7 @@ class TestSklearnPipeline(ExtTestCase):
         self.assertEqual(len(model_onnx.graph.node), 1)
         rts = ['python']
         if ort_version_greater("1.13"):
-            rts.append('onnxruntime1')
+            rts.append('onnxruntime')
         dump_data_and_model(
             data, model, model_onnx,
             basename="SklearnPipelineColumnTransformerScalerDropFunction",

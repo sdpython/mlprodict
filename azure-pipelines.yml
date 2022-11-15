@@ -150,17 +150,13 @@ jobs:
     displayName: Add conda to PATH.
   - bash: sudo chown -R $USER $CONDA
     displayName: Take ownership of conda installation
-  #- script: brew install --cask mactex
-  #  continueOnError: true
-  #  displayName: 'Install latex'
   - bash: conda install -y -c conda-forge numpy scipy
     displayName: Install numpy scipy
   - bash: conda install -y -c conda-forge llvmlite numba pybind11
     displayName: Install llvmlite numba pybind11
   - script: pip install -r requirements-osx.txt
     displayName: 'Install Requirements'
-  #- script: pip install -i https://test.pypi.org/simple/ ort-nightly
-  #  displayName: 'Install ort-nightly'
+
   - script: |
          # export MACOSX_DEPLOYMENT_TARGET=10.13
          python setup.py build_ext --inplace

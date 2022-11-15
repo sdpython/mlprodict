@@ -43,15 +43,18 @@ class TestZoo(ExtTestCase):
         except ConnectionError as e:
             warnings.warn(f"Unable to continue this test due to {e!r}.")
             return
-        oinf2 = OnnxInference(link, runtime="python", inplace=False)
-        oinf2 = oinf2.build_intermediate('474')['474']
+        key = "mobilenetv20_features_linearbottleneck4_elemwise_add0"
+        oinf2 = OnnxInference(link, runtime="python", inplace=False)        
+        res2 = oinf2.build_intermediate(key)
+        oinf2 = res2[key]
         oinf1 = OnnxInference(link, runtime="onnxruntime1", inplace=False)
-        oinf1 = oinf1.build_intermediate('474')['474']
-        inputs = {'input': data['test_data_set_0']['in']['input_0']}
+        res1 = oinf1.build_intermediate(key)
+        oinf1 = res1[key]
+        inputs = {'data': data['test_data_set_0']['in']['input_0']}
         rows = side_by_side_by_values([oinf1, oinf2], inputs=inputs)
         for row in rows:
             keep = []
-            if row.get('name', '-') == '474':  # pylint: disable=E1101
+            if row.get('name', '-') == key:  # pylint: disable=E1101
                 v0 = row['value[0]']  # pylint: disable=E1126
                 v1 = row['value[1]']  # pylint: disable=E1126
                 self.assertEqual(v0.shape, v1.shape)
@@ -89,5 +92,5 @@ class TestZoo(ExtTestCase):
 
 
 if __name__ == "__main__":
-    # TestZoo().test_verify_model_squeezenet()
+    # TestZoo().test_verify_side_by_side()
     unittest.main()

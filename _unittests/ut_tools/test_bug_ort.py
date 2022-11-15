@@ -68,6 +68,8 @@ class TestBugOrt(ExtTestCase):
             with self.subTest(runtime=rt, case='no-unused'):
                 oinf1 = OnnxInference(onx1.SerializeToString(), runtime=rt)
                 res1 = oinf1.run(inputs)
+            if rt == "onnxruntime1":
+                continue
             with self.subTest(runtime=rt, case='with-unused'):
                 oinf2 = OnnxInference(onx2.SerializeToString(), runtime=rt)
                 res2 = oinf2.run(inputs)
