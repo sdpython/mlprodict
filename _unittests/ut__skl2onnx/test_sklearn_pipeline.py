@@ -8,6 +8,8 @@ from io import StringIO
 import numpy
 from numpy.testing import assert_almost_equal
 import pandas
+from onnx.checker import check_model
+from onnx.shape_inference import infer_shapes
 from sklearn import __version__ as sklearn_version
 from sklearn import datasets
 from sklearn.compose import ColumnTransformer
@@ -456,7 +458,9 @@ class TestSklearnPipeline(ExtTestCase):
         model.fit(data)
         model_onnx = to_onnx(
             model, initial_types=[("X", FloatTensorType([None, 2]))],
-            as_function=True, target_opset=15)
+            as_function=True, target_opset=17)
+        check_model(model_onnx)
+        infer_shapes(model_onnx)
         self.assertEqual(len(model_onnx.graph.node), 1)
         self.assertEqual(len(model_onnx.functions), 5)
         rts = ['python']
@@ -547,5 +551,5 @@ class TestSklearnPipeline(ExtTestCase):
 if __name__ == "__main__":
     # import logging
     # logging.basicConfig(level=logging.DEBUG)
-    # TestSklearnPipeline().test_convert_as_function2()
+    # TestSklearnPipeline().test_pipeline_column_transformer_function()
     unittest.main(verbosity=2)
