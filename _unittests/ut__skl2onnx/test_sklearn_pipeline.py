@@ -464,7 +464,7 @@ class TestSklearnPipeline(ExtTestCase):
         self.assertEqual(len(model_onnx.graph.node), 1)
         self.assertEqual(len(model_onnx.functions), 5)
         rts = ['python']
-        if ort_version_greater("1.13"):
+        if ort_version_greater("1.15"):
             rts.append('onnxruntime')
         dump_data_and_model(
             data, model, model_onnx,
@@ -486,7 +486,7 @@ class TestSklearnPipeline(ExtTestCase):
             as_function=True, target_opset=15)
         self.assertEqual(len(model_onnx.graph.node), 1)
         rts = ['python']
-        if ort_version_greater("1.13"):
+        if ort_version_greater("1.15"):
             rts.append('onnxruntime')
         dump_data_and_model(
             data, model, model_onnx,
@@ -508,7 +508,7 @@ class TestSklearnPipeline(ExtTestCase):
             as_function=True, target_opset=15)
         self.assertEqual(len(model_onnx.graph.node), 1)
         rts = ['python']
-        if ort_version_greater("1.13"):
+        if ort_version_greater("1.15"):
             rts.append('onnxruntime')
         dump_data_and_model(
             data, model, model_onnx,
