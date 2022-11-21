@@ -73,7 +73,7 @@ jobs:
     displayName: 'Install Pandoc'
   # - script: sudo apt-get install -y texlive texlive-latex-extra texlive-xetex dvipng
   #   displayName: 'Install Latex'
-  - script: sudo apt-get install -y libomp-9-dev
+  - script: sudo apt-get install -y libomp-dev
     displayName: 'Install omp'
   - script: |
           wget https://apt.llvm.org/llvm.sh
