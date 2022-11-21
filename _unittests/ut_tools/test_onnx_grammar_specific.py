@@ -100,7 +100,7 @@ class TestOnnxGrammarSpecific(ExtTestCase):
 
         exp = kernel(x, None)
         got = kernel_call_ynone(x)
-        self.assertEqualArray(exp, got)
+        self.assertEqualArray(exp, got, atol=1e-7)
         context = {'numpy.sin': numpy.sin, 'numpy.exp': numpy.exp,
                    'numpy_pi': numpy.pi, 'squareform_pdist': 'squareform_pdist',
                    'py_make_float_array': py_make_float_array}
