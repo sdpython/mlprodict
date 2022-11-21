@@ -34,7 +34,7 @@ pydot
 py-cpuinfo
 pyinstrument
 pylint>=2.14.0
-pyquickhelper>=1.11.3755
+pyquickhelper>=1.11.3776
 pyquicksetup
 scikit-learn
 scipy
