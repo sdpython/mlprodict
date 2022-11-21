@@ -3,10 +3,10 @@
 """
 import unittest
 import numpy
-from onnx import numpy_helper, TensorProto
+from onnx import numpy_helper, TensorProto, checker
 from onnx.helper import (
-    make_model, make_node,
-    make_graph, make_tensor_value_info)
+    make_model, make_node, make_opsetid,
+    make_graph, make_tensor_value_info, make_tensor)
 from pyquickhelper.pycode import ExtTestCase
 from sklearn.datasets import load_iris
 from sklearn.model_selection import train_test_split
@@ -171,6 +171,51 @@ class TestOptimOnnxIdentity(ExtTestCase):
         y2 = oinf2.run({})['Y']
         self.assertEqualArray(y1, y2)
         self.assertLesser(stats2['op_Identity'], 1)
+
+    def test_local_variables(self):
+        # investigation issue #854
+
+        then_branch = make_graph(
+            [make_node('Identity', inputs=["identity_one"],
+                       outputs=["then_result"])],
+            'then_branch', [],
+            [make_tensor_value_info('then_result', TensorProto.INT64, [1])])
+
+        else_branch = make_graph(
+            [make_node('Identity', inputs=["identity_zero"],
+                              outputs=["else_result"])],
+            'else_branch', [],
+            [make_tensor_value_info('else_result', TensorProto.INT64, [1])])
+
+        nodes = [
+            make_node('Constant', inputs=[], outputs=["one"],
+                      value=make_tensor(name='', data_type=TensorProto.INT64, dims=[1], vals=[1])),
+            make_node('Constant', inputs=[], outputs=["zero"],
+                      value=make_tensor(name='', data_type=TensorProto.INT64, dims=[1], vals=[0])),
+            make_node('Identity', inputs=["one"], outputs=["identity_one"]),
+            make_node('Identity', inputs=["zero"], outputs=["identity_zero"]),
+            make_node('If', inputs=["X"], outputs=["y"],
+                      then_branch=then_branch, else_branch=else_branch)]
+
+        g = make_graph(
+            nodes, 'if_test',
+            [make_tensor_value_info('X', TensorProto.BOOL, [1])],
+            [make_tensor_value_info('y', TensorProto.INT64, [1])])
+
+        # Create the model and check
+        m = make_model(g, opset_imports=[make_opsetid('', TARGET_OPSET)])
+        checker.check_model(m)
+
+        sess = OnnxInference(m, runtime="onnxruntime1")
+
+        optimized_model = onnx_remove_node_identity(m)
+        sess_opt = OnnxInference(optimized_model, runtime="onnxruntime1")
+
+        for v in [True, False]:
+            x = numpy.array([v])
+            expected = sess.run({'X': x})
+            got = sess_opt.run({'X': x})
+            self.assertEqualArray(expected['y'], got['y'])
 
 
 if __name__ == "__main__":
