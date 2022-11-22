@@ -13,7 +13,7 @@ try:
 except ImportError:
     from sklearn.utils.testing import ignore_warnings
 from sklearn.gaussian_process.kernels import RBF, ExpSineSquared
-from sklearn.datasets import load_boston
+from sklearn.datasets import make_regression
 from sklearn.model_selection import train_test_split
 from sklearn.gaussian_process import GaussianProcessRegressor
 from sklearn.gaussian_process.kernels import DotProduct
@@ -208,8 +208,7 @@ class TestRtValidateGaussianProcess(ExtTestCase):
         self.assertGreater(len(rows), 0)
 
     def test_partial_float64(self):
-        data = load_boston()
-        X, y = data.data, data.target
+        X, y = make_regression(100, n_features=5)
         X_train, X_test, y_train, _ = train_test_split(X, y)
         gau = GaussianProcessRegressor(alpha=10, kernel=DotProduct())
         gau.fit(X_train, y_train)

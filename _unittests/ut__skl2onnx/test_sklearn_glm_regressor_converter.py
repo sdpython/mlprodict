@@ -394,39 +394,6 @@ class TestGLMRegressorConverter(ExtTestCase):
         self.assertEqualArray(pred, outputs['variable'].ravel())
         self.assertEqualArray(std, outputs['std'].ravel(), decimal=4)
 
-    def test_model_bayesian_ridge_return_std_normalize(self):
-        model, X = fit_regression_model(
-            BayesianRidge(normalize=True),
-            n_features=2, n_samples=50)
-        model_onnx = convert_sklearn(
-            model, "bayesian ridge",
-            [("input", FloatTensorType([None, X.shape[1]]))],
-            options={BayesianRidge: {'return_std': True}})
-        self.assertIsNotNone(model_onnx)
-
-        sess = OnnxInference(model_onnx)
-        outputs = sess.run({'input': X})
-        pred, std = model.predict(X, return_std=True)
-        self.assertEqualArray(pred, outputs['variable'].ravel(), decimal=4)
-        self.assertEqualArray(std, outputs['std'].ravel(), decimal=4)
-
-    def test_model_bayesian_ridge_return_std_normalize_double(self):
-        model, X = fit_regression_model(
-            BayesianRidge(normalize=True),
-            n_features=2, n_samples=50)
-        model_onnx = convert_sklearn(
-            model, "bayesian ridge",
-            [("input", DoubleTensorType([None, X.shape[1]]))],
-            options={BayesianRidge: {'return_std': True}})
-        self.assertIsNotNone(model_onnx)
-
-        X = X.astype(numpy.float64)
-        sess = OnnxInference(model_onnx)
-        outputs = sess.run({'input': X})
-        pred, std = model.predict(X, return_std=True)
-        self.assertEqualArray(pred, outputs['variable'].ravel())
-        self.assertEqualArray(std, outputs['std'].ravel(), decimal=4)
-
     def test_model_huber_regressor(self):
         model, X = fit_regression_model(HuberRegressor())
         model_onnx = convert_sklearn(
