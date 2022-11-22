@@ -154,7 +154,7 @@ class TestCustomClassifier(ExtTestCase):
         prob = dec.predict_proba(X)
         got = oinf.run({'X': X})
         self.assertEqualArray(exp, got['label'].ravel())
-        self.assertEqualArray(prob, got['probabilities'])
+        self.assertEqualArray(prob, got['probabilities'], atol=1e-7)
 
     @ignore_warnings((DeprecationWarning, RuntimeWarning))
     def test_function_classifier3_float32(self):
