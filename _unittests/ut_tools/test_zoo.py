@@ -44,7 +44,7 @@ class TestZoo(ExtTestCase):
             warnings.warn(f"Unable to continue this test due to {e!r}.")
             return
         key = "mobilenetv20_features_linearbottleneck4_elemwise_add0"
-        oinf2 = OnnxInference(link, runtime="python", inplace=False)        
+        oinf2 = OnnxInference(link, runtime="python", inplace=False)
         res2 = oinf2.build_intermediate(key)
         oinf2 = res2[key]
         oinf1 = OnnxInference(link, runtime="onnxruntime1", inplace=False)

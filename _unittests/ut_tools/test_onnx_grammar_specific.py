@@ -143,7 +143,7 @@ class TestOnnxGrammarSpecific(ExtTestCase):
             raise e
         oinf = OnnxInference(onnx_g)
         res = oinf.run(inputs)
-        self.assertEqualArray(exp, res['Z'])
+        self.assertEqualArray(exp, res['Z'], atol=1e-7)
 
     def test_export_sklearn_kernel_dot_product(self):
 

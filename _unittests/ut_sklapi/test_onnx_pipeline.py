@@ -47,7 +47,8 @@ class TestOnnxPipeline(ExtTestCase):
         sess = OnnxInference(model_def)
         res = sess.run({'X': X})
         self.assertEqualArray(res["label"], pipe.predict(X))
-        self.assertEqualArray(res["probabilities"], pipe.predict_proba(X))
+        self.assertEqualArray(
+            res["probabilities"], pipe.predict_proba(X), atol=1e-7)
 
     def test_pipeline_none_params(self):
         model_onx = OnnxPipeline([
@@ -143,7 +144,8 @@ class TestOnnxPipeline(ExtTestCase):
         res = sess.run({'X': X})
         self.assertEqual(list(sorted(res)), ['label', 'probabilities'])
         self.assertEqualArray(res["label"], pipe.predict(X))
-        self.assertEqualArray(res["probabilities"], pipe.predict_proba(X))
+        self.assertEqualArray(
+            res["probabilities"], pipe.predict_proba(X), atol=1e-7)
 
     @unittest.skipIf(compare_module_version(s2_ver, '1.9.3') < 0,
                      reason="skl2onnx too old")
@@ -180,7 +182,9 @@ class TestOnnxPipeline(ExtTestCase):
         sess = OnnxInference(model_def)
         res = sess.run({'X': X})
         self.assertEqual(list(sorted(res)), ['label', 'probabilities'])
-        self.assertEqualArray(res["probabilities"], pipe.predict_proba(X))
+        self.assertEqualArray(res["probabilities"],
+                              pipe.predict_proba(X),
+                              atol=1e-7)
         self.assertEqualArray(res["label"], pipe.predict(X))
 
     def test_pipeline_iris_column_transformer(self):

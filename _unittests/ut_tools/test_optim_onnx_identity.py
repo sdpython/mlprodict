@@ -183,7 +183,7 @@ class TestOptimOnnxIdentity(ExtTestCase):
 
         else_branch = make_graph(
             [make_node('Identity', inputs=["identity_zero"],
-                              outputs=["else_result"])],
+                       outputs=["else_result"])],
             'else_branch', [],
             [make_tensor_value_info('else_result', TensorProto.INT64, [1])])
 
