@@ -42,7 +42,7 @@ class TestOnnxrtSimpleVotingClassifier(ExtTestCase):
         oinf = OnnxInference(model_def, runtime='python')
         res1 = oinf.run({'X': X_test})
         probs = DataFrame(res1['output_probability']).values
-        self.assertEqualArray(resp, probs)
+        self.assertEqualArray(resp, probs, atol=1e-6)
         self.assertEqualArray(res0, res1['output_label'].ravel())
 
     def test_onnxt_iris_voting_classifier_lr_hard(self):

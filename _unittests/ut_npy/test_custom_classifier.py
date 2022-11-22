@@ -170,7 +170,7 @@ class TestCustomClassifier(ExtTestCase):
         prob = dec.predict_proba(X)  # pylint: disable=W0612
         got = oinf.run({'X': X})
         self.assertEqualArray(exp, got['label'])
-        self.assertEqualArray(prob, got['probabilities'])
+        self.assertEqualArray(prob, got['probabilities'], atol=1e-6)
         X2, P2 = custom_linear_classifier_converter3(  # pylint: disable=E0633
             X, op_=dec)
         self.assertEqualArray(X2, got['label'])

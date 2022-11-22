@@ -478,7 +478,7 @@ def _get_shape(obj):
     try:
         arr = to_array(obj)
         return arr.shape
-    except Exception:
+    except Exception:  # pylint: disable=W0703
         pass
     obj0 = obj
     if hasattr(obj, 'data_type'):
