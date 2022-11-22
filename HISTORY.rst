@@ -5,8 +5,14 @@
 History
 =======
 
-current - 2022-10-09 - 0.00Mb
+current - 2022-11-22 - 0.00Mb
 =============================
+
+* #470: Uses list(graph.node) when using id(node) (2022-11-22)
+* #471: Add one unit test to check optimisation is working (2022-11-21)
+
+0.9.1883 - 2022-10-09 - 39.39Mb
+==============================
 
 * #469: Implements a converter for a TransformedTargetRegressor (2022-10-09)
 * #468: Adds debug functionalities in TfidfVectorizer (2022-10-07)
@@ -28,7 +34,7 @@ current - 2022-10-09 - 0.00Mb
 * #456: Fixes python runtime for TfIdfVectorizer (2022-07-22)
 * #455: Fixes division by zero in Normalizer (2022-07-21)
 
-0.8.1858 - 2022-07-20 - 2.42Mb
+0.8.1858 - 2022-07-20 - 37.35Mb
 ==============================
 
 * #454: Fixes compilation issues on windows and python 3.10 (2022-07-20)
@@ -53,7 +59,7 @@ current - 2022-10-09 - 0.00Mb
 * #436: Supports for attributes in onnx functions (2022-06-21)
 * #435: Extends documentation to onnxruntime (2022-06-13)
 
-0.8.1826 - 2022-05-29 - 0.71Mb
+0.8.1826 - 2022-05-29 - 28.43Mb
 ==============================
 
 * #432: None and [] should be different function get_tensor_shape (2022-05-25)
@@ -139,7 +145,7 @@ current - 2022-10-09 - 0.00Mb
 * #353: Experimentations with a new API to create ONNX graphs (2022-02-18)
 * #352: Supports for shape inference on unary operators (2022-02-14)
 
-0.8.1697 - 2022-02-11 - 1.97Mb
+0.8.1697 - 2022-02-11 - 1.98Mb
 ==============================
 
 * #351: Adds name in ShapeResult, fixes zoo links (2022-02-11)
@@ -152,7 +158,7 @@ current - 2022-10-09 - 0.00Mb
 * #343: Shows links in onnx_simple_text_plot (2022-02-03)
 * #342: Displays small arrays in onnx_simple_text_plot (2022-01-22)
 
-0.8.1674 - 2021-12-30 - 1.94Mb
+0.8.1674 - 2021-12-30 - 23.58Mb
 ==============================
 
 * #340: Implements tokenizer following scikit-learn's API using onnxruntime-extensions (2021-12-29)
@@ -176,7 +182,7 @@ current - 2022-10-09 - 0.00Mb
 * #327: Adds runtime for operator LeakyRelu (2021-12-13)
 * #326: Better error messages when name is shared with results and node name in onnx_simple_text_plot (2021-12-10)
 
-0.7.1649 - 2021-12-09 - 1.95Mb
+0.7.1649 - 2021-12-09 - 1.94Mb
 ==============================
 
 * #325: Implements a simple text display for ONNX graph (2021-12-08)
@@ -188,25 +194,25 @@ current - 2022-10-09 - 0.00Mb
 * #317: plot_onnx fails when node names contains '.' (2021-10-28)
 * #316: failed to use RandomForestRegressor ort in android studio (2021-10-28)
 
-0.7.1626 - 2021-10-21 - 1.93Mb
+0.7.1626 - 2021-10-21 - 23.49Mb
 ==============================
 
 * #315: Fixes import issue for python 3.6 (2021-10-21)
 
-0.7.1625 - 2021-10-12 - 15.57Mb
+0.7.1625 - 2021-10-12 - 0.58Mb
 ==============================
 
 * #314: Builds mlprodict for python 3.6 on linux (2021-10-11)
 * #313: Fix a bug related to shapes when exporting a model to tf2onnx (2021-10-10)
 * #312: Add more tests for einsum decomposition (2021-10-08)
 
-0.7.1624 - 2021-10-02 - 15.19Mb
+0.7.1624 - 2021-10-02 - 2.69Mb
 ==============================
 
 * #311: Support opset 15 (onnx>=1.10) (2021-10-02)
 * #310: Raise an exception when inplace and intermediate are True (OnnxInference.run) (2021-09-23)
 
-0.7.1602 - 2021-09-21 - 22.30Mb
+0.7.1602 - 2021-09-21 - 2.69Mb
 ==============================
 
 * #309: Adds function insert_results_into_onnx to insert results into a graph to debug (2021-09-21)
@@ -228,7 +234,7 @@ current - 2022-10-09 - 0.00Mb
 * #292: Adds operator AveragePool to the python runtime (2021-07-29)
 * #290: Increases code coverage, add infer_size for Loop runtime (2021-07-28)
 
-0.6.1522 - 2021-07-26 - 1.78Mb
+0.6.1522 - 2021-07-26 - 23.15Mb
 ==============================
 
 * #289: Avoids raising an exception when an optional parameter is not specified (2021-07-26)
@@ -236,7 +242,7 @@ current - 2022-10-09 - 0.00Mb
 * #287: Adds python runtime for operator Loop, SequenceInsert, ConcatFromSequence (2021-07-25)
 * #286: Adds runtime for operator Range (2021-07-13)
 
-0.6.1447 - 2021-07-12 - 2.56Mb
+0.6.1447 - 2021-07-12 - 1.79Mb
 ==============================
 
 * #285: Adds function cst to create constant with numpy API for ONNX (2021-07-12)
@@ -270,7 +276,7 @@ current - 2022-10-09 - 0.00Mb
 * #257: Fixes #256, add method to validate input data in numpy API for ONNX (2021-04-20)
 * #256: Add virtual method to validate input before predictions in numpy API for ONNX (2021-04-20)
 
-0.5.1447 - 2021-04-17 - 0.38Mb
+0.5.1447 - 2021-04-17 - 1.54Mb
 ==============================
 
 * #255: Supports any embedded estimator with numpy API (2021-04-17)
@@ -322,7 +328,7 @@ current - 2022-10-09 - 0.00Mb
 * #205: Fixes asv configuration (2021-01-18)
 * #206: Build wheel for all many platforms in CI (2021-01-17)
 
-0.5.1360 - 2021-01-04 - 0.35Mb
+0.5.1360 - 2021-01-04 - 1.44Mb
 ==============================
 
 * #203: Enable Python 3.9, enable opset 13, upgrade version number (2021-01-04)
@@ -331,7 +337,7 @@ current - 2022-10-09 - 0.00Mb
 * #200: Add support for bfloat16 (2020-12-30)
 * #199: Fix unit tests recently failing due to onnxruntime update. (2020-12-15)
 
-0.4.1352 - 2020-12-11 - 1.42Mb
+0.4.1352 - 2020-12-11 - 0.34Mb
 ==============================
 
 * #196: Fixes operator Slice for opset 9 (2020-12-11)
