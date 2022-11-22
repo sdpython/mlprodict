@@ -163,17 +163,17 @@ jobs:
     displayName: 'Build package inplace'
   - script: python -u setup.py unittests -g ".*((LONG)|(SKIP)|(notebooks)|(asv_benchmark)|(test_onnx_helper)|(test_onnx_inference)|(test_onnxrt_python_runtime_ml)|(test_custom_embedded_any_models)|(test_custom_)|(test_onnx_pipeline)|(test_onnx_speedup_cluster)).*" -d 7
     displayName: 'Runs Unit Tests'
-  - script: |
-      python -m pip install cibuildwheel
-      export CIBW_BEFORE_BUILD="pip install pybind11 cython numpy scipy pyquickhelper scikit-learn pandas pandas_streaming onnx pyquicksetup"
-      export CIBW_BUILD="cp38-macosx_x86_64 cp39-macosx_x86_64 cp310-macosx_x86_64"
-      export CIBW_ENVIRONMENT="MACOSX_DEPLOYMENT_TARGET=10.13"
-      python -m cibuildwheel --output-dir dist/wheelhouse
-    displayName: 'Build Package many'
-  - task: PublishPipelineArtifact@0
-    inputs:
-      artifactName: 'wheel-mac'
-      targetPath: 'dist'
+#  - script: |
+#      python -m pip install cibuildwheel
+#      export CIBW_BEFORE_BUILD="pip install pybind11 cython numpy scipy pyquickhelper scikit-learn pandas pandas_streaming onnx pyquicksetup"
+#      export CIBW_BUILD="cp38-macosx_x86_64 cp39-macosx_x86_64 cp310-macosx_x86_64"
+#      export CIBW_ENVIRONMENT="MACOSX_DEPLOYMENT_TARGET=10.13"
+#      python -m cibuildwheel --output-dir dist/wheelhouse
+#    displayName: 'Build Package many'
+#  - task: PublishPipelineArtifact@0
+#    inputs:
+#      artifactName: 'wheel-mac'
+#      targetPath: 'dist'
 
 - job: 'TestWindows'
   pool:
