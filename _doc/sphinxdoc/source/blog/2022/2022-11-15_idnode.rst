@@ -1,0 +1,19 @@
+
+.. blogpost::
+    :title: Don't use id(node)
+    :keywords: onnx, protobuf, id
+    :date: 2022-11-15
+    :categories: bug
+
+    I was expecting the following code to be produce unique keys.
+    But it seems python objects for the nodes are created one the fly
+    and destroyed in the same loop. Then `id(node)` are not unique.
+
+    ::
+
+        for node in onnx_model.graph.node:
+            key = id(node)
+
+    It is also not sure that the same loop would
+    produce the same results if run a second time
+    later in the code.

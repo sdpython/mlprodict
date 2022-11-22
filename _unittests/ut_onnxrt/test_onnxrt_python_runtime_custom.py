@@ -530,7 +530,7 @@ class TestOnnxrtPythonRuntimeCustom(ExtTestCase):
 
         oinf = OnnxInference(model_def)
         got = oinf.run({'G': P, 'P': P})
-        self.assertEqualArray(Z, got['Z'])
+        self.assertEqualArray(Z, got['Z'], atol=1e-7)
 
 
 if __name__ == "__main__":

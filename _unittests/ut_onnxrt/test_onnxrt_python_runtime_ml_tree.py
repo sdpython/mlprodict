@@ -302,7 +302,8 @@ class TestOnnxrtPythonRuntimeMlTree(ExtTestCase):
                 self.assertEqual(list(sorted(y32)), ['variable'])
                 self.assertEqual(lexp[irow:irow + 1].shape,
                                  y32['variable'].shape)
-                self.assertEqualArray(lexp[irow:irow + 1], y32['variable'])
+                self.assertEqualArray(
+                    lexp[irow:irow + 1], y32['variable'], atol=1e-7)
 
                 oinf32.sequence_[0].ops_.rt_.omp_tree_ = 10
                 y32 = oinf32.run(
@@ -312,20 +313,21 @@ class TestOnnxrtPythonRuntimeMlTree(ExtTestCase):
                 self.assertEqual(list(sorted(y32)), ['variable'])
                 self.assertEqual(lexp[irow:irow + 1].shape,
                                  y32['variable'].shape)
-                self.assertEqualArray(lexp[irow:irow + 1], y32['variable'])
+                self.assertEqualArray(lexp[irow:irow + 1], y32['variable'],
+                                      atol=1e-6)
 
         with self.subTest(rows=X_test.shape[0]):
             oinf32.sequence_[0].ops_.rt_.omp_tree_ = 10000
             y32 = oinf32.run({'X': X_test.astype(numpy.float32)})
             self.assertEqual(list(sorted(y32)), ['variable'])
             self.assertEqual(lexp.shape, y32['variable'].shape)
-            self.assertEqualArray(lexp, y32['variable'])
+            self.assertEqualArray(lexp, y32['variable'], atol=1e-6)
 
             oinf32.sequence_[0].ops_.rt_.omp_tree_ = 10
             y32 = oinf32.run({'X': X_test.astype(numpy.float32)})
             self.assertEqual(list(sorted(y32)), ['variable'])
             self.assertEqual(lexp.shape, y32['variable'].shape)
-            self.assertEqualArray(lexp, y32['variable'])
+            self.assertEqualArray(lexp, y32['variable'], atol=1e-6)
 
         onx32 = model_def32.SerializeToString()
         onx64 = model_def64.SerializeToString()

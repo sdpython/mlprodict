@@ -66,7 +66,7 @@ class TestOnnxrtSideBySide(ExtTestCase):
         res = sess.run({'X': Xtest_.astype(numpy.float32)})
         m1 = res['Y']
         m2 = ker(Xtest_)
-        self.assertEqualArray(m1, m2)
+        self.assertEqualArray(m1, m2, atol=1e-6)
 
     @unittest.skipIf(convert_kernel is None, reason="not enough recent version")
     @ignore_warnings(DeprecationWarning)
@@ -88,7 +88,7 @@ class TestOnnxrtSideBySide(ExtTestCase):
         res = sess.run({'X': Xtest_.astype(numpy.float32)})
         m1 = res['Y']
         m2 = ker(Xtest_)
-        self.assertEqualArray(m1, m2)
+        self.assertEqualArray(m1, m2, atol=1e-6)
 
         res = sess.run({'X': Xtest_.astype(numpy.float32)}, intermediate=True)
         self.assertGreater(len(res), 30)

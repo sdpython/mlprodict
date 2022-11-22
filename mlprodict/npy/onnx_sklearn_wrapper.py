@@ -43,7 +43,7 @@ def _skl2onnx_add_to_container(onx, scope, container, outputs):
         container.add_initializer(new_name, None, None, init)
 
     # adding nodes
-    for node in onx.graph.node:
+    for node in list(onx.graph.node):
         new_inputs = []
         for i in node.input:
             if i not in mapped_names:

@@ -164,7 +164,7 @@ class TestOnnxrtPythonRuntimeTraining(ExtTestCase):
             r, t, x2, g2, v2, h2, norm_coefficient, 0.0, alpha, beta, epsilon)
         self.assertEqualArray(x1_new, got['X1_new'])
         self.assertEqualArray(v1_new, got['V1_new'])
-        self.assertEqualArray(h1_new, got['H1_new'])
+        self.assertEqualArray(h1_new, got['H1_new'], atol=1e-6)
         self.assertEqualArray(x2_new, got['X2_new'])
         self.assertEqualArray(v2_new, got['V2_new'], decimal=4)
         self.assertEqualArray(h2_new, got['H2_new'], decimal=4)

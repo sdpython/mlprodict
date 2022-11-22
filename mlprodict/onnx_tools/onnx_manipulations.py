@@ -213,9 +213,9 @@ def select_model_inputs_outputs(model, outputs=None, inputs=None,
                 f"Output '{out}' not found in model.")
         mark_var[out] = 1
 
-    nodes = model.graph.node[::-1]
+    nodes = list(model.graph.node[::-1])
     mark_op = {}
-    for node in nodes:
+    for node in list(nodes):
         mark_op[id(node)] = 0
 
     # We mark all the nodes we need to keep.
@@ -474,7 +474,7 @@ def change_subgraph_io_type_shape(onx, type_changes=None, shape_changes=None,
     # recursive
     if recursive:
         new_nodes = []
-        for node in graph.node:
+        for node in list(graph.node):
             modified = False
             atts = []
             for att in node.attribute:
@@ -700,7 +700,7 @@ def onnx_rename_names(model, strategy='simple', recursive=True,
     for init in graph.sparse_initializer:
         init.name = get_name_init(init)
 
-    for node in graph.node:
+    for node in list(graph.node):
         node.name = get_name_node(node)
         for i in range(len(node.input)):  # pylint: disable=C0200
             node.input[i] = get_name_input(node, i)
@@ -779,7 +779,7 @@ def onnx_rename_inputs_outputs(onx, rename):
         new_sparse_inits.append(init)
 
     new_nodes = []
-    for node in graph.node:
+    for node in list(graph.node):
         modified = False
         atts = []
         for att in node.attribute:
@@ -891,8 +891,9 @@ def insert_results_into_onnx(model, results, as_parameter=True, suffix='_DBG',
     outputs = list(model.graph.output)
     inits = list(model.graph.initializer)
     inits_sparse = list(model.graph.sparse_initializer)
-    nodes = {id(n): n for n in model.graph.node}
-    order = {id(n): i for i, n in enumerate(model.graph.node)}
+    node_list = list(model.graph.node)
+    nodes = {id(n): n for n in node_list}
+    order = {id(n): i for i, n in enumerate(node_list)}
     nodes_copy = {}
 
     names_init = (set(init.name for init in inits) |
@@ -1283,7 +1284,7 @@ def _onnx_inline_function_graph(graph, protos, existing_names, mapping,
 
     # first step, replace names
     nodes = []
-    for node in graph.node:
+    for node in list(graph.node):
         mod = 0
         inp = []
         for i in node.input:

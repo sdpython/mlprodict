@@ -528,7 +528,7 @@ class BiGraph:
         def build_graph(onx):
             edges = []
             labels = {}
-            for node in onx.graph.node:
+            for node in list(onx.graph.node):
                 if len(node.name) == 0:
                     name = str(id(node))
                 else:

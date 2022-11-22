@@ -621,7 +621,7 @@ class TestOnnxBackEnd(ExtTestCase):
         got = oinf.run(feeds)
         goty = [got[k] for k in oinf.output_names]
         for y, gy in zip(ys, goty):
-            self.assertEqualArray(y, gy)
+            self.assertEqualArray(y, gy, atol=1e-6)
 
     def test_onnx_backend_test_clip_default_int8_inbounds(self):
         name = 'test_clip_default_int8_inbounds'

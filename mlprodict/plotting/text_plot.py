@@ -475,6 +475,11 @@ def _get_type(obj0):
 
 
 def _get_shape(obj):
+    try:
+        arr = to_array(obj)
+        return arr.shape
+    except Exception:  # pylint: disable=W0703
+        pass
     obj0 = obj
     if hasattr(obj, 'data_type'):
         if (obj.data_type == TensorProto.FLOAT and  # pylint: disable=E1101

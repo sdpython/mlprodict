@@ -109,7 +109,7 @@ def _compress_nodes_once(nodes, verbose=0):
     # check that a result is used only once
     order = {}
     results = {}
-    for node in nodes:
+    for node in list(nodes):
         order[id(node)] = (len(order), node)
         for name in node.input:
             if name in results:

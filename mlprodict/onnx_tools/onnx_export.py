@@ -75,7 +75,7 @@ def _nodes(graph, rename_name, used, output_names, use_onnx_tensor,
     if unique_operators is not None:
         from ..npy.xop import loadop
     nodes = []
-    for node in graph.node:
+    for node in list(graph.node):
         if (unique_operators is not None and
                 node.domain in ('', 'ai.onnx.ml')):
             clname = loadop((node.domain, node.op_type))
@@ -189,7 +189,7 @@ def _python_make_node_graph(graph, opsets, indent=0, output_names=None):
     if len(graph.sparse_initializer) > 0:
         raise NotImplementedError(  # pragma: no cover
             "Unable to convert sparse_initilizer into python.")
-    for node in graph.node:
+    for node in list(graph.node):
         code.append(_python_make_node(node, opsets, indent=indent))
     if output_names is not None:
         for fr, to in zip(graph.output, output_names):

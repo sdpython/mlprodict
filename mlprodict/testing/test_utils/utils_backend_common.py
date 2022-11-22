@@ -59,7 +59,7 @@ def is_backend_enabled(backend):
     Raises an exception if backend != 'onnxruntime'.
     Unit tests only test models against this backend.
     """
-    if backend == "onnxruntime":
+    if backend in ("onnxruntime", "onnxruntime1"):
         try:
             import onnxruntime  # pylint: disable=W0611
             return True

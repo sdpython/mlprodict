@@ -171,7 +171,8 @@ class TestOnnxrtRuntimeXGBoost(ExtTestCase):
                     oinf = OnnxInference(model_onnx_skl, runtime=rt)
                     res2 = oinf.run({'X': x_test})
                     self.assertEqualArray(model_skl.predict_proba(x_test),
-                                          res2['probabilities'])
+                                          res2['probabilities'],
+                                          atol=1e-7)
 
 
 if __name__ == "__main__":

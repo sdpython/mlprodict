@@ -83,7 +83,7 @@ class TestOnnxrtSwitchTypes(ExtTestCase):
         self.assertEqual(last[0], 'pass2')
         res = oinf.run({'X': X_test.astype(numpy.float64)})
         ym3, std3 = res['GPmean'], res['GPcovstd']
-        self.assertEqualArray(ym3, ym2)
+        self.assertEqualArray(ym3, ym2, atol=1e-6)
         self.assertEqualArray(std3, std2, decimal=5)
         d1 = numpy.sum(numpy.abs(ym.ravel() - ym2.ravel()))
         d2 = numpy.sum(numpy.abs(ym.ravel() - ym3.ravel()))
@@ -120,7 +120,7 @@ class TestOnnxrtSwitchTypes(ExtTestCase):
         self.assertEqual(last[0], 'pass2')
         res = oinf.run({'X': X_test.astype(numpy.float64)})
         ym3, std3 = res['GPmean'], res['GPcovstd']
-        self.assertEqualArray(ym3, ym2)
+        self.assertEqualArray(ym3, ym2, atol=1e-6)
         self.assertEqualArray(std3, std2, decimal=5)
         d1 = numpy.sum(numpy.abs(ym.ravel() - ym2.ravel()))
         d2 = numpy.sum(numpy.abs(ym.ravel() - ym3.ravel()))

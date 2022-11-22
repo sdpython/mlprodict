@@ -46,7 +46,7 @@ class TestBugsOnnxrtOnnxConverter(ExtTestCase):
                             "data", "fw_train_LinearRegression.onnx")
         with open(data, 'rb') as f:
             model = onnx.load(f)
-        for node in model.graph.node:  # pylint: disable=E1101
+        for node in list(model.graph.node):  # pylint: disable=E1101
             if node.name == '':
                 node.name = '%s_%d' % (node.op_type, id(node))
             for i in range(len(node.output)):  # pylint: disable=C0200
@@ -88,7 +88,7 @@ class TestBugsOnnxrtOnnxConverter(ExtTestCase):
                             "data", "fw_train_LogisticRegression.onnx")
         with open(data, 'rb') as f:
             model = onnx.load(f)
-        for node in model.graph.node:  # pylint: disable=E1101
+        for node in list(model.graph.node):  # pylint: disable=E1101
             if node.name == '':
                 node.name = '%s_%d' % (node.op_type, id(node))
             for i in range(len(node.output)):  # pylint: disable=C0200
