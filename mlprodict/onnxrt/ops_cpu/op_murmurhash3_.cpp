@@ -66,7 +66,7 @@ FORCE_INLINE uint32_t getblock(const uint32_t* p, int i) {
 }
 
 
-FORCE_INLINE constexpr uint32_t fmix(uint32_t h) {
+FORCE_INLINE uint32_t fmix(uint32_t h) {
     h ^= h >> 16;
     h *= 0x85ebca6b;
     h ^= h >> 13;
