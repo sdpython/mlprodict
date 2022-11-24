@@ -375,6 +375,16 @@ class OnnxInference:
         return [(_.name, _var_as_dict(_)['type']['shape'])
                 for _ in self.obj.graph.input if _.name in names]
 
+    @property
+    def optional_inputs(self):
+        """
+        Returns the list of optional inputs
+        (the model has an initalizer of the same name as one input).
+        """
+        inits = (set(i.name for i in self.obj.graph.initializer) |
+                 set(i.name for i in self.obj.graph.sparse_initializer))
+        return set(self.input_names) & inits
+
     @staticmethod
     def _get_type_property(info, prop):
         if prop in info:
@@ -666,6 +676,9 @@ class OnnxInference:
                     order[k, 1] = len(order)
                     modif += 1
                     for o in v[1].outputs:
+                        if o in (None, ''):
+                            # optional output
+                            continue
                         if (o, 0) in order:
                             raise RuntimeError(  # pragma: no cover
                                 "Two nodes share the same output '{}' "
