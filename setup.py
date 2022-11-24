@@ -395,6 +395,21 @@ def get_extensions():
         define_macros=define_macros,
         language='c++')
 
+    ext_murmurhash3 = Extension(
+        'mlprodict.onnxrt.ops_cpu.op_murmurhash3_',
+        [os.path.join(
+            root, 'mlprodict/onnxrt/ops_cpu/op_murmurhash3_.cpp')],
+        extra_compile_args=extra_compile_args,
+        extra_link_args=extra_link_args,
+        include_dirs=[
+            # Path to pybind11 headers
+            get_pybind_include(),
+            get_pybind_include(user=True),
+            os.path.join(root, 'mlprodict/onnxrt/ops_cpu')
+        ],
+        define_macros=define_macros,
+        language='c++')
+
     cython_ext = [
         Extension("mlprodict.testing.einsum.direct_blas_lapack",
                   ['mlprodict/testing/einsum/direct_blas_lapack.pyx'],
@@ -417,6 +432,7 @@ def get_extensions():
         ext_gather,
         ext_grid_sample,
         ext_max_pool,
+        ext_murmurhash3,
         ext_non_max_suppression,
         ext_qlinearconv,
         ext_roi_align,
