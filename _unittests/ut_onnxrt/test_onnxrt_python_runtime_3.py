@@ -2,7 +2,6 @@
 @brief      test log(time=2s)
 """
 import unittest
-from logging import getLogger
 import numpy
 from onnx import TensorProto
 from onnx.helper import (
@@ -11,7 +10,7 @@ from onnx.helper import (
 from onnx.checker import check_model
 from pyquickhelper.pycode import ExtTestCase
 from mlprodict.onnxrt import OnnxInference
-from mlprodict import get_ir_version, __max_supported_opset__ as TARGET_OPSET
+from mlprodict import __max_supported_opset__ as TARGET_OPSET
 
 
 class TestOnnxrtPythonRuntime3(ExtTestCase):
@@ -32,7 +31,7 @@ class TestOnnxrtPythonRuntime3(ExtTestCase):
                     make_opsetid('', TARGET_OPSET),
                     make_opsetid('com.microsoft', 1)])
                 check_model(onnx_model)
-            
+
                 sess = OnnxInference(onnx_model, runtime="onnxruntime1")
                 oinf = OnnxInference(onnx_model)
 
@@ -44,8 +43,9 @@ class TestOnnxrtPythonRuntime3(ExtTestCase):
                 feeds = {'X': numpy.array(as_bytes)}
                 expected = sess.run(feeds)
                 got = oinf.run(feeds)
-                
-                self.assertEqual(expected['Y'].tolist()[:-1], got['Y'].tolist()[:-1])
+
+                self.assertEqual(expected['Y'].tolist()[
+                                 :-1], got['Y'].tolist()[:-1])
 
                 # second try
                 input_strings = ['aa', 'a']
@@ -53,8 +53,9 @@ class TestOnnxrtPythonRuntime3(ExtTestCase):
                 feeds = {'X': numpy.array(as_bytes)}
                 expected = sess.run(feeds)
                 got = oinf.run(feeds)
-                
-                self.assertEqual(expected['Y'].tolist()[1:], got['Y'].tolist()[1:])
+
+                self.assertEqual(expected['Y'].tolist()[
+                                 1:], got['Y'].tolist()[1:])
 
     def test_murmurhash3_bug_ort(self):
         from onnxruntime import InferenceSession

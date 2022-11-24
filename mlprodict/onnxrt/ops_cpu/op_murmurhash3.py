@@ -29,13 +29,13 @@ class MurmurHash3(OpRun):
         if self.positive:
             res = numpy.empty(x.shape, dtype=numpy.uint32).flatten()
             xf = x.flatten()
-            for i in range(len(xf)):
+            for i in range(len(xf)):  # pylint: disable=C0200
                 res[i] = MurmurHash3_x86_32_positive(xf[i], self.seed)
             return (res.reshape(x.shape), )
 
         res = numpy.empty(x.shape, dtype=numpy.int32).flatten()
         xf = x.flatten()
-        for i in range(len(xf)):
+        for i in range(len(xf)):  # pylint: disable=C0200
             res[i] = MurmurHash3_x86_32(xf[i], self.seed)
         return (res.reshape(x.shape), )
 
