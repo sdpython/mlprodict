@@ -208,7 +208,7 @@ class TestRtValidateGaussianProcess(ExtTestCase):
         self.assertGreater(len(rows), 0)
 
     def test_partial_float64(self):
-        X, y = make_regression(100, n_features=5)
+        X, y = make_regression(100, n_features=5)  # pylint: disable=W0632
         X_train, X_test, y_train, _ = train_test_split(X, y)
         gau = GaussianProcessRegressor(alpha=10, kernel=DotProduct())
         gau.fit(X_train, y_train)
