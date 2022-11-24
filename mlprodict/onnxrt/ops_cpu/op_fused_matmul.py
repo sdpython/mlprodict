@@ -25,6 +25,11 @@ class FusedMatMul(OpRun):
                      else FusedMatMul._fmatmul00)
         self._meth_ = _meth
         self._meth = lambda a, b: _meth(a, b, self.alpha)
+        # more recent versions of the operator
+        if not hasattr(self, "transBatchA"):
+            self.transBatchA = 0
+        if not hasattr(self, "transBatchB"):
+            self.transBatchB = 0
 
     def _find_custom_operator_schema(self, op_name):
         if op_name == "FusedMatMul":

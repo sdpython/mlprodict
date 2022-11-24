@@ -27,5 +27,4 @@ class TestBugsOnnxrtOnnxinference(ExtTestCase):
 
 
 if __name__ == "__main__":
-    # TestBugsOnnxrtOnnxConverter().test_fx_train_cls()
     unittest.main()
