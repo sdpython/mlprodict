@@ -11,7 +11,8 @@ from mlprodict.onnxrt import OnnxInference
 class TestBugsOnnxrtOnnxinference(ExtTestCase):
 
     def test_bug_grad_fused_matmul(self):
-        path = os.path.join(os.path.dirname(__file__), "data", "square_grad.onnx")
+        path = os.path.join(os.path.dirname(__file__),
+                            "data", "square_grad.onnx")
         oinf2 = OnnxInference(path)
         opts = oinf2.optional_inputs
         feeds = {}

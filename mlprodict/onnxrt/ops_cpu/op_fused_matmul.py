@@ -57,11 +57,11 @@ class FusedMatMul(OpRun):
     def _transpose(x, trans, transBatch):
         if trans:
             n = len(x.shape)
-            perm = list(range(n-2)) + [n-2, n-1]
+            perm = list(range(n - 2)) + [n - 2, n - 1]
             x = numpy.transpose(x, perm)
         if transBatch:
             n = len(x.shape)
-            perm = list(range(1, n-2)) + [0, n-1]
+            perm = list(range(1, n - 2)) + [0, n - 1]
             x = numpy.transpose(x, perm)
         return x
 
