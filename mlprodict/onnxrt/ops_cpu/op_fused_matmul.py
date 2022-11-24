@@ -23,6 +23,7 @@ class FusedMatMul(OpRun):
         else:
             _meth = (FusedMatMul._fmatmul01 if self.transB
                      else FusedMatMul._fmatmul00)
+        self._meth_ = _meth
         self._meth = lambda a, b: _meth(a, b, self.alpha)
 
     def _find_custom_operator_schema(self, op_name):
@@ -47,8 +48,43 @@ class FusedMatMul(OpRun):
     def _fmatmul11(a, b, alpha):
         return numpy.matmul(a.T, b.T) * alpha
 
+    @staticmethod
+    def _transpose(x, trans, transBatch):
+        if trans:
+            n = len(x.shape)
+            perm = list(range(n-2)) + [n-2, n-1]
+            x = numpy.transpose(x, perm)
+        if transBatch:
+            n = len(x.shape)
+            perm = list(range(1, n-2)) + [0, n-1]
+            x = numpy.transpose(x, perm)
+        return x
+
     def _run(self, a, b, attributes=None, verbose=0, fLOG=None):  # pylint: disable=W0221
-        return (self._meth(a, b), )
+        if self.transBatchA or self.transBatchB or len(a.shape) != 2 or len(b.shape) != 2:
+            ta = self._transpose(a, self.transA, self.transBatchA)
+            tb = self._transpose(b, self.transB, self.transBatchB)
+            try:
+                return (numpy.matmul(ta, tb) * self.alpha, )
+            except ValueError as e:
+                raise ValueError(
+                    f"Unable to multiply shape {a.shape}x{b.shape} "
+                    f"({ta.shape}x{tb.shape}) "
+                    f"with transA={self.transA}, "
+                    f"transB={self.transB}, "
+                    f"transBatchA={self.transBatchA}, "
+                    f"transBatchB={self.transBatchB}, "
+                    f"meth={self._meth_}.") from e
+        try:
+            return (self._meth(a, b), )
+        except ValueError as e:
+            raise ValueError(
+                f"Unable to multiply shape {a.shape}x{b.shape} "
+                f"with transA={self.transA}, "
+                f"transB={self.transB}, "
+                f"transBatchA={self.transBatchA}, "
+                f"transBatchB={self.transBatchB}, "
+                f"meth={self._meth_}.") from e
 
 
 class FusedMatMulSchema(OperatorSchema):
