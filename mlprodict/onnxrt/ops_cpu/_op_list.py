@@ -100,6 +100,7 @@ from .op_min import Min
 from .op_mod import Mod
 from .op_momentum import Momentum
 from .op_mul import Mul
+from .op_murmurhash3 import MurmurHash3
 from .op_neg import Neg
 from .op_negative_log_likelihood_loss import NegativeLogLikelihoodLoss
 from .op_normalizer import Normalizer
