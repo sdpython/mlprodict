@@ -7,7 +7,8 @@
 import numpy
 from ._op import OpRun
 from ._new_ops import OperatorSchema
-from .op_murmurhash3_ import MurmurHash3_x86_32, MurmurHash3_x86_32_positive
+from .op_murmurhash3_ import (  # pragma: disable=E0611
+    MurmurHash3_x86_32, MurmurHash3_x86_32_positive)
 
 
 class MurmurHash3(OpRun):
