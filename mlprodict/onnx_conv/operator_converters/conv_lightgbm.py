@@ -312,6 +312,30 @@ def _split_tree_ensemble_atts(attrs, split):
     return results
 
 
+def _select_close_float(x):
+    """
+    Selects the closest float to `x`.
+    It returns always `numpy.float32(x)`.
+    """
+    if isinstance(x, (numpy.float32, numpy.float16)):
+        return x
+    if not isinstance(x, (float, numpy.float64)):
+        raise TypeError(f"Unexpected type for x ({type(x)}), "
+                        f"it should be a double.")
+    eps = numpy.finfo(numpy.float32).eps
+    x64 = numpy.float64(x)
+    r = numpy.float32(x64)
+    if numpy.float64(r) == x64:
+        return r
+    delta = r - x64
+    direction = (eps) if delta < 0 else (-eps)
+    diff1 = abs(delta)
+    nr64 = r + direction
+    nr = numpy.float32(nr64)
+    diff2 = abs(nr - x64)
+    return r if diff1 <= diff2 else nr
+
+
 def convert_lightgbm(scope, operator, container):  # pylint: disable=R0914
     """
     This converters reuses the code from
