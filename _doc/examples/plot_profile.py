@@ -16,7 +16,7 @@ Training and converting a model
 
 import numpy
 import matplotlib.pyplot as plt
-from sklearn.datasets import load_boston
+from sklearn.datasets import load_diabetes
 from sklearn.ensemble import AdaBoostRegressor
 from sklearn.tree import DecisionTreeRegressor
 from pyquickhelper.pycode.profiling import profile
@@ -24,7 +24,7 @@ from mlprodict.onnx_conv import to_onnx
 from mlprodict.onnxrt import OnnxInference
 from mlprodict import get_ir_version
 
-data = load_boston()
+data = load_diabetes()
 X, y = data.data, data.target
 
 dt = DecisionTreeRegressor()
