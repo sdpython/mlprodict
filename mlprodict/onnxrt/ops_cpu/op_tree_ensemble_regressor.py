@@ -23,7 +23,14 @@ class TreeEnsembleRegressorCommon(OpRunUnaryNum):
         OpRunUnaryNum.__init__(
             self, onnx_node, desc=desc,
             expected_attributes=expected_attributes, **options)
+        self.parallel = (60, 20)
+        self._dtype = dtype
+        self._runtime_version = runtime_version
         self._init(dtype=dtype, version=runtime_version)
+
+    def change_parallel(self, trees, rows):
+        self.parallel = (trees, rows)
+        self._init(dtype=self._dtype, version=self._runtime_version)
 
     def _get_typed_attributes(self, k):
         return _get_typed_class_attribute(self, k, self.__class__.atts)
@@ -59,13 +66,13 @@ class TreeEnsembleRegressorCommon(OpRunUnaryNum):
                 self.rt_ = RuntimeTreeEnsembleRegressorFloat()
             elif version == 1:
                 self.rt_ = RuntimeTreeEnsembleRegressorPFloat(
-                    60, 20, False, False)
+                    self.parallel[0], self.parallel[1], False, False)
             elif version == 2:
                 self.rt_ = RuntimeTreeEnsembleRegressorPFloat(
-                    60, 20, True, False)
+                    self.parallel[0], self.parallel[1], True, False)
             elif version == 3:
                 self.rt_ = RuntimeTreeEnsembleRegressorPFloat(
-                    60, 20, True, True)
+                    self.parallel[0], self.parallel[1], True, True)
             else:
                 raise ValueError(f"Unknown version '{version}'.")
         elif dtype == numpy.float64:
@@ -73,13 +80,13 @@ class TreeEnsembleRegressorCommon(OpRunUnaryNum):
                 self.rt_ = RuntimeTreeEnsembleRegressorDouble()
             elif version == 1:
                 self.rt_ = RuntimeTreeEnsembleRegressorPDouble(
-                    60, 20, False, False)
+                    self.parallel[0], self.parallel[1], False, False)
             elif version == 2:
                 self.rt_ = RuntimeTreeEnsembleRegressorPDouble(
-                    60, 20, True, False)
+                    self.parallel[0], self.parallel[1], True, False)
             elif version == 3:
                 self.rt_ = RuntimeTreeEnsembleRegressorPDouble(
-                    60, 20, True, True)
+                    self.parallel[0], self.parallel[1], True, True)
             else:
                 raise ValueError(f"Unknown version '{version}'.")
         else:
