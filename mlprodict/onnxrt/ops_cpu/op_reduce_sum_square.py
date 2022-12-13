@@ -24,7 +24,7 @@ class ReduceSumSquare(OpRunReduceNumpy):
 
 class ReduceSumSquare_18(OpRun):
 
-    atts = {'keepdims': 1}
+    atts = {'keepdims': 1, 'noop_with_empty_axes': 0}
 
     def __init__(self, onnx_node, desc=None, **options):
         OpRun.__init__(self, onnx_node, desc=desc,
