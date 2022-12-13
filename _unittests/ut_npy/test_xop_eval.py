@@ -86,11 +86,11 @@ class TestXOpsEval(ExtTestCase):
         self.assertEqualArray(numpy.abs(x), y)
 
     def test_onnx_operator_item(self):
+        from mlprodict.npy.xop_opset import OnnxReduceMeanApi18
         X = numpy.array([[4, 5, 6], [7, 0, 1]], dtype=numpy.float32)
         W = numpy.array([[1, 0.5, 0.6], [0.5, 0.2, 0.3]], dtype=numpy.float32)
 
-        OnnxReduceMean, OnnxTopK, OnnxGatherElements = loadop(
-            'ReduceMean', 'TopK', 'GatherElements')
+        OnnxTopK, OnnxGatherElements = loadop('TopK', 'GatherElements')
 
         topk = OnnxTopK('X', numpy.array([2], dtype=numpy.int64), axis=1)
 
@@ -107,7 +107,7 @@ class TestXOpsEval(ExtTestCase):
         r2 = dist.f(W, X)
         self.assertEqualArray(r1['output0'], r2)
 
-        result = OnnxReduceMean(dist * topk[0], axes=[1])
+        result = OnnxReduceMeanApi18(dist * topk[0], axes=[1])
         onx = result.to_onnx(numpy.float32, numpy.float32)
 
         sess = OnnxInference(onx)

@@ -447,12 +447,14 @@ class TestXOps(ExtTestCase):
                            'ReduceSumSquare', 'Scan', 'Add')
 
         def onnx_squareform_pdist(X, dtype=None, op_version=None, **kwargs):
+            from mlprodict.npy.xop_opset import OnnxReduceSumSquareApi18
             diff = OnnxSub('next_in', 'next',
                            op_version=op_version)
             id_next = OnnxIdentity('next_in', output_names=['next_out'],
                                    op_version=op_version)
-            flat = OnnxReduceSumSquare(diff, axes=[1], op_version=op_version,
-                                       output_names=['scan_out'], keepdims=0)
+            flat = OnnxReduceSumSquareApi18(
+                diff, axes=[1], op_version=op_version,
+                output_names=['scan_out'], keepdims=0)
             scan_body = id_next.to_onnx(
                 [Variable('next_in', numpy.float32, (None, None)),  # tensor_type([None, None])),
                  Variable('next', numpy.float32, (None, ))],  # tensor_type([None]))]),

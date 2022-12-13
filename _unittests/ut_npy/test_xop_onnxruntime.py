@@ -10,6 +10,8 @@ from onnx.helper import (
     make_graph, make_tensor_value_info)
 from onnx.shape_inference import infer_shapes
 from pyquickhelper.pycode import ExtTestCase
+from pyquickhelper.texthelper.version_helper import compare_module_version
+from onnxruntime import __version__ as ortver
 from mlprodict.onnxrt import OnnxInference
 from mlprodict.npy.xop import loadop
 from mlprodict.npy.xop_variable import max_supported_opset
@@ -124,13 +126,16 @@ class TestXOps(ExtTestCase):
         got = oinf.run({'X': x})
         self.assertEqualArray(numpy.abs(x) * 2, got['Y'])
 
+    @unittest.skipIf(compare_module_version(ortver, '1.13.1') <= 0,
+                     reason="opset not supported by onnxruntime")
     def test_reduce_mean_verbose(self):
         from onnxruntime import InferenceSession
+        from mlprodict.npy.xop_opset import OnnxReduceMeanApi18
         OnnxReduceMean, OnnxTopK, OnnxGatherElements = loadop(
             'ReduceMean', 'TopK', 'GatherElements')
         topk = OnnxTopK('X', numpy.array([2], dtype=numpy.int64), axis=1)
         dist = OnnxGatherElements('W', topk[1], axis=1)
-        result = OnnxReduceMean(dist * topk[0], axes=[1])
+        result = OnnxReduceMeanApi18(dist * topk[0], axes=[1])
         X = numpy.array([[4, 5, 6], [7, 0, 1]], dtype=numpy.float32)
         W = numpy.array([[1, 0.5, 0.6], [0.5, 0.2, 0.3]], dtype=numpy.float32)
         onx = result.to_onnx(numpy.float32, numpy.float32)
