@@ -11,7 +11,7 @@ from ._new_ops import OperatorSchema
 
 class Softmax(OpRunUnaryNum):
 
-    atts = {'axis': 1}
+    atts = {'axis': -1}
 
     def __init__(self, onnx_node, desc=None, **options):
         OpRunUnaryNum.__init__(self, onnx_node, desc=desc,
