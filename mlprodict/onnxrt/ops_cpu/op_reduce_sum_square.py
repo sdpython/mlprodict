@@ -9,7 +9,7 @@ from onnx.defs import onnx_opset_version
 from ._op import OpRunReduceNumpy, OpRun
 
 
-class ReduceSumSquare(OpRunReduceNumpy):
+class ReduceSumSquare_13(OpRunReduceNumpy):
 
     atts = {'axes': [], 'keepdims': 1}
 
@@ -21,6 +21,7 @@ class ReduceSumSquare(OpRunReduceNumpy):
     def _run(self, data, attributes=None, verbose=0, fLOG=None):  # pylint: disable=W0221
         return (numpy.sum(numpy.square(data), axis=self.axes,
                           keepdims=self.keepdims), )
+
 
 class ReduceSumSquare_18(OpRun):
 

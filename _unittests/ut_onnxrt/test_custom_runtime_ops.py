@@ -22,7 +22,7 @@ from skl2onnx.algebra.onnx_ops import (  # pylint: disable=E0611
     OnnxMatMul,
     OnnxMul,
     OnnxPow,
-    OnnxReduceMean,
+    OnnxReduceMean_13,
     OnnxShape,
     OnnxSub,
     OnnxTranspose,
@@ -108,7 +108,7 @@ def live_decorrelate_transformer_converter(scope, operator, container):
     # new part
 
     # mean_ = numpy.mean(X, axis=0, keepdims=True)
-    mean = OnnxReduceMean(X, axes=[0], keepdims=1, op_version=opv)
+    mean = OnnxReduceMean_13(X, axes=[0], keepdims=1, op_version=opv)
     mean.set_onnx_name_prefix('mean')
 
     # X2 = X - mean_
@@ -193,23 +193,18 @@ class TestCustomRuntimeOps(ExtTestCase):
         dec = LiveDecorrelateTransformer()
         dec.fit(X)
 
-        onx = to_onnx(dec, X.astype(numpy.float32))
-
+        onx = to_onnx(dec, X.astype(numpy.float64),
+                      target_opset=17)
         self.assertRaise(lambda: OnnxInference(onx), RuntimeError)
 
         register_operator(OpEig, name='Eig', overwrite=False)
         exp = dec.transform(X.astype(numpy.float32))
 
-        for rt in ['python', 'python_compiled']:
+        for rt in ['python']:
             with self.subTest(runtime=rt):
                 oinf = OnnxInference(onx, runtime=rt)
-                try:
-                    got = oinf.run({'X': X.astype(numpy.float32)})['variable']
-                except NotImplementedError as e:
-                    if rt == 'python_compiled':
-                        continue
-                    raise e
-                self.assertEqualArray(exp, got)
+                got = oinf.run({'X': X.astype(numpy.float64)})
+                self.assertEqualArray(exp, got['variable'], atol=1e-4)
 
 
 if __name__ == "__main__":

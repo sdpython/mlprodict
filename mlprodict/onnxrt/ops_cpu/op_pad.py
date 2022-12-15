@@ -16,7 +16,7 @@ def _pad_impl(data, raw_pads, mode, constant_values=0.0, axes=None):
         pos = 0
         for i in range(len(data.shape)):
             if axes is None or i in axes:
-                raw_pads.extend(old_raw_pads[pos : pos + 2])
+                raw_pads.extend(old_raw_pads[pos: pos + 2])
                 pos += 2
             else:
                 raw_pads.extend([0, 0])
@@ -28,7 +28,8 @@ def _pad_impl(data, raw_pads, mode, constant_values=0.0, axes=None):
             "The number of elements in raw_pads should be 2 * data_rank")
 
     half = raw_pads.shape[0] // 2
-    pad_width = tuple((raw_pads[i], raw_pads[i + half]) for i in range(0, half))
+    pad_width = tuple((raw_pads[i], raw_pads[i + half])
+                      for i in range(0, half))
 
     if mode == b"constant":
         mode = "constant"

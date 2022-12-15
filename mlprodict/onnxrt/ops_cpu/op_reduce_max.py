@@ -9,7 +9,7 @@ from onnx.defs import onnx_opset_version
 from ._op import OpRunReduceNumpy, OpRun
 
 
-class ReduceMax(OpRunReduceNumpy):
+class ReduceMax_13(OpRunReduceNumpy):
 
     atts = {'axes': [], 'keepdims': 1}
 
