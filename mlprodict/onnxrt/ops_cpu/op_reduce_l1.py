@@ -9,7 +9,7 @@ from onnx.defs import onnx_opset_version
 from ._op import OpRunReduceNumpy, OpRun
 
 
-class ReduceL1_13(OpRunReduceNumpy):
+class ReduceL1_1(OpRunReduceNumpy):
 
     atts = {'axes': [], 'keepdims': 1}
 
@@ -55,4 +55,4 @@ class ReduceL1_18(OpRun):
 if onnx_opset_version() >= 18:
     ReduceL1 = ReduceL1_18
 else:  # pragma: no cover
-    ReduceL1 = ReduceL1_13
+    ReduceL1 = ReduceL1_1

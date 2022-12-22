@@ -9,13 +9,13 @@ from onnx.defs import onnx_opset_version
 from ._op import OpRun, OpRunReduceNumpy
 
 
-class ReduceMean_13(OpRunReduceNumpy):
+class ReduceMean_1(OpRunReduceNumpy):
 
     atts = {'axes': [], 'keepdims': 1}
 
     def __init__(self, onnx_node, desc=None, **options):
         OpRunReduceNumpy.__init__(self, onnx_node, desc=desc,
-                                  expected_attributes=ReduceMean_13.atts,
+                                  expected_attributes=ReduceMean_1.atts,
                                   **options)
 
     def _run(self, data, attributes=None, verbose=0, fLOG=None):  # pylint: disable=W0221
@@ -55,4 +55,4 @@ class ReduceMean_18(OpRun):
 if onnx_opset_version() >= 18:
     ReduceMean = ReduceMean_18
 else:  # pragma: no cover
-    ReduceMean = ReduceMean_13
+    ReduceMean = ReduceMean_1

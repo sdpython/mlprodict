@@ -9,13 +9,13 @@ from onnx.defs import onnx_opset_version
 from ._op import OpRunReduceNumpy, OpRun
 
 
-class ReduceL2_13(OpRunReduceNumpy):
+class ReduceL2_1(OpRunReduceNumpy):
 
     atts = {'axes': [], 'keepdims': 1}
 
     def __init__(self, onnx_node, desc=None, **options):
         OpRunReduceNumpy.__init__(self, onnx_node, desc=desc,
-                                  expected_attributes=ReduceL2.atts,
+                                  expected_attributes=ReduceL2_1.atts,
                                   **options)
 
     def _run(self, data, attributes=None, verbose=0, fLOG=None):  # pylint: disable=W0221
@@ -61,4 +61,4 @@ class ReduceL2_18(OpRun):
 if onnx_opset_version() >= 18:
     ReduceL2 = ReduceL2_18
 else:  # pragma: no cover
-    ReduceL2 = ReduceL2_13
+    ReduceL2 = ReduceL2_1

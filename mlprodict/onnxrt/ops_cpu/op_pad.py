@@ -31,8 +31,7 @@ def _pad_impl(data, raw_pads, mode, constant_values=0.0, axes=None):
     pad_width = tuple((raw_pads[i], raw_pads[i + half])
                       for i in range(0, half))
 
-    if mode == b"constant":
-        mode = "constant"
+    if mode == "constant":
         return numpy.pad(
             data, pad_width=pad_width, mode=mode,
             constant_values=constant_values)
@@ -87,7 +86,7 @@ class Pad_18(Pad_1):
         if constant_value is None:
             constant_value = 0
         return (_pad_impl(
-            data, pads, mode=self.mode,
+            data, pads, mode=self.mode_,
             constant_values=constant_value, axes=axes), )
 
 

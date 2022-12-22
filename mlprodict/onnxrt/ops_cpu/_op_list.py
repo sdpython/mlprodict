@@ -122,19 +122,19 @@ from .op_random import (
 from .op_range import Range
 from .op_reciprocal import Reciprocal
 from .op_reduce_log_sum import (
-    ReduceLogSum, ReduceLogSum_13, ReduceLogSum_18)
+    ReduceLogSum, ReduceLogSum_1, ReduceLogSum_18)
 from .op_reduce_log_sum_exp import (
-    ReduceLogSumExp, ReduceLogSumExp_13, ReduceLogSumExp_18)
-from .op_reduce_l1 import ReduceL1, ReduceL1_13, ReduceL1_18
-from .op_reduce_l2 import ReduceL2, ReduceL2_13, ReduceL2_18
-from .op_reduce_min import ReduceMin, ReduceMin_13, ReduceMin_18
-from .op_reduce_max import ReduceMax, ReduceMax_13, ReduceMax_18
-from .op_reduce_mean import ReduceMean_13, ReduceMean_18, ReduceMean
-from .op_reduce_prod import ReduceProd, ReduceProd_13, ReduceProd_18
+    ReduceLogSumExp, ReduceLogSumExp_1, ReduceLogSumExp_18)
+from .op_reduce_l1 import ReduceL1, ReduceL1_1, ReduceL1_18
+from .op_reduce_l2 import ReduceL2, ReduceL2_1, ReduceL2_18
+from .op_reduce_min import ReduceMin, ReduceMin_1, ReduceMin_18
+from .op_reduce_max import ReduceMax, ReduceMax_1, ReduceMax_18
+from .op_reduce_mean import ReduceMean_1, ReduceMean_18, ReduceMean
+from .op_reduce_prod import ReduceProd, ReduceProd_1, ReduceProd_18
 from .op_reduce_sum import (
     ReduceSum_1, ReduceSum_11, ReduceSum_13, ReduceSum)
 from .op_reduce_sum_square import (
-    ReduceSumSquare, ReduceSumSquare_13, ReduceSumSquare_18)
+    ReduceSumSquare, ReduceSumSquare_1, ReduceSumSquare_18)
 from .op_relu import Relu, ThresholdedRelu
 from .op_reshape import Reshape, Reshape_5, Reshape_13, Reshape_14
 from .op_resize import Resize

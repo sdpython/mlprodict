@@ -64,6 +64,7 @@ def load_op(onnx_node, desc=None, options=None, runtime=None):
     else:
         name_opset = name
 
+    onnx_op = False
     if name_opset in _additional_ops:
         cl = _additional_ops[name_opset]
     elif name in _additional_ops:
@@ -75,6 +76,7 @@ def load_op(onnx_node, desc=None, options=None, runtime=None):
     else:
         # finish
         cl = onnx_load_op('', name)
+        onnx_op = True
         if cl is None:
             raise MissingOperatorError(  # pragma no cover
                 "Operator '{}' from domain '{}' has no runtime yet. "
@@ -110,4 +112,10 @@ def load_op(onnx_node, desc=None, options=None, runtime=None):
 
     if options is None:
         options = {}  # pragma: no cover
-    return cl(onnx_node, desc=desc, runtime=runtime, **options)
+    if onnx_op:
+        return cl(onnx_node, None, **options)
+    try:
+        return cl(onnx_node, desc=desc, runtime=runtime, **options)
+    except TypeError as e:
+        raise TypeError(  # pragma: no cover
+            f"Unexpected issue with class {cl}.") from e

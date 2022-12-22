@@ -336,8 +336,7 @@ class OpRunUnary(OpRun):
     Checks that inputs type are the same.
     """
 
-    def __init__(self, onnx_node, desc=None, expected_attributes=None,
-                 **options):
+    def __init__(self, onnx_node, desc=None, expected_attributes=None, **options):
         OpRun.__init__(self, onnx_node, desc=desc,
                        expected_attributes=expected_attributes,
                        **options)
@@ -401,8 +400,7 @@ class OpRunUnaryNum(OpRunUnary):
     are the same.
     """
 
-    def __init__(self, onnx_node, desc=None, expected_attributes=None,
-                 **options):
+    def __init__(self, onnx_node, desc=None, expected_attributes=None, **options):
         OpRunUnary.__init__(self, onnx_node, desc=desc,
                             expected_attributes=expected_attributes,
                             **options)

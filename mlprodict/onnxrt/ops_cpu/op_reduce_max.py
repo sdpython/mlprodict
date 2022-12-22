@@ -9,13 +9,13 @@ from onnx.defs import onnx_opset_version
 from ._op import OpRunReduceNumpy, OpRun
 
 
-class ReduceMax_13(OpRunReduceNumpy):
+class ReduceMax_1(OpRunReduceNumpy):
 
     atts = {'axes': [], 'keepdims': 1}
 
     def __init__(self, onnx_node, desc=None, **options):
         OpRunReduceNumpy.__init__(self, onnx_node, desc=desc,
-                                  expected_attributes=ReduceMax.atts,
+                                  expected_attributes=ReduceMax_1.atts,
                                   **options)
 
     def _run(self, data, attributes=None, verbose=0, fLOG=None):  # pylint: disable=W0221
@@ -56,4 +56,4 @@ class ReduceMax_18(OpRun):
 if onnx_opset_version() >= 18:
     ReduceMax = ReduceMax_18
 else:  # pragma: no cover
-    ReduceMax = ReduceMax_13
+    ReduceMax = ReduceMax_1
