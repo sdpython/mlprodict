@@ -38,7 +38,7 @@ pyquickhelper>=1.11.3776
 pyquicksetup
 scikit-learn
 scipy
-skl2onnx>=1.12
+git+https://github.com/onnx/sklearn-onnx
 Sphinx
 sphinxcontrib.blockdiag
 sphinx-gallery
