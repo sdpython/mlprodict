@@ -49,9 +49,7 @@ def load_op(onnx_node, desc=None, options=None, runtime=None):
     name = onnx_node.op_type
     opset = options.get('target_opset', None) if options is not None else None
     current_opset = __max_supported_opset__
-    chosen_opset = current_opset
-    if opset == current_opset:
-        opset = None
+    chosen_opset = opset or current_opset
     if opset is not None:
         if not isinstance(opset, int):
             raise TypeError(  # pragma no cover
