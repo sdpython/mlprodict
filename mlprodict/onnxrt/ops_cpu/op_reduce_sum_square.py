@@ -9,7 +9,7 @@ from onnx.defs import onnx_opset_version
 from ._op import OpRunReduceNumpy, OpRun
 
 
-class ReduceSumSquare_13(OpRunReduceNumpy):
+class ReduceSumSquare_1(OpRunReduceNumpy):
 
     atts = {'axes': [], 'keepdims': 1}
 
@@ -54,4 +54,4 @@ class ReduceSumSquare_18(OpRun):
 if onnx_opset_version() >= 18:
     ReduceSumSquare = ReduceSumSquare_18
 else:  # pragma: no cover
-    ReduceSumSquare = ReduceSumSquare_13
+    ReduceSumSquare = ReduceSumSquare_1
