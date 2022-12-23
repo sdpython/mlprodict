@@ -79,7 +79,7 @@ def load_op(onnx_node, desc=None, options=None, runtime=None):
             cl = onnx_load_op(options.get('domain', ''),
                               name, opset)
         except ValueError as e:
-            raise ValueError(
+            raise MissingOperatorError(
                 f"Unable to load class for operator name={name}, "
                 f"opset={opset}, options={options}, "
                 f"_additional_ops={_additional_ops}.") from e
