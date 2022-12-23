@@ -80,7 +80,7 @@ def sklearn_decision_tree_regressor(model, input_names=None, output_names=None, 
     lvalue = MLActionCst(model.tree_.value.ravel().astype(
         numpy.float32), comment="value")
 
-    ex = numpy.zeros(model.n_features_, numpy.float32)
+    ex = numpy.zeros(model.n_features_in_, numpy.float32)
     lvar = MLActionVar(ex, input_names)
 
     lind = MLActionCst(numpy.int32(0), comment="lind")

@@ -75,7 +75,14 @@ def load_op(onnx_node, desc=None, options=None, runtime=None):
         cl = d_op_list[name]
     else:
         # finish
-        cl = onnx_load_op('', name)
+        try:
+            cl = onnx_load_op(options.get('domain', ''),
+                              name, opset)
+        except ValueError as e:
+            raise ValueError(
+                f"Unable to load class for operator name={name}, "
+                f"opset={opset}, options={options}, "
+                f"_additional_ops={_additional_ops}.") from e
         onnx_op = True
         if cl is None:
             raise MissingOperatorError(  # pragma no cover
@@ -113,7 +120,11 @@ def load_op(onnx_node, desc=None, options=None, runtime=None):
     if options is None:
         options = {}  # pragma: no cover
     if onnx_op:
-        return cl(onnx_node, None, **options)
+        try:
+            return cl(onnx_node, {'log': None})
+        except TypeError as e:
+            raise TypeError(  # pragma: no cover
+                f"Unexpected issue with class {cl}.") from e
     try:
         return cl(onnx_node, desc=desc, runtime=runtime, **options)
     except TypeError as e:

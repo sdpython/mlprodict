@@ -15,7 +15,7 @@ class ReduceSumSquare_1(OpRunReduceNumpy):
 
     def __init__(self, onnx_node, desc=None, **options):
         OpRunReduceNumpy.__init__(self, onnx_node, desc=desc,
-                                  expected_attributes=ReduceSumSquare.atts,
+                                  expected_attributes=ReduceSumSquare_1.atts,
                                   **options)
 
     def _run(self, data, attributes=None, verbose=0, fLOG=None):  # pylint: disable=W0221

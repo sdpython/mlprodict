@@ -1518,5 +1518,5 @@ class TestOptimOnnxManipulations(ExtTestCase):
 
 
 if __name__ == "__main__":
-    # TestOptimOnnxManipulations().test_onnx_inline_function_fft2(True)
+    TestOptimOnnxManipulations().test_onnx_inline_function_fft()
     unittest.main(verbosity=2)

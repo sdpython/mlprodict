@@ -33,7 +33,7 @@ class ReduceL2_18(OpRun):
 
     def __init__(self, onnx_node, desc=None, **options):
         OpRun.__init__(self, onnx_node, desc=desc,
-                       expected_attributes=ReduceMax_18.atts,
+                       expected_attributes=ReduceL2_18.atts,
                        **options)
 
     def _run(self, data, axes=None, attributes=None, verbose=0, fLOG=None):  # pylint: disable=W0221
