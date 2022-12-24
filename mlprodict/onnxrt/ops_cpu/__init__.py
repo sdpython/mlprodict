@@ -135,11 +135,16 @@ def load_op(onnx_node, desc=None, options=None, runtime=None):
                 cl.__init__(self, onnx_node, run_params)
 
         # wrapping the original class
-        new_cls = type(f"{name}_{opset}", (cl, ),
-                       {'__init__': _Wrapper.__init__,
-                        '_run': _Wrapper._onnx__run,
-                        'run': _Wrapper._onnx_run,
-                        'need_context': _Wrapper._onnx_need_context})
+        try:
+            new_cls = type(f"{name}_{opset}", (cl, ),
+                           {'__init__': _Wrapper.__init__,
+                            '_run': _Wrapper._onnx__run,
+                            'run': _Wrapper._onnx_run,
+                            'need_context': _Wrapper._onnx_need_context})
+        except TypeError as e:
+            raise TypeError(
+                f"Unable to create a class for operator {name!r} and "
+                f"opset {opset} based on {cl}.") from e
         cl = new_cls
 
     if hasattr(cl, 'version_higher_than'):

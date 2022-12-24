@@ -343,7 +343,8 @@ class TestGLMRegressorConverter(ExtTestCase):
             basename="SklearnARDRegression-Dec4")
 
     def test_model_theilsen(self):
-        model, X = fit_regression_model(TheilSenRegressor())
+        model, X = fit_regression_model(
+            TheilSenRegressor(max_iter=3, n_jobs=1))
         model_onnx = convert_sklearn(
             model, "thiel-sen regressor",
             [("input", FloatTensorType([None, X.shape[1]]))])
@@ -474,7 +475,8 @@ class TestGLMRegressorConverter(ExtTestCase):
     def test_model_ransac_regressor_mlp(self):
         model, X = fit_regression_model(
             RANSACRegressor(
-                base_estimator=MLPRegressor(solver='lbfgs')))
+                base_estimator=MLPRegressor(solver='lbfgs'),
+                min_samples=2))
         model_onnx = convert_sklearn(
             model, "ransac regressor",
             [("input", FloatTensorType([None, X.shape[1]]))])
@@ -486,7 +488,8 @@ class TestGLMRegressorConverter(ExtTestCase):
     def test_model_ransac_regressor_tree(self):
         model, X = fit_regression_model(
             RANSACRegressor(
-                base_estimator=GradientBoostingRegressor()))
+                base_estimator=GradientBoostingRegressor(),
+                min_samples=2))
         model_onnx = convert_sklearn(
             model, "ransac regressor",
             [("input", FloatTensorType([None, X.shape[1]]))])
@@ -519,4 +522,4 @@ class TestGLMRegressorConverter(ExtTestCase):
 
 
 if __name__ == "__main__":
-    unittest.main()
+    unittest.main(verbosity=2)

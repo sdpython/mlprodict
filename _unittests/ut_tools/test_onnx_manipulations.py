@@ -365,7 +365,7 @@ class TestOptimOnnxManipulations(ExtTestCase):
 
         opv = TARGET_OPSET
         onnx_fct = OnnxIdentity(onnx_squareform_pdist(
-            'x'), output_names='Y', op_version=opv)
+            'x', op_version=opv), output_names='Y', op_version=opv)
         model_def = onnx_fct.to_onnx(inputs={'x': numpy.float32})
 
         oinf1 = OnnxInference(model_def)

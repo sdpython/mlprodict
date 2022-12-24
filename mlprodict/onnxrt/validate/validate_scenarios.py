@@ -305,7 +305,7 @@ def build_custom_scenarios():
         ],
         SelectFwe: [
             ('alpha100', {
-                'alpha': 100.0,
+                'alpha': 0.5,
             }),
         ],
         SelectKBest: [

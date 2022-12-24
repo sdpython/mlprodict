@@ -245,7 +245,7 @@ def verify_model(onnx_file, examples, runtime=None, abs_tol=5e-4,
             relative = absolute / numpy.median(diff) if absolute > 0 else 0.
             if absolute > abs_tol:
                 raise ValueError(  # pragma: no cover
-                    "Example %d, inferred and expected resuls are different "
+                    "Example %d, inferred and expected results are different "
                     "for output %d: abs=%r rel=%r (runtime=%r)."
                     "" % (index, i, absolute, relative, runtime))
             rows.append(dict(name=name, i=i, abs=absolute, rel=relative))
