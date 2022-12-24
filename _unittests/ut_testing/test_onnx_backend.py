@@ -1580,5 +1580,5 @@ class TestOnnxBackEnd(ExtTestCase):
 
 
 if __name__ == "__main__":
-    TestOnnxBackEnd().test_enumerate_onnx_tests_run_one()
+    # TestOnnxBackEnd().test_enumerate_onnx_tests_run_one()
     unittest.main()

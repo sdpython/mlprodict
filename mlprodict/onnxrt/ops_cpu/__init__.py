@@ -97,6 +97,51 @@ def load_op(onnx_node, desc=None, options=None, runtime=None):
                             if "_" not in _ and _ not in {
                                 'cl', 'clo', 'name'})))))
 
+        class _Wrapper:
+
+            def _log(self, *args, **kwargs):
+                pass
+
+            def _onnx_run(self, *args, **kwargs):
+                cl = self.__class__.__bases__[0]
+                new_kws = {}
+                for k, v in kwargs.items():
+                    if k not in {'attributes', 'verbose', 'fLOG'}:
+                        new_ks[k] = v
+                attributes = kwargs.get('attributes', None)
+                if attributes is not None and len(attributes) > 0:
+                    raise NotImplementedError(
+                        f"attributes is not empty but not implemented yet.")
+                return cl.run(self, *args, **new_kws)
+
+            def _onnx__run(self, *args, attributes=None, **kwargs):
+                """
+                Wraps ONNX call to OpRun._run.
+                """
+                cl = self.__class__.__bases__[0]
+                if attributes is not None and len(attributes) > 0:
+                    raise NotImplementedError(  # pragma: no cover
+                        f"Linked attributes are not yet implemented for class "
+                        f"{self.__class__!r}.")
+                return cl._run(self, *args, **kwargs)
+
+            def _onnx_need_context(self):
+                cl = self.__class__.__bases__[0]
+                return cl.need_context(self)
+
+            def __init__(self, onnx_node, desc=None, **options):
+                cl = self.__class__.__bases__[0]
+                run_params = {'log': _Wrapper._log}
+                cl.__init__(self, onnx_node, run_params)
+
+        # wrapping the original class
+        new_cls = type(f"{name}_{opset}", (cl, ),
+                       {'__init__': _Wrapper.__init__,
+                        '_run': _Wrapper._onnx__run,
+                        'run': _Wrapper._onnx_run,
+                        'need_context': _Wrapper._onnx_need_context})
+        cl = new_cls
+
     if hasattr(cl, 'version_higher_than'):
         opv = min(current_opset, chosen_opset)
         if cl.version_higher_than > opv:

@@ -247,7 +247,8 @@ class TestPlotTextPlotting(ExtTestCase):
 
         opset = 18
         cop = OnnxAdd('input', 'input', op_version=opset)
-        cdist = onnx_squareform_pdist(cop, dtype=numpy.float32, op_version=opset)
+        cdist = onnx_squareform_pdist(
+            cop, dtype=numpy.float32, op_version=opset)
         cop2 = OnnxIdentity(cdist, output_names=['cdist'], op_version=opset)
 
         model_def = cop2.to_onnx(
