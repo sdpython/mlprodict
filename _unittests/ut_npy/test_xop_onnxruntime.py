@@ -131,8 +131,7 @@ class TestXOps(ExtTestCase):
     def test_reduce_mean_verbose(self):
         from onnxruntime import InferenceSession
         from mlprodict.npy.xop_opset import OnnxReduceMeanApi18
-        OnnxReduceMean, OnnxTopK, OnnxGatherElements = loadop(
-            'ReduceMean', 'TopK', 'GatherElements')
+        OnnxTopK, OnnxGatherElements = loadop('TopK', 'GatherElements')
         topk = OnnxTopK('X', numpy.array([2], dtype=numpy.int64), axis=1)
         dist = OnnxGatherElements('W', topk[1], axis=1)
         result = OnnxReduceMeanApi18(dist * topk[0], axes=[1])

@@ -542,7 +542,7 @@ class OnnxInferenceExport:
                 new_args.append(av)
             return new_args
 
-        if self.oinf.runtime != 'python':
+        if self.oinf.runtime not in ('python', None):
             raise ValueError(
                 f"The runtime must be 'python' not '{self.oinf.runtime}'.")
 

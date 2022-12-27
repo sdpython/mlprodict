@@ -81,7 +81,7 @@ class Pad_1(OpRun):
 
 class Pad_18(Pad_1):
 
-    def _run(self, data, pads, constant_value=None, axes=None,
+    def _run(self, data, pads, constant_value=None, axes=None,  # pylint: disable=W0237
              attributes=None, verbose=0, fLOG=None):
         if constant_value is None:
             constant_value = 0

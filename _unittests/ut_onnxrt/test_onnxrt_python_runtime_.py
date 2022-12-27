@@ -20,8 +20,10 @@ from onnx.backend.test.case.node.lstm import LSTM_Helper
 from onnx.backend.test.case.node.negativeloglikelihoodloss import (
     compute_negative_log_likelihood_loss)
 from onnx.backend.test.case.node.onehot import one_hot
-from onnx.backend.test.case.node.resize import (
-    nearest_coeffs, interpolate_nd, linear_coeffs)
+from onnx.reference.ops.op_resize import (
+    _nearest_coeffs as nearest_coeffs,
+    _interpolate_nd as interpolate_nd,
+    _linear_coeffs as linear_coeffs)
 from onnx.backend.test.case.node.rnn import RNN_Helper
 from onnx.backend.test.case.node.roialign import get_roi_align_input_values
 from onnx.backend.test.case.node.softmaxcrossentropy import softmaxcrossentropy
@@ -628,7 +630,8 @@ class TestOnnxrtPythonRuntime(ExtTestCase):  # pylint: disable=R0904
                                         op_version=None,
                                         outputs=None, debug=False,
                                         do_sparse=True, raise_shape=False,
-                                        bool_type=False):
+                                        bool_type=False,
+                                        to_python=True):
         if op_version is None:
             op_version = TARGET_OPSET
         try:
@@ -649,8 +652,9 @@ class TestOnnxrtPythonRuntime(ExtTestCase):  # pylint: disable=R0904
         python_tested.append(onnx_cl)
 
         # python code
-        oinfpy = OnnxInference(model_def, runtime="python", inplace=True)
-        validate_python_inference(oinfpy, {'X': X.astype(dtype)})
+        if to_python:
+            oinfpy = OnnxInference(model_def, runtime="python", inplace=True)
+            validate_python_inference(oinfpy, {'X': X.astype(dtype)})
 
         # no inplace
         oinf = OnnxInference(model_def, inplace=False)
@@ -664,6 +668,8 @@ class TestOnnxrtPythonRuntime(ExtTestCase):  # pylint: disable=R0904
                            verbose=1, fLOG=print)
         else:
             got = oinf.run({'X': X.astype(dtype)})
+        if isinstance(got['Y'], str):
+            raise AssertionError(f"Unexpected type got['Y']: {type(got['Y'])}.")
         self.assertEqual(list(sorted(got)), ['Y'])
         self.common_expected_shapes_types(
             oinf, {'X': X.astype(numpy.float32)}, got, onnx_cl,
@@ -3050,7 +3056,8 @@ class TestOnnxrtPythonRuntime(ExtTestCase):  # pylint: disable=R0904
             beta = 0.5
             return x * numpy.maximum(0, numpy.minimum(1, alfa * x + beta))
 
-        self.common_test_onnxt_runtime_unary(OnnxHardSwish, hardswish)
+        self.common_test_onnxt_runtime_unary(
+            OnnxHardSwish, hardswish, to_python=False)
 
     @wraplog()
     def test_onnxt_runtime_identity(self):
@@ -3954,7 +3961,7 @@ class TestOnnxrtPythonRuntime(ExtTestCase):  # pylint: disable=R0904
             oinf, {'X': X.astype(numpy.float32)}, got,
             OnnxReduceL1, model_def)
 
-        onx = OnnxReduceL1('X', output_names=['Y'], axes=1,
+        onx = OnnxReduceL1('X', output_names=['Y'], axes=[1],
                            op_version=TARGET_OPSET)
         model_def = onx.to_onnx({'X': X.astype(numpy.float32)},
                                 target_opset=TARGET_OPSET)
@@ -3964,7 +3971,7 @@ class TestOnnxrtPythonRuntime(ExtTestCase):  # pylint: disable=R0904
         self.assertEqualArray(reduce_l1(X, axis=1, keepdims=1).ravel(),
                               got['Y'].ravel())
 
-        onx = OnnxReduceL1('X', output_names=['Y'], axes=1, keepdims=1,
+        onx = OnnxReduceL1('X', output_names=['Y'], axes=[1], keepdims=1,
                            op_version=TARGET_OPSET)
         model_def = onx.to_onnx({'X': X.astype(numpy.float32)},
                                 target_opset=TARGET_OPSET)
@@ -3997,7 +4004,7 @@ class TestOnnxrtPythonRuntime(ExtTestCase):  # pylint: disable=R0904
             oinf, {'X': X.astype(numpy.float32)}, got, OnnxReduceL2,
             model_def)
 
-        onx = OnnxReduceL2('X', output_names=['Y'], axes=1,
+        onx = OnnxReduceL2('X', output_names=['Y'], axes=[1],
                            op_version=TARGET_OPSET)
         model_def = onx.to_onnx({'X': X.astype(numpy.float32)},
                                 target_opset=TARGET_OPSET)
@@ -4008,7 +4015,7 @@ class TestOnnxrtPythonRuntime(ExtTestCase):  # pylint: disable=R0904
         self.assertEqualArray(reduce_l2(X, axis=1, keepdims=1).ravel(),
                               got['Y'].ravel())
 
-        onx = OnnxReduceL2('X', output_names=['Y'], axes=1, keepdims=1,
+        onx = OnnxReduceL2('X', output_names=['Y'], axes=[1], keepdims=1,
                            op_version=TARGET_OPSET)
         model_def = onx.to_onnx({'X': X.astype(numpy.float32)},
                                 target_opset=TARGET_OPSET)
@@ -4149,7 +4156,7 @@ class TestOnnxrtPythonRuntime(ExtTestCase):  # pylint: disable=R0904
             oinf, {'X': X.astype(numpy.float32)}, got,
             OnnxReduceMean, model_def)
 
-        onx = OnnxReduceMean('X', output_names=['Y'], axes=1,
+        onx = OnnxReduceMean('X', output_names=['Y'], axes=[1],
                              op_version=TARGET_OPSET)
         model_def = onx.to_onnx({'X': X.astype(numpy.float32)},
                                 target_opset=TARGET_OPSET)
@@ -4160,7 +4167,7 @@ class TestOnnxrtPythonRuntime(ExtTestCase):  # pylint: disable=R0904
         self.assertEqualArray(numpy.mean(X, axis=1).ravel(),
                               got['Y'].ravel())
 
-        onx = OnnxReduceMean('X', output_names=['Y'], axes=1, keepdims=1,
+        onx = OnnxReduceMean('X', output_names=['Y'], axes=[1], keepdims=1,
                              op_version=TARGET_OPSET)
         model_def = onx.to_onnx({'X': X.astype(numpy.float32)},
                                 target_opset=TARGET_OPSET)
@@ -4223,7 +4230,7 @@ class TestOnnxrtPythonRuntime(ExtTestCase):  # pylint: disable=R0904
         self.assertEqual(list(sorted(got)), ['Y'])
         self.assertEqualArray(numpy.prod(X), got['Y'], decimal=5)
 
-        onx = OnnxReduceProd('X', output_names=['Y'], axes=1,
+        onx = OnnxReduceProd('X', output_names=['Y'], axes=[1],
                              op_version=TARGET_OPSET)
         model_def = onx.to_onnx({'X': X.astype(numpy.float32)},
                                 target_opset=TARGET_OPSET)
@@ -4235,7 +4242,7 @@ class TestOnnxrtPythonRuntime(ExtTestCase):  # pylint: disable=R0904
         self.common_expected_shapes_types(
             oinf, {'X': X}, got, OnnxReduceProd, model_def)
 
-        onx = OnnxReduceProd('X', output_names=['Y'], axes=1, keepdims=1,
+        onx = OnnxReduceProd('X', output_names=['Y'], axes=[1], keepdims=1,
                              op_version=TARGET_OPSET)
         model_def = onx.to_onnx({'X': X.astype(numpy.float32)},
                                 target_opset=TARGET_OPSET)
@@ -4274,7 +4281,7 @@ class TestOnnxrtPythonRuntime(ExtTestCase):  # pylint: disable=R0904
                     oinf, {'X': X.astype(numpy.float32)}, got,
                     OnnxReduceSum, model_def)
 
-            onx = OnnxReduceSumApi11('X', output_names=['Y'], axes=1,
+            onx = OnnxReduceSumApi11('X', output_names=['Y'], axes=[1],
                                      op_version=opset)
             model_def = onx.to_onnx({'X': X.astype(numpy.float32)},
                                     target_opset=opset)
@@ -4295,7 +4302,7 @@ class TestOnnxrtPythonRuntime(ExtTestCase):  # pylint: disable=R0904
         for opset in (11, 12, 13, 14):  # opset=13, 14, ...
             if onnx_opset_version() < opset:
                 continue
-            onx = OnnxReduceSumApi11('X', output_names=['Y'], axes=1, keepdims=1,
+            onx = OnnxReduceSumApi11('X', output_names=['Y'], axes=[1], keepdims=1,
                                      op_version=opset)
             model_def = onx.to_onnx({'X': X.astype(numpy.float32)},
                                     target_opset=opset)
@@ -4376,7 +4383,7 @@ class TestOnnxrtPythonRuntime(ExtTestCase):  # pylint: disable=R0904
             oinf, {'X': X.astype(numpy.float32)}, got,
             OnnxReduceSumSquare, model_def)
 
-        onx = OnnxReduceSumSquare('X', output_names=['Y'], axes=1,
+        onx = OnnxReduceSumSquare('X', output_names=['Y'], axes=[1],
                                   op_version=TARGET_OPSET)
         model_def = onx.to_onnx({'X': X.astype(numpy.float32)},
                                 target_opset=TARGET_OPSET)
@@ -4386,7 +4393,7 @@ class TestOnnxrtPythonRuntime(ExtTestCase):  # pylint: disable=R0904
         self.assertEqualArray(numpy.sum(numpy.square(X), axis=1).ravel(),
                               got['Y'].ravel())
 
-        onx = OnnxReduceSumSquare('X', output_names=['Y'], axes=1, keepdims=1,
+        onx = OnnxReduceSumSquare('X', output_names=['Y'], axes=[1], keepdims=1,
                                   op_version=TARGET_OPSET)
         model_def = onx.to_onnx({'X': X.astype(numpy.float32)},
                                 target_opset=TARGET_OPSET)
@@ -4493,7 +4500,8 @@ class TestOnnxrtPythonRuntime(ExtTestCase):  # pylint: disable=R0904
             data = numpy.array([[[[1, 2], [3, 4]]]], dtype=numpy.float32)
             scales = numpy.array([1.0, 1.0, 2.0, 3.0], dtype=numpy.float32)
             expected = interpolate_nd(
-                data, nearest_coeffs, scale_factors=scales).astype(numpy.float32)
+                data, get_coeffs=lambda ratio, sf: nearest_coeffs(ratio),
+                scale_factors=scales).astype(numpy.float32)
             onx = OnnxResize(
                 'X', '', 'scales', mode='nearest', output_names=['Y'],
                 op_version=TARGET_OPSET)
@@ -5473,5 +5481,5 @@ class TestOnnxrtPythonRuntime(ExtTestCase):  # pylint: disable=R0904
 
 if __name__ == "__main__":
     # Working
-    TestOnnxrtPythonRuntime().test_onnxt_runtime_stft()
+    TestOnnxrtPythonRuntime().test_onnxt_runtime_hardswish()
     unittest.main(verbosity=2)

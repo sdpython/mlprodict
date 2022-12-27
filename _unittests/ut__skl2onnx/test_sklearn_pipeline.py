@@ -10,6 +10,7 @@ from numpy.testing import assert_almost_equal
 import pandas
 from onnx.checker import check_model
 from onnx.shape_inference import infer_shapes
+from pyquickhelper.pycode import ExtTestCase
 from pyquickhelper.texthelper.version_helper import compare_module_version
 from sklearn import __version__ as sklearn_version
 from sklearn import datasets
@@ -23,8 +24,7 @@ from sklearn.datasets import load_iris
 from sklearn.preprocessing import (
     OneHotEncoder, StandardScaler, MinMaxScaler)
 from sklearn.utils._testing import ignore_warnings
-from pyquickhelper.pycode import ExtTestCase
-from sklearn import __version__ as skl2ver
+from skl2onnx import __version__ as skl2ver
 from skl2onnx.common.data_types import (
     FloatTensorType, Int64TensorType, StringTensorType)
 from mlprodict.testing.test_utils import (

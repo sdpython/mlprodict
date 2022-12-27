@@ -161,7 +161,8 @@ from .op_sinh import Sinh
 from .op_size import Size
 from .op_slice import Slice, Slice_1, Slice_10
 from .op_split import Split, Split_2, Split_11, Split_13
-from .op_softmax import Softmax, SoftmaxGrad, SoftmaxGrad_13
+from .op_softmax import (
+    Softmax, Softmax_1, Softmax_13, SoftmaxGrad, SoftmaxGrad_13)
 from .op_softplus import Softplus
 from .op_softsign import Softsign
 from .op_solve import Solve

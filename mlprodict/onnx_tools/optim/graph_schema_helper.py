@@ -96,6 +96,7 @@ def get_defined_outputs(outputs, onnx_node, typed_inputs=None, variables=None,
         ft = DoubleTensorType if dtype == numpy.float64 else FloatTensorType
     elif len(schema) != 1:
         raise ValueError(  # pragma: no cover
+            f"Operator {onnx_node.op_type!r}, "
             f"schema should only contain one output not {schema}.")
     else:
         if isinstance(schema, DataType):

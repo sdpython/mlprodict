@@ -8,7 +8,8 @@ import os
 import urllib.request
 from collections import OrderedDict
 import numpy
-from onnx import TensorProto, numpy_helper
+from onnx import TensorProto, numpy_helper, load
+from onnx.reference import ReferenceEvaluator
 try:
     from .ort_wrapper import InferenceSession
 except ImportError:
@@ -208,6 +209,14 @@ def verify_model(onnx_file, examples, runtime=None, abs_tol=5e-4,
         meth = lambda data, s=sess: s.run(None, data)
         names = [p.name for p in sess.get_inputs()]
         onames = list(range(len(sess.get_outputs())))
+    elif runtime in ('onnx'):
+        with open(onnx_file, "rb") as f:
+            onx = load(f)
+        inits = set(i.name for i in onx.graph.initializer)
+        sess = ReferenceEvaluator(onnx_file, verbose=10)
+        meth = lambda data, s=sess: s.run(None, data)
+        names = [n for n in sess.input_names if n not in inits]
+        onames = list(range(len(sess.output_names)))
     else:
         def _lin_(sess, data, names):
             r = sess.run(data, verbose=verbose, fLOG=fLOG)

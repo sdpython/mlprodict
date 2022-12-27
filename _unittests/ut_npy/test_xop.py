@@ -442,9 +442,8 @@ class TestXOps(ExtTestCase):
         self.assertEqual(shape, (2, ))
 
     def _scan_pdist(self, opset):
-        (OnnxSub, OnnxIdentity, OnnxReduceSumSquare, OnnxScan,
-         OnnxAdd) = loadop('Sub', 'Identity',
-                           'ReduceSumSquare', 'Scan', 'Add')
+        (OnnxSub, OnnxIdentity, OnnxScan,
+         OnnxAdd) = loadop('Sub', 'Identity', 'Scan', 'Add')
 
         def onnx_squareform_pdist(X, dtype=None, op_version=None, **kwargs):
             from mlprodict.npy.xop_opset import OnnxReduceSumSquareApi18

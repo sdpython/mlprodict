@@ -44,7 +44,7 @@ class ReduceMax_18(OpRun):
             else:
                 axes = tuple(axes.ravel().tolist()) if len(axes) > 0 else None
         try:
-            return (numpy.maximum.reduce(
+            return (numpy.maximum.reduce(  # pylint: disable=E1123
                 data, axis=axes if axes else None,
                 keepdims=self.keepdims,
                 dtype=data.dtype), )

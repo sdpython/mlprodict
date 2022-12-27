@@ -3,10 +3,12 @@
 @file
 @brief Shortcut to *ops_cpu*.
 """
+import inspect
 import textwrap
 from onnx.reference.ops import load_op as onnx_load_op
+from onnx.defs import get_schema
 from ..excs import MissingOperatorError
-from ._op import OpRunCustom
+from ._op import OpRunCustom, OpFunction
 from ._op_list import __dict__ as d_op_list
 
 
@@ -102,49 +104,85 @@ def load_op(onnx_node, desc=None, options=None, runtime=None):
             def _log(self, *args, **kwargs):
                 pass
 
+            @property
+            def base_class(self):
+                return self.__class__.__bases__[0]
+
             def _onnx_run(self, *args, **kwargs):
-                cl = self.__class__.__bases__[0]
+                cl = self.base_class
                 new_kws = {}
                 for k, v in kwargs.items():
                     if k not in {'attributes', 'verbose', 'fLOG'}:
-                        new_ks[k] = v
+                        new_kws[k] = v
                 attributes = kwargs.get('attributes', None)
                 if attributes is not None and len(attributes) > 0:
                     raise NotImplementedError(
-                        f"attributes is not empty but not implemented yet.")
-                return cl.run(self, *args, **new_kws)
+                        f"attributes is not empty but not implemented yet, "
+                        f"attribures={attributes}.")
+                return cl.run(self, *args, **new_kws)  # pylint: disable=E1101
 
             def _onnx__run(self, *args, attributes=None, **kwargs):
                 """
                 Wraps ONNX call to OpRun._run.
                 """
-                cl = self.__class__.__bases__[0]
+                cl = self.base_class
                 if attributes is not None and len(attributes) > 0:
                     raise NotImplementedError(  # pragma: no cover
                         f"Linked attributes are not yet implemented for class "
                         f"{self.__class__!r}.")
-                return cl._run(self, *args, **kwargs)
+                return cl._run(self, *args, **kwargs)  # pylint: disable=E1101
 
             def _onnx_need_context(self):
-                cl = self.__class__.__bases__[0]
-                return cl.need_context(self)
+                cl = self.base_class
+                return cl.need_context(self)  # pylint: disable=E1101
 
             def __init__(self, onnx_node, desc=None, **options):
-                cl = self.__class__.__bases__[0]
+                cl = self.base_class
                 run_params = {'log': _Wrapper._log}
                 cl.__init__(self, onnx_node, run_params)
 
         # wrapping the original class
-        try:
-            new_cls = type(f"{name}_{opset}", (cl, ),
-                           {'__init__': _Wrapper.__init__,
-                            '_run': _Wrapper._onnx__run,
-                            'run': _Wrapper._onnx_run,
-                            'need_context': _Wrapper._onnx_need_context})
-        except TypeError as e:
-            raise TypeError(
-                f"Unable to create a class for operator {name!r} and "
-                f"opset {opset} based on {cl}.") from e
+        if inspect.isfunction(cl):
+            domain = options.get('domain', '')
+            if domain != '':
+                raise TypeError(
+                    f"Unable to create a class for operator {name!r} and "
+                    f"opset {opset} based on {cl} of type={type(cl)}.")
+            schema = get_schema(name, opset, domain)
+            if schema.has_function:  # type: ignore
+                from mlprodict.onnxrt import OnnxInference
+                body = schema.function_body  # type: ignore
+                sess = OnnxInference(body)
+                new_cls = lambda *args, sess=sess: OpFunction(args[0], impl=sess)
+            elif schema.has_context_dependent_function:  # type: ignore
+                if node is None or input_types is None:
+                    raise RuntimeContextError(
+                        f"No registered implementation for operator {op_type!r} "
+                        f"and domain {domain!r}, the operator has a context dependent function. "
+                        f"but argument node or input_types is not defined.")
+                from mlprodict.onnxrt import OnnxInference
+                body = schema.get_context_dependent_function(
+                    node.SerializeToString(),
+                    [it.SerializeToString() for it in input_types])
+                proto = FunctionProto()
+                proto.ParseFromString(body)
+                sess = ReferenceEvaluator(proto)
+                new_cls = lambda *args, sess=sess: OpFunction(args[0], impl=sess)
+            else:
+                raise TypeError(
+                    f"Unable to create a class for operator {name!r} and "
+                    f"opset {opset} based on {cl} of type={type(cl)}.")
+        else:
+            try:
+                new_cls = type(f"{name}_{opset}", (cl, ),
+                               {'__init__': _Wrapper.__init__,
+                                '_run': _Wrapper._onnx__run,
+                                'run': _Wrapper._onnx_run,
+                                'need_context': _Wrapper._onnx_need_context})
+            except TypeError as e:
+                raise TypeError(
+                    f"Unable to create a class for operator {name!r} and "
+                    f"opset {opset} based on {cl} of type={type(cl)}.") from e
         cl = new_cls
 
     if hasattr(cl, 'version_higher_than'):

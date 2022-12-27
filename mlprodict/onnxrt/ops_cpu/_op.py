@@ -676,3 +676,52 @@ class OpRunCustom(OpRun):
             return OpRunCustom.OpRunCustomSchema(self.__class__)
         raise RuntimeError(  # pragma: no cover
             f"Unable to find a schema for operator '{op_name}'.")
+
+
+class OpFunction(OpRun):
+    """
+    Runs a custom function.
+    """
+
+    def __init__(self, onnx_node, impl):
+        if impl is None:
+            raise RuntimeError(
+                f"impl cannot be None for node type {onnx_node.op_type!r} "
+                f"from domain {onnx_node.domain!r}.")
+        OpRun.__init__(self, onnx_node)
+        self.impl_ = impl
+        # The function implementation is the same whenever the function is called
+        # but the attributes may be different at every call.
+        self.attributes_ = {
+            name: getattr(self, name)
+            for name in self.impl_.attributes_}
+
+    def _run(self, *inputs, **kwargs):
+        if len(self.impl_.input_names) != len(inputs):
+            raise RuntimeError(
+                f"Mismatch lengths between the number of inputs {len(inputs)} "
+                f"and the expected number of inputs {len(self.impl_.inputs)} "
+                f"for node {self.op_type!r} from domain {self.domain!r}.")
+        feeds = dict(zip(self.impl_.input_names, inputs))
+        attributes = self.attributes_.copy()
+        attributes.update(kwargs)
+        results = self.impl_.run(feeds, attributes=attributes)
+        if len(self.impl_.output_names) != len(results):
+            raise RuntimeError(
+                f"Mismatch lengths between the number of outputs {len(results)} "
+                f"and the expected number of outputs {len(self.impl_.output_names)} "
+                f"for node {self.op_type!r} from domain {self.domain!r}.")
+        return tuple(results)
+
+    def to_python(self, inputs):
+        """
+        Returns a python code equivalent to this operator.
+
+        @param      inputs      inputs name
+        @return                 imports, python code, both as strings
+        """
+        res = self.impl_.to_python()
+        sinp = ", ".join(inputs)
+        code = [res[list(res.keys())[0]], "", "",
+                "return OnnxPythonInference().run(" + sinp + ")"]
+        return "", "\n".join(code)

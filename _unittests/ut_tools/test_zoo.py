@@ -83,14 +83,19 @@ class TestZoo(ExtTestCase):
         except ConnectionError as e:
             warnings.warn(f"Unable to continue this test due to {e!r}.")
             return
-        for rt in ['onnxruntime', 'onnxruntime1', 'python']:
+        for rt in ['onnxruntime', 'onnxruntime1',
+                   'onnxruntime2', 'python']:
+            if rt in ("onnxruntime 2", "python "):
+                kwargs = dict(verbose=10, fLOG=print)
+            else:
+                kwargs = {}
             with self.subTest(runtime=rt):
                 try:
-                    verify_model(link, data, runtime=rt)
+                    verify_model(link, data, runtime=rt, **kwargs)
                 except ConnectionError as e:
                     warnings.warn(f"Issue with runtime {rt!r} - {e!r}.")
 
 
 if __name__ == "__main__":
-    # TestZoo().test_verify_side_by_side()
+    # TestZoo().test_verify_model_squeezenet()
     unittest.main()
