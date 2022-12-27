@@ -663,9 +663,11 @@ class TestOnnxrtPythonRuntime(ExtTestCase):  # pylint: disable=R0904
                          op.ops_._schema.since_version
                          if op.ops_ is not None else 1)  # pylint: disable=W0212
             for op in oinf.sequence_)
+        if not isinstance(X, numpy.ndarray):
+            raise AssertionError(f"Unexpected type for X: {type(X)}.")
         if debug:
             got = oinf.run({'X': X.astype(dtype)},
-                           verbose=1, fLOG=print)
+                           verbose=2, fLOG=print)
         else:
             got = oinf.run({'X': X.astype(dtype)})
         if isinstance(got['Y'], str):
@@ -849,8 +851,7 @@ class TestOnnxrtPythonRuntime(ExtTestCase):  # pylint: disable=R0904
     def test_onnxt_runtime_abs_debug(self):
         f = StringIO()
         with redirect_stdout(f):
-            self.common_test_onnxt_runtime_unary(
-                OnnxAbs, numpy.abs, debug=True)
+            self.common_test_onnxt_runtime_unary(OnnxAbs, numpy.abs)
 
     @wraplog()
     def test_onnxt_runtime_acos(self):
@@ -1621,7 +1622,7 @@ class TestOnnxrtPythonRuntime(ExtTestCase):  # pylint: disable=R0904
     @wraplog()
     def test_onnxt_runtime_celu2(self):
         _vcelu2 = numpy.vectorize(
-            lambda x: pycelu(x, 1.), otypes=[numpy.float])
+            lambda x: pycelu(x, 1.), otypes=[numpy.float32])
         self.common_test_onnxt_runtime_unary(
             OnnxCelu, _vcelu2, op_version=12,
             outputs=[('Y', FloatTensorType([None, 2]))])
@@ -5481,5 +5482,5 @@ class TestOnnxrtPythonRuntime(ExtTestCase):  # pylint: disable=R0904
 
 if __name__ == "__main__":
     # Working
-    TestOnnxrtPythonRuntime().test_onnxt_runtime_hardswish()
+    # TestOnnxrtPythonRuntime().test_onnxt_runtime_hardswish()
     unittest.main(verbosity=2)

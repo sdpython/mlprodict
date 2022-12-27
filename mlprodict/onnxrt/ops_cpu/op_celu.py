@@ -39,7 +39,7 @@ class Celu(OpRunUnaryNum):
                                expected_attributes=Celu.atts,
                                **options)
         self._vcelu2 = numpy.vectorize(
-            lambda x: pycelu(x, self.alpha), otypes=[numpy.float])
+            lambda x: pycelu(x, self.alpha), otypes=[numpy.float64])
 
     def _run(self, x, attributes=None, verbose=0, fLOG=None):  # pylint: disable=W0221
         if self.inplaces.get(0, False) and x.flags['WRITEABLE']:

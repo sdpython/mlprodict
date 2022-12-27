@@ -711,7 +711,7 @@ class OpFunction(OpRun):
                 f"Mismatch lengths between the number of outputs {len(results)} "
                 f"and the expected number of outputs {len(self.impl_.output_names)} "
                 f"for node {self.op_type!r} from domain {self.domain!r}.")
-        return tuple(results)
+        return tuple(results[n] for n in self.impl_.output_names)
 
     def to_python(self, inputs):
         """

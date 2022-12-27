@@ -256,8 +256,8 @@ class TestExperimental(ExtTestCase):
 
     def test_experimental_einsum_c_eq2_optim(self):
         eq = "bsnh,btnh->bnts"
-        x = numpy.random.rand(1, 8, 12, 64).astype(numpy.float)
-        y = numpy.random.rand(1, 8, 12, 64).astype(numpy.float)
+        x = numpy.random.rand(1, 8, 12, 64).astype(numpy.float64)
+        y = numpy.random.rand(1, 8, 12, 64).astype(numpy.float64)
         ein = numpy.einsum(eq, x, y)
         ein2 = custom_einsum_float(eq, x, y)
         self.assertEqual(ein.shape, ein2.shape)
@@ -274,8 +274,8 @@ class TestExperimental(ExtTestCase):
         self.assertEqual(ein.shape, ein2.shape)
         self.assertEqualArray(ein, ein2)
 
-        x = numpy.random.rand(1, 8, 12, 64).astype(numpy.float)
-        y = numpy.random.rand(1, 8, 12, 64).astype(numpy.float)
+        x = numpy.random.rand(1, 8, 12, 64).astype(numpy.float64)
+        y = numpy.random.rand(1, 8, 12, 64).astype(numpy.float64)
         ein = numpy.einsum(eq, x, y)
         ein2 = custom_einsum_float(eq, x, y, 2)
         self.assertEqual(ein.shape, ein2.shape)
@@ -283,8 +283,8 @@ class TestExperimental(ExtTestCase):
 
     def test_experimental_einsum_c_eq2_optim2(self):
         eq = "bshn,bthn->bnts"
-        x = numpy.random.rand(1, 8, 12, 64).astype(numpy.float)
-        y = numpy.random.rand(1, 8, 12, 64).astype(numpy.float)
+        x = numpy.random.rand(1, 8, 12, 64).astype(numpy.float64)
+        y = numpy.random.rand(1, 8, 12, 64).astype(numpy.float64)
         ein = numpy.einsum(eq, x, y)
         ein2 = custom_einsum_float(eq, x, y)
         self.assertEqual(ein.shape, ein2.shape)
