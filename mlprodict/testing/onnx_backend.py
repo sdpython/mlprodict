@@ -5,7 +5,12 @@
 import os
 import textwrap
 import numpy
-from numpy import object as dtype_object
+try:
+    # new numpy
+    from numpy import object_ as dtype_object
+except ImportError:
+    # old numpy
+    from numpy import object as dtype_object
 from numpy.testing import assert_almost_equal
 import onnx
 from onnx.numpy_helper import to_array, to_list

@@ -299,7 +299,10 @@ class TestOnnxBackEnd(ExtTestCase):
 
     @ignore_warnings(DeprecationWarning)
     def test_cast_FLOAT_to_STRING(self):
-        from numpy import object as dtype_object
+        try:
+            from numpy import object_ as dtype_object
+        except ImportError:
+            from numpy import object as dtype_object
 
         def create_model():
             initializers = []
@@ -1581,4 +1584,4 @@ class TestOnnxBackEnd(ExtTestCase):
 
 if __name__ == "__main__":
     # TestOnnxBackEnd().test_enumerate_onnx_tests_run_one()
-    unittest.main()
+    unittest.main(verbosity=2)
