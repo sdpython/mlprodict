@@ -161,8 +161,8 @@ def load_op(onnx_node, desc=None, options=None, runtime=None):
             elif schema.has_context_dependent_function:
                 input_types = options.get('input_types', '')
                 if onnx_node is None or input_types is None:
-                    raise RuntimeContextError(
-                        f"No registered implementation for operator {op_type!r} "
+                    raise RuntimeError(
+                        f"No registered implementation for operator {onnx_node.op_type!r} "
                         f"and domain {domain!r}, the operator has a context dependent function. "
                         f"but argument node or input_types is not defined.")
                 from mlprodict.onnxrt import OnnxInference
