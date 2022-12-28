@@ -9,22 +9,23 @@ from onnx.defs import onnx_opset_version
 from ._op import OpRunReduceNumpy, OpRun
 
 
-class ReduceSumSquare(OpRunReduceNumpy):
+class ReduceSumSquare_1(OpRunReduceNumpy):
 
     atts = {'axes': [], 'keepdims': 1}
 
     def __init__(self, onnx_node, desc=None, **options):
         OpRunReduceNumpy.__init__(self, onnx_node, desc=desc,
-                                  expected_attributes=ReduceSumSquare.atts,
+                                  expected_attributes=ReduceSumSquare_1.atts,
                                   **options)
 
     def _run(self, data, attributes=None, verbose=0, fLOG=None):  # pylint: disable=W0221
         return (numpy.sum(numpy.square(data), axis=self.axes,
                           keepdims=self.keepdims), )
 
+
 class ReduceSumSquare_18(OpRun):
 
-    atts = {'keepdims': 1}
+    atts = {'keepdims': 1, 'noop_with_empty_axes': 0}
 
     def __init__(self, onnx_node, desc=None, **options):
         OpRun.__init__(self, onnx_node, desc=desc,
@@ -53,4 +54,4 @@ class ReduceSumSquare_18(OpRun):
 if onnx_opset_version() >= 18:
     ReduceSumSquare = ReduceSumSquare_18
 else:  # pragma: no cover
-    ReduceSumSquare = ReduceSumSquare_13
+    ReduceSumSquare = ReduceSumSquare_1

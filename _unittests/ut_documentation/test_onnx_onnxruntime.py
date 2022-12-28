@@ -12,13 +12,16 @@ from mlprodict.onnxrt import OnnxInference
 
 class TestOnnxOnnxRuntime(ExtTestCase):
 
-    def onnx_test_oinf(self, name, runtime, dtype):
+    def onnx_test_oinf(self, name, runtime, dtype, debug=False):
         this = os.path.join(os.path.dirname(__file__), "data", name)
         data = load_iris()
         X, _ = data.data, data.target
         X = X.astype(dtype)
         oinf = OnnxInference(this, runtime=runtime)
-        res = oinf.run({'X': X})
+        if debug:
+            res = oinf.run({'X': X}, verbose=1, fLOG=print)
+        else:
+            res = oinf.run({'X': X})
         if 'output_label' in res:
             label, prob = res['output_label'], res['output_probability']
             prob = DataFrame(prob).values

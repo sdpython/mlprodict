@@ -441,10 +441,9 @@ class TestXOps(ExtTestCase):
         self.assertEqual(dtype, TensorProto.FLOAT)
         self.assertEqual(shape, (2, ))
 
-    def test_scan_pdist(self):
-        (OnnxSub, OnnxIdentity, OnnxReduceSumSquare, OnnxScan,
-         OnnxAdd) = loadop('Sub', 'Identity',
-                           'ReduceSumSquare', 'Scan', 'Add')
+    def _scan_pdist(self, opset):
+        (OnnxSub, OnnxIdentity, OnnxScan,
+         OnnxAdd) = loadop('Sub', 'Identity', 'Scan', 'Add')
 
         def onnx_squareform_pdist(X, dtype=None, op_version=None, **kwargs):
             from mlprodict.npy.xop_opset import OnnxReduceSumSquareApi18
@@ -479,13 +478,15 @@ class TestXOps(ExtTestCase):
 
         x = numpy.array([1, 2, 4, 5, 5, 4]).astype(
             numpy.float32).reshape((3, 2))
-        cop = OnnxAdd('input', 'input')
-        cdist = onnx_squareform_pdist(cop, dtype=numpy.float32)
-        cop2 = OnnxIdentity(cdist, output_names=['cdist'])
+        cop = OnnxAdd('input', 'input', op_version=opset)
+        cdist = onnx_squareform_pdist(
+            cop, dtype=numpy.float32, op_version=opset)
+        cop2 = OnnxIdentity(cdist, output_names=['cdist'], op_version=opset)
 
         model_def = cop2.to_onnx(
             {'input': numpy.float32},
-            outputs=[Variable('cdist', numpy.float32)])
+            outputs=[Variable('cdist', numpy.float32)],
+            target_opset=opset)
 
         sess = OnnxInference(model_def)
         res = sess.run({'input': x})
@@ -499,6 +500,11 @@ class TestXOps(ExtTestCase):
         self.assertEqual(list(res.keys()), ['cdist'])
         exp = squareform(pdist(x * 2, metric="sqeuclidean"))
         self.assertEqualArray(exp, res['cdist'])
+
+    def test_scan_pdist(self):
+        for op in [17, 18]:
+            with self.subTest(opset=op):
+                self._scan_pdist(op)
 
     def test_syntax_python(self):
 

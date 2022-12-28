@@ -121,17 +121,20 @@ from .op_random import (
     RandomUniformLike, RandomNormalLike)
 from .op_range import Range
 from .op_reciprocal import Reciprocal
-from .op_reduce_log_sum import ReduceLogSum
-from .op_reduce_log_sum_exp import ReduceLogSumExp
-from .op_reduce_l1 import ReduceL1
-from .op_reduce_l2 import ReduceL2
-from .op_reduce_min import ReduceMin
-from .op_reduce_max import ReduceMax
-from .op_reduce_mean import ReduceMean
-from .op_reduce_prod import ReduceProd
+from .op_reduce_log_sum import (
+    ReduceLogSum, ReduceLogSum_1, ReduceLogSum_18)
+from .op_reduce_log_sum_exp import (
+    ReduceLogSumExp, ReduceLogSumExp_1, ReduceLogSumExp_18)
+from .op_reduce_l1 import ReduceL1, ReduceL1_1, ReduceL1_18
+from .op_reduce_l2 import ReduceL2, ReduceL2_1, ReduceL2_18
+from .op_reduce_min import ReduceMin, ReduceMin_1, ReduceMin_18
+from .op_reduce_max import ReduceMax, ReduceMax_1, ReduceMax_18
+from .op_reduce_mean import ReduceMean_1, ReduceMean_18, ReduceMean
+from .op_reduce_prod import ReduceProd, ReduceProd_1, ReduceProd_18
 from .op_reduce_sum import (
     ReduceSum_1, ReduceSum_11, ReduceSum_13, ReduceSum)
-from .op_reduce_sum_square import ReduceSumSquare
+from .op_reduce_sum_square import (
+    ReduceSumSquare, ReduceSumSquare_1, ReduceSumSquare_18)
 from .op_relu import Relu, ThresholdedRelu
 from .op_reshape import Reshape, Reshape_5, Reshape_13, Reshape_14
 from .op_resize import Resize
@@ -158,7 +161,8 @@ from .op_sinh import Sinh
 from .op_size import Size
 from .op_slice import Slice, Slice_1, Slice_10
 from .op_split import Split, Split_2, Split_11, Split_13
-from .op_softmax import Softmax, SoftmaxGrad, SoftmaxGrad_13
+from .op_softmax import (
+    Softmax, Softmax_1, Softmax_13, SoftmaxGrad, SoftmaxGrad_13)
 from .op_softplus import Softplus
 from .op_softsign import Softsign
 from .op_solve import Solve
@@ -190,9 +194,8 @@ from .op_window import BlackmanWindow, HannWindow, HammingWindow
 from .op_xor import Xor
 from .op_yield_op import YieldOp
 from .op_zipmap import ZipMap
-
-
 from ..doc.doc_helper import get_rst_doc
+
 _op_list = []
 clo = locals().copy()
 for name, cl in clo.items():

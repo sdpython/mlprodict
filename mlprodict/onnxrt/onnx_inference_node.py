@@ -3,7 +3,6 @@
 @brief OnnxInferenceNode definition.
 """
 import sys
-import pprint
 import numpy
 from onnx import GraphProto, onnx_pb as onnx_proto
 from onnx.onnx_cpp2py_export.defs import SchemaError  # pylint: disable=E0401,E0611
@@ -450,11 +449,12 @@ class OnnxInferenceNode:
                 raise RuntimeError(  # pragma: no cover
                     f"Results of operator {type(self.ops_)!r} should be a tuple.")
 
-        if len(self.outputs) != len(res):
+        if len(self.outputs) < len(res):
             raise RuntimeError(  # pragma: no cover
-                "Mismatch number of outputs got {} for names {}.\n{}".format(
-                    len(res), list(sorted(self.outputs)),
-                    pprint.pformat(self.desc)))
+                f"Mismatch number of outputs got {len(res)} "
+                f"for names {list(self.outputs)} "
+                f"for class {self.name!r})."
+                f"\n{self.desc}")
 
         # This code takes times if the graph contains many nodes.
         # Maybe a C++ container would help in that case (to skip GIL).

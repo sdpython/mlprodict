@@ -3,9 +3,13 @@
 @file
 @brief Shortcut to *ops_cpu*.
 """
+import inspect
 import textwrap
+from onnx import FunctionProto
+from onnx.reference.ops import load_op as onnx_load_op
+from onnx.defs import get_schema
 from ..excs import MissingOperatorError
-from ._op import OpRunCustom
+from ._op import OpRunCustom, OpFunction
 from ._op_list import __dict__ as d_op_list
 
 
@@ -48,9 +52,7 @@ def load_op(onnx_node, desc=None, options=None, runtime=None):
     name = onnx_node.op_type
     opset = options.get('target_opset', None) if options is not None else None
     current_opset = __max_supported_opset__
-    chosen_opset = current_opset
-    if opset == current_opset:
-        opset = None
+    chosen_opset = opset or current_opset
     if opset is not None:
         if not isinstance(opset, int):
             raise TypeError(  # pragma no cover
@@ -65,6 +67,7 @@ def load_op(onnx_node, desc=None, options=None, runtime=None):
     else:
         name_opset = name
 
+    onnx_op = False
     if name_opset in _additional_ops:
         cl = _additional_ops[name_opset]
     elif name in _additional_ops:
@@ -74,16 +77,119 @@ def load_op(onnx_node, desc=None, options=None, runtime=None):
     elif name in d_op_list:
         cl = d_op_list[name]
     else:
-        raise MissingOperatorError(  # pragma no cover
-            "Operator '{}' from domain '{}' has no runtime yet. "
-            "Available list:\n"
-            "{} - {}".format(
-                name, onnx_node.domain,
-                "\n".join(sorted(_additional_ops)),
-                "\n".join(textwrap.wrap(
-                    " ".join(
-                        _ for _ in sorted(d_op_list)
-                        if "_" not in _ and _ not in {'cl', 'clo', 'name'})))))
+        # finish
+        try:
+            cl = onnx_load_op(options.get('domain', ''),
+                              name, opset)
+        except ValueError as e:
+            raise MissingOperatorError(
+                f"Unable to load class for operator name={name}, "
+                f"opset={opset}, options={options}, "
+                f"_additional_ops={_additional_ops}.") from e
+        onnx_op = True
+        if cl is None:
+            raise MissingOperatorError(  # pragma no cover
+                "Operator '{}' from domain '{}' has no runtime yet. "
+                "Available list:\n"
+                "{} - {}".format(
+                    name, onnx_node.domain,
+                    "\n".join(sorted(_additional_ops)),
+                    "\n".join(textwrap.wrap(
+                        " ".join(
+                            _ for _ in sorted(d_op_list)
+                            if "_" not in _ and _ not in {
+                                'cl', 'clo', 'name'})))))
+
+        class _Wrapper:
+
+            def _log(self, *args, **kwargs):
+                pass
+
+            @property
+            def base_class(self):
+                "Returns the parent class."
+                return self.__class__.__bases__[0]
+
+            def _onnx_run(self, *args, **kwargs):
+                cl = self.base_class
+                new_kws = {}
+                for k, v in kwargs.items():
+                    if k not in {'attributes', 'verbose', 'fLOG'}:
+                        new_kws[k] = v
+                attributes = kwargs.get('attributes', None)
+                if attributes is not None and len(attributes) > 0:
+                    raise NotImplementedError(
+                        f"attributes is not empty but not implemented yet, "
+                        f"attribures={attributes}.")
+                return cl.run(self, *args, **new_kws)  # pylint: disable=E1101
+
+            def _onnx__run(self, *args, attributes=None, **kwargs):
+                """
+                Wraps ONNX call to OpRun._run.
+                """
+                cl = self.base_class
+                if attributes is not None and len(attributes) > 0:
+                    raise NotImplementedError(  # pragma: no cover
+                        f"Linked attributes are not yet implemented for class "
+                        f"{self.__class__!r}.")
+                return cl._run(self, *args, **kwargs)  # pylint: disable=E1101
+
+            def _onnx_need_context(self):
+                cl = self.base_class
+                return cl.need_context(self)  # pylint: disable=E1101
+
+            def __init__(self, onnx_node, desc=None, **options):
+                cl = self.__class__.__bases__[0]
+                run_params = {'log': _Wrapper._log,
+                              'opsets': {'': opset},
+                              'new_ops': None}
+                cl.__init__(self, onnx_node, run_params)
+
+        # wrapping the original class
+        if inspect.isfunction(cl):
+            domain = options.get('domain', '')
+            if domain != '':
+                raise TypeError(
+                    f"Unable to create a class for operator {name!r} and "
+                    f"opset {opset} based on {cl} of type={type(cl)}.")
+            schema = get_schema(name, opset, domain)
+            if schema.has_function:
+                from mlprodict.onnxrt import OnnxInference
+                body = schema.function_body
+                sess = OnnxInference(body)
+                new_cls = lambda *args, sess=sess: OpFunction(args[0], impl=sess)
+            elif schema.has_context_dependent_function:
+                input_types = options.get('input_types', '')
+                if onnx_node is None or input_types is None:
+                    raise RuntimeError(
+                        f"No registered implementation for operator {onnx_node.op_type!r} "
+                        f"and domain {domain!r}, the operator has a context dependent function. "
+                        f"but argument node or input_types is not defined.")
+                from mlprodict.onnxrt import OnnxInference
+                body = schema.get_context_dependent_function(
+                    onnx_node.SerializeToString(),
+                    [it.SerializeToString() for it in input_types])
+                proto = FunctionProto()
+                proto.ParseFromString(body)
+                sess = OnnxInference(proto)
+                new_cls = lambda *args, sess=sess: OpFunction(args[0], impl=sess)
+            else:
+                raise TypeError(
+                    f"Unable to create a class for operator {name!r} and "
+                    f"opset {opset} based on {cl} of type={type(cl)}.")
+        else:
+            try:
+                new_cls = type(f"{name}_{opset}", (cl, ),
+                               {'__init__': _Wrapper.__init__,
+                                '_run': _Wrapper._onnx__run,
+                                'base_class': _Wrapper.base_class,
+                                'run': _Wrapper._onnx_run,
+                                'need_context': _Wrapper._onnx_need_context})
+            except TypeError as e:
+                raise TypeError(
+                    f"Unable to create a class for operator {name!r} and "
+                    f"opset {opset} based on {cl} of type={type(cl)}.") from e
+        cl = new_cls
 
     if hasattr(cl, 'version_higher_than'):
         opv = min(current_opset, chosen_opset)
@@ -107,4 +213,14 @@ def load_op(onnx_node, desc=None, options=None, runtime=None):
 
     if options is None:
         options = {}  # pragma: no cover
-    return cl(onnx_node, desc=desc, runtime=runtime, **options)
+    if onnx_op:
+        try:
+            return cl(onnx_node, {'log': None})
+        except TypeError as e:
+            raise TypeError(  # pragma: no cover
+                f"Unexpected issue with class {cl}.") from e
+    try:
+        return cl(onnx_node, desc=desc, runtime=runtime, **options)
+    except TypeError as e:
+        raise TypeError(  # pragma: no cover
+            f"Unexpected issue with class {cl}.") from e

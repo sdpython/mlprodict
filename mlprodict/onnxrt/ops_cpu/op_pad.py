@@ -5,22 +5,36 @@
 @brief Runtime operator.
 """
 import numpy
+from onnx.defs import onnx_opset_version
 from ._op import OpRun
 
 
-def _pad_impl(data, raw_pads, mode, constant_values=0.0):
+def _pad_impl(data, raw_pads, mode, constant_values=0.0, axes=None):
+    if raw_pads is not None:
+        old_raw_pads = raw_pads
+        raw_pads = []
+        pos = 0
+        for i in range(len(data.shape)):
+            if axes is None or i in axes:
+                raw_pads.extend(old_raw_pads[pos: pos + 2])
+                pos += 2
+            else:
+                raw_pads.extend([0, 0])
+        raw_pads = numpy.array(raw_pads)
+
     input_rank = data.ndim
     if input_rank * 2 != raw_pads.size:
-        raise RuntimeError(  # pragma: no cover
-            'The number of elements in raw_pads should be 2 * data_rank')
+        raise RuntimeError(
+            "The number of elements in raw_pads should be 2 * data_rank")
 
     half = raw_pads.shape[0] // 2
     pad_width = tuple((raw_pads[i], raw_pads[i + half])
                       for i in range(0, half))
 
-    if mode == 'constant':
-        return numpy.pad(data, pad_width=pad_width, mode=mode,
-                         constant_values=constant_values)
+    if mode == "constant":
+        return numpy.pad(
+            data, pad_width=pad_width, mode=mode,
+            constant_values=constant_values)
     return numpy.pad(data, pad_width=pad_width, mode=mode)
 
 
@@ -48,7 +62,7 @@ def onnx_pad(data, pads, constant_value=None, mode='constant'):
             [0], dtype=data.dtype.type))
 
 
-class Pad(OpRun):
+class Pad_1(OpRun):
 
     atts = {'mode': b'constant'}
 
@@ -63,3 +77,20 @@ class Pad(OpRun):
             constant_value = 0
         return (_pad_impl(data, pads, mode=self.mode_,
                           constant_values=constant_value), )
+
+
+class Pad_18(Pad_1):
+
+    def _run(self, data, pads, constant_value=None, axes=None,  # pylint: disable=W0237
+             attributes=None, verbose=0, fLOG=None):
+        if constant_value is None:
+            constant_value = 0
+        return (_pad_impl(
+            data, pads, mode=self.mode_,
+            constant_values=constant_value, axes=axes), )
+
+
+if onnx_opset_version() >= 18:
+    Pad = Pad_18
+else:
+    Pad = Pad_1  # type: ignore

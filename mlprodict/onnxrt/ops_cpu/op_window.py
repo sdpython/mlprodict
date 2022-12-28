@@ -5,7 +5,7 @@
 @brief Runtime operator.
 """
 import numpy
-from onnx.onnx_pb import TensorProto
+from onnx.onnx_pb import TensorProto  # pylint: disable=E0611
 from onnx.mapping import TENSOR_TYPE_TO_NP_TYPE
 from ._op import OpRun
 

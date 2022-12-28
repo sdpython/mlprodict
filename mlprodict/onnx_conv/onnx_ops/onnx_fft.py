@@ -30,6 +30,8 @@ class OnnxFFT_1(OnnxOperator):
         :param op_version: opset version
         :param kwargs: additional parameter
         """
+        if isinstance(axis, tuple):
+            axis = list(axis)
         OnnxOperator.__init__(
             self, *args, axis=axis,
             op_version=op_version, **kwargs)
@@ -59,6 +61,8 @@ class OnnxFFT2D_1(OnnxOperator):
         :param op_version: opset version
         :param kwargs: additional parameter
         """
+        if isinstance(axes, tuple):
+            axes = list(axes)
         OnnxOperator.__init__(
             self, *args, axes=axes,
             op_version=op_version, **kwargs)
@@ -88,6 +92,8 @@ class OnnxRFFT_1(OnnxOperator):
         :param op_version: opset version
         :param kwargs: additional parameter
         """
+        if isinstance(axis, tuple):
+            axis = list(axis)
         OnnxOperator.__init__(
             self, *args, axis=axis,
             op_version=op_version, **kwargs)

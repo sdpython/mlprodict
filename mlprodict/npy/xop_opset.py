@@ -172,32 +172,32 @@ def OnnxReduceAnyApi18(cl18, cl13, cl11, cl1, *x, axes=None, keepdims=1,
     """
     if op_version is None or op_version >= 18:
         if axes is None:
-            return cl18(  # noqa
+            return cl18(
                 *x, keepdims=keepdims, op_version=op_version,
                 output_names=output_names)
-        return cl18(  # noqa
+        return cl18(
             *x, numpy.array(axes, dtype=numpy.int64),
             keepdims=keepdims, op_version=op_version,
             output_names=output_names)
     if op_version >= 13:
         if axes is None:
-            return cl13(*x, keepdims=keepdims,  # noqa
+            return cl13(*x, keepdims=keepdims,
                         op_version=op_version,
                         output_names=output_names)
-        return cl13(*x, axes=axes, keepdims=keepdims,  # noqa
+        return cl13(*x, axes=axes, keepdims=keepdims,
                     op_version=op_version, output_names=output_names)
     if op_version >= 11:
         if axes is None:
-            return cl11(*x, keepdims=keepdims,  # noqa
+            return cl11(*x, keepdims=keepdims,
                         op_version=op_version,
                         output_names=output_names)
-        return cl11(*x, axes=axes, keepdims=keepdims,  # noqa
+        return cl11(*x, axes=axes, keepdims=keepdims,
                     op_version=op_version, output_names=output_names)
     if axes is None:
-        return cl1(*x, keepdims=keepdims,  # noqa
+        return cl1(*x, keepdims=keepdims,
                    op_version=op_version,
                    output_names=output_names)
-    return cl1(*x, axes=axes, keepdims=keepdims,  # noqa
+    return cl1(*x, axes=axes, keepdims=keepdims,
                op_version=op_version, output_names=output_names)
 
 
@@ -211,8 +211,8 @@ def OnnxReduceSumSquareApi18(*x, axes=None, keepdims=1, op_version=None,
      OnnxReduceSumSquare_1) = loadop(
         'ReduceSumSquare_13', 'ReduceSumSquare_11', 'ReduceSumSquare_1')
     return OnnxReduceAnyApi18(
-        OnnxReduceSumSquare, OnnxReduceSumSquare_13,  # noqa
-        OnnxReduceSumSquare_11, OnnxReduceSumSquare_1,  # noqa
+        OnnxReduceSumSquare, OnnxReduceSumSquare_13,
+        OnnxReduceSumSquare_11, OnnxReduceSumSquare_1,
         *x, axes=axes, keepdims=keepdims, op_version=op_version,
         output_names=output_names)
 
@@ -226,7 +226,7 @@ def OnnxReduceMeanApi18(*x, axes=None, keepdims=1, op_version=None,
     (OnnxReduceMean_13, OnnxReduceMean_11, OnnxReduceMean_1) = loadop(
         'ReduceMean_13', 'ReduceMean_11', 'ReduceMean_1')
     return OnnxReduceAnyApi18(
-        OnnxReduceMean, OnnxReduceMean_13,  # noqa
-        OnnxReduceMean_11, OnnxReduceMean_1,  # noqa
+        OnnxReduceMean, OnnxReduceMean_13,
+        OnnxReduceMean_11, OnnxReduceMean_1,
         *x, axes=axes, keepdims=keepdims, op_version=op_version,
         output_names=output_names)

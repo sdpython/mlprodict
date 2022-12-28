@@ -10,8 +10,7 @@ from ._op import OpRunUnaryNum
 class Identity(OpRunUnaryNum):
 
     def __init__(self, onnx_node, desc=None, **options):
-        OpRunUnaryNum.__init__(self, onnx_node, desc=desc,
-                               **options)
+        OpRunUnaryNum.__init__(self, onnx_node=onnx_node, desc=desc, **options)
 
     def _run(self, a, attributes=None, verbose=0, fLOG=None):  # pylint: disable=W0221
         if a is None:

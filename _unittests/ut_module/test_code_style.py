@@ -22,7 +22,9 @@ class TestCodeStyle(ExtTestCase):
                    skip=["R0401: Cyclic import",
                          '[E731] do not assign a lambda expression',
                          'gactions_num.py:',
-                         'gactions.py'])
+                         'gactions.py',
+                         "Proto' in module 'onnx'",
+                         "E1101: Module 'onnx.onnx_pb' has no "])
 
     def test_style_test(self):
         thi = os.path.abspath(os.path.dirname(__file__))
@@ -34,7 +36,9 @@ class TestCodeStyle(ExtTestCase):
                                   'C0200', 'E1101', 'W0212', 'C3001', 'C2801',
                                   'R1720'),
                    skip=['if __name__ == "__main__":',
-                         '[E731] do not assign a lambda expression'])
+                         '[E731] do not assign a lambda expression',
+                         "Proto' in module 'onnx'",
+                         "E1101: Module 'onnx.onnx_pb' has no "])
 
 
 if __name__ == "__main__":

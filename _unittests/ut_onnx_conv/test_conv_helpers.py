@@ -20,11 +20,14 @@ class TestConvHelpers(ExtTestCase):
 
     def test__select_close_float(self):
         self.assertRaise(lambda: _select_close_float(1), TypeError)
-        self.assertEqual(numpy.float16(1.11111), _select_close_float(numpy.float16(1.11111)))
-        self.assertEqual(numpy.float32(1.11111), _select_close_float(numpy.float32(1.11111)))
+        self.assertEqual(numpy.float16(1.11111),
+                         _select_close_float(numpy.float16(1.11111)))
+        self.assertEqual(numpy.float32(1.11111),
+                         _select_close_float(numpy.float32(1.11111)))
         self.assertEqual(numpy.float64(numpy.float32(1.11111)),
                          _select_close_float(numpy.float64(numpy.float32(1.11111))))
-        self.assertNotEqual(numpy.float64(1.11111), _select_close_float(numpy.float64(1.11111)))
+        self.assertNotEqual(numpy.float64(1.11111),
+                            _select_close_float(numpy.float64(1.11111)))
         for v in [1.11111, 1.1111098,
                   1.0000000001, 1.000000000001,
                   1.0000001191]:

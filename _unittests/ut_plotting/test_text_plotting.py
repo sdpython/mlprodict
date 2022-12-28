@@ -218,17 +218,20 @@ class TestPlotTextPlotting(ExtTestCase):
         self.assertIn("|-+-|", text)
 
     def test_scan_plot(self):
-        (OnnxSub, OnnxIdentity, OnnxReduceSumSquare, OnnxScan,  # pylint: disable=W0621
+        (OnnxSub, OnnxIdentity, OnnxScan,  # pylint: disable=W0621
          OnnxAdd) = loadop('Sub', 'Identity',  # pylint: disable=W0621
-                           'ReduceSumSquare', 'Scan', 'Add')
+                           'Scan', 'Add')
+        OnnxReduceSumSquare_18 = loadop('ReduceSumSquare_18')
 
         def onnx_squareform_pdist(X, dtype=None, op_version=None, **kwargs):
             diff = OnnxSub('next_in', 'next',
                            op_version=op_version)
             id_next = OnnxIdentity('next_in', output_names=['next_out'],
                                    op_version=op_version)
-            flat = OnnxReduceSumSquare(diff, axes=[1], op_version=op_version,
-                                       output_names=['scan_out'], keepdims=0)
+            flat = OnnxReduceSumSquare_18(
+                diff, numpy.array([1], dtype=numpy.int64),
+                op_version=op_version,
+                output_names=['scan_out'], keepdims=0)
             scan_body = id_next.to_onnx(
                 [Variable('next_in', numpy.float32, (None, None)),  # tensor_type([None, None])),
                  Variable('next', numpy.float32, (None, ))],  # tensor_type([None]))]),
@@ -242,13 +245,16 @@ class TestPlotTextPlotting(ExtTestCase):
                             op_version=op_version, **kwargs)
             return node[1]
 
-        cop = OnnxAdd('input', 'input')
-        cdist = onnx_squareform_pdist(cop, dtype=numpy.float32)
-        cop2 = OnnxIdentity(cdist, output_names=['cdist'])
+        opset = 18
+        cop = OnnxAdd('input', 'input', op_version=opset)
+        cdist = onnx_squareform_pdist(
+            cop, dtype=numpy.float32, op_version=opset)
+        cop2 = OnnxIdentity(cdist, output_names=['cdist'], op_version=opset)
 
         model_def = cop2.to_onnx(
             {'input': numpy.float32},
-            outputs=[Variable('cdist', numpy.float32)])
+            outputs=[Variable('cdist', numpy.float32)],
+            target_opset=opset)
 
         text = onnx_simple_text_plot(model_def, recursive=True)
         self.assertIn("----- subgraph", text)
@@ -350,4 +356,5 @@ class TestPlotTextPlotting(ExtTestCase):
 
 
 if __name__ == "__main__":
+    TestPlotTextPlotting().test_scan_plot()
     unittest.main()

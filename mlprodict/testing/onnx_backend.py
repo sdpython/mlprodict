@@ -5,7 +5,12 @@
 import os
 import textwrap
 import numpy
-from numpy import object as dtype_object
+try:
+    # new numpy
+    from numpy import object_ as dtype_object
+except ImportError:
+    # old numpy
+    from numpy import object as dtype_object
 from numpy.testing import assert_almost_equal
 import onnx
 from onnx.numpy_helper import to_array, to_list
@@ -65,7 +70,7 @@ class OnnxBackendTest:
         try:
             loaded = to_array(onnx.load_tensor_from_string(serialized))
         except Exception as e:  # pylint: disable=W0703
-            seq = onnx.SequenceProto()
+            seq = onnx.SequenceProto()  # pylint: disable=E1101
             try:
                 seq.ParseFromString(serialized)
                 loaded = to_list(seq)
@@ -84,9 +89,10 @@ class OnnxBackendTest:
         for name in names:
             full = os.path.join(folder, name)
             new_tensor = OnnxBackendTest._read_proto_from_file(full)
-            if isinstance(new_tensor, (numpy.ndarray, onnx.ModelProto, list)):
+            if isinstance(new_tensor, (
+                    numpy.ndarray, onnx.ModelProto, list)):  # pylint: disable=E1101
                 t = new_tensor
-            elif isinstance(new_tensor, onnx.TensorProto):
+            elif isinstance(new_tensor, onnx.TensorProto):  # pylint: disable=E1101
                 t = to_array(new_tensor)
             else:
                 raise RuntimeError(  # pragma: no cover

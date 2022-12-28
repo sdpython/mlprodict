@@ -5,17 +5,17 @@
 @brief Runtime operator.
 """
 import numpy
+from onnx.defs import onnx_opset_version
 from ._op import OpRunUnaryNum, OpRunBinaryNum
 from ._new_ops import OperatorSchema
 
 
-class Softmax(OpRunUnaryNum):
+class _Softmax(OpRunUnaryNum):
 
-    atts = {'axis': 1}
-
-    def __init__(self, onnx_node, desc=None, **options):
+    def __init__(self, onnx_node, desc=None, expected_attributes=None,
+                 **options):
         OpRunUnaryNum.__init__(self, onnx_node, desc=desc,
-                               expected_attributes=Softmax.atts,
+                               expected_attributes=expected_attributes,
                                **options)
 
     def _run(self, X, attributes=None, verbose=0, fLOG=None):  # pylint: disable=W0221
@@ -39,6 +39,26 @@ class Softmax(OpRunUnaryNum):
             "Y /= Y.sum(axis=axis)[:, numpy.newaxis]",
             "return Y"]
         return ("import numpy", "\n".join(lines))
+
+
+class Softmax_1(_Softmax):
+
+    atts = {'axis': 1}
+
+    def __init__(self, onnx_node, desc=None, **options):
+        _Softmax.__init__(self, onnx_node, desc=desc,
+                          expected_attributes=Softmax_1.atts,
+                          **options)
+
+
+class Softmax_13(_Softmax):
+
+    atts = {'axis': -1}
+
+    def __init__(self, onnx_node, desc=None, **options):
+        _Softmax.__init__(self, onnx_node, desc=desc,
+                          expected_attributes=Softmax_13.atts,
+                          **options)
 
 
 class SoftmaxGrad_13(OpRunBinaryNum):
@@ -94,5 +114,10 @@ class SoftmaxGradSchema(OperatorSchema):
         OperatorSchema.__init__(self, 'SoftmaxGrad')
         self.attributes = SoftmaxGrad_13.atts
 
+
+if onnx_opset_version() >= 13:
+    Softmax = Softmax_13
+else:  # pragma: no cover
+    Softmax = Softmax_1
 
 SoftmaxGrad = SoftmaxGrad_13

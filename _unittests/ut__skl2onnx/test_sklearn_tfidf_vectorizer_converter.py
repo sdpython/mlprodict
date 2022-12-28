@@ -351,12 +351,12 @@ class TestSklearnTfidfVectorizer(ExtTestCase):
 
         vectorizer = TfidfVectorizer()
         vectorizer.fit_transform(docs)
-        embeddings = vectorizer.transform(docs)
+        emb = vectorizer.transform(docs)
+        embeddings = numpy.array(emb.todense()).astype(numpy.float32)
         dim = embeddings.shape[1]
 
         clf = SVC()
         clf.fit(embeddings, labels)
-        embeddings = embeddings.astype(numpy.float32).todense()
         exp = clf.predict(embeddings)
 
         initial_type = [('input', FloatTensorType([None, dim]))]

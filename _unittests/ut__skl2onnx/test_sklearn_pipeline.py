@@ -10,6 +10,7 @@ from numpy.testing import assert_almost_equal
 import pandas
 from onnx.checker import check_model
 from onnx.shape_inference import infer_shapes
+from pyquickhelper.pycode import ExtTestCase
 from pyquickhelper.texthelper.version_helper import compare_module_version
 from sklearn import __version__ as sklearn_version
 from sklearn import datasets
@@ -23,8 +24,7 @@ from sklearn.datasets import load_iris
 from sklearn.preprocessing import (
     OneHotEncoder, StandardScaler, MinMaxScaler)
 from sklearn.utils._testing import ignore_warnings
-from pyquickhelper.pycode import ExtTestCase
-from sklearn import __version__ as skl2ver
+from skl2onnx import __version__ as skl2ver
 from skl2onnx.common.data_types import (
     FloatTensorType, Int64TensorType, StringTensorType)
 from mlprodict.testing.test_utils import (
@@ -32,6 +32,7 @@ from mlprodict.testing.test_utils import (
 from mlprodict.tools.ort_wrapper import InferenceSession
 from mlprodict.onnx_conv import to_onnx
 from mlprodict.plotting.text_plot import onnx_simple_text_plot
+from mlprodict import __max_supported_opset__ as TARGET_OPSET
 
 
 class PipeConcatenateInput:
@@ -464,7 +465,8 @@ class TestSklearnPipeline(ExtTestCase):
             model, initial_types=[("X", FloatTensorType([None, 2]))],
             as_function=True, target_opset=17)
         check_model(model_onnx)
-        infer_shapes(model_onnx)
+        if TARGET_OPSET >= 20:
+            infer_shapes(model_onnx)
         self.assertEqual(len(model_onnx.graph.node), 1)
         self.assertEqual(len(model_onnx.functions), 5)
         rts = ['python']

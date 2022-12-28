@@ -6,6 +6,7 @@ import unittest
 import numpy
 from numpy import array, float32, int64, int8, int32, uint8
 from onnx import TensorProto
+from onnx.reference import ReferenceEvaluator
 from onnx.helper import (
     make_model, make_node, set_model_props, make_graph,
     make_tensor_value_info, make_opsetid, make_tensor,
@@ -14,6 +15,12 @@ from pyquickhelper.pycode import ExtTestCase, ignore_warnings
 from mlprodict.testing.onnx_backend import (
     enumerate_onnx_tests, assert_almost_equal_string)
 from mlprodict.onnxrt import OnnxInference
+
+
+class Evaluator(ReferenceEvaluator):
+    def run(self, feeds):  # pylint: disable=W0221
+        res = ReferenceEvaluator.run(self, None, feeds)  # pylint: disable=W0221
+        return dict(zip(self.output_names, res))
 
 
 class TestOnnxBackEnd(ExtTestCase):
@@ -30,10 +37,18 @@ class TestOnnxBackEnd(ExtTestCase):
 
     @staticmethod
     def load_fct(obj, runtime='python'):
-        try:
-            return OnnxInference(obj, runtime)
-        except Exception as e:
-            raise AssertionError(f"Unable to load model {obj}.") from e
+        if runtime == 'python':
+            try:
+                return OnnxInference(obj, runtime)
+            except Exception as e:
+                raise AssertionError(f"Unable to load model {obj}.") from e
+        if runtime == "onnx":
+            verbose = 0
+            try:
+                return Evaluator(obj, verbose=verbose)
+            except Exception as e:
+                raise AssertionError(f"Unable to load model {obj}.") from e
+        raise NotImplementedError(f"Unknown runtime={runtime!r}.")
 
     @staticmethod
     def run_fct(obj, *inputs):
@@ -41,7 +56,8 @@ class TestOnnxBackEnd(ExtTestCase):
         if len(names) < len(inputs):
             raise AssertionError(
                 f"Got {len(inputs)} inputs but expecting {len(names)}.")
-        feeds = {names[i]: inputs[i] for i in range(len(inputs))}
+        feeds = {names[i]: inputs[i].copy()
+                 for i in range(len(inputs))}
         got = obj.run(feeds)
 
         names = obj.output_names
@@ -49,9 +65,13 @@ class TestOnnxBackEnd(ExtTestCase):
 
     def test_enumerate_onnx_tests_run_one(self):
         done = 0
-        for te in enumerate_onnx_tests('node', lambda folder: folder == 'test_abs'):
+        for te in enumerate_onnx_tests(
+                'node',
+                lambda folder: folder == 'test_bitwise_not_3d'):
             self.assertIn(te.name, repr(te))
             self.assertGreater(len(te), 0)
+            te.run(lambda *args: TestOnnxBackEnd.load_fct(*args, runtime='onnx'),
+                   TestOnnxBackEnd.run_fct)
             te.run(TestOnnxBackEnd.load_fct, TestOnnxBackEnd.run_fct)
             done += 1
         self.assertEqual(done, 1)
@@ -279,7 +299,10 @@ class TestOnnxBackEnd(ExtTestCase):
 
     @ignore_warnings(DeprecationWarning)
     def test_cast_FLOAT_to_STRING(self):
-        from numpy import object as dtype_object
+        try:
+            from numpy import object_ as dtype_object
+        except ImportError:
+            from numpy import object as dtype_object
 
         def create_model():
             initializers = []
@@ -1560,5 +1583,5 @@ class TestOnnxBackEnd(ExtTestCase):
 
 
 if __name__ == "__main__":
-    # TestOnnxBackEnd().test_enumerate_onnx_test_tril_neg()
-    unittest.main()
+    # TestOnnxBackEnd().test_enumerate_onnx_tests_run_one()
+    unittest.main(verbosity=2)
