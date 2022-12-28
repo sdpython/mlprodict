@@ -701,7 +701,8 @@ class OpFunction(OpRun):
             raise RuntimeError(
                 f"Mismatch lengths between the number of inputs {len(inputs)} "
                 f"and the expected number of inputs {len(self.impl_.inputs)} "
-                f"for node {self.op_type!r} from domain {self.domain!r}.")
+                f"for node {self.onnx_node.op_type!r} from domain "
+                f"{self.onnx_node.domain!r}.")
         feeds = dict(zip(self.impl_.input_names, inputs))
         attributes = self.attributes_.copy()
         attributes.update(kwargs)
@@ -710,7 +711,8 @@ class OpFunction(OpRun):
             raise RuntimeError(
                 f"Mismatch lengths between the number of outputs {len(results)} "
                 f"and the expected number of outputs {len(self.impl_.output_names)} "
-                f"for node {self.op_type!r} from domain {self.domain!r}.")
+                f"for node {self.onnx_node.op_type!r} "
+                f"from domain {self.onnx_node.domain!r}.")
         return tuple(results[n] for n in self.impl_.output_names)
 
     def to_python(self, inputs):

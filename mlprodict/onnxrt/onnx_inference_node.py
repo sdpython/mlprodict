@@ -3,7 +3,6 @@
 @brief OnnxInferenceNode definition.
 """
 import sys
-import pprint
 import numpy
 from onnx import GraphProto, onnx_pb as onnx_proto
 from onnx.onnx_cpp2py_export.defs import SchemaError  # pylint: disable=E0401,E0611

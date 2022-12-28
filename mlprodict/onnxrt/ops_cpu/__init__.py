@@ -5,6 +5,7 @@
 """
 import inspect
 import textwrap
+from onnx import FunctionProto
 from onnx.reference.ops import load_op as onnx_load_op
 from onnx.defs import get_schema
 from ..excs import MissingOperatorError
@@ -106,6 +107,7 @@ def load_op(onnx_node, desc=None, options=None, runtime=None):
 
             @property
             def base_class(self):
+                "Returns the parent class."
                 return self.__class__.__bases__[0]
 
             def _onnx_run(self, *args, **kwargs):
@@ -151,24 +153,25 @@ def load_op(onnx_node, desc=None, options=None, runtime=None):
                     f"Unable to create a class for operator {name!r} and "
                     f"opset {opset} based on {cl} of type={type(cl)}.")
             schema = get_schema(name, opset, domain)
-            if schema.has_function:  # type: ignore
+            if schema.has_function:
                 from mlprodict.onnxrt import OnnxInference
-                body = schema.function_body  # type: ignore
+                body = schema.function_body
                 sess = OnnxInference(body)
                 new_cls = lambda *args, sess=sess: OpFunction(args[0], impl=sess)
-            elif schema.has_context_dependent_function:  # type: ignore
-                if node is None or input_types is None:
+            elif schema.has_context_dependent_function:
+                input_types = options.get('input_types', '')
+                if onnx_node is None or input_types is None:
                     raise RuntimeContextError(
                         f"No registered implementation for operator {op_type!r} "
                         f"and domain {domain!r}, the operator has a context dependent function. "
                         f"but argument node or input_types is not defined.")
                 from mlprodict.onnxrt import OnnxInference
                 body = schema.get_context_dependent_function(
-                    node.SerializeToString(),
+                    onnx_node.SerializeToString(),
                     [it.SerializeToString() for it in input_types])
                 proto = FunctionProto()
                 proto.ParseFromString(body)
-                sess = ReferenceEvaluator(proto)
+                sess = OnnxInference(proto)
                 new_cls = lambda *args, sess=sess: OpFunction(args[0], impl=sess)
             else:
                 raise TypeError(
