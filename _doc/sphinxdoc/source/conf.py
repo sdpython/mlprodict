@@ -37,8 +37,9 @@ local_template = os.path.join(os.path.abspath(
 set_sphinx_variables(
     __file__, "mlprodict", "Xavier Dupré", 2022,
     "pydata_sphinx_theme", "_static",
-    locals(), extlinks=dict(
-        issue=('https://github.com/sdpython/mlprodict/issues/%s', 'issue')),
+    locals(), extlinks=dict(issue=(
+        'https://github.com/sdpython/mlprodict/issues/%s',
+        'issue %s')),
     title="Python Runtime for ONNX", book=True)
 
 blog_root = "http://www.xavierdupre.fr/app/mlprodict/helpsphinx/"
