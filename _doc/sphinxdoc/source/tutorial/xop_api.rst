@@ -730,15 +730,15 @@ to deal with. Unittests may provide more examples
     from mlprodict.onnxrt import OnnxInference
     from mlprodict.npy.xop_variable import Variable
     from mlprodict.npy.xop import loadop
+    from mlprodict.npy.xop_opset import OnnxReduceSumSquareApi18
 
-    (OnnxSub, OnnxIdentity, OnnxReduceSumSquare, OnnxScan,
-     OnnxAdd) = loadop('Sub', 'Identity',
-                       'ReduceSumSquare', 'Scan', 'Add')
+    (OnnxSub, OnnxIdentity, OnnxScan, OnnxAdd) = loadop(
+        'Sub', 'Identity', 'Scan', 'Add')
 
     # Building of the subgraph.
     diff = OnnxSub('next_in', 'next')
     id_next = OnnxIdentity('next_in', output_names=['next_out'])
-    flat = OnnxReduceSumSquare(
+    flat = OnnxReduceSumSquareApi18(
         diff, axes=[1], output_names=['scan_out'], keepdims=0)
     scan_body = id_next.to_onnx(
         [Variable('next_in', numpy.float32, (None, None)),
@@ -778,15 +778,15 @@ And visually:
     from mlprodict.onnxrt import OnnxInference
     from mlprodict.npy.xop_variable import Variable
     from mlprodict.npy.xop import loadop
+    from mlprodict.npy.xop_opset import OnnxReduceSumSquareApi18
 
-    (OnnxSub, OnnxIdentity, OnnxReduceSumSquare, OnnxScan,
-     OnnxAdd) = loadop('Sub', 'Identity',
-                       'ReduceSumSquare', 'Scan', 'Add')
+    (OnnxSub, OnnxIdentity, OnnxScan, OnnxAdd) = loadop(
+        'Sub', 'Identity', 'Scan', 'Add')
 
     # Building of the subgraph.
     diff = OnnxSub('next_in', 'next')
     id_next = OnnxIdentity('next_in', output_names=['next_out'])
-    flat = OnnxReduceSumSquare(
+    flat = OnnxReduceSumSquareApi18(
         diff, axes=[1], output_names=['scan_out'], keepdims=0)
     scan_body = id_next.to_onnx(
         [Variable('next_in', numpy.float32, (None, None)),

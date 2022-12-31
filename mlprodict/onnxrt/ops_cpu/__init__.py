@@ -157,7 +157,8 @@ def load_op(onnx_node, desc=None, options=None, runtime=None):
                 from mlprodict.onnxrt import OnnxInference
                 body = schema.function_body
                 sess = OnnxInference(body)
-                new_cls = lambda *args, sess=sess: OpFunction(args[0], impl=sess)
+                new_cls = lambda *args, sess=sess: OpFunction(
+                    args[0], impl=sess)
             elif schema.has_context_dependent_function:
                 input_types = options.get('input_types', '')
                 if onnx_node is None or input_types is None:
@@ -172,7 +173,8 @@ def load_op(onnx_node, desc=None, options=None, runtime=None):
                 proto = FunctionProto()
                 proto.ParseFromString(body)
                 sess = OnnxInference(proto)
-                new_cls = lambda *args, sess=sess: OpFunction(args[0], impl=sess)
+                new_cls = lambda *args, sess=sess: OpFunction(
+                    args[0], impl=sess)
             else:
                 raise TypeError(
                     f"Unable to create a class for operator {name!r} and "

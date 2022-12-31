@@ -242,7 +242,8 @@ class TestOnnxrtPythonRuntimeCustom(ExtTestCase):
 
                     if axis is not None:
                         onx = OnnxFFT2D('X', output_names=['Y'],
-                                        axes=axis if axis is None else list(axis),
+                                        axes=axis if axis is None else list(
+                                            axis),
                                         op_version=TARGET_OPSET)
                     else:
                         onx = OnnxFFT2D('X', output_names=['Y'],
@@ -275,7 +276,8 @@ class TestOnnxrtPythonRuntimeCustom(ExtTestCase):
                     if axis is not None:
                         onx = OnnxFFT2D('X', numpy.array([8, 8], dtype=numpy.int64),
                                         output_names=['Y'],
-                                        axes=axis if axis is None else list(axis),
+                                        axes=axis if axis is None else list(
+                                            axis),
                                         op_version=TARGET_OPSET)
                     else:
                         onx = OnnxFFT2D('X', numpy.array([8, 8], dtype=numpy.int64),

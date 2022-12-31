@@ -19,7 +19,8 @@ from mlprodict.onnxrt import OnnxInference
 
 class Evaluator(ReferenceEvaluator):
     def run(self, feeds):  # pylint: disable=W0221
-        res = ReferenceEvaluator.run(self, None, feeds)  # pylint: disable=W0221
+        res = ReferenceEvaluator.run(
+            self, None, feeds)  # pylint: disable=W0221
         return dict(zip(self.output_names, res))
 
 
