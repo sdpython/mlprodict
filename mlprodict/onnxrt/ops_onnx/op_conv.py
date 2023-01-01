@@ -70,7 +70,7 @@ class Conv(OpRunExtended):
             lambda: sess2.run(None, {"X": X, "W": W, "B": B}),
             repeat=5, number=5, div_by_number=True)
         print("With C++:", t2["average"])
-        print("speedup:", t1["average"] / t2["average"])        
+        print("speedup:", t1["average"] / t2["average"])
     """
 
     def get_impl(self, dtype=None, auto_pad=None, dilations=None, group=None,

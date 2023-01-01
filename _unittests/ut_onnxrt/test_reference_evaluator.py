@@ -4,7 +4,7 @@
 """
 import unittest
 import numpy
-from onnx import TensorProto, checker
+from onnx import TensorProto
 from onnx.checker import check_model
 from onnx.helper import (  # pylint: disable=W0611
     make_function, make_graph, make_model, make_node,
