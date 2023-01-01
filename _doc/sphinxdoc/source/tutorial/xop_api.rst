@@ -817,7 +817,7 @@ And visually:
     res = sess.run({'input': x})
     print(res)
 
-    print("DOT-SECTION", oinf.to_dot(recursive=True))
+    print("DOT-SECTION", sess.to_dot(recursive=True))
 
 Function or Graph
 =================
