@@ -51,13 +51,14 @@ class RuntimeTreeEnsembleCommonP {
         bool has_missing_tracks_;
         int omp_tree_;
         int omp_N_;
+        int omp_tree_N_;
         int64_t sizeof_;
         bool array_structure_;
         bool para_tree_;
 
     public:
 
-        RuntimeTreeEnsembleCommonP(int omp_tree, int omp_N, bool array_structure, bool para_tree);
+        RuntimeTreeEnsembleCommonP(int omp_tree, int omp_tree_N, int omp_N, bool array_structure, bool para_tree);
         ~RuntimeTreeEnsembleCommonP();
 
         void init(
@@ -145,8 +146,9 @@ class RuntimeTreeEnsembleCommonP {
 
 template<typename NTYPE>
 RuntimeTreeEnsembleCommonP<NTYPE>::RuntimeTreeEnsembleCommonP(
-        int omp_tree, int omp_N, bool array_structure, bool para_tree) {
+        int omp_tree, int omp_tree_N, int omp_N, bool array_structure, bool para_tree) {
     omp_tree_ = omp_tree;
+    omp_tree_N_ = omp_tree_N;
     omp_N_ = omp_N;
     nodes_ = nullptr;
     para_tree_ = para_tree;
@@ -629,6 +631,35 @@ void RuntimeTreeEnsembleCommonP<NTYPE>::compute_gil_free(
             }
         }
         else { DEBUGPRINT("D")
+            int64_t index, batch, batch_end;
+            std::vector<NTYPE> local_scores(omp_tree_N_);
+            std::vector<unsigned char> local_has_score(omp_tree_N_);
+
+            for (batch = 0; batch < N; batch += omp_tree_N_) {
+                std::fill(local_scores.begin(), local_scores.end(), (NTYPE)0);
+                std::fill(local_has_score.begin(), local_has_score.end(), 0);
+                batch_end = std::min(N, batch + omp_tree_N_);
+            
+                #ifdef USE_OPENMP
+                #pragma omp parallel for
+                #endif
+                for (int64_t j = 0; j < n_trees_; ++j) {
+                    for (int64_t i = batch; i < batch_end; ++i) {
+                        index = i - batch;
+                        agg.ProcessTreeNodePrediction1(
+                            &(local_scores[index]),
+                            ProcessTreeNodeLeave(roots_[index], x_data),
+                            &(local_has_score[index]));
+                    }
+                }
+                for (int64_t i = batch; i < batch_end; ++i) {
+                    index = i - batch;
+                    agg.FinalizeScores1((NTYPE*)Z_.data(i),
+                                        local_scores[index], local_has_score[index],
+                                        Y == nullptr ? nullptr : (int64_t*)_mutable_unchecked1(*Y).data(i));
+                }
+            }
+            /* parallelisation by N
             auto nth = omp_get_max_threads();
             NTYPE* scores = (NTYPE*) alloca(nth * sizeof(NTYPE));
             unsigned char* has_scores = (unsigned char*) alloca(nth);
@@ -648,6 +679,7 @@ void RuntimeTreeEnsembleCommonP<NTYPE>::compute_gil_free(
                 agg.FinalizeScores1((NTYPE*)Z_.data(i), scores[th], has_scores[th],
                                     Y == nullptr ? nullptr : (int64_t*)_mutable_unchecked1(*Y).data(i));
             }
+            */
         }
     }
     else {
