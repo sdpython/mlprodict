@@ -145,6 +145,7 @@ jobs:
     continueOnError: true
     displayName: 'Install Graphviz'
   - script: brew install cairo pango gdk-pixbuf libffi
+    continueOnError: true
     displayName: 'Install cairo pango gdk-pixbuf libffi'
   - bash: echo "##vso[task.prependpath]$CONDA/bin"
     displayName: Add conda to PATH.

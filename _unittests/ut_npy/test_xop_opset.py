@@ -55,7 +55,6 @@ class TestXOpsOpset(ExtTestCase):
                      Variable('scan_out', numpy.float32, (None, ))],
             other_outputs=[flat], target_opset=opv)
         opsets1 = {d.domain: d.version for d in scan_body.opset_import}
-        output_names = [o.name for o in scan_body.graph.output]
 
         cop = OnnxAdd('input', 'input', op_version=opv)
 
@@ -76,7 +75,7 @@ class TestXOpsOpset(ExtTestCase):
             numpy.float32).reshape((3, 2))
         sess = OnnxInference(model_def)
         res = sess.run({'input': x})
-        self.assertEqual(res['cdist'].shape, (3, 3)) 
+        self.assertEqual(res['cdist'].shape, (3, 3))
 
 
 if __name__ == "__main__":

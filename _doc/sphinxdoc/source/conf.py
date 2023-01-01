@@ -140,6 +140,7 @@ epkg_dictionary.update({
     'pytorch': 'https://pytorch.org/',
     'py-spy': 'https://github.com/benfred/py-spy',
     'Python': 'https://www.python.org/',
+    'ReferenceEvaluator': 'https://onnx.ai/onnx/api/reference.html#onnx.reference.ReferenceEvaluator',
     'run_asv.bat': 'https://github.com/sdpython/mlprodict/blob/master/bin/run_asv.bat',
     'run_asv.sh': 'https://github.com/sdpython/mlprodict/blob/master/bin/run_asv.sh',
     'Rust': 'https://www.rust-lang.org/',
