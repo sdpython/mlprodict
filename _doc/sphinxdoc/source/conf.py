@@ -35,7 +35,7 @@ local_template = os.path.join(os.path.abspath(
     os.path.dirname(__file__)), "phdoc_templates")
 
 set_sphinx_variables(
-    __file__, "mlprodict", "Xavier Dupré", 2022,
+    __file__, "mlprodict", "Xavier Dupré", 2023,
     "pydata_sphinx_theme", "_static",
     locals(), extlinks=dict(issue=(
         'https://github.com/sdpython/mlprodict/issues/%s',
