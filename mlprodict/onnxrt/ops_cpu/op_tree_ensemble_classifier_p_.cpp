@@ -15,7 +15,8 @@ class RuntimeTreeEnsembleClassifierP : public RuntimeTreeEnsembleCommonP<NTYPE> 
 
     public:
         
-        RuntimeTreeEnsembleClassifierP(int omp_tree, int omp_tree_N, int omp_N, bool array_structure, bool para_tree);
+        RuntimeTreeEnsembleClassifierP(int omp_tree, int omp_tree_N, int omp_N,
+                                       bool array_structure, bool para_tree);
         ~RuntimeTreeEnsembleClassifierP();
 
         void init(
@@ -45,8 +46,10 @@ class RuntimeTreeEnsembleClassifierP : public RuntimeTreeEnsembleCommonP<NTYPE> 
 
 template<typename NTYPE>
 RuntimeTreeEnsembleClassifierP<NTYPE>::RuntimeTreeEnsembleClassifierP(
-        int omp_tree, int omp_tree_N, int omp_N, bool array_structure, bool para_tree) :
-   RuntimeTreeEnsembleCommonP<NTYPE>(omp_tree, omp_tree_N, omp_N, array_structure, para_tree) {
+        int omp_tree, int omp_tree_N, int omp_N,
+        bool array_structure, bool para_tree) :
+   RuntimeTreeEnsembleCommonP<NTYPE>(omp_tree, omp_tree_N, omp_N,
+                                     array_structure, para_tree) {
 }
 
 

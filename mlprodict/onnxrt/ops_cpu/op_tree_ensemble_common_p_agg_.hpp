@@ -571,7 +571,7 @@ class _AggregatorClassifier : public _AggregatorSum<NTYPE> {
         inline size_t FinalizeScores1(NTYPE* Z, NTYPE& val,
                                       unsigned char& has_score,
                                       int64_t * Y = 0) const {
-            NTYPE scores[2];
+            NTYPE scores[2] = {0, 0};
             unsigned char has_scores[2] = {1, 0};
 
             int write_additional_scores = -1;

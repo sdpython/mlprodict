@@ -590,6 +590,7 @@ class TestOnnxrtPythonRuntimeMlTree(ExtTestCase):
         # default runtime
         model_def = to_onnx(clr, X_train.astype(dtype))
         oinf = OnnxInference(model_def)
+        #
         oinf.sequence_[0].ops_._init(dtype, 1)  # pylint: disable=W0212
         y = oinf.run({'X': X_test})
         self.assertEqual(list(sorted(y)), ['variable'])
@@ -658,7 +659,7 @@ class TestOnnxrtPythonRuntimeMlTree(ExtTestCase):
         model_def = to_onnx(clr, X_train.astype(dtype),
                             options={RandomForestClassifier: {
                                 'zipmap': False}},
-                            target_opset=12)
+                            target_opset=17)
         oinf = OnnxInference(model_def)
         for op in oinf.sequence_:
             if hasattr(op.ops_, '_init'):
@@ -693,7 +694,6 @@ class TestOnnxrtPythonRuntimeMlTree(ExtTestCase):
                         sorted(numpy.abs(lexp.ravel() - y['probabilities'])))
                     mx = max(diff[:-5])
                     if mx > 1e-5:
-                        print(diff)
                         self.assertEqualArray(
                             lexp.ravel(), y['probabilities'], decimal=decimal[dtype])
                 else:
