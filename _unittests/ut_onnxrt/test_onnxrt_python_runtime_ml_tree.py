@@ -769,5 +769,5 @@ class TestOnnxrtPythonRuntimeMlTree(ExtTestCase):
 
 
 if __name__ == "__main__":
-    # TestOnnxrtPythonRuntimeMlTree().test_onnxrt_python_DecisionTreeRegressor()
+    # TestOnnxrtPythonRuntimeMlTree().test_random_forest_with_only_one_class()
     unittest.main(verbosity=2)

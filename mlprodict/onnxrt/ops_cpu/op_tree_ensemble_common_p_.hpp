@@ -843,11 +843,13 @@ void RuntimeTreeEnsembleCommonP<NTYPE>::compute_gil_free_array_structure(
                                 Y == nullptr ? nullptr : (int64_t*)_mutable_unchecked1(*Y).data(0));
         }
         else if ((nth > 1) && para_tree_ && (n_trees_ > omp_tree_)) { DEBUGPRINT("O")
-            std::vector<NTYPE> local_scores(omp_tree_N_ * nth, 0);
-            std::vector<unsigned char> local_has_scores(local_scores.size(), 0);
+            std::vector<NTYPE> local_scores(omp_tree_N_ * nth);
+            std::vector<unsigned char> local_has_scores(local_scores.size());
             int64_t batch_end;
-            for(int64_t batch=0; batch < N; batch += omp_tree_N_) {
+            for(int64_t batch = 0; batch < N; batch += omp_tree_N_) {
                 batch_end = std::min(N, batch + omp_tree_N_);
+                std::fill(local_scores.begin(), local_scores.end(), (NTYPE)0);
+                std::fill(local_has_scores.begin(), local_has_scores.end(), 0);
                 #ifdef USE_OPENMP
                 #pragma omp parallel for
                 #endif
@@ -862,15 +864,16 @@ void RuntimeTreeEnsembleCommonP<NTYPE>::compute_gil_free_array_structure(
                             ProcessTreeNodeLeave(array_nodes_.root_id[j], local_x_data),
                             p_has_score);
                     }
-                }            
+                }
+
                 #ifdef USE_OPENMP
                 #pragma omp parallel for
                 #endif
                 for(int64_t i = batch; i < batch_end; ++i) {
                     NTYPE* p_score = &local_scores[i - batch];
                     unsigned char* p_has_score = &local_has_scores[i - batch];
-                    NTYPE* pp_score = p_score + (batch_end - batch);
-                    unsigned char* pp_has_score = p_has_score + (batch_end - batch);
+                    NTYPE* pp_score = p_score + omp_tree_N_;
+                    unsigned char* pp_has_score = p_has_score + omp_tree_N_;
                     for (int64_t j = 1; j < nth; ++j, pp_score += omp_tree_N_, pp_has_score += omp_tree_N_)
                         agg.MergePrediction1(p_score, p_has_score, pp_score, pp_has_score);
 
