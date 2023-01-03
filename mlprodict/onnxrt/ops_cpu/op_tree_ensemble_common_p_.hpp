@@ -918,8 +918,8 @@ void RuntimeTreeEnsembleCommonP<NTYPE>::compute_gil_free_array_structure(
             #pragma omp parallel for
             #endif
             for (int64_t i = 0; i < NB; i += omp_tree_N_) {
-                NTYPE scores[omp_tree_N_];
-                unsigned char has_scores[omp_tree_N_];
+                NTYPE* scores = (NTYPE*) alloca(omp_tree_N_ * sizeof(NTYPE));
+                unsigned char* has_scores = (unsigned char*) alloca(omp_tree_N_);
                 memset(&scores[0], 0, sizeof(NTYPE) * omp_tree_N_);
                 memset(&has_scores[0], 0, omp_tree_N_);
                 for (size_t j = 0; j < (size_t)n_trees_; ++j) {
