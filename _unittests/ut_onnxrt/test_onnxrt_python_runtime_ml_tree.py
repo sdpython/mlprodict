@@ -403,14 +403,14 @@ class TestOnnxrtPythonRuntimeMlTree(ExtTestCase):
     @ignore_warnings((FutureWarning, DeprecationWarning))
     def test_openmp_compilation_p(self):
         from mlprodict.onnxrt.ops_cpu.op_tree_ensemble_regressor_p_ import RuntimeTreeEnsembleRegressorPFloat  # pylint: disable=E0611,E0401
-        ru = RuntimeTreeEnsembleRegressorPFloat(1, 1, False, False)
+        ru = RuntimeTreeEnsembleRegressorPFloat(1, 1, 1, False, False)
         r = ru.runtime_options()
         self.assertEqual('OPENMP', r)
         nb = ru.omp_get_max_threads()
         self.assertGreater(nb, 0)
 
         from mlprodict.onnxrt.ops_cpu.op_tree_ensemble_classifier_p_ import RuntimeTreeEnsembleClassifierPFloat  # pylint: disable=E0611,E0401
-        ru = RuntimeTreeEnsembleClassifierPFloat(1, 1, False, False)
+        ru = RuntimeTreeEnsembleClassifierPFloat(1, 1, 1, False, False)
         r = ru.runtime_options()
         self.assertEqual('OPENMP', r)
         nb2 = ru.omp_get_max_threads()
@@ -419,14 +419,14 @@ class TestOnnxrtPythonRuntimeMlTree(ExtTestCase):
     @ignore_warnings((FutureWarning, DeprecationWarning))
     def test_openmp_compilation_p_true(self):
         from mlprodict.onnxrt.ops_cpu.op_tree_ensemble_regressor_p_ import RuntimeTreeEnsembleRegressorPFloat  # pylint: disable=E0611,E0401
-        ru = RuntimeTreeEnsembleRegressorPFloat(1, 1, True, False)
+        ru = RuntimeTreeEnsembleRegressorPFloat(1, 1, 1, True, False)
         r = ru.runtime_options()
         self.assertEqual('OPENMP', r)
         nb = ru.omp_get_max_threads()
         self.assertGreater(nb, 0)
 
         from mlprodict.onnxrt.ops_cpu.op_tree_ensemble_classifier_p_ import RuntimeTreeEnsembleClassifierPFloat  # pylint: disable=E0611,E0401
-        ru = RuntimeTreeEnsembleClassifierPFloat(1, 1, True, False)
+        ru = RuntimeTreeEnsembleClassifierPFloat(1, 1, 1, True, False)
         r = ru.runtime_options()
         self.assertEqual('OPENMP', r)
         nb2 = ru.omp_get_max_threads()
@@ -769,4 +769,5 @@ class TestOnnxrtPythonRuntimeMlTree(ExtTestCase):
 
 
 if __name__ == "__main__":
+    # TestOnnxrtPythonRuntimeMlTree().test_onnxrt_python_DecisionTreeRegressor()
     unittest.main(verbosity=2)

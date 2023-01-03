@@ -8,7 +8,8 @@ template<typename NTYPE>
 class RuntimeTreeEnsembleRegressorP : public RuntimeTreeEnsembleCommonP<NTYPE> {
     public:
 
-        RuntimeTreeEnsembleRegressorP(int omp_tree, int omp_tree_N, int omp_N, bool array_structure, bool para_tree);
+        RuntimeTreeEnsembleRegressorP(int omp_tree, int omp_tree_N, int omp_N,
+                                      bool array_structure, bool para_tree);
         ~RuntimeTreeEnsembleRegressorP();
 
         void init(
@@ -37,8 +38,10 @@ class RuntimeTreeEnsembleRegressorP : public RuntimeTreeEnsembleCommonP<NTYPE> {
 
 template<typename NTYPE>
 RuntimeTreeEnsembleRegressorP<NTYPE>::RuntimeTreeEnsembleRegressorP(
-        int omp_tree, int omp_tree_N, int omp_N, bool array_structure, bool para_tree) :
-   RuntimeTreeEnsembleCommonP<NTYPE>(omp_tree, omp_tree_N, omp_N, array_structure, para_tree) {
+        int omp_tree, int omp_tree_N, int omp_N,
+        bool array_structure, bool para_tree) :
+   RuntimeTreeEnsembleCommonP<NTYPE>(omp_tree, omp_tree_N, omp_N,
+                                     array_structure, para_tree) {
 }
 
 
