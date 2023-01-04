@@ -65,13 +65,13 @@ class TreeEnsembleClassifierCommon(OpRunClassifierProb, _ClassifierCommon):
                 self.rt_ = RuntimeTreeEnsembleClassifierFloat()
             elif version == 1:
                 self.rt_ = RuntimeTreeEnsembleClassifierPFloat(
-                    60, 20, False, False)
+                    60, 128, 20, False, False)
             elif version == 2:
                 self.rt_ = RuntimeTreeEnsembleClassifierPFloat(
-                    60, 20, True, False)
+                    60, 128, 20, True, False)
             elif version == 3:
                 self.rt_ = RuntimeTreeEnsembleClassifierPFloat(
-                    60, 20, True, True)
+                    60, 128, 20, True, True)
             else:
                 raise ValueError(f"Unknown version '{version}'.")
         elif dtype == numpy.float64:
@@ -79,13 +79,13 @@ class TreeEnsembleClassifierCommon(OpRunClassifierProb, _ClassifierCommon):
                 self.rt_ = RuntimeTreeEnsembleClassifierDouble()
             elif version == 1:
                 self.rt_ = RuntimeTreeEnsembleClassifierPDouble(
-                    60, 20, False, False)
+                    60, 128, 20, False, False)
             elif version == 2:
                 self.rt_ = RuntimeTreeEnsembleClassifierPDouble(
-                    60, 20, True, False)
+                    60, 128, 20, True, False)
             elif version == 3:
                 self.rt_ = RuntimeTreeEnsembleClassifierPDouble(
-                    60, 20, True, True)
+                    60, 128, 20, True, True)
             else:
                 raise ValueError(  # pragma: no cover
                     f"Unknown version '{version}'.")

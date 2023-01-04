@@ -403,14 +403,14 @@ class TestOnnxrtPythonRuntimeMlTree(ExtTestCase):
     @ignore_warnings((FutureWarning, DeprecationWarning))
     def test_openmp_compilation_p(self):
         from mlprodict.onnxrt.ops_cpu.op_tree_ensemble_regressor_p_ import RuntimeTreeEnsembleRegressorPFloat  # pylint: disable=E0611,E0401
-        ru = RuntimeTreeEnsembleRegressorPFloat(1, 1, False, False)
+        ru = RuntimeTreeEnsembleRegressorPFloat(1, 1, 1, False, False)
         r = ru.runtime_options()
         self.assertEqual('OPENMP', r)
         nb = ru.omp_get_max_threads()
         self.assertGreater(nb, 0)
 
         from mlprodict.onnxrt.ops_cpu.op_tree_ensemble_classifier_p_ import RuntimeTreeEnsembleClassifierPFloat  # pylint: disable=E0611,E0401
-        ru = RuntimeTreeEnsembleClassifierPFloat(1, 1, False, False)
+        ru = RuntimeTreeEnsembleClassifierPFloat(1, 1, 1, False, False)
         r = ru.runtime_options()
         self.assertEqual('OPENMP', r)
         nb2 = ru.omp_get_max_threads()
@@ -419,14 +419,14 @@ class TestOnnxrtPythonRuntimeMlTree(ExtTestCase):
     @ignore_warnings((FutureWarning, DeprecationWarning))
     def test_openmp_compilation_p_true(self):
         from mlprodict.onnxrt.ops_cpu.op_tree_ensemble_regressor_p_ import RuntimeTreeEnsembleRegressorPFloat  # pylint: disable=E0611,E0401
-        ru = RuntimeTreeEnsembleRegressorPFloat(1, 1, True, False)
+        ru = RuntimeTreeEnsembleRegressorPFloat(1, 1, 1, True, False)
         r = ru.runtime_options()
         self.assertEqual('OPENMP', r)
         nb = ru.omp_get_max_threads()
         self.assertGreater(nb, 0)
 
         from mlprodict.onnxrt.ops_cpu.op_tree_ensemble_classifier_p_ import RuntimeTreeEnsembleClassifierPFloat  # pylint: disable=E0611,E0401
-        ru = RuntimeTreeEnsembleClassifierPFloat(1, 1, True, False)
+        ru = RuntimeTreeEnsembleClassifierPFloat(1, 1, 1, True, False)
         r = ru.runtime_options()
         self.assertEqual('OPENMP', r)
         nb2 = ru.omp_get_max_threads()
@@ -436,12 +436,12 @@ class TestOnnxrtPythonRuntimeMlTree(ExtTestCase):
     def test_cpp_average(self):
         from mlprodict.onnxrt.ops_cpu.op_tree_ensemble_regressor_p_ import (  # pylint: disable=E0611,E0401
             test_tree_regressor_multitarget_average)
-        confs = [[100, 100, False, False, True],
-                 [100, 100, False, False, False],
-                 [10, 10, False, False, True],
-                 [10, 10, False, False, False],
-                 [2, 2, False, False, True],
-                 [2, 2, False, False, False]]
+        confs = [[100, 128, 100, False, False, True],
+                 [100, 128, 100, False, False, False],
+                 [10, 128, 10, False, False, True],
+                 [10, 128, 10, False, False, False],
+                 [2, 128, 2, False, False, True],
+                 [2, 128, 2, False, False, False]]
         for conf in confs:
             with self.subTest(conf=tuple(conf)):
                 for b in [False, True]:
@@ -455,12 +455,12 @@ class TestOnnxrtPythonRuntimeMlTree(ExtTestCase):
     def test_cpp_average_true(self):
         from mlprodict.onnxrt.ops_cpu.op_tree_ensemble_regressor_p_ import (  # pylint: disable=E0611,E0401
             test_tree_regressor_multitarget_average)
-        confs = [[100, 100, True, False, True],
-                 [100, 100, True, False, False],
-                 [10, 10, True, False, True],
-                 [10, 10, True, False, False],
-                 [2, 2, True, False, True],
-                 [2, 2, True, False, False]]
+        confs = [[100, 128, 100, True, False, True],
+                 [100, 128, 100, True, False, False],
+                 [10, 128, 10, True, False, True],
+                 [10, 128, 10, True, False, False],
+                 [2, 128, 2, True, False, True],
+                 [2, 128, 2, True, False, False]]
         for conf in confs:
             with self.subTest(conf=tuple(conf)):
                 for b in [False, True]:
@@ -473,12 +473,12 @@ class TestOnnxrtPythonRuntimeMlTree(ExtTestCase):
     @ignore_warnings((FutureWarning, DeprecationWarning))
     def test_cpp_sum(self):
         from mlprodict.onnxrt.ops_cpu.op_tree_ensemble_regressor_p_ import test_tree_regressor_multitarget_sum  # pylint: disable=E0611,E0401
-        confs = [[100, 100, False, False, True],
-                 [100, 100, False, False, False],
-                 [10, 10, False, False, True],
-                 [10, 10, False, False, False],
-                 [2, 2, False, False, True],
-                 [2, 2, False, False, False]]
+        confs = [[100, 128, 100, False, False, True],
+                 [100, 128, 100, False, False, False],
+                 [10, 128, 10, False, False, True],
+                 [10, 128, 10, False, False, False],
+                 [2, 128, 2, False, False, True],
+                 [2, 128, 2, False, False, False]]
         for conf in confs:
             with self.subTest(conf=tuple(conf)):
                 for b in [False, True]:
@@ -491,12 +491,12 @@ class TestOnnxrtPythonRuntimeMlTree(ExtTestCase):
     @ignore_warnings((FutureWarning, DeprecationWarning))
     def test_cpp_sum_true(self):
         from mlprodict.onnxrt.ops_cpu.op_tree_ensemble_regressor_p_ import test_tree_regressor_multitarget_sum  # pylint: disable=E0611,E0401
-        confs = [[100, 100, True, False, True],
-                 [100, 100, True, False, False],
-                 [10, 10, True, False, True],
-                 [10, 10, True, False, False],
-                 [2, 2, True, False, True],
-                 [2, 2, True, False, False]]
+        confs = [[100, 128, 100, True, False, True],
+                 [100, 128, 100, True, False, False],
+                 [10, 128, 10, True, False, True],
+                 [10, 128, 10, True, False, False],
+                 [2, 128, 2, True, False, True],
+                 [2, 128, 2, True, False, False]]
         for conf in confs:
             with self.subTest(conf=tuple(conf)):
                 for b in [False, True]:
@@ -509,12 +509,12 @@ class TestOnnxrtPythonRuntimeMlTree(ExtTestCase):
     @ignore_warnings((FutureWarning, DeprecationWarning))
     def test_cpp_min(self):
         from mlprodict.onnxrt.ops_cpu.op_tree_ensemble_regressor_p_ import test_tree_regressor_multitarget_min  # pylint: disable=E0611,E0401
-        confs = [[100, 100, False, False, True],
-                 [100, 100, False, False, False],
-                 [10, 10, False, False, True],
-                 [10, 10, False, False, False],
-                 [2, 2, False, False, True],
-                 [2, 2, False, False, False]]
+        confs = [[100, 128, 100, False, False, True],
+                 [100, 128, 100, False, False, False],
+                 [10, 128, 10, False, False, True],
+                 [10, 128, 10, False, False, False],
+                 [2, 128, 2, False, False, True],
+                 [2, 128, 2, False, False, False]]
         for conf in reversed(confs):
             with self.subTest(conf=tuple(conf)):
                 for b in [False, True]:
@@ -525,12 +525,12 @@ class TestOnnxrtPythonRuntimeMlTree(ExtTestCase):
     @ignore_warnings((FutureWarning, DeprecationWarning))
     def test_cpp_min_true(self):
         from mlprodict.onnxrt.ops_cpu.op_tree_ensemble_regressor_p_ import test_tree_regressor_multitarget_min  # pylint: disable=E0611,E0401
-        confs = [[100, 100, True, False, True],
-                 [100, 100, True, False, False],
-                 [10, 10, True, False, True],
-                 [10, 10, True, False, False],
-                 [2, 2, True, False, True],
-                 [2, 2, True, False, False]]
+        confs = [[100, 128, 100, True, False, True],
+                 [100, 128, 100, True, False, False],
+                 [10, 128, 10, True, False, True],
+                 [10, 128, 10, True, False, False],
+                 [2, 128, 2, True, False, True],
+                 [2, 128, 2, True, False, False]]
         for conf in reversed(confs):
             with self.subTest(conf=tuple(conf)):
                 for b in [False, True]:
@@ -541,12 +541,12 @@ class TestOnnxrtPythonRuntimeMlTree(ExtTestCase):
     @ignore_warnings((FutureWarning, DeprecationWarning))
     def test_cpp_max(self):
         from mlprodict.onnxrt.ops_cpu.op_tree_ensemble_regressor_p_ import test_tree_regressor_multitarget_max  # pylint: disable=E0611,E0401
-        confs = [[100, 100, False, False, True],
-                 [100, 100, False, False, False],
-                 [10, 10, False, False, True],
-                 [10, 10, False, False, False],
-                 [2, 2, False, False, True],
-                 [2, 2, False, False, False]]
+        confs = [[100, 128, 100, False, False, True],
+                 [100, 128, 100, False, False, False],
+                 [10, 128, 10, False, False, True],
+                 [10, 128, 10, False, False, False],
+                 [2, 128, 2, False, False, True],
+                 [2, 128, 2, False, False, False]]
         for conf in confs:
             with self.subTest(conf=tuple(conf)):
                 for b in [False, True]:
@@ -557,12 +557,12 @@ class TestOnnxrtPythonRuntimeMlTree(ExtTestCase):
     @ignore_warnings((FutureWarning, DeprecationWarning))
     def test_cpp_max_true(self):
         from mlprodict.onnxrt.ops_cpu.op_tree_ensemble_regressor_p_ import test_tree_regressor_multitarget_max  # pylint: disable=E0611,E0401
-        confs = [[100, 100, True, False, True],
-                 [100, 100, True, False, False],
-                 [10, 10, True, False, True],
-                 [10, 10, True, False, False],
-                 [2, 2, True, False, True],
-                 [2, 2, True, False, False]]
+        confs = [[100, 128, 100, True, False, True],
+                 [100, 128, 100, True, False, False],
+                 [10, 128, 10, True, False, True],
+                 [10, 128, 10, True, False, False],
+                 [2, 128, 2, True, False, True],
+                 [2, 128, 2, True, False, False]]
         for conf in confs:
             with self.subTest(conf=tuple(conf)):
                 for b in [False, True]:
@@ -590,6 +590,7 @@ class TestOnnxrtPythonRuntimeMlTree(ExtTestCase):
         # default runtime
         model_def = to_onnx(clr, X_train.astype(dtype))
         oinf = OnnxInference(model_def)
+        #
         oinf.sequence_[0].ops_._init(dtype, 1)  # pylint: disable=W0212
         y = oinf.run({'X': X_test})
         self.assertEqual(list(sorted(y)), ['variable'])
@@ -658,7 +659,7 @@ class TestOnnxrtPythonRuntimeMlTree(ExtTestCase):
         model_def = to_onnx(clr, X_train.astype(dtype),
                             options={RandomForestClassifier: {
                                 'zipmap': False}},
-                            target_opset=12)
+                            target_opset=17)
         oinf = OnnxInference(model_def)
         for op in oinf.sequence_:
             if hasattr(op.ops_, '_init'):
@@ -693,7 +694,6 @@ class TestOnnxrtPythonRuntimeMlTree(ExtTestCase):
                         sorted(numpy.abs(lexp.ravel() - y['probabilities'])))
                     mx = max(diff[:-5])
                     if mx > 1e-5:
-                        print(diff)
                         self.assertEqualArray(
                             lexp.ravel(), y['probabilities'], decimal=decimal[dtype])
                 else:
@@ -769,4 +769,5 @@ class TestOnnxrtPythonRuntimeMlTree(ExtTestCase):
 
 
 if __name__ == "__main__":
+    # TestOnnxrtPythonRuntimeMlTree().test_random_forest_with_only_one_class()
     unittest.main(verbosity=2)

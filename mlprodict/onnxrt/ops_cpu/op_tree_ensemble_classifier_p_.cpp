@@ -15,7 +15,8 @@ class RuntimeTreeEnsembleClassifierP : public RuntimeTreeEnsembleCommonP<NTYPE> 
 
     public:
         
-        RuntimeTreeEnsembleClassifierP(int omp_tree, int omp_N, bool array_structure, bool para_tree);
+        RuntimeTreeEnsembleClassifierP(int omp_tree, int omp_tree_N, int omp_N,
+                                       bool array_structure, bool para_tree);
         ~RuntimeTreeEnsembleClassifierP();
 
         void init(
@@ -45,8 +46,10 @@ class RuntimeTreeEnsembleClassifierP : public RuntimeTreeEnsembleCommonP<NTYPE> 
 
 template<typename NTYPE>
 RuntimeTreeEnsembleClassifierP<NTYPE>::RuntimeTreeEnsembleClassifierP(
-        int omp_tree, int omp_N, bool array_structure, bool para_tree) :
-   RuntimeTreeEnsembleCommonP<NTYPE>(omp_tree, omp_N, array_structure, para_tree) {
+        int omp_tree, int omp_tree_N, int omp_N,
+        bool array_structure, bool para_tree) :
+   RuntimeTreeEnsembleCommonP<NTYPE>(omp_tree, omp_tree_N, omp_N,
+                                     array_structure, para_tree) {
 }
 
 
@@ -120,15 +123,15 @@ py::array_t<NTYPE> RuntimeTreeEnsembleClassifierP<NTYPE>::compute_tree_outputs(p
 
 class RuntimeTreeEnsembleClassifierPFloat : public RuntimeTreeEnsembleClassifierP<float> {
     public:
-        RuntimeTreeEnsembleClassifierPFloat(int omp_tree, int omp_N, bool array_structure, bool para_tree) :
-            RuntimeTreeEnsembleClassifierP<float>(omp_tree, omp_N, array_structure, para_tree) {}
+        RuntimeTreeEnsembleClassifierPFloat(int omp_tree, int omp_tree_N, int omp_N, bool array_structure, bool para_tree) :
+            RuntimeTreeEnsembleClassifierP<float>(omp_tree, omp_tree_N, omp_N, array_structure, para_tree) {}
 };
 
 
 class RuntimeTreeEnsembleClassifierPDouble : public RuntimeTreeEnsembleClassifierP<double> {
     public:
-        RuntimeTreeEnsembleClassifierPDouble(int omp_tree, int omp_N, bool array_structure, bool para_tree) :
-            RuntimeTreeEnsembleClassifierP<double>(omp_tree, omp_N, array_structure, para_tree) {}
+        RuntimeTreeEnsembleClassifierPDouble(int omp_tree, int omp_tree_N, int omp_N, bool array_structure, bool para_tree) :
+            RuntimeTreeEnsembleClassifierP<double>(omp_tree, omp_tree_N, omp_N, array_structure, para_tree) {}
 };
 
 
@@ -159,7 +162,7 @@ in :epkg:`onnxruntime`. Supports float only.
 :param para_tree: (bool) parallelize the computation per tree instead of observations
 )pbdoc");
 
-    clf.def(py::init<int, int, bool, bool>());
+    clf.def(py::init<int, int, int, bool, bool>());
     clf.def_readwrite("omp_tree_", &RuntimeTreeEnsembleClassifierPFloat::omp_tree_,
         "Number of trees above which the computation is parallelized for one observation.");
     clf.def_readwrite("omp_N_", &RuntimeTreeEnsembleClassifierPFloat::omp_N_,
@@ -206,7 +209,7 @@ in :epkg:`onnxruntime`. Supports double only.
 :param para_tree: (bool) parallelize the computation per tree instead of observations
 )pbdoc");
 
-    cld.def(py::init<int, int, bool, bool>());
+    cld.def(py::init<int, int, int, bool, bool>());
     cld.def_readwrite("omp_tree_", &RuntimeTreeEnsembleClassifierPDouble::omp_tree_,
         "Number of trees above which the computation is parallelized for one observation.");
     cld.def_readwrite("omp_N_", &RuntimeTreeEnsembleClassifierPDouble::omp_N_,
