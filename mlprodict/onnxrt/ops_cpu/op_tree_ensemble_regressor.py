@@ -28,8 +28,8 @@ class TreeEnsembleRegressorCommon(OpRunUnaryNum):
         self._runtime_version = runtime_version
         self._init(dtype=dtype, version=runtime_version)
 
-    def change_parallel(self, trees, rows):
-        self.parallel = (trees, rows)
+    def change_parallel(self, trees, trees_rows, rows):
+        self.parallel = (trees, trees_rows, rows)
         self._init(dtype=self._dtype, version=self._runtime_version)
 
     def _get_typed_attributes(self, k):
