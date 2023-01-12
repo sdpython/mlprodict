@@ -117,20 +117,21 @@ class XGBConverter:
     @staticmethod
     def _fill_node_attributes(treeid, tree_weight, jsnode, attr_pairs, is_classifier, remap):
         if 'children' in jsnode:
-            XGBConverter._add_node(attr_pairs=attr_pairs, is_classifier=is_classifier,
-                                   tree_id=treeid, tree_weight=tree_weight,
-                                   value=jsnode['split_condition'], node_id=remap[jsnode['nodeid']],
-                                   feature_id=jsnode['split'],
-                                   mode='BRANCH_LT',  # 'BRANCH_LEQ' --> is for sklearn
-                                   # ['children'][0]['nodeid'],
-                                   true_child_id=remap[jsnode['yes']],
-                                   # ['children'][1]['nodeid'],
-                                   false_child_id=remap[jsnode['no']],
-                                   weights=None, weight_id_bias=None,
-                                   # ['children'][0]['nodeid'],
-                                   missing=jsnode.get(
-                                       'missing', -1) == jsnode['yes'],
-                                   hitrate=jsnode.get('cover', 0))
+            XGBConverter._add_node(
+                attr_pairs=attr_pairs, is_classifier=is_classifier,
+                tree_id=treeid, tree_weight=tree_weight,
+                value=jsnode['split_condition'], node_id=remap[jsnode['nodeid']],
+                feature_id=jsnode['split'],
+                mode='BRANCH_LT',  # 'BRANCH_LEQ' --> is for sklearn
+                # ['children'][0]['nodeid'],
+                true_child_id=remap[jsnode['yes']],
+                # ['children'][1]['nodeid'],
+                false_child_id=remap[jsnode['no']],
+                weights=None, weight_id_bias=None,
+                # ['children'][0]['nodeid'],
+                missing=jsnode.get(
+                   'missing', -1) == jsnode['yes'],
+                hitrate=jsnode.get('cover', 0))
 
             for ch in jsnode['children']:
                 if 'children' in ch or 'leaf' in ch:
@@ -143,13 +144,14 @@ class XGBConverter:
         else:
             weights = [jsnode['leaf']]
             weights_id_bias = 0
-            XGBConverter._add_node(attr_pairs=attr_pairs, is_classifier=is_classifier,
-                                   tree_id=treeid, tree_weight=tree_weight,
-                                   value=0., node_id=remap[jsnode['nodeid']],
-                                   feature_id=0, mode='LEAF',
-                                   true_child_id=0, false_child_id=0,
-                                   weights=weights, weight_id_bias=weights_id_bias,
-                                   missing=False, hitrate=jsnode.get('cover', 0))
+            XGBConverter._add_node(
+                attr_pairs=attr_pairs, is_classifier=is_classifier,
+                tree_id=treeid, tree_weight=tree_weight,
+                value=0., node_id=remap[jsnode['nodeid']],
+                feature_id=0, mode='LEAF',
+                true_child_id=0, false_child_id=0,
+                weights=weights, weight_id_bias=weights_id_bias,
+                missing=False, hitrate=jsnode.get('cover', 0))
 
     @staticmethod
     def _remap_nodeid(jsnode, remap=None):
@@ -216,7 +218,8 @@ class XGBRegressorConverter(XGBConverter):
             js_trees = js_trees[:best_ntree_limit]
 
         attr_pairs = XGBRegressorConverter._get_default_tree_attribute_pairs()
-        attr_pairs['base_values'] = [base_score]
+        if base_score is not None:
+            attr_pairs['base_values'] = [base_score]
         XGBConverter.fill_tree_attributes(
             js_trees, attr_pairs, [1 for _ in js_trees], False)
 
@@ -265,9 +268,6 @@ class XGBClassifierConverter(XGBConverter):
 
         objective, base_score, js_trees = XGBConverter.common_members(
             xgb_node, inputs)
-        if base_score is None:
-            raise RuntimeError(  # pragma: no cover
-                "base_score cannot be None")
         params = XGBConverter.get_xgb_params(xgb_node)
 
         attr_pairs = XGBClassifierConverter._get_default_tree_attribute_pairs()
