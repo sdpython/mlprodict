@@ -218,7 +218,9 @@ class XGBRegressorConverter(XGBConverter):
             js_trees = js_trees[:best_ntree_limit]
 
         attr_pairs = XGBRegressorConverter._get_default_tree_attribute_pairs()
-        if base_score is not None:
+        if base_score is None:
+            attr_pairs['base_values'] = [0.5]
+        else:
             attr_pairs['base_values'] = [base_score]
         XGBConverter.fill_tree_attributes(
             js_trees, attr_pairs, [1 for _ in js_trees], False)
