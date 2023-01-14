@@ -120,7 +120,8 @@ class XGBConverter:
             XGBConverter._add_node(
                 attr_pairs=attr_pairs, is_classifier=is_classifier,
                 tree_id=treeid, tree_weight=tree_weight,
-                value=jsnode['split_condition'], node_id=remap[jsnode['nodeid']],
+                value=jsnode['split_condition'],
+                node_id=remap[jsnode['nodeid']],
                 feature_id=jsnode['split'],
                 mode='BRANCH_LT',  # 'BRANCH_LEQ' --> is for sklearn
                 # ['children'][0]['nodeid'],
@@ -129,8 +130,7 @@ class XGBConverter:
                 false_child_id=remap[jsnode['no']],
                 weights=None, weight_id_bias=None,
                 # ['children'][0]['nodeid'],
-                missing=jsnode.get(
-                   'missing', -1) == jsnode['yes'],
+                missing=jsnode.get('missing', -1) == jsnode['yes'],
                 hitrate=jsnode.get('cover', 0))
 
             for ch in jsnode['children']:
