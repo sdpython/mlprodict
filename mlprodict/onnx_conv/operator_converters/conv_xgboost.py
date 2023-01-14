@@ -293,6 +293,8 @@ class XGBClassifierConverter(XGBConverter):
         if 'n_estimators' not in params:
             raise RuntimeError(  # pragma: no cover
                 f"Parameters not found, existing:\n{pformat(params)}")
+        if base_score is None:
+            base_score = 0.5
         if ncl <= 1:
             ncl = 2
             # See https://github.com/dmlc/xgboost/blob/master/src/common/math.h#L23.
