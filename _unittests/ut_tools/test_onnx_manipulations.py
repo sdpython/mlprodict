@@ -1105,7 +1105,7 @@ class TestOptimOnnxManipulations(ExtTestCase):
                 self.assertEqual(res.shape[0], 3)
                 self.assertEqual(res.shape, (3, 8, 2))
                 if ft is not None:
-                    res = res[:, :-1, :]
+                    # res = res[:, :, :]
                     self.assertEqual(res.shape[:-1], ft.shape)
                     # The test does not work when the input does not come from stft.
                     # self.assertEqualArray(
@@ -1518,5 +1518,5 @@ class TestOptimOnnxManipulations(ExtTestCase):
 
 
 if __name__ == "__main__":
-    TestOptimOnnxManipulations().test_onnx_inline_function_fft()
+    # TestOptimOnnxManipulations().test_onnx_inline_function_fft()
     unittest.main(verbosity=2)
