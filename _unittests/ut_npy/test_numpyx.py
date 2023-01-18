@@ -3,8 +3,11 @@
 """
 import unittest
 import numpy
+from onnx.reference import ReferenceEvaluator
 from pyquickhelper.pycode import ExtTestCase
 from mlprodict.npy.numpyx import ElemType, TensorType
+from mlprodict.npy.numpyx_core import Input, Var
+from mlprodict.npy.numpyx_functions import absolute
 
 
 class TestNumpyx(ExtTestCase):
@@ -37,6 +40,16 @@ class TestNumpyx(ExtTestCase):
 
         def local2(x: TensorType(ElemType.floats, name="T")) -> TensorType(ElemType.floats, name="T"):
             return x
+
+    def test_numpy_add(self):
+        f = absolute(Input())
+        self.assertIsInstance(f, Var)
+        onx = f.to_onnx()
+        x = numpy.array([-5, 6], dtype=numpy.float64)
+        y = numpy.abs(x)
+        ref = ReferenceEvaluator(onx)
+        got = ref.run(None, {'x': x})
+        self.assertEqualArray(y, got[0])
 
 
 if __name__ == "__main__":

@@ -4,12 +4,13 @@
 
 .. versionadded:: 0.10
 """
-from .numpy_decorator import Cst, Var, xapi
+from typing import Tuple
+from .numpyx_core import Cst, Var, xapi
 from .numpyx_types import ElemType, TensorType
 
 
 @xapi
-def abs(x: TensorType(ElemType.numeric, name="T")) -> TensorType(ElemType.numeric, name="T"):
+def absolute(x: TensorType(ElemType.numeric, name="T")) -> TensorType(ElemType.numeric, name="T"):
     "See :func:`numpy.abs`."
     return Var(x, op='Abs')
 
@@ -22,7 +23,7 @@ def addition(x: TensorType(ElemType.numeric, name="T"),
 
 
 @xapi
-def log1p(x: TensorType(ElemType.floats, name="T")) -> : TensorType(ElemType.floats, name="T"):
+def log1p(x: TensorType(ElemType.floats, name="T")) -> TensorType(ElemType.floats, name="T"):
     "See :func:`numpy.log1p`."
     x1 = Var(x, Cst(numpy.array([1], dtype=x.dtype)), op='Add')
     return Var(x1, op='Log')
