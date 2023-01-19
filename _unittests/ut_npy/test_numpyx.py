@@ -8,7 +8,8 @@ from pyquickhelper.pycode import ExtTestCase
 from mlprodict.npy.numpyx import ElemType, TensorType
 from mlprodict.npy.numpyx_types import Float32, Float64, Int64
 from mlprodict.npy.numpyx_core import Input, Var
-from mlprodict.npy.numpyx_functions import absolute
+from mlprodict.npy.numpyx_functions import (
+    absolute, addition, negative)
 
 
 class TestNumpyx(ExtTestCase):
@@ -65,7 +66,7 @@ class TestNumpyx(ExtTestCase):
         def local4(x: Float64["N", 1]) -> Int64["N", 1]:
             return x
 
-    def test_numpy_add(self):
+    def test_numpy_abs(self):
         f = absolute(Input())
         self.assertIsInstance(f, Var)
         self.assertIn(":param inputs:", f.__doc__)
@@ -79,6 +80,45 @@ class TestNumpyx(ExtTestCase):
         ref = ReferenceEvaluator(onx)
         got = ref.run(None, {'I__0': x})
         self.assertEqualArray(y, got[0])
+
+    def test_numpy_abs_neg(self):
+        f = absolute(negative(Input()))
+        self.assertIsInstance(f, Var)
+        self.assertTrue(f.is_function)
+        onx = f.to_onnx(constraints={'T': Float64[None]})
+        x = numpy.array([-5, 6], dtype=numpy.float64)
+        y = numpy.abs(-x)
+        ref = ReferenceEvaluator(onx)
+        got = ref.run(None, {'I__0': x})
+        self.assertEqualArray(y, got[0])
+
+    def test_numpy_abs_neg_constraint_input(self):
+        f = absolute(negative(Input()))
+        self.assertIsInstance(f, Var)
+        self.assertTrue(f.is_function)
+        self.assertRaise(lambda: f.to_onnx(), RuntimeError)
+        onx = f.to_onnx(constraints={0: Float64[None]})
+        x = numpy.array([-5, 6], dtype=numpy.float64)
+        y = numpy.abs(-x)
+        ref = ReferenceEvaluator(onx)
+        got = ref.run(None, {'I__0': x})
+        self.assertEqualArray(y, got[0])
+
+    def test_numpy_two_inputs(self):
+        f = absolute(addition(Input(), Input()))
+        self.assertIsInstance(f, Var)
+        self.assertIn("Signature", addition.__doc__)
+        self.assertIn("x: Numerics[](T)", addition.__doc__)
+        self.assertIn("y: Numerics[](T)", addition.__doc__)
+        self.assertIn("-> Numerics[]", addition.__doc__)
+        self.assertRaise(lambda: f.to_onnx(), RuntimeError)
+        onx = f.to_onnx(constraints={'T': Float64[None]})
+        x = numpy.array([-5, 6], dtype=numpy.float64)
+        y = numpy.array([2.5], dtype=numpy.float64)
+        z = numpy.abs(x + y)
+        ref = ReferenceEvaluator(onx)
+        got = ref.run(None, {'I__0': x, 'I__1': y})
+        self.assertEqualArray(z, got[0])
 
 
 if __name__ == "__main__":

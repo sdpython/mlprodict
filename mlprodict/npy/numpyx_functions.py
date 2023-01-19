@@ -30,6 +30,12 @@ def log1p(x: TensorType(ElemType.floats, name="T")) -> TensorType(ElemType.float
 
 
 @xapi
+def negative(x: TensorType(ElemType.numerics, name="T")) -> TensorType(ElemType.numerics, name="T"):
+    "See :func:`numpy.abs`."
+    return Var(x, op='Neg')
+
+
+@xapi
 def transpose(x: TensorType(ElemType.numerics, name="T"),
               perm: Tuple[int] = (1, 0)) -> TensorType(ElemType.numerics, name="T"):
     "See :func:`numpy.transpose`."

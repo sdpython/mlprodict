@@ -135,27 +135,42 @@ class _GraphBuilder:
         check_node(node, context)
         self.nodes_.append(node)
 
-    def _io(self, name: str, tensor_type: TensorType):
+    def _io(self, index: int, name: str, tensor_type: TensorType) -> ValueInfoProto:
+        """
+        Converts an input or outut into :class:`onnx.ValueInfoProto`.
+
+        :param index: index of the input or output to add
+        :param name: input or output name
+        :param tensor_type: type of the tensor
+        :return: an instance of :class:`ValueInfoProto`
+        """
         if self.as_function:
             return _FunctionIO(name)
         if not isinstance(tensor_type, TensorType):
             raise TypeError(
                 f"Unexpected type {type(tensor_type)} for tensor_type.")
         if self.constraints is not None:
-            if tensor_type.name not in self.constraints:
+            if (index not in self.constraints and
+                    tensor_type.name not in self.constraints):
                 raise RuntimeError(
                     f"tensor_type is not specific enough {tensor_type!r} "
-                    f"and constraints do not precise this type "
+                    f"and constraints do not precise this type for "
+                    f"input or output {index} "
                     f"{self.constraints!r}.")
-            new_type = self.constraints[tensor_type.name]
+            if index in self.constraints:
+                new_type = self.constraints[index]
+            else:
+                new_type = self.constraints[tensor_type.name]
             if not tensor_type.issuperset(new_type):
                 raise RuntimeError(
                     f"tensor_type is not specific enough {tensor_type!r} "
-                    f"and constraint={new_type!r} and not consistent.")
+                    f"and constraint={new_type!r} and not consistent for "
+                    f"input or output {index}.")
             tensor_type = new_type
         if len(tensor_type.dtypes) != 1:
             raise RuntimeError(
-                f"tensor_type is not specific enough {tensor_type!r}.")
+                f"tensor_type is not specific enough ({str(tensor_type)} "
+                f"or its full representation {tensor_type!r}).")
         if tensor_type.shape is None:
             type_proto = TypeProto()
             tensor_type_proto = type_proto.tensor_type
@@ -181,7 +196,7 @@ class _GraphBuilder:
             raise RuntimeError(
                 f"Empty input name in function {self.function_name!r} "
                 f"from domain {self.function_domain!r}.")
-        self.inputs_.append(self._io(name, tensor_type))
+        self.inputs_.append(self._io(len(self.inputs_), name, tensor_type))
         self.onnx_names_[name] = None
 
     def make_output(self, name: str, tensor_type: TensorType):
@@ -192,7 +207,7 @@ class _GraphBuilder:
             raise RuntimeError(
                 f"Empty output name in function {self.function_name!r} "
                 f"from domain {self.function_domain!r}.")
-        self.outputs_.append(self._io(name, tensor_type))
+        self.outputs_.append(self._io(len(self.outputs_), name, tensor_type))
 
     def _make_onnx(self):
         """
@@ -476,12 +491,6 @@ class Var:
                           name=name, domain=domain, attributes=attributes,
                           constraints=constraints)
         vs = self._get_vars()
-        if constraints is not None:
-            vssub = [v for v in vs if v.is_function]
-            if len(vssub) != 1:
-                raise RuntimeError(
-                    f"constraints is not None but it "
-                    f"does not represent a function but {len(vssub)}.")
         for var in vs:
             g.append(var)
         return g.to_onnx()
