@@ -9,7 +9,7 @@ from mlprodict.npy.numpyx import ElemType, TensorType
 from mlprodict.npy.numpyx_types import Float32, Float64, Int64
 from mlprodict.npy.numpyx_core import Input, Var
 from mlprodict.npy.numpyx_functions import (
-    absolute, addition, negative)
+    absolute, addition, argmin, log1p, negative)
 
 
 class TestNumpyx(ExtTestCase):
@@ -92,6 +92,17 @@ class TestNumpyx(ExtTestCase):
         got = ref.run(None, {'I__0': x})
         self.assertEqualArray(y, got[0])
 
+    def test_numpy_log1p(self):
+        f = log1p(Input())
+        self.assertIsInstance(f, Var)
+        self.assertTrue(f.is_function)
+        onx = f.to_onnx(constraints={'T': Float64[None]})
+        x = numpy.array([5, 6], dtype=numpy.float64)
+        y = numpy.log1p(x)
+        ref = ReferenceEvaluator(onx)
+        got = ref.run(None, {'I__0': x})
+        self.assertEqualArray(y, got[0])
+
     def test_numpy_abs_neg_constraint_input(self):
         f = absolute(negative(Input()))
         self.assertIsInstance(f, Var)
@@ -110,7 +121,7 @@ class TestNumpyx(ExtTestCase):
         self.assertIn("Signature", addition.__doc__)
         self.assertIn("x: Numerics[](T)", addition.__doc__)
         self.assertIn("y: Numerics[](T)", addition.__doc__)
-        self.assertIn("-> Numerics[]", addition.__doc__)
+        self.assertIn("-> Numerics[](T)", addition.__doc__)
         self.assertRaise(lambda: f.to_onnx(), RuntimeError)
         onx = f.to_onnx(constraints={'T': Float64[None]})
         x = numpy.array([-5, 6], dtype=numpy.float64)
@@ -118,6 +129,20 @@ class TestNumpyx(ExtTestCase):
         z = numpy.abs(x + y)
         ref = ReferenceEvaluator(onx)
         got = ref.run(None, {'I__0': x, 'I__1': y})
+        self.assertEqualArray(z, got[0])
+
+    def test_numpy_parameter_argmin(self):
+        f = absolute(argmin(Input()))
+        self.assertIsInstance(f, Var)
+        self.assertIn("Signature", argmin.__doc__)
+        self.assertIn("x: Numerics[](T),", argmin.__doc__)
+        self.assertIn("-> Numerics[](T)", argmin.__doc__)
+        self.assertIn("axis: OptPar[int],", argmin.__doc__)
+        onx = f.to_onnx(constraints={'T': Float64[None]})
+        x = numpy.array([[-5, 6], [15, 3]], dtype=numpy.float64)
+        z = numpy.argmin(x)
+        ref = ReferenceEvaluator(onx)
+        got = ref.run(None, {'I__0': x})
         self.assertEqualArray(z, got[0])
 
 

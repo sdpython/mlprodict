@@ -155,6 +155,62 @@ class ElemType(ElemTypeCst):
         return f"{self.__class__.__name__}(ElemType.{s})"
 
 
+class Par:
+    """
+    Defines a parameter type.
+
+    :param dtype: parameter type
+    :param optional: is optional or not
+    """
+
+    __slots__ = ["dtype", "optional"]
+
+    map_names = {int: "int", float: "float", str: "str"}
+
+    @classmethod
+    def __class_getitem__(cls, dtype):
+        return Par(dtype)
+
+    def __init__(self, dtype: type, optional: bool = False):
+        self.dtype = dtype
+        self.optional = optional
+
+    def __repr__(self) -> str:
+        "usual"
+        if self.optional:
+            return f"{self.__class__.__name__}({Par.map_names[self.dtype]}, optional=True)"
+        return f"{self.__class__.__name__}({Par.map_names[self.dtype]})"
+
+    def __str__(self) -> str:
+        "usual"
+        if self.optional:
+            return f"{self.__class__.__name__}{Par.map_names[self.dtype]}, optional=True)"
+        return f"{self.__class__.__name__}[{Par.map_names[self.dtype]}]"
+
+
+class OptPar(Par):
+    """
+    Defines an optional parameter type.
+
+    :param dtype: parameter type
+    """
+
+    @classmethod
+    def __class_getitem__(cls, dtype):
+        return OptPar(dtype)
+
+    def __init__(self, dtype):
+        Par.__init__(self, dtype, True)
+
+    def __repr__(self) -> str:
+        "usual"
+        return f"{self.__class__.__name__}({Par.map_names[self.dtype]})"
+
+    def __str__(self) -> str:
+        "usual"
+        return f"{self.__class__.__name__}[{Par.map_names[self.dtype]}]"
+
+
 class TensorType:
     """
     Used to annotate functions.

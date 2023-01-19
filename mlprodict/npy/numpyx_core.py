@@ -92,7 +92,8 @@ class _GraphBuilder:
     def append(self, var):
         i = id(var)
         if i in self._id_vars:
-            raise RuntimeError(f"One variable id={i} is already registered.")
+            # an input or result used twice
+            return
         self._id_vars[i] = None
         self._vars.append(var)
 
@@ -303,7 +304,7 @@ class _GraphBuilder:
                     f"processed and given name {self._id_vars[key]}.")
 
             if isinstance(var, Cst):
-                name = self._unique(i._prefix)
+                name = self._unique(var._prefix)
                 self._id_vars[key] = name
                 self.make_node("Constant", [], [name],
                                value=from_array(var.inputs[0]))
@@ -556,9 +557,9 @@ def xapi(fn):
         return Var(*inputs, op=fn, **kwargs)
 
     sig = signature(fn)
-    rows = ["", "", "Signature:", "", "::", ""]
+    rows = ["", "", "Signature:", "", "::", "", "    ("]
     for p in sig.parameters.values():
-        rows.append(f"    {p.name}: {str(p.annotation)}")
-    rows.append(f"    -> {sig.return_annotation}")
+        rows.append(f"        {p.name}: {str(p.annotation)},")
+    rows.append(f"    ) -> {sig.return_annotation}:")
     wrapper.__doc__ = fn.__doc__ + "\n".join(rows)
     return wrapper
