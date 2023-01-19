@@ -6,6 +6,7 @@
 """
 from typing import Any, Optional, Tuple, Union
 import numpy
+from onnx import AttributeProto
 
 
 class ElemTypeCstInner:
@@ -155,7 +156,7 @@ class ElemType(ElemTypeCst):
         return f"{self.__class__.__name__}(ElemType.{s})"
 
 
-class Par:
+class ParType:
     """
     Defines a parameter type.
 
@@ -169,7 +170,7 @@ class Par:
 
     @classmethod
     def __class_getitem__(cls, dtype):
-        return Par(dtype)
+        return ParType(dtype)
 
     def __init__(self, dtype: type, optional: bool = False):
         self.dtype = dtype
@@ -178,17 +179,35 @@ class Par:
     def __repr__(self) -> str:
         "usual"
         if self.optional:
-            return f"{self.__class__.__name__}({Par.map_names[self.dtype]}, optional=True)"
-        return f"{self.__class__.__name__}({Par.map_names[self.dtype]})"
+            return (
+                f"{self.__class__.__name__}"
+                f"({ParType.map_names[self.dtype]}, optional=True)")
+        return (
+            f"{self.__class__.__name__}"
+            f"[{ParType.map_names[self.dtype]}]")
 
     def __str__(self) -> str:
         "usual"
         if self.optional:
-            return f"{self.__class__.__name__}{Par.map_names[self.dtype]}, optional=True)"
-        return f"{self.__class__.__name__}[{Par.map_names[self.dtype]}]"
+            return (
+                f"{self.__class__.__name__}"
+                f"{ParType.map_names[self.dtype]}, optional=True)")
+        return f"{self.__class__.__name__}[{ParType.map_names[self.dtype]}]"
+
+    @property
+    def onnx_type(self):
+        if self.dtype == int:
+            return AttributeProto.INT
+        if self.dtype == float:
+            return AttributeProto.FLOAT
+        if self.dtype == str:
+            return AttributeProto.STRING
+        raise RuntimeError(
+            f"Unsupported attribute type {self.dtype!r} "
+            f"for parameter {self!r}.")
 
 
-class OptPar(Par):
+class OptParType(ParType):
     """
     Defines an optional parameter type.
 
@@ -197,18 +216,18 @@ class OptPar(Par):
 
     @classmethod
     def __class_getitem__(cls, dtype):
-        return OptPar(dtype)
+        return OptParType(dtype)
 
     def __init__(self, dtype):
-        Par.__init__(self, dtype, True)
+        ParType.__init__(self, dtype, True)
 
     def __repr__(self) -> str:
         "usual"
-        return f"{self.__class__.__name__}({Par.map_names[self.dtype]})"
+        return f"{self.__class__.__name__}[{ParType.map_names[self.dtype]}]"
 
     def __str__(self) -> str:
         "usual"
-        return f"{self.__class__.__name__}[{Par.map_names[self.dtype]}]"
+        return f"{self.__class__.__name__}[{ParType.map_names[self.dtype]}]"
 
 
 class TensorType:

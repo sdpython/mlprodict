@@ -7,7 +7,7 @@
 from typing import Optional, Tuple
 import numpy as np
 from .numpyx_core import Cst, Var, xapi
-from .numpyx_types import ElemType, OptPar, TensorType
+from .numpyx_types import ElemType, OptParType, TensorType
 
 
 @xapi
@@ -27,8 +27,8 @@ def addition(x: TensorType(ElemType.numerics, name="T"),
 
 @xapi
 def argmin(x: TensorType(ElemType.numerics, name="T"),
-           axis: OptPar[int] = 0,
-           keepdims: OptPar[int] = 0
+           axis: OptParType[int] = 0,
+           keepdims: OptParType[int] = 0
            ) -> TensorType(ElemType.numerics, name="T"):
     """
     See :func:`numpy.argmin`.

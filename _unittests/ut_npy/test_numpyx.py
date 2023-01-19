@@ -137,7 +137,7 @@ class TestNumpyx(ExtTestCase):
         self.assertIn("Signature", argmin.__doc__)
         self.assertIn("x: Numerics[](T),", argmin.__doc__)
         self.assertIn("-> Numerics[](T)", argmin.__doc__)
-        self.assertIn("axis: OptPar[int],", argmin.__doc__)
+        self.assertIn("axis: OptParType[int],", argmin.__doc__)
         onx = f.to_onnx(constraints={'T': Float64[None]})
         x = numpy.array([[-5, 6], [15, 3]], dtype=numpy.float64)
         z = numpy.argmin(x)
@@ -145,6 +145,12 @@ class TestNumpyx(ExtTestCase):
         got = ref.run(None, {'I__0': x})
         self.assertEqualArray(z, got[0])
 
+    # inline single op function
+    # *inputs
+    # function calling function calling function
+    # multi outputs
+
 
 if __name__ == "__main__":
+    TestNumpyx().test_numpy_parameter_argmin()
     unittest.main(verbosity=2)

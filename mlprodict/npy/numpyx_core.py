@@ -8,7 +8,8 @@ from inspect import Parameter, signature
 from typing import Any, Callable, Dict, List, Optional, Tuple, Union
 import numpy
 from onnx import (
-    IR_VERSION, FunctionProto, ModelProto, ValueInfoProto, TypeProto)
+    IR_VERSION, AttributeProto, FunctionProto, ModelProto,
+    ValueInfoProto, TypeProto)
 from onnx.checker import (
     C as onnxC, check_value_info, check_model, check_graph, check_node)
 from onnx.defs import onnx_opset_version
@@ -18,7 +19,7 @@ from onnx.helper import (
     make_opsetid, make_tensor_value_info,
     make_tensor_type_proto)
 from onnx.numpy_helper import from_array
-from .numpyx_types import TensorType
+from .numpyx_types import ParType, TensorType
 
 
 class _FunctionIO:
@@ -82,7 +83,7 @@ class _GraphBuilder:
 
     def _unique(self, prefix):
         if prefix in ('', None):
-            prefix = f"v{len(self._vars)}"
+            prefix = "r"
         if "__" in prefix:
             raise NameError("prefix {prefix!r} cannot contain '__'.")
         name = f"{prefix}__{len(self._names)}"
@@ -118,8 +119,22 @@ class _GraphBuilder:
                     f"function {self.function_name!r} from domain "
                     f"{self.function_domain!r}. Known names:\n{names}\n.")
 
+        new_kwargs = {}
+        protos = []
+        for k, v in kwargs.items():
+            if isinstance(v, Par):
+                att = AttributeProto()
+                att.name = k
+                att.ref_attr_name = v.name
+                att.type = v.onnx_type
+                protos.append(att)
+            else:
+                new_kwargs[k] = v
+
         # make node
-        node = make_node(op, inputs, outputs, domain=domain, **kwargs)
+        node = make_node(op, inputs, outputs, domain=domain, **new_kwargs)
+        for p in protos:
+            node.attribute.append(p)
 
         for out in outputs:
             if out:
@@ -224,7 +239,7 @@ class _GraphBuilder:
             domain = f[0].domain
             if domain not in set_domains:
                 set_domains.add(domain)
-            opset_imports.append(make_opsetid(domain, 1))
+                opset_imports.append(make_opsetid(domain, 1))
 
         if self.as_function:
             inputs = []
@@ -243,7 +258,7 @@ class _GraphBuilder:
                 [o.name for o in self.outputs_],
                 self.nodes_,
                 opset_imports,
-                self.attributes)
+                [p.name for p in self.attributes])
             return fct
 
         graph = make_graph(self.nodes_, 'numpyx', self.inputs_, self.outputs_)
@@ -252,7 +267,7 @@ class _GraphBuilder:
         check_model(model)
         return model
 
-    def _to_onnx(self, fct):
+    def _function_to_onnx(self, fct):
         """
         Converts a function to onnx.
         """
@@ -264,6 +279,7 @@ class _GraphBuilder:
 
         inputs = []
         input_types = []
+        kwargs = {}
         attributes = []
         for name, par in sig.parameters.items():
             value = par.default
@@ -271,16 +287,18 @@ class _GraphBuilder:
             if value == Parameter.empty or value is None:
                 inputs.append(Input(name))
             else:
-                attributes.append(name)
+                p = Par(name, anno, value)
+                kwargs[name] = p
+                attributes.append(p)
             input_types.append(anno)
         output_types = [sig.return_annotation]
-        applied = fct(*inputs)
+        applied = fct(*inputs, **kwargs)
 
         onx = applied.to_onnx(
             self.target_opsets, as_function=True, name=fct.__name__,
             domain=domain, attributes=attributes)
         self.functions_[key] = (onx, input_types, output_types)
-        return onx, input_types, output_types
+        return onx, input_types, output_types, attributes
 
     def to_onnx(self):
         """
@@ -322,7 +340,8 @@ class _GraphBuilder:
             if var.onnx_op[0] is None:
                 # a function is converted into FunctionProto
                 # and then a node is inserted in the main graph
-                onx_fn, in_types, out_types = self._to_onnx(var.onnx_op[1])
+                (onx_fn, in_types,
+                 out_types, att_types) = self._function_to_onnx(var.onnx_op[1])
                 domop = (onx_fn.domain, onx_fn.name)
 
                 for inp, dt in zip(var.inputs, in_types):
@@ -332,8 +351,10 @@ class _GraphBuilder:
             else:
                 # an operator
                 domop = var.onnx_op
+                att_types = None
 
             # an operator is to be inserted
+            # preprocess the inputs
             node_inputs = []
             node_outputs = []
             for i in var.inputs:
@@ -349,13 +370,31 @@ class _GraphBuilder:
                     raise NotImplementedError(
                         f"Unexpected type {type(i)} for node={domop}.")
 
+            # preprocess the argument
+            kwargs = var.onnx_op_kwargs
+
             key = id(var)
             name = self._unique(i._prefix)
 
             self._id_vars[key] = name
             node_outputs = [name]
+
+            # creates the node
+            if att_types is not None and len(att_types) > 0:
+                # functions do not accept default values,
+                # all of them need to be defined or added
+                # with the default value
+                for par in att_types:
+                    if par.name in kwargs:
+                        continue
+                    if par.value is None:
+                        raise RuntimeError(
+                            f"Default value for parameter {par.name!r} "
+                            f"of function {domop[1]!r} and domain "
+                            f"{domop[0]!r}.")
+                    kwargs[par.name] = par.value
             self.make_node(domop[1], node_inputs, node_outputs,
-                           domain=domop[0], **var.onnx_op_kwargs)
+                           domain=domop[0], **kwargs)
 
         # the output is the last variable
         possible_outputs = [(self._vars[-1], None)]
@@ -527,6 +566,31 @@ class Cst(Var):
         self._prefix = "cst"
 
 
+class Par:
+    """
+    Defines a named parameter.
+
+    :param name: parameter name
+    """
+
+    def __init__(self, name: str, dtype: ParType, value: Optional[Any] = None):
+        self.name = name
+        self.dtype = dtype
+        self.value = value
+
+    def __repr__(self):
+        "usual"
+        if self.value is None:
+            return f"{self.__class__.__name__}({self.name!r}, {self.dtype!r})"
+        return (
+            f"{self.__class__.__name__}"
+            f"({self.name!r}, {self.dtype!r}, {self.value!r})")
+
+    @property
+    def onnx_type(self):
+        return self.dtype.onnx_type
+
+
 class BackendValue:
     """
     Defines a value for a specific backend.
@@ -542,7 +606,7 @@ def xapi(fn):
     The function inspects the input and decides which version of the function
     to call.
     """
-    cst_types = (Var, Cst, numpy.ndarray)
+    cst_types = (Var, numpy.ndarray)
 
     # It has the same signature
     def wrapper(*inputs, eager=False, **kwargs):
@@ -554,7 +618,30 @@ def xapi(fn):
             raise TypeError(
                 f"Inconsistency in types "
                 f"{','.join(map(lambda t: str(type(t)), inputs))}.")
-        return Var(*inputs, op=fn, **kwargs)
+
+        new_inputs = []
+        new_pars = {}
+        for ind, i in enumerate(inputs):
+            if isinstance(i, (Var, numpy.ndarray)):
+                new_inputs.append(i)
+            elif isinstance(i, str):
+                new_inputs.append(Input(i))
+            else:
+                raise TypeError(
+                    f"Unexpected type for input {ind}, type={type(i)}.")
+        for k, v in kwargs.items():
+            if v is None and len(new_pars) == 0:
+                # it could an optional input
+                raise NotImplementedError(
+                    f"Unable to decide between an optional input or a "
+                    f"parameter for name={k!r}.")
+            if isinstance(v, (int, float, str)):
+                new_pars[k] = ParValue(k, v)
+            else:
+                raise TypeError(
+                    f"Unexpected type for parameter {name!r}, type={type(v)}.")
+
+        return Var(*new_inputs, op=fn, **new_pars)
 
     sig = signature(fn)
     rows = ["", "", "Signature:", "", "::", "", "    ("]
