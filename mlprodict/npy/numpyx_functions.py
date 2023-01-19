@@ -10,14 +10,14 @@ from .numpyx_types import ElemType, TensorType
 
 
 @xapi
-def absolute(x: TensorType(ElemType.numeric, name="T")) -> TensorType(ElemType.numeric, name="T"):
+def absolute(x: TensorType(ElemType.numerics, name="T")) -> TensorType(ElemType.numerics, name="T"):
     "See :func:`numpy.abs`."
     return Var(x, op='Abs')
 
 
 @xapi
-def addition(x: TensorType(ElemType.numeric, name="T"),
-             y: TensorType(ElemType.numeric, name="T")) -> TensorType(ElemType.numeric, name="T"):
+def addition(x: TensorType(ElemType.numerics, name="T"),
+             y: TensorType(ElemType.numerics, name="T")) -> TensorType(ElemType.numerics, name="T"):
     "See :func:`numpy.addition`."
     return Var(x, y, op='Add')
 
@@ -30,7 +30,7 @@ def log1p(x: TensorType(ElemType.floats, name="T")) -> TensorType(ElemType.float
 
 
 @xapi
-def transpose(x: TensorType(ElemType.numeric, name="T"),
-              perm: Tuple[int] = (1, 0)) -> TensorType(ElemType.numeric, name="T"):
+def transpose(x: TensorType(ElemType.numerics, name="T"),
+              perm: Tuple[int] = (1, 0)) -> TensorType(ElemType.numerics, name="T"):
     "See :func:`numpy.transpose`."
     return Var(x, op='Transpose', perm=list(perm))

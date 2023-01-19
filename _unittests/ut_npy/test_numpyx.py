@@ -34,6 +34,23 @@ class TestNumpyx(ExtTestCase):
         self.assertRaise(lambda: TensorType(
             (numpy.float32, numpy.str_)), TypeError)
 
+    def test_superset(self):
+        t1 = TensorType[ElemType.numerics]
+        t2 = TensorType(ElemType.float64)
+        self.assertTrue(t1.issuperset(t2))
+        t1 = Float32[None]
+        t2 = Float32[None]
+        self.assertTrue(t1.issuperset(t2))
+        t1 = Float32[5]
+        t2 = Float32[5]
+        self.assertTrue(t1.issuperset(t2))
+        t1 = Float32[None]
+        t2 = Float32[5]
+        self.assertTrue(t1.issuperset(t2))
+        t1 = Float32["N"]
+        t2 = Float32[5]
+        self.assertTrue(t1.issuperset(t2))
+
     def test_sig(self):
 
         def local1(x: TensorType[ElemType.floats]) -> TensorType[ElemType.floats]:
@@ -51,11 +68,16 @@ class TestNumpyx(ExtTestCase):
     def test_numpy_add(self):
         f = absolute(Input())
         self.assertIsInstance(f, Var)
-        onx = f.to_onnx()
+        self.assertIn(":param inputs:", f.__doc__)
+        self.assertIn("Signature", absolute.__doc__)
+        self.assertIn("x: Numerics[](T)", absolute.__doc__)
+        self.assertIn("-> Numerics[]", absolute.__doc__)
+        self.assertTrue(f.is_function)
+        onx = f.to_onnx(constraints={'T': Float64[None]})
         x = numpy.array([-5, 6], dtype=numpy.float64)
         y = numpy.abs(x)
         ref = ReferenceEvaluator(onx)
-        got = ref.run(None, {'x': x})
+        got = ref.run(None, {'I__0': x})
         self.assertEqualArray(y, got[0])
 
 

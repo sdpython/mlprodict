@@ -7,7 +7,6 @@ Second Numpy API for ONNX
 .. contents::
     :local:
 
-
 Classes
 =======
 
