@@ -102,7 +102,7 @@ class ElemType(ElemTypeCst):
         elif dtype not in ElemType.allowed:
             raise ValueError(
                 f"Unexpected dtype {dtype} not in {ElemType.allowed}.")
-        self.dtype = dtype
+        self.dtype: int = dtype
 
     def __repr__(self) -> str:
         "usual"
@@ -158,3 +158,30 @@ class TensorType:
         if self.name:
             return f"{self.__class__.__name__}({st}, {self.name!r})"
         return f"{self.__class__.__name__}({st})"
+
+
+class Float32:
+    """
+    For simpler annotation.
+    """
+    @classmethod
+    def __class_getitem__(cls, shape):
+        return TensorType(ElemType.float32, shape=shape)
+
+
+class Float64:
+    """
+    For simpler annotation.
+    """
+    @classmethod
+    def __class_getitem__(cls, shape):
+        return TensorType(ElemType.float64, shape=shape)
+
+
+class Int64:
+    """
+    For simpler annotation.
+    """
+    @classmethod
+    def __class_getitem__(cls, shape):
+        return TensorType(ElemType.int64, shape=shape)

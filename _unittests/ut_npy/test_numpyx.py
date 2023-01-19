@@ -6,6 +6,7 @@ import numpy
 from onnx.reference import ReferenceEvaluator
 from pyquickhelper.pycode import ExtTestCase
 from mlprodict.npy.numpyx import ElemType, TensorType
+from mlprodict.npy.numpyx_types import Float32, Float64, Int64
 from mlprodict.npy.numpyx_core import Input, Var
 from mlprodict.npy.numpyx_functions import absolute
 
@@ -39,6 +40,12 @@ class TestNumpyx(ExtTestCase):
             return x
 
         def local2(x: TensorType(ElemType.floats, name="T")) -> TensorType(ElemType.floats, name="T"):
+            return x
+
+        def local3(x: Float32["N", 1]) -> Float32["N", 1]:
+            return x
+
+        def local4(x: Float64["N", 1]) -> Int64["N", 1]:
             return x
 
     def test_numpy_add(self):

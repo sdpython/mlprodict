@@ -18,6 +18,7 @@ This is a summary of functions this modules provides.
     :maxdepth: 1
 
     npy
+    numpyx
     xop
     ast
 
