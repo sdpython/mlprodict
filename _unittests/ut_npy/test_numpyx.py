@@ -8,8 +8,8 @@ from pyquickhelper.pycode import ExtTestCase
 from mlprodict.npy.numpyx import ElemType, TensorType
 from mlprodict.npy.numpyx_types import Float32, Float64, Int64
 from mlprodict.npy.numpyx_core import Input, Var
-from mlprodict.npy.numpyx_functions import (
-    absolute, addition, argmin, log1p, negative)
+from mlprodict.npy.numpyx_functions_test import (
+    absolute, addition, argmin, log1p, negative, relu)
 
 
 class TestNumpyx(ExtTestCase):
@@ -140,17 +140,26 @@ class TestNumpyx(ExtTestCase):
         self.assertIn("axis: OptParType[int],", argmin.__doc__)
         onx = f.to_onnx(constraints={'T': Float64[None]})
         x = numpy.array([[-5, 6], [15, 3]], dtype=numpy.float64)
-        z = numpy.argmin(x)
+        z = numpy.argmin(x, axis=0)
         ref = ReferenceEvaluator(onx)
         got = ref.run(None, {'I__0': x})
         self.assertEqualArray(z, got[0])
 
+    def test_numpy_relu(self):
+        f = relu(Input())
+        onx = f.to_onnx(constraints={'T': Float64[None]})
+        x = numpy.array([[-5, 6], [15, 3]], dtype=numpy.float64)
+        z = numpy.where(x >= 0, x, 0)
+        ref = ReferenceEvaluator(onx)
+        got = ref.run(None, {'I__0': x})
+        self.assertEqualArray(z, got[0])
+
+    # function calling function calling function
     # inline single op function
     # *inputs
-    # function calling function calling function
     # multi outputs
 
 
 if __name__ == "__main__":
-    TestNumpyx().test_numpy_parameter_argmin()
+    TestNumpyx().test_numpy_relu()
     unittest.main(verbosity=2)

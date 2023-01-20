@@ -6,26 +6,26 @@
 """
 from typing import Optional, Tuple
 import numpy as np
-from .numpyx_core import Cst, Var, xapi
+from .numpyx_core import cst, var, xapi_test
 from .numpyx_types import ElemType, OptParType, TensorType
 
 
-@xapi
+@xapi_test
 def absolute(x: TensorType(ElemType.numerics, name="T")
              ) -> TensorType(ElemType.numerics, name="T"):
     "See :func:`numpy.abs`."
-    return Var(x, op='Abs')
+    return var(x, op='Abs')
 
 
-@xapi
+@xapi_test
 def addition(x: TensorType(ElemType.numerics, name="T"),
              y: TensorType(ElemType.numerics, name="T")
              ) -> TensorType(ElemType.numerics, name="T"):
     "See :func:`numpy.addition`."
-    return Var(x, y, op='Add')
+    return var(x, y, op='Add')
 
 
-@xapi
+@xapi_test
 def argmin(x: TensorType(ElemType.numerics, name="T"),
            axis: OptParType[int] = 0,
            keepdims: OptParType[int] = 0
@@ -33,7 +33,7 @@ def argmin(x: TensorType(ElemType.numerics, name="T"),
     """
     See :func:`numpy.argmin`.
     """
-    return Var(x, op='ArgMin', axis=axis, keepdims=keepdims)
+    return var(x, op='ArgMin', axis=axis, keepdims=keepdims)
 
 
 # @xapi
@@ -46,30 +46,38 @@ def argmin(x: TensorType(ElemType.numerics, name="T"),
 #    if len(x) <= 1:
 #        raise RuntimeError(  # pragma: no cover
 #            f"N={len(x)}<=1 elements to concatenate.")
-#    return Var(*x, op='Concat', axis=axis)
+#    return var(*x, op='Concat', axis=axis)
 
-@xapi
+@xapi_test
 def log1p(x: TensorType(ElemType.floats, name="T")
           ) -> TensorType(ElemType.floats, name="T"):
     "See :func:`numpy.log1p`."
-    x1 = Var(
+    x1 = var(
         x,
-        Var(Cst(np.array([1], dtype=np.int64)),
+        var(cst(np.array([1], dtype=np.int64)),
             x, op='CastLike'),
         op='Add')
-    return Var(x1, op='Log')
+    return var(x1, op='Log')
 
 
-@xapi
+@xapi_test
 def negative(x: TensorType(ElemType.numerics, name="T")
              ) -> TensorType(ElemType.numerics, name="T"):
     "See :func:`numpy.abs`."
-    return Var(x, op='Neg')
+    return var(x, op='Neg')
 
 
-@xapi
+@xapi_test
+def relu(x: TensorType(ElemType.numerics, name="T"),
+        ) -> TensorType(ElemType.numerics, name="T"):
+    "See :func:`numpy.addition`."
+    return var(var(absolute(x), x, op='Add'),
+               var(cst(2), x, op='CastLike'), op='Div')
+
+
+@xapi_test
 def transpose(x: TensorType(ElemType.numerics, name="T"),
               perm: Tuple[int] = (1, 0)
               ) -> TensorType(ElemType.numerics, name="T"):
     "See :func:`numpy.transpose`."
-    return Var(x, op='Transpose', perm=list(perm))
+    return var(x, op='Transpose', perm=list(perm))

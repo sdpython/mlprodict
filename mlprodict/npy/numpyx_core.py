@@ -560,6 +560,12 @@ class Cst(Var):
     def __init__(self, cst: Any):
         if isinstance(cst, numpy.ndarray):
             Var.__init__(self, cst, op="Identity")
+        elif isinstance(cst, int):
+            Var.__init__(self, numpy.array([cst], dtype=numpy.int64),
+                         op="Identity")
+        elif isinstance(cst, float):
+            Var.__init__(self, numpy.array([cst], dtype=numpy.float32),
+                         op="Identity")
         else:
             raise NotImplementedError(
                 f"Constant of type {type(cst)} are not implemented yet.")
@@ -600,7 +606,7 @@ class BackendValue:
         pass
 
 
-def xapi(fn):
+def xapi_test(fn):
     """
     Decorator to use before any function using part of the numpy API.
     The function inspects the input and decides which version of the function
@@ -650,3 +656,17 @@ def xapi(fn):
     rows.append(f"    ) -> {sig.return_annotation}:")
     wrapper.__doc__ = fn.__doc__ + "\n".join(rows)
     return wrapper
+
+
+def cst(*args, **kwargs):
+    """
+    Wraps a call to the building of class Cst.
+    """
+    return Cst(*args, **kwargs)
+
+
+def var(*args, **kwargs):
+    """
+    Wraps a call to the building of class Var.
+    """
+    return Var(*args, **kwargs)
