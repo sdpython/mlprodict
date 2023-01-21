@@ -6,7 +6,7 @@
 """
 from typing import Optional, Tuple
 import numpy as np
-from .numpyx_core import cst, var, xapi_test
+from .numpyx_core_api import cst, var, xapi_test
 from .numpyx_types import ElemType, OptParType, TensorType
 
 
@@ -69,7 +69,7 @@ def negative(x: TensorType(ElemType.numerics, name="T")
 
 @xapi_test
 def relu(x: TensorType(ElemType.numerics, name="T"),
-        ) -> TensorType(ElemType.numerics, name="T"):
+         ) -> TensorType(ElemType.numerics, name="T"):
     "See :func:`numpy.addition`."
     return var(var(absolute(x), x, op='Add'),
                var(cst(2), x, op='CastLike'), op='Div')

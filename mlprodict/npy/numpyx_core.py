@@ -22,6 +22,31 @@ from onnx.numpy_helper import from_array
 from .numpyx_types import ParType, TensorType
 
 
+class Par:
+    """
+    Defines a named parameter.
+
+    :param name: parameter name
+    """
+
+    def __init__(self, name: str, dtype: ParType, value: Optional[Any] = None):
+        self.name = name
+        self.dtype = dtype
+        self.value = value
+
+    def __repr__(self):
+        "usual"
+        if self.value is None:
+            return f"{self.__class__.__name__}({self.name!r}, {self.dtype!r})"
+        return (
+            f"{self.__class__.__name__}"
+            f"({self.name!r}, {self.dtype!r}, {self.value!r})")
+
+    @property
+    def onnx_type(self):
+        return self.dtype.onnx_type
+
+
 class _FunctionIO:
     """
     Wrapper around a string.
@@ -297,6 +322,13 @@ class _GraphBuilder:
         onx = applied.to_onnx(
             self.target_opsets, as_function=True, name=fct.__name__,
             domain=domain, attributes=attributes)
+        if isinstance(onx, list):
+            # This function calls other functions.
+            if len(onx) != 2:
+                raise RuntimeError(f"onx is a list with {len(onx)} elements.")
+            d = onx[0]
+            self.functions_.update(d)
+            onx = onx[1]
         self.functions_[key] = (onx, input_types, output_types)
         return onx, input_types, output_types, attributes
 
@@ -410,7 +442,7 @@ class _GraphBuilder:
 
             new_possible_outputs = []
             for var, dt in possible_outputs:
-                if dt is None:
+                if dt is None and not self.as_function:
                     dt = map_types[id(var)]
                 new_possible_outputs.append((var, dt))
             possible_outputs = new_possible_outputs
@@ -511,7 +543,7 @@ class Var:
                 domain: Optional[str] = None,
                 attributes: Optional[List[str]] = None,
                 constraints: Optional[Dict[str, TensorType]] = None
-                ) -> Union[ModelProto, FunctionProto]:
+                ) -> Union[ModelProto, FunctionProto, List[Any]]:
         """
         Converts the recursive graph to ONNX.
 
@@ -524,7 +556,7 @@ class Var:
         :param constraints: specifies a precise type for the type
             constraints when a function allows more than one type,
             this works if there is only one variable to be converted
-        :return: ONNX object
+        :return: ModelProto, FunctionProto
         """
         # Var.to_onnx
         g = _GraphBuilder(target_opsets, as_function=as_function,
@@ -533,7 +565,10 @@ class Var:
         vs = self._get_vars()
         for var in vs:
             g.append(var)
-        return g.to_onnx()
+        onx = g.to_onnx()
+        if as_function and len(g.functions_) > 0:
+            return [g.functions_, onx]
+        return onx
 
 
 class Input(Var):
@@ -570,103 +605,3 @@ class Cst(Var):
             raise NotImplementedError(
                 f"Constant of type {type(cst)} are not implemented yet.")
         self._prefix = "cst"
-
-
-class Par:
-    """
-    Defines a named parameter.
-
-    :param name: parameter name
-    """
-
-    def __init__(self, name: str, dtype: ParType, value: Optional[Any] = None):
-        self.name = name
-        self.dtype = dtype
-        self.value = value
-
-    def __repr__(self):
-        "usual"
-        if self.value is None:
-            return f"{self.__class__.__name__}({self.name!r}, {self.dtype!r})"
-        return (
-            f"{self.__class__.__name__}"
-            f"({self.name!r}, {self.dtype!r}, {self.value!r})")
-
-    @property
-    def onnx_type(self):
-        return self.dtype.onnx_type
-
-
-class BackendValue:
-    """
-    Defines a value for a specific backend.
-    """
-
-    def __init__(self):
-        pass
-
-
-def xapi_test(fn):
-    """
-    Decorator to use before any function using part of the numpy API.
-    The function inspects the input and decides which version of the function
-    to call.
-    """
-    cst_types = (Var, numpy.ndarray)
-
-    # It has the same signature
-    def wrapper(*inputs, eager=False, **kwargs):
-        if eager:
-            raise NotImplementedError("eager mode does not work yet.")
-
-        if any(map(lambda i: not isinstance(i, cst_types), inputs)):
-            # TODO: remove that test when the code is stable
-            raise TypeError(
-                f"Inconsistency in types "
-                f"{','.join(map(lambda t: str(type(t)), inputs))}.")
-
-        new_inputs = []
-        new_pars = {}
-        for ind, i in enumerate(inputs):
-            if isinstance(i, (Var, numpy.ndarray)):
-                new_inputs.append(i)
-            elif isinstance(i, str):
-                new_inputs.append(Input(i))
-            else:
-                raise TypeError(
-                    f"Unexpected type for input {ind}, type={type(i)}.")
-        for k, v in kwargs.items():
-            if v is None and len(new_pars) == 0:
-                # it could an optional input
-                raise NotImplementedError(
-                    f"Unable to decide between an optional input or a "
-                    f"parameter for name={k!r}.")
-            if isinstance(v, (int, float, str)):
-                new_pars[k] = ParValue(k, v)
-            else:
-                raise TypeError(
-                    f"Unexpected type for parameter {name!r}, type={type(v)}.")
-
-        return Var(*new_inputs, op=fn, **new_pars)
-
-    sig = signature(fn)
-    rows = ["", "", "Signature:", "", "::", "", "    ("]
-    for p in sig.parameters.values():
-        rows.append(f"        {p.name}: {str(p.annotation)},")
-    rows.append(f"    ) -> {sig.return_annotation}:")
-    wrapper.__doc__ = fn.__doc__ + "\n".join(rows)
-    return wrapper
-
-
-def cst(*args, **kwargs):
-    """
-    Wraps a call to the building of class Cst.
-    """
-    return Cst(*args, **kwargs)
-
-
-def var(*args, **kwargs):
-    """
-    Wraps a call to the building of class Var.
-    """
-    return Var(*args, **kwargs)
