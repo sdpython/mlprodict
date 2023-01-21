@@ -75,6 +75,7 @@ class ElemTypeCstSet(ElemTypeCstInner):
 
     @staticmethod
     def combined(type_set):
+        "Combines all types into a single integer by using power of 2."
         s = 0
         for dt in type_set:
             s += 1 << dt
@@ -196,6 +197,7 @@ class ParType:
 
     @property
     def onnx_type(self):
+        "Returns the onnx corresponding type."
         if self.dtype == int:
             return AttributeProto.INT
         if self.dtype == float:
@@ -290,7 +292,7 @@ class TensorType:
         try:
             return ElemType.set_names[s]
         except KeyError:
-            raise RuntimeError(
+            raise RuntimeError(  # pylint: disable=W0707
                 f"Unable to guess element type name for {s}: "
                 f"{repr(self)} in {ElemType.set_names}.")
 
@@ -327,6 +329,27 @@ class TensorType:
                 if a != b:
                     return False
         return True
+
+
+class SequenceType:
+    """
+    Defines a sequence of tensors.
+    """
+    @classmethod
+    def __class_getitem__(cls, elem_type: Any) -> "SequenceType":
+        return SequenceType(elem_type)
+
+    def __init__(self, elem_type: Any, name: str = ""):
+        self.elem_type = elem_type
+        self.name = name
+
+    def __repr__(self) -> str:
+        "usual"
+        if self.name:
+            return (
+                f"{self.__class__.__name__}({self.elem_type!r}, "
+                f"{self.name!r})")
+        return f"{self.__class__.__name__}[{self.elem_type!r}]"
 
 
 class Float32:

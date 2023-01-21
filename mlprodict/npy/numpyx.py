@@ -5,4 +5,5 @@
 .. versionadded:: 0.10
 """
 
-from .numpyx_types import ElemType, TensorType
+from .numpyx_types import (  # pylint: disable=W0611
+    ElemType, OptParType, ParType, SequenceType, TensorType)

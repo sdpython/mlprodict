@@ -4,10 +4,11 @@
 
 .. versionadded:: 0.10
 """
-from typing import Optional, Tuple
+from typing import Tuple
 import numpy as np
 from .numpyx_core_api import cst, var, xapi_test
-from .numpyx_types import ElemType, OptParType, TensorType
+from .numpyx_types import (
+    ElemType, OptParType, ParType, SequenceType, TensorType)
 
 
 @xapi_test
@@ -36,17 +37,19 @@ def argmin(x: TensorType(ElemType.numerics, name="T"),
     return var(x, op='ArgMin', axis=axis, keepdims=keepdims)
 
 
-# @xapi
-# def concat(*x, axis=0):
-#    """
-#    Operator concat, handle :func:`numpy.vstack` and
-#    :func:`numpy.hstack`.
-#    """
-#    OnnxConcat = loadop('Concat')
-#    if len(x) <= 1:
-#        raise RuntimeError(  # pragma: no cover
-#            f"N={len(x)}<=1 elements to concatenate.")
-#    return var(*x, op='Concat', axis=axis)
+@xapi_test
+def concat(*x: SequenceType[TensorType(ElemType.numerics, name="T")],
+           axis: ParType[int] = 0
+           ) -> TensorType(ElemType.numerics, name="T"):
+    """
+    Operator concat, handle :func:`numpy.vstack` and
+    :func:`numpy.hstack`.
+    """
+    if len(x) <= 0:
+        raise RuntimeError(
+            f"N={len(x)}<=0 elements to concatenate.")
+    return var(*x, op='Concat', axis=axis)
+
 
 @xapi_test
 def log1p(x: TensorType(ElemType.floats, name="T")

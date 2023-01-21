@@ -11,15 +11,15 @@ from onnx import (
     IR_VERSION, AttributeProto, FunctionProto, ModelProto,
     ValueInfoProto, TypeProto)
 from onnx.checker import (
-    C as onnxC, check_value_info, check_model, check_graph, check_node)
+    C as onnxC, check_value_info, check_model, check_node)
 from onnx.defs import onnx_opset_version
 from onnx.helper import (
     OP_SET_ID_VERSION_MAP,
     make_function, make_graph, make_model, make_node,
-    make_opsetid, make_tensor_value_info,
-    make_tensor_type_proto)
+    make_opsetid, make_tensor_value_info)
 from onnx.numpy_helper import from_array
-from .numpyx_types import ParType, TensorType
+from .numpyx_types import (
+    ElemType, OptParType, ParType, SequenceType, TensorType)
 
 
 class Par:
@@ -44,7 +44,32 @@ class Par:
 
     @property
     def onnx_type(self):
+        "Returns the corresponding onnx type."
         return self.dtype.onnx_type
+
+    def __eq__(self, x):
+        "Should not be used."
+        raise NotImplementedError()
+
+    def __neq__(self, x):
+        "Should not be used."
+        raise NotImplementedError()
+
+    def __lt__(self, x):
+        "Should not be used."
+        raise NotImplementedError()
+
+    def __gt__(self, x):
+        "Should not be used."
+        raise NotImplementedError()
+
+    def __le__(self, x):
+        "Should not be used."
+        raise NotImplementedError()
+
+    def __ge__(self, x):
+        "Should not be used."
+        raise NotImplementedError()
 
 
 class _FunctionIO:
@@ -95,10 +120,10 @@ class _GraphBuilder:
         if as_function:
             if name is None:
                 raise ValueError(
-                    f"name cannot be None if as_function is specified.")
+                    "name cannot be None if as_function is specified.")
             if domain is None:
                 raise ValueError(
-                    f"domain cannot be None if as_function is specified.")
+                    "domain cannot be None if as_function is specified.")
         self.function_name = name
         self.function_domain = domain
         self.attributes = attributes
@@ -116,6 +141,7 @@ class _GraphBuilder:
         return name
 
     def append(self, var):
+        "Appends an instruction to the list."
         i = id(var)
         if i in self._id_vars:
             # an input or result used twice
@@ -216,8 +242,6 @@ class _GraphBuilder:
             type_proto = TypeProto()
             tensor_type_proto = type_proto.tensor_type
             tensor_type_proto.elem_type = tensor_type.dtypes[0].dtype
-            tensor_shape_proto = tensor_type_proto.shape
-
             value_info_proto = ValueInfoProto()
             value_info_proto.name = name
             tensor_type_proto.shape.dim.extend([])
@@ -257,7 +281,7 @@ class _GraphBuilder:
         if self.target_opsets is None:
             opset_imports = [make_opsetid('', onnx_opset_version())]
         else:
-            opset_imports = [make_opsetid(d, v)
+            opset_imports = [make_opsetid(k, v)
                              for k, v in self.target_opsets.items()]
         set_domains = set(d.domain for d in opset_imports)
         for f in self.functions_.values():
@@ -292,13 +316,17 @@ class _GraphBuilder:
         check_model(model)
         return model
 
-    def _function_to_onnx(self, fct):
+    def _function_to_onnx(self, fct: Callable, n_inputs: int):
         """
         Converts a function to onnx.
+
+        :param fct: a function
+        :param n_inputs: number of inputs, needed information in case
+            there is an undefined number of inputs
         """
         key = fct.__module__, fct.__name__
         if key in self.functions_:
-            return self.functions_[key][0]
+            return self.functions_[key]
         domain = fct.__module__
         sig = signature(fct)
 
@@ -306,9 +334,22 @@ class _GraphBuilder:
         input_types = []
         kwargs = {}
         attributes = []
-        for name, par in sig.parameters.items():
+        for idx, (name, par) in enumerate(sig.parameters.items()):
             value = par.default
             anno = par.annotation
+            if not isinstance(anno, (ElemType, OptParType,
+                                     ParType, SequenceType,
+                                     TensorType)):
+                raise TypeError(
+                    f"Annotation must of a known not {type(anno)} for "
+                    f"parameter {name!r} in function {fct.__name__!r}.")
+            if isinstance(anno, SequenceType):
+                # undefined number of parameters
+                for i in range(idx, n_inputs):
+                    new_name = f"{name}:{i - idx}"
+                    inputs.append(Input(new_name))
+                    input_types.append(anno.elem_type)
+                continue
             if value == Parameter.empty or value is None:
                 inputs.append(Input(name))
             else:
@@ -316,6 +357,7 @@ class _GraphBuilder:
                 kwargs[name] = p
                 attributes.append(p)
             input_types.append(anno)
+
         output_types = [sig.return_annotation]
         applied = fct(*inputs, **kwargs)
 
@@ -329,7 +371,7 @@ class _GraphBuilder:
             d = onx[0]
             self.functions_.update(d)
             onx = onx[1]
-        self.functions_[key] = (onx, input_types, output_types)
+        self.functions_[key] = (onx, input_types, output_types, attributes)
         return onx, input_types, output_types, attributes
 
     def to_onnx(self):
@@ -372,8 +414,9 @@ class _GraphBuilder:
             if var.onnx_op[0] is None:
                 # a function is converted into FunctionProto
                 # and then a node is inserted in the main graph
-                (onx_fn, in_types,
-                 out_types, att_types) = self._function_to_onnx(var.onnx_op[1])
+                packed = self._function_to_onnx(
+                    var.onnx_op[1], len(var.inputs))
+                (onx_fn, in_types, out_types, att_types) = packed
                 domop = (onx_fn.domain, onx_fn.name)
 
                 for inp, dt in zip(var.inputs, in_types):
@@ -406,7 +449,7 @@ class _GraphBuilder:
             kwargs = var.onnx_op_kwargs
 
             key = id(var)
-            name = self._unique(i._prefix)
+            name = self._unique(var._prefix) or "r"
 
             self._id_vars[key] = name
             node_outputs = [name]

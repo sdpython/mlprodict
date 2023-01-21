@@ -2,21 +2,30 @@
 @brief      test log(time=3s)
 """
 import unittest
+import warnings
 import numpy
 from onnx.defs import onnx_opset_version
 from onnx.reference import ReferenceEvaluator
 from pyquickhelper.pycode import ExtTestCase
+from mlprodict.onnxrt import OnnxInference
 from mlprodict.npy.numpyx import ElemType, TensorType
 from mlprodict.npy.numpyx_types import Float32, Float64, Int64
 from mlprodict.npy.numpyx_core import Input, Var
 from mlprodict.npy.numpyx_functions_test import (
-    absolute, addition, argmin, log1p, negative, relu)
+    absolute, addition, argmin, concat, log1p, negative, relu)
 
 
 DEFAULT_OPSET = onnx_opset_version()
 
 
 class TestNumpyx(ExtTestCase):
+
+    _warns = []
+
+    @classmethod
+    def tearDownClass(cls):
+        for w in TestNumpyx._warns:
+            warnings.warn(w)
 
     def test_tensor(self):
         dt = TensorType("float32")
@@ -69,6 +78,11 @@ class TestNumpyx(ExtTestCase):
 
         def local4(x: Float64["N", 1]) -> Int64["N", 1]:
             return x
+
+        self.assertNotEmpty(local1)
+        self.assertNotEmpty(local2)
+        self.assertNotEmpty(local3)
+        self.assertNotEmpty(local4)
 
     def test_numpy_abs(self):
         f = absolute(Input())
@@ -151,6 +165,9 @@ class TestNumpyx(ExtTestCase):
             self.assertEqualArray(z, got[0])
         else:
             # bug in onnx==1.13
+            self._warns.append(
+                "ReferenceEvaluator:test_numpy_parameter_argmin: "
+                "axis not taken into account")
             self.assertIn(0, got[0].ravel().tolist())
 
     def test_numpy_relu(self):
@@ -162,7 +179,80 @@ class TestNumpyx(ExtTestCase):
         got = ref.run(None, {'I__0': x})
         self.assertEqualArray(z, got[0])
 
-    # function calling function calling function
+    def test_numpy_concat2(self):
+        f = concat(Input(), Input())
+        onx = f.to_onnx(constraints={'T': Float64[None]})
+        x1 = numpy.array([[-5, 6], [15, 3]], dtype=numpy.float64)
+        x2 = numpy.array([[1, 2]], dtype=numpy.float64)
+        z = numpy.vstack([x1, x2])
+        ref = ReferenceEvaluator(onx)
+        feeds = {'I__0': x1, 'I__1': x2}
+        try:
+            got = ref.run(None, feeds)
+        except TypeError as e:
+            self._warns.append(f"ReferenceEvaluator:test_numpy_concat2: {e}")
+            oinf = OnnxInference(onx)
+            got = oinf.run(feeds)
+            got = [got['r__2']]
+        self.assertEqualArray(z, got[0])
+
+    def test_numpy_concat1_2(self):
+        f = concat(Input(), concat(Input(), Input()))
+        onx = f.to_onnx(constraints={'T': Float64[None]})
+        x1 = numpy.array([[-5, 6], [15, 3]], dtype=numpy.float64)
+        x2 = numpy.array([[1, 2]], dtype=numpy.float64)
+        x3 = numpy.array([[-1, -2]], dtype=numpy.float64)
+        z = numpy.vstack([x1, x2, x3])
+        ref = ReferenceEvaluator(onx)
+        feeds = {'I__0': x1, 'I__1': x2, 'I__3': x3}
+        try:
+            got = ref.run(None, feeds)
+        except TypeError as e:
+            self._warns.append(f"ReferenceEvaluator:test_numpy_concat1_2: {e}")
+            oinf = OnnxInference(onx)
+            got = oinf.run(feeds)
+            print(list(got))
+            got = [got['r__4']]
+        self.assertEqualArray(z, got[0])
+
+    def test_numpy_concat1_2_names(self):
+        f = concat(Input("A"), concat(Input("B"), Input("C")))
+        onx = f.to_onnx(constraints={'T': Float64[None]})
+        x1 = numpy.array([[-5, 6], [15, 3]], dtype=numpy.float64)
+        x2 = numpy.array([[1, 2]], dtype=numpy.float64)
+        x3 = numpy.array([[-1, -2]], dtype=numpy.float64)
+        z = numpy.vstack([x1, x2, x3])
+        ref = ReferenceEvaluator(onx)
+        feeds = {'A': x1, 'B': x2, 'C': x3}
+        try:
+            got = ref.run(None, feeds)
+        except TypeError as e:
+            self._warns.append(
+                f"ReferenceEvaluator:test_numpy_concat1_2_names: {e}")
+            oinf = OnnxInference(onx)
+            got = oinf.run(feeds)
+            got = list(got.values())
+        self.assertEqualArray(z, got[0])
+
+    def test_numpy_concat2_2(self):
+        f = concat(concat(Input("A")), concat(Input("B"), Input("C")))
+        onx = f.to_onnx(constraints={'T': Float64[None]})
+        x1 = numpy.array([[-5, 6], [15, 3]], dtype=numpy.float64)
+        x2 = numpy.array([[1, 2]], dtype=numpy.float64)
+        x3 = numpy.array([[-1, -2]], dtype=numpy.float64)
+        z = numpy.vstack([x1, x2, x3])
+        ref = ReferenceEvaluator(onx)
+        # print(onx)
+        feeds = {'A': x1, 'B': x2, 'C': x3}
+        try:
+            got = ref.run(None, feeds)
+        except TypeError as e:
+            self._warns.append(f"ReferenceEvaluator:test_numpy_concat2_2: {e}")
+            oinf = OnnxInference(onx)
+            got = oinf.run(feeds)
+            got = list(got.values())
+        self.assertEqualArray(z, got[0])
+
     # inline single op function
     # *inputs
     # multi outputs
@@ -170,5 +260,5 @@ class TestNumpyx(ExtTestCase):
 
 
 if __name__ == "__main__":
-    TestNumpyx().test_numpy_parameter_argmin()
+    # TestNumpyx().test_numpy_concat2_2()
     unittest.main(verbosity=2)

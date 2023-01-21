@@ -6,7 +6,7 @@
 """
 from inspect import signature
 import numpy
-from .numpyx_core import Cst, Input, Var
+from .numpyx_core import Cst, Input, Par, Var
 
 
 def xapi_test(fn):
@@ -48,7 +48,7 @@ def xapi_test(fn):
                 new_pars[k] = ParValue(k, v)
             else:
                 raise TypeError(
-                    f"Unexpected type for parameter {name!r}, type={type(v)}.")
+                    f"Unexpected type for parameter {k!r}, type={type(v)}.")
 
         return Var(*new_inputs, op=fn, **new_pars)
 
