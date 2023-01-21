@@ -9,7 +9,7 @@ import numpy
 from .numpyx_core import Cst, Input, Par, Var
 
 
-def xapi_test(fn):
+def _xapi(fn, inline):
     """
     Decorator to use before any function using part of the numpy API.
     The function inspects the input and decides which version of the function
@@ -45,12 +45,12 @@ def xapi_test(fn):
                     f"Unable to decide between an optional input or a "
                     f"parameter for name={k!r}.")
             if isinstance(v, (int, float, str)):
-                new_pars[k] = ParValue(k, v)
+                new_pars[k] = Par(k, v)
             else:
                 raise TypeError(
                     f"Unexpected type for parameter {k!r}, type={type(v)}.")
 
-        return Var(*new_inputs, op=fn, **new_pars)
+        return Var(*new_inputs, op=fn, inline=inline, **new_pars)
 
     sig = signature(fn)
     rows = ["", "", "Signature:", "", "::", "", "    ("]
@@ -59,6 +59,24 @@ def xapi_test(fn):
     rows.append(f"    ) -> {sig.return_annotation}:")
     wrapper.__doc__ = fn.__doc__ + "\n".join(rows)
     return wrapper
+
+
+def xapi_function(fn):
+    """
+    Decorator to use before any function using part of the numpy API.
+    The function inspects the input and decides which version of the function
+    to call.
+    """
+    return _xapi(fn, inline=False)
+
+
+def xapi(fn):
+    """
+    Decorator to use before any function using part of the numpy API.
+    The function inspects the input and decides which version of the function
+    to call.
+    """
+    return _xapi(fn, inline=True)
 
 
 def cst(*args, **kwargs):

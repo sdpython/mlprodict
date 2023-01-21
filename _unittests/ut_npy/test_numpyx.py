@@ -13,6 +13,8 @@ from mlprodict.npy.numpyx_types import Float32, Float64, Int64
 from mlprodict.npy.numpyx_core import Input, Var
 from mlprodict.npy.numpyx_functions_test import (
     absolute, addition, argmin, concat, log1p, negative, relu)
+from mlprodict.npy.numpyx_functions import (
+    absolute as absolute_no_inline)
 
 
 DEFAULT_OPSET = onnx_opset_version()
@@ -204,15 +206,14 @@ class TestNumpyx(ExtTestCase):
         x3 = numpy.array([[-1, -2]], dtype=numpy.float64)
         z = numpy.vstack([x1, x2, x3])
         ref = ReferenceEvaluator(onx)
-        feeds = {'I__0': x1, 'I__1': x2, 'I__3': x3}
+        feeds = {'I__2': x1, 'I__0': x2, 'I__1': x3}
         try:
             got = ref.run(None, feeds)
         except TypeError as e:
             self._warns.append(f"ReferenceEvaluator:test_numpy_concat1_2: {e}")
             oinf = OnnxInference(onx)
             got = oinf.run(feeds)
-            print(list(got))
-            got = [got['r__4']]
+            got = list(got.values())
         self.assertEqualArray(z, got[0])
 
     def test_numpy_concat1_2_names(self):
@@ -235,15 +236,18 @@ class TestNumpyx(ExtTestCase):
         self.assertEqualArray(z, got[0])
 
     def test_numpy_concat2_2(self):
-        f = concat(concat(Input("A")), concat(Input("B"), Input("C")))
+        f = concat(concat(Input("A"), Input("B")),
+                   concat(Input("C"), Input("D"), Input("E")))
         onx = f.to_onnx(constraints={'T': Float64[None]})
         x1 = numpy.array([[-5, 6], [15, 3]], dtype=numpy.float64)
         x2 = numpy.array([[1, 2]], dtype=numpy.float64)
         x3 = numpy.array([[-1, -2]], dtype=numpy.float64)
-        z = numpy.vstack([x1, x2, x3])
+        x4 = numpy.array([[10, 20]], dtype=numpy.float64)
+        x5 = numpy.array([[100, 200]], dtype=numpy.float64)
+        z = numpy.vstack([x1, x2, x3, x4, x5])
         ref = ReferenceEvaluator(onx)
         # print(onx)
-        feeds = {'A': x1, 'B': x2, 'C': x3}
+        feeds = {'A': x1, 'B': x2, 'C': x3, 'D': x4, 'E': x5}
         try:
             got = ref.run(None, feeds)
         except TypeError as e:
@@ -253,12 +257,28 @@ class TestNumpyx(ExtTestCase):
             got = list(got.values())
         self.assertEqualArray(z, got[0])
 
+    def test_numpy_abs_no_inline(self):
+        f = absolute_no_inline(Input())
+        self.assertIsInstance(f, Var)
+        self.assertIn(":param inputs:", f.__doc__)
+        self.assertIn("Signature", absolute.__doc__)
+        self.assertIn("x: Numerics[](T)", absolute.__doc__)
+        self.assertIn("-> Numerics[]", absolute.__doc__)
+        self.assertTrue(f.is_function)
+        onx = f.to_onnx(constraints={'T': Float64[None]})
+        print(onx)
+        self.assertNotIn("functions {", str(onx))
+        x = numpy.array([-5, 6], dtype=numpy.float64)
+        y = numpy.abs(x)
+        ref = ReferenceEvaluator(onx)
+        got = ref.run(None, {'I__0': x})
+        self.assertEqualArray(y, got[0])
+
     # inline single op function
-    # *inputs
     # multi outputs
     # opset
 
 
 if __name__ == "__main__":
-    # TestNumpyx().test_numpy_concat2_2()
+    # TestNumpyx().test_numpy_abs_no_inline()
     unittest.main(verbosity=2)

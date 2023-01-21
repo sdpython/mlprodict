@@ -7,7 +7,7 @@
 from inspect import Parameter, signature
 from typing import Any, Callable, Dict, List, Optional, Tuple, Union
 import numpy
-from onnx import (
+from onnx import (  # pylint: disable=E0611
     IR_VERSION, AttributeProto, FunctionProto, ModelProto,
     ValueInfoProto, TypeProto)
 from onnx.checker import (
@@ -20,6 +20,9 @@ from onnx.helper import (
 from onnx.numpy_helper import from_array
 from .numpyx_types import (
     ElemType, OptParType, ParType, SequenceType, TensorType)
+
+
+DEFAULT_OPSETS = {'': 18, 'ai.onnx.ml': 3}
 
 
 class Par:
@@ -157,10 +160,17 @@ class _GraphBuilder:
         self.attributes_ = []
         self.onnx_names_ = {}
 
-    def make_node(self, op: str, inputs, outputs, domain: str = '', **kwargs):
+    def make_node(self, op: str, inputs, outputs, domain: str = '',
+                  opset: int = 1, **kwargs):
         """
         Inserts a node in the graph.
         """
+        if (self.target_opsets is not None and
+                self.target_opsets.get(domain, 1) < opset):
+            raise ValueError(
+                f"opset value is too low: opset={opset} <= "
+                f"{self.target_opsets.get(domain, 1)} "
+                f"for domain={domain!r} and op={op!r}.")
         # checks inputs are known
         for i, inp in enumerate(inputs):
             if inp and inp not in self.onnx_names_:
@@ -195,7 +205,7 @@ class _GraphBuilder:
         context = self.check_context
         if domain is not None and domain not in context.opset_imports:
             d = dict(self.check_context.opset_imports)
-            d[domain] = 1
+            d[domain] = opset
             context = onnxC.CheckerContext()
             context.opset_imports = d
             context.ir_version = self.check_context.ir_version
@@ -324,11 +334,16 @@ class _GraphBuilder:
         :param n_inputs: number of inputs, needed information in case
             there is an undefined number of inputs
         """
-        key = fct.__module__, fct.__name__
+        sig = signature(fct)
+        if any(map(lambda t: isinstance(t.annotation, SequenceType),
+                   sig.parameters.values())):
+            # onnx does not allow undefined number of inputs
+            key = fct.__module__, fct.__name__, n_inputs
+        else:
+            key = fct.__module__, fct.__name__
         if key in self.functions_:
             return self.functions_[key]
         domain = fct.__module__
-        sig = signature(fct)
 
         inputs = []
         input_types = []
@@ -360,9 +375,12 @@ class _GraphBuilder:
 
         output_types = [sig.return_annotation]
         applied = fct(*inputs, **kwargs)
+        name_fct = (fct.__name__
+                    if len(key) == 2
+                    else f"{fct.__name__}_{n_inputs}")
 
         onx = applied.to_onnx(
-            self.target_opsets, as_function=True, name=fct.__name__,
+            self.target_opsets, as_function=True, name=name_fct,
             domain=domain, attributes=attributes)
         if isinstance(onx, list):
             # This function calls other functions.
@@ -399,7 +417,8 @@ class _GraphBuilder:
                 name = self._unique(var._prefix)
                 self._id_vars[key] = name
                 self.make_node("Constant", [], [name],
-                               value=from_array(var.inputs[0]))
+                               value=from_array(var.inputs[0]),
+                               opset=var.opset)
                 self.onnx_names_[name] = var
                 continue
 
@@ -469,7 +488,7 @@ class _GraphBuilder:
                             f"{domop[0]!r}.")
                     kwargs[par.name] = par.value
             self.make_node(domop[1], node_inputs, node_outputs,
-                           domain=domop[0], **kwargs)
+                           domain=domop[0], opset=var.opset, **kwargs)
 
         # the output is the last variable
         possible_outputs = [(self._vars[-1], None)]
@@ -504,6 +523,9 @@ class Var:
     :param inputs: list of inputs
     :param op: apply on operator on the inputs
     :param select_output: to select only one output from the operator output
+    :param opset: the signature used fits this specific opset (18 by default)
+    :param inline: True to reduce the use of function and inline
+        small functions, this only applies if *op* is a function
     :param kwargs: operator attributes
 
     Private attribute:
@@ -514,9 +536,13 @@ class Var:
     def __init__(self, *inputs: List[Any],
                  op: Union[Callable, str, Tuple[str, str]] = None,
                  dtype: TensorType = None,
-                 select_output: List[str] = None, **kwargs):
+                 select_output: List[str] = None,
+                 opset: Optional[int] = None,
+                 inline: bool = False,
+                 **kwargs):
         self.inputs = inputs
         self.select_output = select_output
+        self.inline = inline
         if op is None:
             self.onnx_op = None  # a constant
         elif isinstance(op, tuple):
@@ -525,6 +551,13 @@ class Var:
             self.onnx_op = ('', op)  # operator name
         else:
             self.onnx_op = (None, op)  # function to call
+        if opset is None:
+            if self.onnx_op is None:
+                self.opset = 1
+            else:
+                self.opset = DEFAULT_OPSETS.get(self.onnx_op[0], 1)
+        else:
+            self.opset = opset
         self.onnx_op_kwargs = kwargs
         self._prefix = None
         self.dtype = dtype
@@ -567,8 +600,13 @@ class Var:
         stack = [self]
         while len(stack) > 0:
             var = stack.pop()
+            if (var.onnx_op is not None and
+                    var.onnx_op[0] is None and
+                    var.inline):
+                raise NotImplementedError(
+                    f"Function {var.onnx_op} must be inlined.")
             vs.append(var)
-            for i in var.inputs:
+            for i in reversed(var.inputs):
                 if isinstance(i, Var):
                     stack.insert(0, i)
         return list(reversed(vs))
