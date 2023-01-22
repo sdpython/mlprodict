@@ -4,22 +4,12 @@
 
 .. versionadded:: 0.10
 """
-from inspect import Parameter, signature
 from typing import Any, Callable, Dict, List, Optional, Tuple, Union
 import numpy
 from onnx import (  # pylint: disable=E0611
-    IR_VERSION, AttributeProto, FunctionProto, ModelProto,
-    ValueInfoProto, TypeProto)
-from onnx.checker import (
-    C as onnxC, check_value_info, check_model, check_node)
-from onnx.defs import onnx_opset_version
-from onnx.helper import (
-    OP_SET_ID_VERSION_MAP,
-    make_function, make_graph, make_model, make_node,
-    make_opsetid, make_tensor_value_info)
-from onnx.numpy_helper import from_array
+    FunctionProto, ModelProto)
 from .numpyx_types import (
-    ElemType, OptParType, ParType, SequenceType, TensorType)
+    ParType, SequenceType, TensorType)
 
 
 DEFAULT_OPSETS = {'': 18, 'ai.onnx.ml': 3}
@@ -162,8 +152,8 @@ class Var:
         while len(stack) > 0:
             var = stack.pop()
             key = id(var)
-            if key in replacement:
-                var = replacement[key]
+            if key in replacement:  # pylint: disable=R1715
+                var = replacement[key]  # pylint: disable=R1715
             if (var.onnx_op is not None and
                     var.onnx_op[0] is None and
                     var.inline):

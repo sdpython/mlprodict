@@ -128,7 +128,8 @@ class TestNumpyx(ExtTestCase):
         self.assertIsInstance(f, Var)
         self.assertTrue(f.is_function)
         self.assertRaise(lambda: f.to_onnx(), RuntimeError)
-        onx = f.to_onnx(constraints={0: Float64[None]})
+        onx = f.to_onnx(constraints={0: Float64[None],
+                                     (0, False): Float64[None]})
         x = numpy.array([-5, 6], dtype=numpy.float64)
         y = numpy.abs(-x)
         ref = ReferenceEvaluator(onx)
@@ -260,7 +261,19 @@ class TestNumpyx(ExtTestCase):
     def test_numpy_abs_a0(self):
         f = absolute(Input("A"))
         self.assertIsInstance(f, Var)
-        onx = f.to_onnx(constraints={0: Float64[None]})
+        onx = f.to_onnx(constraints={0: Float64[None],
+                                     (0, False): Float64[None]})
+        x = numpy.array([-5, 6], dtype=numpy.float64)
+        y = numpy.abs(x)
+        ref = ReferenceEvaluator(onx)
+        got = ref.run(None, {'A': x})
+        self.assertEqualArray(y, got[0])
+
+    def test_numpy_abs_a0_true(self):
+        f = absolute(Input("A"))
+        self.assertIsInstance(f, Var)
+        onx = f.to_onnx(constraints={(0, True): Float64[None],
+                                     (0, False): Float64[None]})
         x = numpy.array([-5, 6], dtype=numpy.float64)
         y = numpy.abs(x)
         ref = ReferenceEvaluator(onx)
@@ -286,7 +299,8 @@ class TestNumpyx(ExtTestCase):
         self.assertIn("x: Numerics[](T)", absolute.__doc__)
         self.assertIn("-> Numerics[]", absolute.__doc__)
         self.assertTrue(f.is_function)
-        onx = f.to_onnx(constraints={0: Float64[None]})
+        onx = f.to_onnx(constraints={0: Float64[None],
+                                     (0, False): Float64[None]})
         self.assertNotIn("functions {", str(onx))
         x = numpy.array([-5, 6], dtype=numpy.float64)
         y = numpy.abs(x)
@@ -294,11 +308,10 @@ class TestNumpyx(ExtTestCase):
         got = ref.run(None, {'I__0': x})
         self.assertEqualArray(y, got[0])
 
-    # inline single op function: almost done
     # multi outputs
     # opset: no test
 
 
 if __name__ == "__main__":
-    TestNumpyx().test_numpy_abs_no_inline()
+    # TestNumpyx().test_numpy_abs_a0()
     unittest.main(verbosity=2)

@@ -5,11 +5,9 @@
 .. versionadded:: 0.10
 """
 from inspect import Parameter, signature
-from typing import Any, Callable, Dict, List, Optional, Tuple, Union
-import numpy
+from typing import Callable, Dict, List, Optional
 from onnx import (  # pylint: disable=E0611
-    IR_VERSION, AttributeProto, FunctionProto, ModelProto,
-    ValueInfoProto, TypeProto)
+    IR_VERSION, AttributeProto, ValueInfoProto, TypeProto)
 from onnx.checker import (
     C as onnxC, check_value_info, check_model, check_node)
 from onnx.defs import onnx_opset_version
@@ -160,43 +158,53 @@ class _GraphBuilder:
         check_node(node, context)
         self.nodes_.append(node)
 
-    def _io(self, index: int, name: str, tensor_type: TensorType) -> ValueInfoProto:
+    def _io(self, index: int, name: str, tensor_type: Optional[TensorType],
+            is_input: bool) -> ValueInfoProto:
         """
         Converts an input or outut into :class:`onnx.ValueInfoProto`.
 
         :param index: index of the input or output to add
         :param name: input or output name
         :param tensor_type: type of the tensor
+        :param is_input: True to tell *name* is an input, False
+            for an output
         :return: an instance of :class:`ValueInfoProto`
         """
         if self.as_function:
             return _FunctionIO(name)
-        if not isinstance(tensor_type, TensorType):
+        if (tensor_type is not None and
+                not isinstance(tensor_type, TensorType)):
             raise TypeError(
                 f"Unexpected type {type(tensor_type)} for tensor_type. "
                 f"This may happen if you specialised the function based on "
                 f"contraints and not on input.")
         if self.constraints is not None:
-            if (index not in self.constraints and
-                    tensor_type.name not in self.constraints and
-                    name not in self.constraints):
+            if is_input and index in self.constraints:
+                new_type = self.constraints[index]
+            elif (index, is_input) in self.constraints:
+                new_type = self.constraints[index, is_input]
+            elif name in self.constraints:
+                new_type = self.constraints[name]
+            elif (tensor_type is not None and
+                    tensor_type.name in self.constraints):
+                new_type = self.constraints[tensor_type.name]
+            else:
                 raise RuntimeError(
                     f"tensor_type is not specific enough {tensor_type!r} "
                     f"and constraints do not precise this type for "
                     f"input or output {index} "
                     f"{self.constraints!r} with name={name!r}.")
-            if index in self.constraints:
-                new_type = self.constraints[index]
-            elif name in self.constraints:
-                new_type = self.constraints[name]
-            else:
-                new_type = self.constraints[tensor_type.name]
-            if not tensor_type.issuperset(new_type):
+            if (tensor_type is not None and
+                    not tensor_type.issuperset(new_type)):
                 raise RuntimeError(
                     f"tensor_type is not specific enough {tensor_type!r} "
                     f"and constraint={new_type!r} and not consistent for "
                     f"input or output {index}.")
             tensor_type = new_type
+        if tensor_type is None:
+            raise RuntimeError(
+                f"tensor_type cannot be None for name={name!r} and "
+                f"input or output {index}.")
         if len(tensor_type.dtypes) != 1:
             raise RuntimeError(
                 f"tensor_type is not specific enough ({str(tensor_type)} "
@@ -224,7 +232,8 @@ class _GraphBuilder:
             raise RuntimeError(
                 f"Empty input name in function {self.function_name!r} "
                 f"from domain {self.function_domain!r}.")
-        self.inputs_.append(self._io(len(self.inputs_), name, tensor_type))
+        self.inputs_.append(
+            self._io(len(self.inputs_), name, tensor_type, True))
         self.onnx_names_[name] = None
 
     def make_output(self, name: str, tensor_type: TensorType):
@@ -235,7 +244,8 @@ class _GraphBuilder:
             raise RuntimeError(
                 f"Empty output name in function {self.function_name!r} "
                 f"from domain {self.function_domain!r}.")
-        self.outputs_.append(self._io(len(self.outputs_), name, tensor_type))
+        self.outputs_.append(
+            self._io(len(self.outputs_), name, tensor_type, False))
 
     def _make_onnx(self):
         """

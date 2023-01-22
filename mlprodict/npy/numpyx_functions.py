@@ -4,10 +4,8 @@
 
 .. versionadded:: 0.10
 """
-from typing import Tuple
-import numpy as np
-from .numpyx_core_api import cst, var, xapi
-from .numpyx_types import (
+from .numpyx_core_api import cst, var, xapi  # pylint: disable=W0611
+from .numpyx_types import (  # pylint: disable=W0611
     ElemType, OptParType, ParType, SequenceType, TensorType)
 
 
