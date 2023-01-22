@@ -6,7 +6,7 @@
 """
 from inspect import signature
 import numpy
-from .numpyx_core import Cst, Input, Par, Var
+from .numpyx_var import Cst, Input, Par, Var
 
 
 def _xapi(fn, inline):

@@ -10,7 +10,7 @@ from pyquickhelper.pycode import ExtTestCase
 from mlprodict.onnxrt import OnnxInference
 from mlprodict.npy.numpyx import ElemType, TensorType
 from mlprodict.npy.numpyx_types import Float32, Float64, Int64
-from mlprodict.npy.numpyx_core import Input, Var
+from mlprodict.npy.numpyx_var import Input, Var
 from mlprodict.npy.numpyx_functions_test import (
     absolute, addition, argmin, concat, log1p, negative, relu)
 from mlprodict.npy.numpyx_functions import (
@@ -257,6 +257,27 @@ class TestNumpyx(ExtTestCase):
             got = list(got.values())
         self.assertEqualArray(z, got[0])
 
+    def test_numpy_abs_a0(self):
+        f = absolute(Input("A"))
+        self.assertIsInstance(f, Var)
+        onx = f.to_onnx(constraints={0: Float64[None]})
+        x = numpy.array([-5, 6], dtype=numpy.float64)
+        y = numpy.abs(x)
+        ref = ReferenceEvaluator(onx)
+        got = ref.run(None, {'A': x})
+        self.assertEqualArray(y, got[0])
+
+    def test_numpy_abs_aN(self):
+        f = absolute(Input("A"))
+        self.assertIsInstance(f, Var)
+        onx = f.to_onnx(constraints={'A': Float64[None],
+                                     'r__0': Float64[None]})
+        x = numpy.array([-5, 6], dtype=numpy.float64)
+        y = numpy.abs(x)
+        ref = ReferenceEvaluator(onx)
+        got = ref.run(None, {'A': x})
+        self.assertEqualArray(y, got[0])
+
     def test_numpy_abs_no_inline(self):
         f = absolute_no_inline(Input())
         self.assertIsInstance(f, Var)
@@ -265,8 +286,7 @@ class TestNumpyx(ExtTestCase):
         self.assertIn("x: Numerics[](T)", absolute.__doc__)
         self.assertIn("-> Numerics[]", absolute.__doc__)
         self.assertTrue(f.is_function)
-        onx = f.to_onnx(constraints={'T': Float64[None]})
-        print(onx)
+        onx = f.to_onnx(constraints={0: Float64[None]})
         self.assertNotIn("functions {", str(onx))
         x = numpy.array([-5, 6], dtype=numpy.float64)
         y = numpy.abs(x)
@@ -274,11 +294,11 @@ class TestNumpyx(ExtTestCase):
         got = ref.run(None, {'I__0': x})
         self.assertEqualArray(y, got[0])
 
-    # inline single op function
+    # inline single op function: almost done
     # multi outputs
-    # opset
+    # opset: no test
 
 
 if __name__ == "__main__":
-    # TestNumpyx().test_numpy_abs_no_inline()
+    TestNumpyx().test_numpy_abs_no_inline()
     unittest.main(verbosity=2)
