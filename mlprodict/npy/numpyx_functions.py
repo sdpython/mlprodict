@@ -17,6 +17,20 @@ def absolute(x: TensorType(ElemType.numerics, name="T")
 
 
 @xapi
+def concat(*x: SequenceType[TensorType(ElemType.numerics, name="T")],
+           axis: ParType[int] = 0
+           ) -> TensorType(ElemType.numerics, name="T"):
+    """
+    Operator concat, handle :func:`numpy.vstack` and
+    :func:`numpy.hstack`.
+    """
+    if len(x) <= 1:
+        raise RuntimeError(
+            f"N={len(x)}<=1 elements to concatenate.")
+    return var(*x, op='Concat', axis=axis)
+
+
+@xapi
 def identity(x: TensorType(ElemType.numerics, name="T")
              ) -> TensorType(ElemType.numerics, name="T"):
     "Makes a copy."

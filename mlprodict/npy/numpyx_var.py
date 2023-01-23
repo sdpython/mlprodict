@@ -235,7 +235,7 @@ class Var:
                 name: Optional[str] = None,
                 domain: Optional[str] = None,
                 attributes: Optional[List[str]] = None,
-                constraints: Optional[Dict[str, TensorType]] = None
+                constraints: Optional[Dict[Any, TensorType]] = None
                 ) -> Union[ModelProto, FunctionProto, List[Any]]:
         """
         Converts the recursive graph to ONNX.

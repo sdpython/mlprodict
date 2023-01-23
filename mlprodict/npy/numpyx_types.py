@@ -134,9 +134,12 @@ class ElemType(ElemTypeCst):
     }
 
     numpy_map = {
-        getattr(numpy, att): getattr(ElemTypeCst, att)
-        for att in dir(ElemTypeCst)
-        if isinstance(getattr(ElemTypeCst, att), int) and hasattr(numpy, att)
+        **{getattr(numpy, att): getattr(ElemTypeCst, att)
+           for att in dir(ElemTypeCst)
+           if isinstance(getattr(ElemTypeCst, att), int) and hasattr(numpy, att)},
+        **{numpy.dtype(att): getattr(ElemTypeCst, att)
+           for att in dir(ElemTypeCst)
+           if isinstance(getattr(ElemTypeCst, att), int) and hasattr(numpy, att)},
     }
 
     __slots__ = ['dtype']

@@ -5,7 +5,7 @@
 .. versionadded:: 0.10
 """
 from inspect import Parameter, signature
-from typing import Callable, Dict, List, Optional
+from typing import Any, Callable, Dict, List, Optional
 from onnx import (  # pylint: disable=E0611
     IR_VERSION, AttributeProto, ValueInfoProto, TypeProto)
 from onnx.checker import (
@@ -51,7 +51,7 @@ class _GraphBuilder:
                  name: Optional[str] = None,
                  domain: Optional[str] = None,
                  attributes: Optional[List[str]] = None,
-                 constraints: Optional[Dict[str, TensorType]] = None):
+                 constraints: Optional[Dict[Any, TensorType]] = None):
         self.target_opsets = target_opsets
 
         check_opsets = target_opsets or {"": onnx_opset_version()}
@@ -192,8 +192,8 @@ class _GraphBuilder:
                 raise RuntimeError(
                     f"tensor_type is not specific enough {tensor_type!r} "
                     f"and constraints do not precise this type for "
-                    f"input or output {index} "
-                    f"{self.constraints!r} with name={name!r}.")
+                    f"{'input' if is_input else 'output'} {index} "
+                    f"with name={name!r} and constraints={self.constraints!r}.")
             if (tensor_type is not None and
                     not tensor_type.issuperset(new_type)):
                 raise RuntimeError(

@@ -8,13 +8,14 @@ from onnx.defs import onnx_opset_version
 from onnx.reference import ReferenceEvaluator
 from pyquickhelper.pycode import ExtTestCase
 from mlprodict.onnxrt import OnnxInference
-from mlprodict.npy.numpyx import ElemType, TensorType
+from mlprodict.npy.numpyx import ElemType, TensorType, jit_onnx
 from mlprodict.npy.numpyx_types import Float32, Float64, Int64
 from mlprodict.npy.numpyx_var import Input, Var
 from mlprodict.npy.numpyx_functions_test import (
     absolute, addition, argmin, concat, identity, log1p, negative, relu)
 from mlprodict.npy.numpyx_functions import (
     absolute as absolute_inline,
+    concat as concat_inline,
     identity as identity_inline)
 
 
@@ -200,6 +201,25 @@ class TestNumpyx(ExtTestCase):
             got = [got['r__2']]
         self.assertEqualArray(z, got[0])
 
+    def test_numpy_concat2_inline(self):
+        f = concat_inline(Input("A"), Input("B"))
+        onx = f.to_onnx(constraints={'A': Float64[None],
+                                     'B': Float64[None],
+                                     (0, False): Float64[None]})
+        x1 = numpy.array([[-5, 6], [15, 3]], dtype=numpy.float64)
+        x2 = numpy.array([[1, 2]], dtype=numpy.float64)
+        z = numpy.vstack([x1, x2])
+        ref = ReferenceEvaluator(onx)
+        feeds = {'A': x1, 'B': x2}
+        try:
+            got = ref.run(None, feeds)
+        except TypeError as e:
+            self._warns.append(f"ReferenceEvaluator:test_numpy_concat2: {e}")
+            oinf = OnnxInference(onx)
+            got = oinf.run(feeds)
+            got = [got['r__2']]
+        self.assertEqualArray(z, got[0])
+
     def test_numpy_concat1_2(self):
         f = concat(Input(), concat(Input(), Input()))
         onx = f.to_onnx(constraints={'T': Float64[None]})
@@ -372,10 +392,40 @@ class TestNumpyx(ExtTestCase):
         got = ref.run(None, {'A': x, 'B': y})
         self.assertEqualArray(z, got[0])
 
+    def test_backend_0(self):
+        def impl(A, B):
+            return absolute_inline(identity_inline(A) + B)
+
+        f = impl(Input("A"), Input("B"))
+
+        onx = f.to_onnx(constraints={'A': Float64[None],
+                                     'B': Float64[None],
+                                     (0, False): Float64[None]})
+        x = numpy.array([-5, 6], dtype=numpy.float64)
+        y = numpy.array([15, -16], dtype=numpy.float64)
+        z = numpy.abs(x + y)
+        ref = ReferenceEvaluator(onx)
+        got = ref.run(None, {'A': x, 'B': y})
+        self.assertEqualArray(z, got[0])
+
+        f = jit_onnx(impl)
+
+        # Float64
+        res = f(x, y)
+        self.assertEqualArray(z, res)
+        self.assertEqual(res.dtype, numpy.float64)
+
+        # Int64
+        res = f(x.astype(numpy.int64), y.astype(numpy.int64))
+        self.assertEqualArray(z.astype(numpy.int64), res)
+        self.assertEqual(res.dtype, numpy.int64)
+
     # multi outputs
     # opset: no test
+    # backend + parameter
+    # eager mode + jit
 
 
 if __name__ == "__main__":
-    TestNumpyx().test_numpy_operator_input_inline()
+    TestNumpyx().test_backend_0()
     unittest.main(verbosity=2)
