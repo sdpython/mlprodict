@@ -52,6 +52,13 @@ def concat(*x: SequenceType[TensorType(ElemType.numerics, name="T")],
 
 
 @xapi_function
+def identity(x: TensorType(ElemType.numerics, name="T")
+             ) -> TensorType(ElemType.numerics, name="T"):
+    "Makes a copy."
+    return var(x, op='Identity')
+
+
+@xapi_function
 def log1p(x: TensorType(ElemType.floats, name="T")
           ) -> TensorType(ElemType.floats, name="T"):
     "See :func:`numpy.log1p`."

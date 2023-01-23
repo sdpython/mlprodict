@@ -460,7 +460,7 @@ class _GraphBuilder:
 
             new_possible_inputs = []
             for var, dt in possible_inputs:
-                if dt is None:
+                if dt is None and id(var) in map_types:
                     dt = map_types[id(var)]
                 new_possible_inputs.append((var, dt))
             possible_inputs = new_possible_inputs

@@ -14,3 +14,10 @@ def absolute(x: TensorType(ElemType.numerics, name="T")
              ) -> TensorType(ElemType.numerics, name="T"):
     "See :func:`numpy.abs`."
     return var(x, op='Abs')
+
+
+@xapi
+def identity(x: TensorType(ElemType.numerics, name="T")
+             ) -> TensorType(ElemType.numerics, name="T"):
+    "Makes a copy."
+    return var(x, op='Identity')

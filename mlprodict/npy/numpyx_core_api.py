@@ -9,6 +9,20 @@ import numpy
 from .numpyx_var import Cst, Input, Par, Var
 
 
+def cst(*args, **kwargs):
+    """
+    Wraps a call to the building of class Cst.
+    """
+    return Cst(*args, **kwargs)
+
+
+def var(*args, **kwargs):
+    """
+    Wraps a call to the building of class Var.
+    """
+    return Var(*args, **kwargs)
+
+
 def _xapi(fn, inline):
     """
     Decorator to use before any function using part of the numpy API.
@@ -77,17 +91,3 @@ def xapi(fn):
     to call.
     """
     return _xapi(fn, inline=True)
-
-
-def cst(*args, **kwargs):
-    """
-    Wraps a call to the building of class Cst.
-    """
-    return Cst(*args, **kwargs)
-
-
-def var(*args, **kwargs):
-    """
-    Wraps a call to the building of class Var.
-    """
-    return Var(*args, **kwargs)

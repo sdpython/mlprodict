@@ -12,9 +12,10 @@ from mlprodict.npy.numpyx import ElemType, TensorType
 from mlprodict.npy.numpyx_types import Float32, Float64, Int64
 from mlprodict.npy.numpyx_var import Input, Var
 from mlprodict.npy.numpyx_functions_test import (
-    absolute, addition, argmin, concat, log1p, negative, relu)
+    absolute, addition, argmin, concat, identity, log1p, negative, relu)
 from mlprodict.npy.numpyx_functions import (
-    absolute as absolute_no_inline)
+    absolute as absolute_inline,
+    identity as identity_inline)
 
 
 DEFAULT_OPSET = onnx_opset_version()
@@ -291,8 +292,8 @@ class TestNumpyx(ExtTestCase):
         got = ref.run(None, {'A': x})
         self.assertEqualArray(y, got[0])
 
-    def test_numpy_abs_no_inline(self):
-        f = absolute_no_inline(Input())
+    def test_numpy_abs_inline(self):
+        f = absolute_inline(Input())
         self.assertIsInstance(f, Var)
         self.assertIn(":param inputs:", f.__doc__)
         self.assertIn("Signature", absolute.__doc__)
@@ -308,10 +309,73 @@ class TestNumpyx(ExtTestCase):
         got = ref.run(None, {'I__0': x})
         self.assertEqualArray(y, got[0])
 
+    def test_numpy_addition_op(self):
+        f = absolute(addition(identity(Input("A")), Input("B")))
+        self.assertIsInstance(f, Var)
+        onx = f.to_onnx(constraints={'T': Float64[None]})
+        x = numpy.array([-5, 6], dtype=numpy.float64)
+        y = numpy.array([15, -16], dtype=numpy.float64)
+        z = numpy.abs(x + y)
+        ref = ReferenceEvaluator(onx)
+        got = ref.run(None, {'A': x, 'B': y})
+        self.assertEqualArray(z, got[0])
+
+    def test_numpy_operator_inline(self):
+        f = absolute_inline(identity_inline(Input("A")) + Input("B"))
+        self.assertIsInstance(f, Var)
+        onx = f.to_onnx(constraints={'A': Float64[None],
+                                     'B': Float64[None],
+                                     (0, False): Float64[None]})
+        x = numpy.array([-5, 6], dtype=numpy.float64)
+        y = numpy.array([15, -16], dtype=numpy.float64)
+        z = numpy.abs(x + y)
+        ref = ReferenceEvaluator(onx)
+        got = ref.run(None, {'A': x, 'B': y})
+        self.assertEqualArray(z, got[0])
+
+    def test_numpy_operator(self):
+        f = absolute(identity(Input("A")) + Input("B"))
+        self.assertIsInstance(f, Var)
+        onx = f.to_onnx(constraints={'A': Float64[None],
+                                     'B': Float64[None],
+                                     (0, False): Float64[None]})
+        x = numpy.array([-5, 6], dtype=numpy.float64)
+        y = numpy.array([15, -16], dtype=numpy.float64)
+        z = numpy.abs(x + y)
+        ref = ReferenceEvaluator(onx)
+        got = ref.run(None, {'A': x, 'B': y})
+        self.assertEqualArray(z, got[0])
+
+    def test_numpy_operator_input_inline(self):
+        f = absolute_inline(Input("A") + Input("B"))
+        self.assertIsInstance(f, Var)
+        onx = f.to_onnx(constraints={'A': Float64[None],
+                                     'B': Float64[None],
+                                     (0, False): Float64[None]})
+        x = numpy.array([-5, 6], dtype=numpy.float64)
+        y = numpy.array([15, -16], dtype=numpy.float64)
+        z = numpy.abs(x + y)
+        ref = ReferenceEvaluator(onx)
+        got = ref.run(None, {'A': x, 'B': y})
+        self.assertEqualArray(z, got[0])
+
+    def test_numpy_operator_input(self):
+        f = absolute(Input("A") + Input("B"))
+        self.assertIsInstance(f, Var)
+        onx = f.to_onnx(constraints={'A': Float64[None],
+                                     'B': Float64[None],
+                                     (0, False): Float64[None]})
+        x = numpy.array([-5, 6], dtype=numpy.float64)
+        y = numpy.array([15, -16], dtype=numpy.float64)
+        z = numpy.abs(x + y)
+        ref = ReferenceEvaluator(onx)
+        got = ref.run(None, {'A': x, 'B': y})
+        self.assertEqualArray(z, got[0])
+
     # multi outputs
     # opset: no test
 
 
 if __name__ == "__main__":
-    # TestNumpyx().test_numpy_abs_a0()
+    TestNumpyx().test_numpy_operator_input_inline()
     unittest.main(verbosity=2)

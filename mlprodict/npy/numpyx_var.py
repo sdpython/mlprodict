@@ -121,6 +121,17 @@ class Var:
                     f"Unexpected type for input {i}: {type(inp)}, "
                     f"{inp.ravel()[0]}, op={op!r}")
 
+    def replace_inputs(self, new_inputs: List["Var"]) -> "Var":
+        """
+        Replaces inputs by new ones. It creates a copy.
+        It is needed when inlining functions.
+        """
+        new_var = Var(*new_inputs, op=self.onnx_op, dtype=self.dtype,
+                      select_output=self.select_output, opset=self.opset,
+                      inline=self.inline, **self.onnx_op_kwargs)
+        new_var._prefix = self._prefix
+        return new_var
+
     def __repr__(self):
         "usual"
         args = []
@@ -152,8 +163,10 @@ class Var:
         while len(stack) > 0:
             var = stack.pop()
             key = id(var)
-            if key in replacement:  # pylint: disable=R1715
-                var = replacement[key]  # pylint: disable=R1715
+            if key in replacement:
+                while key in replacement:
+                    var = replacement[key]
+                    key = id(var)
             if (var.onnx_op is not None and
                     var.onnx_op[0] is None and
                     var.inline):
@@ -171,7 +184,44 @@ class Var:
             for i in reversed(var.inputs):
                 if isinstance(i, Var):
                     stack.insert(0, i)
-        return list(reversed(vs))
+        res = list(reversed(vs))
+
+        # replacement
+        new_res = []
+        for r in res:
+            new_inputs = []
+            repl = False
+            for v in r.inputs:
+                key = id(v)
+                if key in replacement:
+                    while key in replacement:
+                        var = replacement[key]
+                        key = id(var)
+                    new_inputs.append(var)
+                    repl = True
+                else:
+                    new_inputs.append(v)
+            if repl:
+                new_r = r.replace_inputs(new_inputs)
+                replacement[id(r)] = new_r
+                new_res.append(new_r)
+            else:
+                new_res.append(r)
+
+        # check the graph is consistent
+        known = {}
+        for r in new_res:
+            known[id(r)] = r
+            if isinstance(r, (Cst, Input)):
+                continue
+            for ind, i in enumerate(r.inputs):
+                if id(i) not in known:
+                    raise RuntimeError(
+                        f"An input {ind} ({id(i)}) from {id(r)}-{r} "
+                        f"is not known, it is not produced by a "
+                        f"previous var (scheduled for replacement: "
+                        f"{id(i) in replacement}).")
+        return new_res
 
     @property
     def is_function(self):
@@ -214,6 +264,16 @@ class Var:
         if as_function and len(g.functions_) > 0:
             return [g.functions_, onx]
         return onx
+
+    # Operators
+
+    def __add__(self, ov):
+        """
+        Automatically adds operator `Add` to the graph.
+        It does not cast automatically.
+        """
+        from .numpyx_core_api import var
+        return var(self, ov, op='Add')
 
 
 class Input(Var):
