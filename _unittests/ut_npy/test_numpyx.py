@@ -4,6 +4,7 @@
 import unittest
 import warnings
 import numpy
+from onnx import ModelProto
 from onnx.defs import onnx_opset_version
 from onnx.reference import ReferenceEvaluator
 from pyquickhelper.pycode import ExtTestCase
@@ -594,9 +595,19 @@ class TestNumpyx(ExtTestCase):
         self.assertEqualArray(z0.astype(numpy.int64), res)
         self.assertEqual(res.dtype, numpy.int64)
 
+        # versions
+        self.assertIsInstance(f.versions, dict)
+        self.assertEqual(len(f.versions), 4)
+        self.assertIsInstance(f.onxs, dict)
+        self.assertEqual(len(f.onxs), 4)
+        keys = list(sorted(f.onxs))
+        self.assertIsInstance(f.onxs[keys[0]], ModelProto)
+        k = keys[-1]
+        self.assertEqual(len(k), 3)
+        self.assertEqual(k[1:], ('axis', 0))
+
     # multi outputs
     # opset: no test
-    # backend + parameter
     # eager mode + jit
 
 
