@@ -17,6 +17,17 @@ def absolute(x: TensorType(ElemType.numerics, name="T")
 
 
 @xapi
+def argmin(x: TensorType(ElemType.numerics, name="T"),
+           axis: OptParType[int] = 0,
+           keepdims: OptParType[int] = 0
+           ) -> TensorType(ElemType.numerics, name="T"):
+    """
+    See :func:`numpy.argmin`.
+    """
+    return var(x, op='ArgMin', axis=axis, keepdims=keepdims)
+
+
+@xapi
 def concat(*x: SequenceType[TensorType(ElemType.numerics, name="T")],
            axis: ParType[int] = 0
            ) -> TensorType(ElemType.numerics, name="T"):

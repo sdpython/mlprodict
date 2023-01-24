@@ -20,20 +20,35 @@ class Par:
     Defines a named parameter.
 
     :param name: parameter name
+    :param dtype: parameter type (int, str, float)
+    :param value: value of the parameter if known
+    :param parent_op: node type it belongs to
     """
 
-    def __init__(self, name: str, dtype: ParType, value: Optional[Any] = None):
+    def __init__(self, name: str, dtype: ParType, value: Optional[Any] = None,
+                 parent_op: Optional[Tuple[str, str, int]] = None):
+        if not isinstance(dtype, ParType):
+            raise TypeError(
+                f"dtype for parameter {name!r} must be of "
+                f"ParType not {type(dtype)}.")
+        if parent_op is None:
+            raise ValueError(
+                f"parent_op must be filled for paramenter {name!r}.")
         self.name = name
         self.dtype = dtype
         self.value = value
+        self.parent_op = parent_op
 
     def __repr__(self):
         "usual"
         if self.value is None:
-            return f"{self.__class__.__name__}({self.name!r}, {self.dtype!r})"
+            return (
+                f"{self.__class__.__name__}({self.name!r}, {self.dtype!r}, "
+                f"parent_op={self.parent_op!r})")
         return (
             f"{self.__class__.__name__}"
-            f"({self.name!r}, {self.dtype!r}, {self.value!r})")
+            f"({self.name!r}, {self.dtype!r}, {self.value!r}, "
+            f"parent_op={self.parent_op!r})")
 
     @property
     def onnx_type(self):

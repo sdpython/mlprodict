@@ -9,12 +9,14 @@ from onnx.reference import ReferenceEvaluator
 from pyquickhelper.pycode import ExtTestCase
 from mlprodict.onnxrt import OnnxInference
 from mlprodict.npy.numpyx import ElemType, TensorType, jit_onnx
-from mlprodict.npy.numpyx_types import Float32, Float64, Int64
+from mlprodict.npy.numpyx_types import Float32, Float64, Int64, OptParType
 from mlprodict.npy.numpyx_var import Input, Var
+from mlprodict.npy.numpyx_core_api import xapi, xapi_function
 from mlprodict.npy.numpyx_functions_test import (
     absolute, addition, argmin, concat, identity, log1p, negative, relu)
 from mlprodict.npy.numpyx_functions import (
     absolute as absolute_inline,
+    argmin as argmin_inline,
     concat as concat_inline,
     identity as identity_inline)
 
@@ -420,6 +422,178 @@ class TestNumpyx(ExtTestCase):
         self.assertEqualArray(z.astype(numpy.int64), res)
         self.assertEqual(res.dtype, numpy.int64)
 
+    def test_backend_1(self):
+        def impl(A, B):
+            return absolute(identity(A) + B)
+
+        f = impl(Input("A"), Input("B"))
+
+        onx = f.to_onnx(constraints={'A': Float64[None],
+                                     'B': Float64[None],
+                                     (0, False): Float64[None]})
+        x = numpy.array([-5, 6], dtype=numpy.float64)
+        y = numpy.array([15, -16], dtype=numpy.float64)
+        z = numpy.abs(x + y)
+        ref = ReferenceEvaluator(onx)
+        got = ref.run(None, {'A': x, 'B': y})
+        self.assertEqualArray(z, got[0])
+
+        f = jit_onnx(impl)
+
+        # Float64
+        res = f(x, y)
+        self.assertEqualArray(z, res)
+        self.assertEqual(res.dtype, numpy.float64)
+
+        # Int64
+        res = f(x.astype(numpy.int64), y.astype(numpy.int64))
+        self.assertEqualArray(z.astype(numpy.int64), res)
+        self.assertEqual(res.dtype, numpy.int64)
+
+    def test_backend_parameters(self):
+        def impl(A, axis=1):
+            return argmin_inline(A, axis=axis)
+
+        f = impl(Input("A"))
+
+        onx = f.to_onnx(constraints={'A': Float64[None],
+                                     (0, False): Int64[None]})
+        x = numpy.array([[-5, 6], [5, -6]], dtype=numpy.float64)
+        z0 = numpy.argmin(x, axis=0)
+        z1 = numpy.argmin(x, axis=1)
+        ref = ReferenceEvaluator(onx)
+        got = ref.run(None, {'A': x})
+        self.assertEqualArray(z1, got[0])
+
+        f = jit_onnx(impl)
+
+        # Float64
+        res = f(x)
+        self.assertEqualArray(z1, res)
+        self.assertEqual(res.dtype, numpy.int64)
+        res = f(x, axis=0)
+        self.assertEqualArray(z0, res)
+        self.assertEqual(res.dtype, numpy.int64)
+        self.assertRaise(lambda: f(x, 0), TypeError)
+
+        # Int64
+        res = f(x.astype(numpy.int64))
+        self.assertEqualArray(z1.astype(numpy.int64), res)
+        self.assertEqual(res.dtype, numpy.int64)
+        res = f(x.astype(numpy.int64), axis=0)
+        self.assertEqualArray(z0.astype(numpy.int64), res)
+        self.assertEqual(res.dtype, numpy.int64)
+
+    def test_backend_parameters_xapi(self):
+
+        @xapi
+        def impl(A, axis=1):
+            return argmin_inline(A, axis=axis)
+
+        f = impl(Input("A"))
+
+        onx = f.to_onnx(constraints={'A': Float64[None],
+                                     (0, False): Int64[None]})
+        x = numpy.array([[-5, 6], [5, -6]], dtype=numpy.float64)
+        z0 = numpy.argmin(x, axis=0)
+        z1 = numpy.argmin(x, axis=1)
+        ref = ReferenceEvaluator(onx)
+        got = ref.run(None, {'A': x})
+        self.assertEqualArray(z1, got[0])
+
+        f = jit_onnx(impl)
+
+        # Float64
+        res = f(x)
+        self.assertEqualArray(z1, res)
+        self.assertEqual(res.dtype, numpy.int64)
+        res = f(x, axis=0)
+        self.assertEqualArray(z0, res)
+        self.assertEqual(res.dtype, numpy.int64)
+        self.assertRaise(lambda: f(x, 0), TypeError)
+
+        # Int64
+        res = f(x.astype(numpy.int64))
+        self.assertEqualArray(z1.astype(numpy.int64), res)
+        self.assertEqual(res.dtype, numpy.int64)
+        res = f(x.astype(numpy.int64), axis=0)
+        self.assertEqualArray(z0.astype(numpy.int64), res)
+        self.assertEqual(res.dtype, numpy.int64)
+
+    def test_backend_parameters_no_inline(self):
+        def impl(A, axis=1):
+            return argmin(A, axis=axis)
+
+        f = impl(Input("A"))
+
+        onx = f.to_onnx(constraints={'A': Float64[None],
+                                     (0, False): Int64[None]})
+        x = numpy.array([[-5, 6], [5, -6]], dtype=numpy.float64)
+        z0 = numpy.argmin(x, axis=0)
+        z1 = numpy.argmin(x, axis=1)
+        ref = ReferenceEvaluator(onx)
+        feeds = {'A': x}
+        got = ref.run(None, feeds)
+        self.assertEqualArray(z1, got[0])
+
+        f = jit_onnx(impl)
+
+        # Float64
+        res = f(x)
+        self.assertEqualArray(z1, res)
+        self.assertEqual(res.dtype, numpy.int64)
+        res = f(x, axis=0)
+        self.assertEqualArray(z0, res)
+        self.assertEqual(res.dtype, numpy.int64)
+        self.assertRaise(lambda: f(x, 0), TypeError)
+
+        # Int64
+        res = f(x.astype(numpy.int64))
+        self.assertEqualArray(z1.astype(numpy.int64), res)
+        self.assertEqual(res.dtype, numpy.int64)
+        res = f(x.astype(numpy.int64), axis=0)
+        self.assertEqualArray(z0.astype(numpy.int64), res)
+        self.assertEqual(res.dtype, numpy.int64)
+
+    def test_backend_parameters_no_inline_xapi(self):
+
+        @xapi_function
+        def impl(A: TensorType(ElemType.numerics, name="T"),
+                 axis: OptParType[int] = 1
+                 ) -> TensorType(ElemType.numerics, name="T"):
+            return argmin(A, axis=axis)
+
+        f = impl(Input("A"))
+
+        onx = f.to_onnx(constraints={'A': Float64[None],
+                                     (0, False): Int64[None]})
+        x = numpy.array([[-5, 6], [5, -6]], dtype=numpy.float64)
+        z0 = numpy.argmin(x, axis=0)
+        z1 = numpy.argmin(x, axis=1)
+        ref = ReferenceEvaluator(onx)
+        feeds = {'A': x}
+        got = ref.run(None, feeds)
+        self.assertEqualArray(z1, got[0])
+
+        f = jit_onnx(impl)
+
+        # Float64
+        res = f(x)
+        self.assertEqualArray(z1, res)
+        self.assertEqual(res.dtype, numpy.int64)
+        res = f(x, axis=0)
+        self.assertEqualArray(z0, res)
+        self.assertEqual(res.dtype, numpy.int64)
+        self.assertRaise(lambda: f(x, 0), TypeError)
+
+        # Int64
+        res = f(x.astype(numpy.int64))
+        self.assertEqualArray(z1.astype(numpy.int64), res)
+        self.assertEqual(res.dtype, numpy.int64)
+        res = f(x.astype(numpy.int64), axis=0)
+        self.assertEqualArray(z0.astype(numpy.int64), res)
+        self.assertEqual(res.dtype, numpy.int64)
+
     # multi outputs
     # opset: no test
     # backend + parameter
@@ -427,5 +601,5 @@ class TestNumpyx(ExtTestCase):
 
 
 if __name__ == "__main__":
-    TestNumpyx().test_backend_0()
+    TestNumpyx().test_backend_parameters_no_inline_xapi()
     unittest.main(verbosity=2)

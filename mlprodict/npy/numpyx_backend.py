@@ -42,6 +42,8 @@ class NumpyTensor(BackendValue):
             return list(map(NumpyTensor, self.ref.run(None, feeds)))
 
     def __init__(self, tensor: numpy.ndarray):
+        if not isinstance(tensor, numpy.ndarray):
+            raise ValueError(f"A numpy array is expected not {type(tensor)}.")
         BackendValue.__init__(self, tensor)
 
     @property

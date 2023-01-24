@@ -6,6 +6,7 @@
 """
 from inspect import signature
 import numpy
+from .numpyx_types import ParType
 from .numpyx_var import Cst, Input, Par, Var
 
 
@@ -54,15 +55,25 @@ def _xapi(fn, inline):
                     f"Unexpected type for input {ind}, type={type(i)}.")
         for k, v in kwargs.items():
             if v is None and len(new_pars) == 0:
-                # it could an optional input
+                # It could be an optional input or a parameter.
                 raise NotImplementedError(
                     f"Unable to decide between an optional input or a "
                     f"parameter for name={k!r}.")
+            if isinstance(v, Par):
+                if inline:
+                    new_pars[k] = v.value
+                else:
+                    new_pars[k] = v
+                continue
             if isinstance(v, (int, float, str)):
-                new_pars[k] = Par(k, v)
-            else:
-                raise TypeError(
-                    f"Unexpected type for parameter {k!r}, type={type(v)}.")
+                if inline:
+                    new_pars[k] = v
+                else:
+                    new_pars[k] = Par(k, dtype=ParType[type(v)], value=v,
+                                      parent_op=(fn.__module__, fn.__name__, 0))
+                continue
+            raise TypeError(
+                f"Unexpected type for parameter {k!r}, type={type(v)}.")
 
         return Var(*new_inputs, op=fn, inline=inline, **new_pars)
 
@@ -71,7 +82,7 @@ def _xapi(fn, inline):
     for p in sig.parameters.values():
         rows.append(f"        {p.name}: {str(p.annotation)},")
     rows.append(f"    ) -> {sig.return_annotation}:")
-    wrapper.__doc__ = fn.__doc__ + "\n".join(rows)
+    wrapper.__doc__ = (fn.__doc__ or "") + "\n" + "\n".join(rows)
     return wrapper
 
 

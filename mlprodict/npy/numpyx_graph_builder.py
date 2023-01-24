@@ -130,11 +130,14 @@ class _GraphBuilder:
         protos = []
         for k, v in kwargs.items():
             if isinstance(v, Par):
-                att = AttributeProto()
-                att.name = k
-                att.ref_attr_name = v.name
-                att.type = v.onnx_type
-                protos.append(att)
+                if self.as_function:
+                    att = AttributeProto()
+                    att.name = k
+                    att.ref_attr_name = v.name
+                    att.type = v.onnx_type
+                    protos.append(att)
+                elif v.value is not None:
+                    new_kwargs[k] = v.value
             else:
                 new_kwargs[k] = v
 
@@ -331,7 +334,8 @@ class _GraphBuilder:
             if value == Parameter.empty or value is None:
                 inputs.append(Input(name))
             else:
-                p = Par(name, anno, value)
+                p = Par(name, anno, value, parent_op=(
+                    fct.__module__, fct.__name__, 1))
                 kwargs[name] = p
                 attributes.append(p)
             input_types.append(anno)
