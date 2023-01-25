@@ -90,6 +90,7 @@ class Var:
     :param opset: the signature used fits this specific opset (18 by default)
     :param inline: True to reduce the use of function and inline
         small functions, this only applies if *op* is a function
+    :param n_var_outputs: number of the operator outputs
     :param kwargs: operator attributes
 
     Private attribute:
@@ -103,8 +104,11 @@ class Var:
                  select_output: List[str] = None,
                  opset: Optional[int] = None,
                  inline: bool = False,
+                 n_var_outputs: Optional[int] = 1,
+                 input_indices: Optional[List[int]] = None,
                  **kwargs):
         self.inputs = inputs
+        self.n_var_outputs = n_var_outputs
         self.select_output = select_output
         self.inline = inline
         if op is None:
@@ -135,15 +139,32 @@ class Var:
                 raise TypeError(  # pragma: no cover
                     f"Unexpected type for input {i}: {type(inp)}, "
                     f"{inp.ravel()[0]}, op={op!r}")
+        if input_indices is None:
+            self.input_indices = [0 for i in self.inputs]
+        if len(self.input_indices) != len(self.inputs):
+            raise RuntimeError(
+                f"length mismatch len(self.input_indices)="
+                f"{len(self.input_indices)} != len(self.inputs)="
+                f"{len(self.inputs)}.")
+        if self.onnx_op is None:
+            if not isinstance(self, (Input, Cst)):
+                raise RuntimeError(f"This case is not allowed: {self!r}.")
 
-    def replace_inputs(self, new_inputs: List["Var"]) -> "Var":
+    def replace_inputs(self, new_inputs: List["Var"],
+                       input_indices: Optional[List[int]] = None) -> "Var":
         """
         Replaces inputs by new ones. It creates a copy.
         It is needed when inlining functions.
         """
-        new_var = Var(*new_inputs, op=self.onnx_op, dtype=self.dtype,
-                      select_output=self.select_output, opset=self.opset,
-                      inline=self.inline, **self.onnx_op_kwargs)
+        new_var = Var(*new_inputs,
+                      op=self.onnx_op,
+                      dtype=self.dtype,
+                      select_output=self.select_output,
+                      opset=self.opset,
+                      inline=self.inline,
+                      input_indices=input_indices,
+                      n_var_outputs=self.n_var_outputs,
+                      **self.onnx_op_kwargs)
         new_var._prefix = self._prefix
         return new_var
 
@@ -157,6 +178,10 @@ class Var:
             args.append(f"op={self.onnx_op!r}")
         if self.select_output is not None:
             args.append(f"select_output={self.select_output!r}")
+        if self.n_var_outputs != 1:
+            args.append(f"n_var_outputs={self.n_var_outputs!r}")
+        if max(self.input_indices) != 0:
+            args.append(f"input_indices={self.input_indices!r}")
         for k, v in sorted(self.onnx_op_kwargs.items()):
             args.append(f"{k}={v!r}")
         res = f"{self.__class__.__name__}({', '.join(args)})"

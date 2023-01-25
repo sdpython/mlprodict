@@ -305,7 +305,7 @@ class TensorType:
         """
         name = self._name_set()
         if self.shape:
-            sh = str(self.shape).strip("()").replace(" ", "")
+            sh = str(self.shape).strip("()[]").replace(" ", "")
             sig = f"{name}[{sh}]"
         else:
             sig = f"{name}[]"
@@ -353,6 +353,36 @@ class SequenceType:
                 f"{self.__class__.__name__}({self.elem_type!r}, "
                 f"{self.name!r})")
         return f"{self.__class__.__name__}[{self.elem_type!r}]"
+
+
+class TupleType:
+    """
+    Defines a sequence of tensors.
+    """
+    @classmethod
+    def __class_getitem__(cls, elem_types: Tuple[Any, ...]) -> "TupleType":
+        return TupleType(elem_types)
+
+    def __init__(self, elem_types: Tuple[Any, ...], name: str = ""):
+        self.elem_types = elem_types
+        self.name = name
+
+    def __len__(self):
+        "Returns the number of types."
+        return len(self.elem_types)
+
+    def __repr__(self) -> str:
+        "usual"
+        if self.name:
+            return (
+                f"{self.__class__.__name__}({self.elem_types!r}, "
+                f"{self.name!r})")
+        s = ", ".join(map(str, self.elem_types))
+        return f"{self.__class__.__name__}[{s}]"
+
+    def __getitem__(self, i):
+        "Returns the ith type."
+        return self.elem_types[i]
 
 
 class Float32:

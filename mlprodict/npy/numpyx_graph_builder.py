@@ -17,7 +17,8 @@ from onnx.helper import (
     make_opsetid, make_tensor_value_info)
 from onnx.numpy_helper import from_array
 from .numpyx_types import (
-    ElemType, OptParType, ParType, SequenceType, TensorType)
+    ElemType, OptParType, ParType, SequenceType,
+    TensorType, TupleType)
 from .numpyx_var import Cst, Input, Par, Var
 
 
@@ -29,7 +30,14 @@ class _FunctionIO:
     """
 
     def __init__(self, name):
+        if not isinstance(name, str):
+            raise TypeError(
+                f"name is not a string but {type(name)} - {name!r}.")
         self.name = name
+
+    def __str__(self):
+        "usual"
+        return f"{self.__class__.__name__}({self.name!r})"
 
 
 class _GraphBuilder:
@@ -92,10 +100,11 @@ class _GraphBuilder:
     def append(self, var):
         "Appends an instruction to the list."
         i = id(var)
-        if i in self._id_vars:
-            # an input or result used twice
-            return
-        self._id_vars[i] = None
+        for index in range(var.n_var_outputs):
+            if (i, index) in self._id_vars:
+                # an input or result used twice
+                return
+            self._id_vars[i, index] = None
         self._vars.append(var)
 
     def _reset(self):
@@ -292,7 +301,7 @@ class _GraphBuilder:
         check_model(model)
         return model
 
-    def _function_to_onnx(self, fct: Callable, n_inputs: int):
+    def _function_to_onnx(self, fct: Callable, n_inputs: int, n_outputs: int):
         """
         Converts a function to onnx.
 
@@ -340,7 +349,18 @@ class _GraphBuilder:
                 attributes.append(p)
             input_types.append(anno)
 
-        output_types = [sig.return_annotation]
+        if isinstance(sig.return_annotation, TupleType):
+            if len(sig.return_annotation) != n_outputs:
+                raise TypeError(
+                    f"Mismatched number of outputs {len(sig.return_annotation)} "
+                    f"!= n_outputs={n_outputs} for fct={fct}.")
+            output_types = [sig.return_annotation[i] for i in range(n_outputs)]
+        elif n_outputs != 1:
+            raise TypeError(
+                f"Inconsistency between return type {sig.return_annotation} "
+                f"and n_outputs={n_outputs} for fct={fct}.")
+        else:
+            output_types = [sig.return_annotation]
         applied = fct(*inputs, **kwargs)
         name_fct = (fct.__name__
                     if len(key) == 2
@@ -372,17 +392,10 @@ class _GraphBuilder:
         for var in self._vars:
 
             key = id(var)
-            if key not in self._id_vars:
-                raise RuntimeError(
-                    f"A variable id {key} was not registered.")
-            if self._id_vars[key] is not None:
-                raise RuntimeError(
-                    f"This variable key={key:r} was already "
-                    f"processed and given name {self._id_vars[key]}.")
 
             if isinstance(var, Cst):
                 name = self._unique(var._prefix)
-                self._id_vars[key] = name
+                self._id_vars[key, 0] = name
                 self.make_node("Constant", [], [name],
                                value=from_array(var.inputs[0]),
                                opset=var.opset)
@@ -391,9 +404,9 @@ class _GraphBuilder:
 
             if isinstance(var, Input):
                 name = var.name or self._unique(var._prefix)
-                self._id_vars[key] = name
+                self._id_vars[key, 0] = name
                 self.onnx_names_[name] = var
-                possible_inputs.append((var, None))
+                possible_inputs.append((var, 0, None))
                 continue
 
             out_types = None
@@ -401,14 +414,19 @@ class _GraphBuilder:
                 # a function is converted into FunctionProto
                 # and then a node is inserted in the main graph
                 packed = self._function_to_onnx(
-                    var.onnx_op[1], len(var.inputs))
+                    var.onnx_op[1], len(var.inputs),
+                    var.n_var_outputs)
                 (onx_fn, in_types, out_types, att_types) = packed
                 domop = (onx_fn.domain, onx_fn.name)
 
-                for inp, dt in zip(var.inputs, in_types):
+                for inp, index, dt in zip(var.inputs, var.input_indices, in_types):
                     if isinstance(inp, Input):
-                        possible_types.append((inp, dt))
-                possible_types.append((var, out_types[0]))
+                        possible_types.append((inp, index, dt))
+                for i, o in enumerate(out_types):
+                    if isinstance(o, TupleType):
+                        possible_types.append((var, i, o[i]))
+                    else:
+                        possible_types.append((var, i, o))
             else:
                 # an operator
                 domop = var.onnx_op
@@ -418,14 +436,14 @@ class _GraphBuilder:
             # preprocess the inputs
             node_inputs = []
             node_outputs = []
-            for i in var.inputs:
+            for i, index in zip(var.inputs, var.input_indices):
                 if isinstance(i, Var):
                     kv = id(i)
-                    if kv not in self._id_vars or self._id_vars[kv] is None:
+                    if (kv, index) not in self._id_vars or self._id_vars[kv, index] is None:
                         raise RuntimeError(
-                            f"A variable of type {type(i)} id {kv} "
-                            f"was not registered, i={i}.")
-                    input_name = self._id_vars[kv]
+                            f"A variable of type {type(i)} id={kv} "
+                            f"index={index} was not registered, i={i}.")
+                    input_name = self._id_vars[kv, index]
                     node_inputs.append(input_name)
                 else:
                     raise NotImplementedError(
@@ -435,10 +453,17 @@ class _GraphBuilder:
             kwargs = var.onnx_op_kwargs
 
             key = id(var)
-            name = self._unique(var._prefix) or "r"
 
-            self._id_vars[key] = name
-            node_outputs = [name]
+            if var.n_var_outputs == 1:
+                name = self._unique(var._prefix or "r")
+                self._id_vars[key, 0] = name
+                node_outputs = [name]
+            else:
+                node_outputs = []
+                for no in range(var.n_var_outputs):
+                    name = self._unique(f"{var._prefix or 'rm'}{no}")
+                    node_outputs.append(name)
+                    self._id_vars[key, no] = name
 
             # creates the node
             if att_types is not None and len(att_types) > 0:
@@ -458,26 +483,31 @@ class _GraphBuilder:
                            domain=domop[0], opset=var.opset, **kwargs)
 
         # the output is the last variable
-        possible_outputs = [(self._vars[-1], None)]
+        last_var = self._vars[-1]
+        possible_outputs = [(last_var, i, None)
+                            for i in range(last_var.n_var_outputs)]
         if len(possible_types) > 0:
-            map_types = {id(var): dt for var, dt in possible_types}
+            map_types = {(id(var), i): dt for var, i, dt in possible_types}
 
             new_possible_inputs = []
-            for var, dt in possible_inputs:
-                if dt is None and id(var) in map_types:
-                    dt = map_types[id(var)]
-                new_possible_inputs.append((var, dt))
+            for var, index, dt in possible_inputs:
+                if dt is None and (id(var), index) in map_types:
+                    dt = map_types[id(var), index]
+                new_possible_inputs.append((var, index, dt))
             possible_inputs = new_possible_inputs
 
             new_possible_outputs = []
-            for var, dt in possible_outputs:
+            for var, index, dt in possible_outputs:
                 if dt is None and not self.as_function:
-                    dt = map_types[id(var)]
-                new_possible_outputs.append((var, dt))
+                    if isinstance(var, Var):
+                        dt = map_types[id(var), index]
+                    else:
+                        dt = map_types[id(var[0]), var[1]]
+                new_possible_outputs.append((var, index, dt))
             possible_outputs = new_possible_outputs
 
-        for inp, dt in possible_inputs:
-            self.make_input(self._id_vars[id(inp)], dt)
-        for out, dt in possible_outputs:
-            self.make_output(self._id_vars[id(out)], dt)
+        for inp, index, dt in possible_inputs:
+            self.make_input(self._id_vars[id(inp), index], dt)
+        for out, index, dt in possible_outputs:
+            self.make_output(self._id_vars[id(out), index], dt)
         return self._make_onnx()

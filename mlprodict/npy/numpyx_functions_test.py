@@ -6,9 +6,10 @@
 """
 from typing import Tuple
 import numpy as np
-from .numpyx_core_api import cst, var, xapi_function
+from .numpyx_core_api import cst, make_tuple, var, xapi_function
 from .numpyx_types import (
-    ElemType, OptParType, ParType, SequenceType, TensorType)
+    ElemType, OptParType, ParType, SequenceType,
+    TensorType, TupleType)
 
 
 @xapi_function
@@ -83,6 +84,20 @@ def relu(x: TensorType(ElemType.numerics, name="T"),
     "See :func:`numpy.addition`."
     return var(var(absolute(x), x, op='Add'),
                var(cst(2), x, op='CastLike'), op='Div')
+
+
+@xapi_function
+def topk(x: TensorType(ElemType.numerics, name="T"),
+         k: TensorType(ElemType.int64, name="I", shape=[1]),
+         axis: OptParType[int] = -1,
+         largest: OptParType[int] = 1,
+         sorted: OptParType[int] = 1
+         ) -> TupleType[TensorType(ElemType.numerics, name="T"),
+                        TensorType(ElemType.numerics, name="I")]:
+    "See :func:`numpy.argsort`."
+    return make_tuple(2, x, k, op="TopK",
+                      axis=axis, largest=largest,
+                      sorted=sorted)
 
 
 @xapi_function

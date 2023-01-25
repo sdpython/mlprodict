@@ -7,10 +7,10 @@
 from typing import Any, Callable, Dict, Optional
 import numpy
 from .numpyx_var import Input
-from .numpyx_backend import NumpyTensor
+from .numpyx_tensors import NumpyTensor
 
 
-class jit_onnx:
+class JitOnnx:
     """
     Converts a function into an executable function
     based on a backend. The new function is converted
@@ -107,3 +107,10 @@ class jit_onnx:
                 return res[0].value
             return tuple(r.value for r in res)
         return res.value
+
+
+def jit_onnx(*args, **kwargs):
+    """
+    Returns an instance of :class:`JitOnnx`.
+    """
+    return JitOnnx(*args, **kwargs)

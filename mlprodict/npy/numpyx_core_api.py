@@ -6,20 +6,28 @@
 """
 from inspect import signature
 import numpy
-from .numpyx_types import ParType
-from .numpyx_var import Cst, Input, Par, Var
+from .numpyx_types import ParType, TupleType
+from .numpyx_var import Cst, Input, Par, Tuple, Var
 
 
 def cst(*args, **kwargs):
     """
-    Wraps a call to the building of class Cst.
+    Wraps a call to the building of class :class:`Cst`.
     """
     return Cst(*args, **kwargs)
 
 
+def make_tuple(n_elements, *args, **kwargs):
+    """
+    Wraps a call to the building of class :class:`Tuple`.
+    *n_elements* is the number of elements in the tuple.
+    """
+    return Var(*args, n_var_outputs=n_elements, **kwargs)
+
+
 def var(*args, **kwargs):
     """
-    Wraps a call to the building of class Var.
+    Wraps a call to the building of class :class:`Var`.
     """
     return Var(*args, **kwargs)
 
@@ -31,6 +39,7 @@ def _xapi(fn, inline):
     to call.
     """
     cst_types = (Var, numpy.ndarray)
+    sig = signature(fn)
 
     # It has the same signature
     def wrapper(*inputs, eager=False, **kwargs):
@@ -75,9 +84,12 @@ def _xapi(fn, inline):
             raise TypeError(
                 f"Unexpected type for parameter {k!r}, type={type(v)}.")
 
+        if isinstance(sig.return_annotation, TupleType):
+            n_var_outputs = len(sig.return_annotation)
+            return Var(*new_inputs, op=fn, inline=inline,
+                       n_var_outputs=n_var_outputs, **new_pars)
         return Var(*new_inputs, op=fn, inline=inline, **new_pars)
 
-    sig = signature(fn)
     rows = ["", "", "Signature:", "", "::", "", "    ("]
     for p in sig.parameters.values():
         rows.append(f"        {p.name}: {str(p.annotation)},")
