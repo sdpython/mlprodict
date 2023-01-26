@@ -16,6 +16,7 @@ class ElemTypeCstInner:
 
     __slots__ = []
 
+    undefined = 0
     bool_ = 9
     int8 = 3
     int16 = 5
@@ -25,10 +26,10 @@ class ElemTypeCstInner:
     uint16 = 4
     uint32 = 12
     uint64 = 13
-    bfloat16 = 16
     float16 = 10
     float32 = 1
     float64 = 11
+    bfloat16 = 16
     complex64 = 14
     complex128 = 15
 
@@ -87,6 +88,7 @@ class ElemTypeCst(ElemTypeCstSet):
     Combination of element types.
     """
 
+    Undefined = 0
     Bool = 1 << ElemTypeCstInner.bool_
     Int8 = 1 << ElemTypeCstInner.int8
     Int16 = 1 << ElemTypeCstInner.int16
@@ -158,6 +160,10 @@ class ElemType(ElemTypeCst):
         "usual"
         s = ElemType.int_names[self.dtype]
         return f"{self.__class__.__name__}(ElemType.{s})"
+
+    def __eq__(self, t):
+        "Compares types."
+        return self.dtype == t.dtype
 
 
 class ParType:

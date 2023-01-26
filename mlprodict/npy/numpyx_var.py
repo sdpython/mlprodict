@@ -86,11 +86,12 @@ class Var:
 
     :param inputs: list of inputs
     :param op: apply on operator on the inputs
-    :param select_output: to select only one output from the operator output
     :param opset: the signature used fits this specific opset (18 by default)
     :param inline: True to reduce the use of function and inline
         small functions, this only applies if *op* is a function
     :param n_var_outputs: number of the operator outputs
+    :param input_indices: to select a specific output from the input
+        operator
     :param kwargs: operator attributes
 
     Private attribute:
@@ -101,7 +102,6 @@ class Var:
     def __init__(self, *inputs: List[Any],
                  op: Union[Callable, str, Tuple[str, str]] = None,
                  dtype: TensorType = None,
-                 select_output: List[str] = None,
                  opset: Optional[int] = None,
                  inline: bool = False,
                  n_var_outputs: Optional[int] = 1,
@@ -109,7 +109,6 @@ class Var:
                  **kwargs):
         self.inputs = inputs
         self.n_var_outputs = n_var_outputs
-        self.select_output = select_output
         self.inline = inline
         if op is None:
             self.onnx_op = None  # a constant
@@ -141,6 +140,8 @@ class Var:
                     f"{inp.ravel()[0]}, op={op!r}")
         if input_indices is None:
             self.input_indices = [0 for i in self.inputs]
+        else:
+            self.input_indices = input_indices
         if len(self.input_indices) != len(self.inputs):
             raise RuntimeError(
                 f"length mismatch len(self.input_indices)="
@@ -159,7 +160,6 @@ class Var:
         new_var = Var(*new_inputs,
                       op=self.onnx_op,
                       dtype=self.dtype,
-                      select_output=self.select_output,
                       opset=self.opset,
                       inline=self.inline,
                       input_indices=input_indices,
@@ -176,8 +176,6 @@ class Var:
             args.append(f"{n[0]}.")
         if self.onnx_op is not None:
             args.append(f"op={self.onnx_op!r}")
-        if self.select_output is not None:
-            args.append(f"select_output={self.select_output!r}")
         if self.n_var_outputs != 1:
             args.append(f"n_var_outputs={self.n_var_outputs!r}")
         if max(self.input_indices) != 0:
@@ -194,6 +192,20 @@ class Var:
         :param prefix: prefix
         """
         self._prefix = prefix
+
+    def get(self, index: int) -> "Var":
+        """
+        If an operator or a function returns more than one output,
+        this takes only one.
+
+        :param index: index of the output to select
+        :return: Var
+        """
+        if index < 0 or index >= self.n_var_outputs:
+            raise ValueError(
+                f"index={index} must be positive and < {self.n_var_outputs} "
+                f"for var={self!r}.")
+        return Var(self, input_indices=[index], op="Identity")
 
     def _get_vars(self):
         vs = []
@@ -314,6 +326,19 @@ class Var:
         """
         from .numpyx_core_api import var
         return var(self, ov, op='Add')
+
+    def __getitem__(self, index: Any) -> "Var":
+        """
+        Implements indexing.
+        """
+        if self.n_var_outputs != 1:
+            # Multioutut
+            if not isinstance(index, int):
+                raise TypeError(
+                    f"Only indices are allowed when selecting an output, "
+                    f"not {type(index)}).")
+            return self.get(index)
+        raise NotImplementedError("indexing is not implemented yet.")
 
 
 class Input(Var):

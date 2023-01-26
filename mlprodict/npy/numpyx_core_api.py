@@ -7,7 +7,7 @@
 from inspect import signature
 import numpy
 from .numpyx_types import ParType, TupleType
-from .numpyx_var import Cst, Input, Par, Tuple, Var
+from .numpyx_var import Cst, Input, Par, Var
 
 
 def cst(*args, **kwargs):

@@ -1,12 +1,18 @@
 """
 @brief      test log(time=3s)
 """
+# pylint: disable=W0703
 import unittest
 import warnings
 import numpy
-from onnx import ModelProto
+from onnx import ModelProto, TensorProto
+from onnx.checker import check_model
 from onnx.defs import onnx_opset_version
+from onnx.helper import (
+    make_model, make_node, make_graph,
+    make_tensor_value_info)
 from onnx.reference import ReferenceEvaluator
+from onnx.shape_inference import infer_shapes
 from pyquickhelper.pycode import ExtTestCase
 from mlprodict.onnxrt import OnnxInference
 from mlprodict.npy.numpyx import ElemType, TensorType, jit_onnx
@@ -34,6 +40,20 @@ class TestNumpyx(ExtTestCase):
     def tearDownClass(cls):
         for w in TestNumpyx._warns:
             warnings.warn(w)
+
+    def test_shape_inference(self):
+        X = make_tensor_value_info('X', TensorProto.FLOAT, [None, None])
+        A = make_tensor_value_info('A', TensorProto.FLOAT, [None, None])
+        B = make_tensor_value_info('B', TensorProto.FLOAT, [None, None])
+        Y = make_tensor_value_info('Y', TensorProto.UNDEFINED, [None, None])
+        node1 = make_node('MatMul', ['X', 'A'], ['XA'])
+        node2 = make_node('Add', ['XA', 'B'], ['Y'])
+        graph = make_graph([node1, node2], 'lr', [X, A, B], [Y])
+        onnx_model = make_model(graph)
+        check_model(onnx_model)
+        shapes = infer_shapes(onnx_model)
+        output = shapes.graph.output[0]
+        self.assertEqual(output.type.tensor_type.elem_type, TensorProto.FLOAT)
 
     def test_tensor(self):
         dt = TensorType("float32")
@@ -71,6 +91,9 @@ class TestNumpyx(ExtTestCase):
         self.assertTrue(t1.issuperset(t2))
         t1 = Float32["N"]
         t2 = Float32[5]
+        self.assertTrue(t1.issuperset(t2))
+        t1 = TensorType(ElemType.int64)
+        t2 = Int64[1]
         self.assertTrue(t1.issuperset(t2))
 
     def test_sig(self):
@@ -651,12 +674,12 @@ class TestNumpyx(ExtTestCase):
         self.assertIn("x: Numerics[](T)", topk.__doc__)
         self.assertIn("k: Int64[1](I)", topk.__doc__)
         self.assertIn(
-            ") -> TupleType[Numerics[](T), Numerics[](I)]", topk.__doc__)
+            ") -> TupleType[Numerics[](T), Int64[](I)]", topk.__doc__)
         self.assertTrue(f.is_function)
         onx = f.to_onnx(constraints={'X': Float64[None],
                                      'K': Int64[1],
                                      (0, False): Float64[None],
-                                     (1, False): Float64[None]})
+                                     (1, False): Int64[None]})
         x = numpy.array([[-5, 6, 7],
                          [5, -6, -7]], dtype=numpy.float64)
         k = numpy.array([2], dtype=numpy.int64)
@@ -667,6 +690,60 @@ class TestNumpyx(ExtTestCase):
         self.assertEqualArray(y, got[0])
         self.assertEqualArray(z, got[1])
 
+    def test_numpy_topk_function(self):
+
+        def mytopk(x, k):
+            f = topk(x, k)
+            return f
+
+        f = mytopk(Input("X"), Input("K"))
+        self.assertIsInstance(f, Var)
+        self.assertIn(":param inputs:", f.__doc__)
+        self.assertTrue(f.is_function)
+        onx = f.to_onnx(constraints={'X': Float64[None],
+                                     'K': Int64[1],
+                                     (0, False): Float64[None],
+                                     (1, False): Int64[None]})
+        x = numpy.array([[-5, 6, 7],
+                         [5, -6, -7]], dtype=numpy.float64)
+        k = numpy.array([2], dtype=numpy.int64)
+        y = numpy.array([[7, 6], [5, -6]], dtype=numpy.int64)
+        z = numpy.array([[2, 1], [0, 1]], dtype=numpy.int64)
+        ref = ReferenceEvaluator(onx)
+        got = ref.run(None, {'X': x, 'K': k})
+        self.assertEqualArray(y, got[0])
+        self.assertEqualArray(z, got[1])
+
+        f = jit_onnx(topk)
+        res = f(x, k)
+        self.assertIsInstance(res, tuple)
+        self.assertEqual(len(res), 2)
+        self.assertEqualArray(y, res[0])
+        self.assertEqualArray(z, res[1])
+
+    def test_numpy_topk_function_indices(self):
+
+        def mytopk(x, k):
+            f = topk(x, k)
+            return f[1]
+
+        f = mytopk(Input("X"), Input("K"))
+        self.assertIsInstance(f, Var)
+        onx = f.to_onnx(constraints={'X': Float64[None],
+                                     'K': Int64[1],
+                                     (0, False): Int64[None]})
+        x = numpy.array([[-5, 6, 7],
+                         [5, -6, -7]], dtype=numpy.float64)
+        k = numpy.array([2], dtype=numpy.int64)
+        z = numpy.array([[2, 1], [0, 1]], dtype=numpy.int64)
+        ref = ReferenceEvaluator(onx)
+        got = ref.run(None, {'X': x, 'K': k})
+        self.assertEqualArray(z, got[0])
+
+        f = jit_onnx(mytopk)
+        res = f(x, k)
+        self.assertEqualArray(z, res)
+
     # multi outputs
     # merging multiple outputs
     # opset: no test
@@ -674,5 +751,6 @@ class TestNumpyx(ExtTestCase):
 
 
 if __name__ == "__main__":
-    TestNumpyx().test_numpy_topk()
+    TestNumpyx().test_shape_inference()
+    TestNumpyx().test_numpy_topk_function()
     unittest.main(verbosity=2)

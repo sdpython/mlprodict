@@ -16,6 +16,7 @@ from onnx.helper import (
     make_function, make_graph, make_model, make_node,
     make_opsetid, make_tensor_value_info)
 from onnx.numpy_helper import from_array
+from onnx.shape_inference import infer_shapes
 from .numpyx_types import (
     ElemType, OptParType, ParType, SequenceType,
     TensorType, TupleType)
@@ -200,23 +201,37 @@ class _GraphBuilder:
             elif (tensor_type is not None and
                     tensor_type.name in self.constraints):
                 new_type = self.constraints[tensor_type.name]
-            else:
+            elif is_input:
                 raise RuntimeError(
                     f"tensor_type is not specific enough {tensor_type!r} "
                     f"and constraints do not precise this type for "
                     f"{'input' if is_input else 'output'} {index} "
                     f"with name={name!r} and constraints={self.constraints!r}.")
-            if (tensor_type is not None and
-                    not tensor_type.issuperset(new_type)):
-                raise RuntimeError(
-                    f"tensor_type is not specific enough {tensor_type!r} "
-                    f"and constraint={new_type!r} and not consistent for "
-                    f"input or output {index}.")
+            else:
+                new_type = None
+            if tensor_type is not None and new_type is not None:
+                if not tensor_type.issuperset(new_type):
+                    exc = True
+                    if tensor_type.dtypes == new_type.dtypes:
+                        # shape are different, we keep the most
+                        # restrictive one
+                        if new_type.issuperset(tensor_type):
+                            new_type = tensor_type
+                            exc = False
+                    if exc and is_input:
+                        raise RuntimeError(
+                            f"tensor_type is not specific enough {tensor_type!r} "
+                            f"and constraint={new_type!r} and not consistent for "
+                            f"{'input' if is_input else 'output'} {index} "
+                            f"with name={name!r}.")
             tensor_type = new_type
         if tensor_type is None:
-            raise RuntimeError(
-                f"tensor_type cannot be None for name={name!r} and "
-                f"input or output {index}.")
+            if is_input:
+                raise RuntimeError(
+                    f"tensor_type cannot be None for name={name!r} and "
+                    f"input or output {index}.")
+            else:
+                tensor_type = TensorType("undefined")
         if len(tensor_type.dtypes) != 1:
             raise RuntimeError(
                 f"tensor_type is not specific enough ({str(tensor_type)} "
@@ -299,6 +314,15 @@ class _GraphBuilder:
         model = make_model(graph, opset_imports=opset_imports,
                            functions=list(f[0] for f in self.functions_.values()))
         check_model(model)
+        has_undefined = 0 in set(o.type.tensor_type.elem_type
+                                 for o in model.graph.output)
+        if has_undefined:
+            # an output has undefined type, run shape inference to fix it
+            shapes = infer_shapes(model)
+            model = shapes
+            if model.graph.value_info:
+                # let's remove unnecessary information
+                del model.graph.value_info[:]
         return model
 
     def _function_to_onnx(self, fct: Callable, n_inputs: int, n_outputs: int):
@@ -431,6 +455,9 @@ class _GraphBuilder:
                 # an operator
                 domop = var.onnx_op
                 att_types = None
+                if domop == ('', 'Identity'):
+                    inp = var.inputs[0], var.input_indices[0]
+                    possible_types.append((var, 0, inp))
 
             # an operator is to be inserted
             # preprocess the inputs
@@ -487,8 +514,19 @@ class _GraphBuilder:
         possible_outputs = [(last_var, i, None)
                             for i in range(last_var.n_var_outputs)]
         if len(possible_types) > 0:
-            map_types = {(id(var), i): dt for var, i, dt in possible_types}
+            # converts possibles types into a dictionary
+            map_types = {}
+            for var, i, dt in possible_types:
+                if isinstance(dt, tuple):
+                    # shortcut to pass the type along an identity node
+                    ref, ind = dt
+                    k = id(ref), ind
+                    if k in map_types:
+                        map_types[id(var), i] = map_types[k]
+                    continue
+                map_types[id(var), i] = dt
 
+            # replace input types when known
             new_possible_inputs = []
             for var, index, dt in possible_inputs:
                 if dt is None and (id(var), index) in map_types:
@@ -496,13 +534,18 @@ class _GraphBuilder:
                 new_possible_inputs.append((var, index, dt))
             possible_inputs = new_possible_inputs
 
+            # replace output types when known
             new_possible_outputs = []
             for var, index, dt in possible_outputs:
                 if dt is None and not self.as_function:
                     if isinstance(var, Var):
-                        dt = map_types[id(var), index]
+                        k = id(var), index
+                        if k in map_types:  # pylint: disable=R1715
+                            dt = map_types[k]
                     else:
-                        dt = map_types[id(var[0]), var[1]]
+                        k = id(var[0]), var[1]
+                        if k in map_types:  # pylint: disable=R1715
+                            dt = map_types[k]
                 new_possible_outputs.append((var, index, dt))
             possible_outputs = new_possible_outputs
 
@@ -510,4 +553,5 @@ class _GraphBuilder:
             self.make_input(self._id_vars[id(inp), index], dt)
         for out, index, dt in possible_outputs:
             self.make_output(self._id_vars[id(out), index], dt)
-        return self._make_onnx()
+        onx = self._make_onnx()
+        return onx

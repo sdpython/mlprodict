@@ -8,6 +8,7 @@ from typing import Any, Callable, Dict, Optional
 import numpy
 from .numpyx_var import Input
 from .numpyx_tensors import NumpyTensor
+from .numpyx_types import TensorType
 
 
 class JitOnnx:
@@ -28,7 +29,7 @@ class JitOnnx:
 
     def __init__(self, f: Callable, tensor_class: type = None,
                  target_opsets: Optional[Dict[str, int]] = None,
-                 output_types: Optional[Dict[Any, int]] = None):
+                 output_types: Optional[Dict[Any, TensorType]] = None):
         self.f = f
         if tensor_class is None:
             self.tensor_class = NumpyTensor
@@ -68,8 +69,6 @@ class JitOnnx:
                        for i, v in enumerate(values)}
         if self.output_types is not None:
             constraints.update(self.output_types)
-        else:
-            constraints[(0, False)] = constraints["x0"]
         inputs = [Input(f"x{i}") for i in range(len(values))]
         var = self.f(*inputs, **kwargs)
         onx = var.to_onnx(constraints=constraints,

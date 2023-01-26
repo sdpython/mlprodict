@@ -93,7 +93,7 @@ def topk(x: TensorType(ElemType.numerics, name="T"),
          largest: OptParType[int] = 1,
          sorted: OptParType[int] = 1
          ) -> TupleType[TensorType(ElemType.numerics, name="T"),
-                        TensorType(ElemType.numerics, name="I")]:
+                        TensorType(ElemType.int64, name="I")]:
     "See :func:`numpy.argsort`."
     return make_tuple(2, x, k, op="TopK",
                       axis=axis, largest=largest,
