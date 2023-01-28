@@ -7,7 +7,7 @@
 from typing import Tuple
 import numpy as np
 from .numpyx_core_api import (
-    cst, make_tuple, many_var, var, xapi_function, xapi_inline)
+    cst, make_tuple, tuple_var, var, xapi_function, xapi_inline)
 from .numpyx_types import (
     ElemType, OptParType, ParType, SequenceType,
     TensorType, TupleType)
@@ -18,7 +18,7 @@ def _min_max(x: TensorType(ElemType.numerics, name="T")
              ) -> TupleType[TensorType(ElemType.numerics, name="T"),
                             TensorType(ElemType.numerics, name="T")]:
     "See :func:`numpy.abs`."
-    return many_var(var(x, op='ReduceMin'), var(x, op='ReduceMax'))
+    return tuple_var(var(x, op='ReduceMin'), var(x, op='ReduceMax'))
 
 
 @xapi_inline
@@ -26,7 +26,7 @@ def _min_max_inline(x: TensorType(ElemType.numerics, name="T")
                     ) -> TupleType[TensorType(ElemType.numerics, name="T"),
                                    TensorType(ElemType.numerics, name="T")]:
     "See :func:`numpy.abs`."
-    return many_var(var(x, op='ReduceMin'), var(x, op='ReduceMax'))
+    return tuple_var(var(x, op='ReduceMin'), var(x, op='ReduceMax'))
 
 
 @xapi_function

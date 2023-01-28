@@ -11,16 +11,7 @@ from onnx.reference import ReferenceEvaluator
 from .numpyx_types import TensorType
 
 
-class BackendValue:
-    """
-    Defines a value for a specific backend.
-    """
-
-    def __init__(self, tensor: Any):
-        self._tensor = tensor
-
-
-class NumpyTensor(BackendValue):
+class _NumpyTensor:
     """
     Default backend based on
     :func:`onnx.reference.ReferenceEvaluator`.
@@ -35,9 +26,11 @@ class NumpyTensor(BackendValue):
         to have a signature closer to python function.
         """
 
-        def __init__(self, input_names: List[str], onx: ModelProto):
+        def __init__(self, tensor_class: type, input_names: List[str],
+                     onx: ModelProto):
             self.ref = ReferenceEvaluator(onx)
             self.input_names = input_names
+            self.tensor_class = tensor_class
 
         def run(self, *inputs: List["NumpyTensor"]) -> List["NumpyTensor"]:
             """
@@ -53,14 +46,14 @@ class NumpyTensor(BackendValue):
             feeds = {}
             for name, inp in zip(self.input_names, inputs):
                 feeds[name] = inp.value
-            return list(map(NumpyTensor, self.ref.run(None, feeds)))
+            return list(map(self.tensor_class, self.ref.run(None, feeds)))
 
     def __init__(self, tensor: numpy.ndarray):
         if isinstance(tensor, numpy.int64):
             tensor = numpy.array(tensor, dtype=numpy.int64)
         if not isinstance(tensor, numpy.ndarray):
             raise ValueError(f"A numpy array is expected not {type(tensor)}.")
-        BackendValue.__init__(self, tensor)
+        self._tensor = tensor
 
     @property
     def shape(self) -> Tuple[int, ...]:
@@ -97,4 +90,41 @@ class NumpyTensor(BackendValue):
         :param onx: onnx model
         :return: python function
         """
-        return cls.Evaluator(input_names, onx)
+        return cls.Evaluator(cls, input_names, onx)
+
+
+class BackendEagerTensor:
+    """
+    Defines a value for a specific backend or eager mode.
+    """
+    pass
+
+
+class BackendTensor(BackendEagerTensor):
+    """
+    Defines a value for a specific backend.
+    """
+    pass
+
+
+class EagerTensor(BackendEagerTensor):
+    """
+    Defines a value for a specific eager mode.
+    """
+    pass
+
+
+class BackendNumpyTensor(_NumpyTensor, BackendTensor):
+    """
+    Defines a value for a specific backend.
+    """
+    pass
+
+
+class EagerNumpyTensor(_NumpyTensor, EagerTensor):
+    """
+    Defines a value for a specific backend.
+    """
+    pass
+
+

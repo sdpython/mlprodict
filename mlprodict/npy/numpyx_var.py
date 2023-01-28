@@ -422,6 +422,14 @@ class Var:
         from .numpyx_core_api import var
         return var(self, ov, op='Add')
 
+    def __sub__(self, ov):
+        """
+        Automatically adds operator `Add` to the graph.
+        It does not cast automatically.
+        """
+        from .numpyx_core_api import var
+        return var(self, ov, op='Sub')
+
     def __getitem__(self, index: Any) -> "Var":
         """
         Implements indexing.

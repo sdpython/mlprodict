@@ -2,6 +2,8 @@
 @brief      test log(time=3s)
 """
 # pylint: disable=W0703
+from contextlib import redirect_stdout
+from io import StringIO
 import unittest
 import warnings
 import numpy
@@ -15,8 +17,9 @@ from onnx.reference import ReferenceEvaluator
 from onnx.shape_inference import infer_shapes
 from pyquickhelper.pycode import ExtTestCase
 from mlprodict.onnxrt import OnnxInference
-from mlprodict.npy.numpyx import ElemType, TensorType, jit_onnx
-from mlprodict.npy.numpyx_types import Float32, Float64, Int64, OptParType
+from mlprodict.npy.numpyx import ElemType, TensorType, jit_onnx, eager_onnx
+from mlprodict.npy.numpyx_types import (
+    Float32, Float64, Int64, OptParType, TensorType)
 from mlprodict.npy.numpyx_var import Input, Var
 from mlprodict.npy.numpyx_core_api import xapi_function, xapi_inline
 from mlprodict.npy.numpyx_functions_test import (
@@ -644,22 +647,25 @@ class TestNumpyx(ExtTestCase):
         res = f(x)
         self.assertEqualArray(z1, res)
         self.assertEqual(res.dtype, numpy.int64)
+        self.assertIsInstance(f.versions, dict)
+        self.assertEqual(len(f.versions), 1)
         res = f(x, axis=0)
+        self.assertEqual(len(f.versions), 2)
         self.assertEqualArray(z0, res)
         self.assertEqual(res.dtype, numpy.int64)
         self.assertRaise(lambda: f(x, 0), TypeError)
 
         # Int64
         res = f(x.astype(numpy.int64))
+        self.assertEqual(len(f.versions), 3)
         self.assertEqualArray(z1.astype(numpy.int64), res)
         self.assertEqual(res.dtype, numpy.int64)
         res = f(x.astype(numpy.int64), axis=0)
+        self.assertEqual(len(f.versions), 4)
         self.assertEqualArray(z0.astype(numpy.int64), res)
         self.assertEqual(res.dtype, numpy.int64)
 
         # versions
-        self.assertIsInstance(f.versions, dict)
-        self.assertEqual(len(f.versions), 4)
         self.assertIsInstance(f.onxs, dict)
         self.assertEqual(len(f.onxs), 4)
         keys = list(sorted(f.onxs))
@@ -882,51 +888,62 @@ class TestNumpyx(ExtTestCase):
         self.assertEqualArray(z1, res[0])
         self.assertEqualArray(z2, res[1])
 
-    def _test_eager(self):
-        def impl(A, B):
-            return absolute_inline(identity_inline(A) + B)
+    def test_eager(self):
 
-        f = impl(Input("A"), Input("B"))
+        def impl(A):
+            print("A", type(A))
+            b = absolute(A)
+            print("B")
+            c = b - A
+            print("C")
+            return c
 
-        onx = f.to_onnx(constraints={'A': Float64[None],
-                                     'B': Float64[None],
-                                     (0, False): Float64[None]})
+        with redirect_stdout(StringIO()):
+            f = impl(Input("A"))
+            onx = f.to_onnx(constraints={'A': Float64[None],
+                                         (0, False): Float64[None]})
         x = numpy.array([-5, 6], dtype=numpy.float64)
         y = numpy.array([15, -16], dtype=numpy.float64)
-        z = numpy.abs(x + y)
+        z = numpy.abs(x) - x
         ref = ReferenceEvaluator(onx)
-        got = ref.run(None, {'A': x, 'B': y})
+        got = ref.run(None, {'A': x})
         self.assertEqualArray(z, got[0])
 
         f = jit_onnx(impl)
 
         # Float64
-        res = f(x, y)
+        with redirect_stdout(StringIO()):
+            res = f(x)
         self.assertEqualArray(z, res)
         self.assertEqual(res.dtype, numpy.float64)
 
         # Int64
-        res = f(x.astype(numpy.int64), y.astype(numpy.int64))
+        with redirect_stdout(StringIO()):
+            res = f(x.astype(numpy.int64))
         self.assertEqualArray(z.astype(numpy.int64), res)
         self.assertEqual(res.dtype, numpy.int64)
-
+        
         e = eager_onnx(impl)
 
         # Float64
-        res = e(x, y)
+        e(x)
+        s = StringIO()
+        with redirect_stdout(x):
+            res = e(x)
         self.assertEqualArray(z, res)
         self.assertEqual(res.dtype, numpy.float64)
+        self.assertEqual("A\nB\nC\n", s.getvalue())
 
         # Int64
-        res = e(x.astype(numpy.int64), y.astype(numpy.int64))
+        res = e(x.astype(numpy.int64))
         self.assertEqualArray(z.astype(numpy.int64), res)
         self.assertEqual(res.dtype, numpy.int64)
 
-    # merging multiple outputs
     # opset: no test
     # eager mode + jit
 
 
 if __name__ == "__main__":
-    TestNumpyx().test_numpy_min_max_inline()
+    TestNumpyx().test_backend_parameters_no_inline_xapi()
+    # TestNumpyx().test_eager()
     unittest.main(verbosity=2)

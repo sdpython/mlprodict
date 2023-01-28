@@ -25,7 +25,7 @@ def make_tuple(n_elements, *args, **kwargs):
     return Var(*args, n_var_outputs=n_elements, **kwargs)
 
 
-def many_var(*args):
+def tuple_var(*args):
     """
     Tie many results all together before being returned by a function.
     """
