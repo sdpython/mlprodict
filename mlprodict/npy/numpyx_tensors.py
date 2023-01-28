@@ -34,11 +34,18 @@ class NumpyTensor(BackendValue):
         Wraps class :class:`onnx.reference.ReferenceEvaluator`
         to have a signature closer to python function.
         """
+
         def __init__(self, input_names: List[str], onx: ModelProto):
             self.ref = ReferenceEvaluator(onx)
             self.input_names = input_names
 
-        def run(self, *inputs):
+        def run(self, *inputs: List["NumpyTensor"]) -> List["NumpyTensor"]:
+            """
+            Executes the function.
+
+            :param inputs: function inputs
+            :return: outputs
+            """
             if len(inputs) != len(self.input_names):
                 raise ValueError(
                     f"Expected {len(self.input_names)} inputs but got "

@@ -80,6 +80,94 @@ class Par:
         raise NotImplementedError()
 
 
+class ManyIdentity:
+    """
+    Holds several instances of :class:`Var`.
+    """
+
+    def __init__(self, *inputs, input_indices=None):
+        self.inputs = inputs
+        self.onnx_op = None
+        if input_indices is None:
+            self.input_indices = [0 for i in self.inputs]
+        else:
+            self.input_indices = input_indices
+        self.n_var_outputs = len(self.inputs)
+        self.onnx_op_kwargs = {}
+        self._prefix = "ManyIdentity_"
+        self.opset = inputs[0].opset
+
+    def __repr__(self) -> str:
+        "usual"
+        args = list(map(repr, self.inputs))
+        if max(self.input_indices) > 0:
+            args.append(f"input_indices={self.input_indices}")
+        s = ", ".join(args)
+        return f"{self.__class__.__name__}({s})"
+
+    def __len__(self):
+        "Returns the number of merged variables."
+        return len(self.inputs)
+
+    def __getitem__(self, i):
+        "Returns the ith elements."
+        return self.inputs[i]
+
+    def to_onnx(self, target_opsets: Optional[Dict[str, int]] = None,
+                as_function: bool = False,
+                name: Optional[str] = None,
+                domain: Optional[str] = None,
+                attributes: Optional[List[str]] = None,
+                constraints: Optional[Dict[Any, TensorType]] = None
+                ) -> Union[ModelProto, FunctionProto, List[Any]]:
+        """
+        Converts the recursive graph to ONNX.
+
+        :param target_opsets: dictionary `{opset: version}`
+        :param as_function: conversion to :class:`onnx.FunctionProto`
+            or :class:`onnx.ModelProto`
+        :param name: function name if *as_function* is True
+        :param domain: function domain if *as_function* is True
+        :param attributes: function attributes if any
+        :param constraints: specifies a precise type for the type
+            constraints when a function allows more than one type,
+            this works if there is only one variable to be converted
+        :return: ModelProto, FunctionProto
+        """
+        from .numpyx_graph_builder import _GraphBuilder
+
+        # Var.to_onnx
+        g = _GraphBuilder(target_opsets, as_function=as_function,
+                          name=name, domain=domain, attributes=attributes,
+                          constraints=constraints)
+        done = set()
+        outputs = []
+        for var in self.inputs:
+            vs = var._get_vars()
+            for var in vs:
+                key = id(var)
+                if key in done:
+                    continue
+                g.append(var)
+                done.add(key)
+            outputs.append(vs[-1])
+        onx = g.to_onnx(output_vars=outputs)
+        if as_function:
+            if len(outputs) != len(onx.output):
+                raise RuntimeError(
+                    f"Mismatch number of outputs, expecting {len(outputs)}, "
+                    f"got ({len(onx.output)}).")
+            if len(g.functions_) > 0:
+                return [g.functions_, onx]
+            return onx
+
+        if len(outputs) != len(onx.graph.output):
+            raise RuntimeError(
+                f"Mismatch number of outputs, expecting {len(outputs)}, "
+                f"got ({len(onx.graph.output)}).")
+        return onx
+
+
 class Var:
     """
     Defines a variable, a result...
@@ -140,6 +228,10 @@ class Var:
                     f"{inp.ravel()[0]}, op={op!r}")
         if input_indices is None:
             self.input_indices = [0 for i in self.inputs]
+        elif not isinstance(input_indices, list):
+            raise TypeError(
+                f"input_indices is {type(input_indices)} "
+                f"but len(inputs)={len(inputs)}.")
         else:
             self.input_indices = input_indices
         if len(self.input_indices) != len(self.inputs):
@@ -224,13 +316,13 @@ class Var:
                     var.inline):
                 fct = var.onnx_op[1]
                 applied = fct(*var.inputs, **var.onnx_op_kwargs)
-                if isinstance(applied, Var):
+                if isinstance(applied, (ManyIdentity, Var)):
                     stack.append(applied)
                     replacement[id(var)] = applied
                     deleted.append(var)
                     continue
                 raise TypeError(
-                    f"Unexpected type {type(var)} as output of "
+                    f"Unexpected type {type(applied)} as output of "
                     f"function {fct}.")
             vs.append(var)
             for i in reversed(var.inputs):
@@ -242,19 +334,22 @@ class Var:
         new_res = []
         for r in res:
             new_inputs = []
+            new_indices = []
             repl = False
-            for v in r.inputs:
+            for v, ind in zip(r.inputs, r.input_indices):
                 key = id(v)
                 if key in replacement:
                     while key in replacement:
                         var = replacement[key]
                         key = id(var)
                     new_inputs.append(var)
+                    new_indices.append(ind)
                     repl = True
                 else:
                     new_inputs.append(v)
+                    new_indices.append(ind)
             if repl:
-                new_r = r.replace_inputs(new_inputs)
+                new_r = r.replace_inputs(new_inputs, input_indices=new_indices)
                 replacement[id(r)] = new_r
                 new_res.append(new_r)
             else:

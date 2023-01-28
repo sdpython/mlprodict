@@ -7,7 +7,7 @@
 from inspect import signature
 import numpy
 from .numpyx_types import ParType, TupleType
-from .numpyx_var import Cst, Input, Par, Var
+from .numpyx_var import Cst, Input, ManyIdentity, Par, Var
 
 
 def cst(*args, **kwargs):
@@ -23,6 +23,13 @@ def make_tuple(n_elements, *args, **kwargs):
     *n_elements* is the number of elements in the tuple.
     """
     return Var(*args, n_var_outputs=n_elements, **kwargs)
+
+
+def many_var(*args):
+    """
+    Tie many results all together before being returned by a function.
+    """
+    return ManyIdentity(*args)
 
 
 def var(*args, **kwargs):
@@ -107,7 +114,7 @@ def xapi_function(fn):
     return _xapi(fn, inline=False)
 
 
-def xapi(fn):
+def xapi_inline(fn):
     """
     Decorator to use before any function using part of the numpy API.
     The function inspects the input and decides which version of the function

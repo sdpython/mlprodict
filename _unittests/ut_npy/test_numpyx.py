@@ -18,15 +18,17 @@ from mlprodict.onnxrt import OnnxInference
 from mlprodict.npy.numpyx import ElemType, TensorType, jit_onnx
 from mlprodict.npy.numpyx_types import Float32, Float64, Int64, OptParType
 from mlprodict.npy.numpyx_var import Input, Var
-from mlprodict.npy.numpyx_core_api import xapi, xapi_function
+from mlprodict.npy.numpyx_core_api import xapi_function, xapi_inline
 from mlprodict.npy.numpyx_functions_test import (
+    _min_max, _min_max_inline,
     absolute, addition, argmin, concat, identity,
     log1p, negative, relu, topk)
 from mlprodict.npy.numpyx_functions import (
     absolute as absolute_inline,
     argmin as argmin_inline,
     concat as concat_inline,
-    identity as identity_inline)
+    identity as identity_inline,
+    topk as topk_inline)
 
 
 DEFAULT_OPSET = onnx_opset_version()
@@ -520,7 +522,7 @@ class TestNumpyx(ExtTestCase):
 
     def test_backend_parameters_xapi(self):
 
-        @xapi
+        @xapi_inline
         def impl(A, axis=1):
             return argmin_inline(A, axis=axis)
 
@@ -738,19 +740,193 @@ class TestNumpyx(ExtTestCase):
         z = numpy.array([[2, 1], [0, 1]], dtype=numpy.int64)
         ref = ReferenceEvaluator(onx)
         got = ref.run(None, {'X': x, 'K': k})
+        self.assertEqual(len(got), 1)
         self.assertEqualArray(z, got[0])
 
         f = jit_onnx(mytopk)
         res = f(x, k)
         self.assertEqualArray(z, res)
 
-    # multi outputs
+    def test_numpy_topk_inline(self):
+        f = topk_inline(Input('X'), Input('K'))
+        self.assertIsInstance(f, Var)
+        self.assertIn(":param inputs:", f.__doc__)
+        self.assertIn("Signature", topk.__doc__)
+        self.assertIn("x: Numerics[](T)", topk.__doc__)
+        self.assertIn("k: Int64[1](I)", topk.__doc__)
+        self.assertIn(
+            ") -> TupleType[Numerics[](T), Int64[](I)]", topk.__doc__)
+        self.assertTrue(f.is_function)
+        onx = f.to_onnx(constraints={'X': Float64[None],
+                                     'K': Int64[1],
+                                     (0, False): Float64[None],
+                                     (1, False): Int64[None]})
+        x = numpy.array([[-5, 6, 7],
+                         [5, -6, -7]], dtype=numpy.float64)
+        k = numpy.array([2], dtype=numpy.int64)
+        y = numpy.array([[7, 6], [5, -6]], dtype=numpy.int64)
+        z = numpy.array([[2, 1], [0, 1]], dtype=numpy.int64)
+        ref = ReferenceEvaluator(onx)
+        got = ref.run(None, {'X': x, 'K': k})
+        self.assertEqualArray(y, got[0])
+        self.assertEqualArray(z, got[1])
+
+    def test_numpy_topk_function_inline(self):
+
+        def mytopk(x, k):
+            f = topk_inline(x, k)
+            return f
+
+        f = mytopk(Input("X"), Input("K"))
+        self.assertIsInstance(f, Var)
+        self.assertIn(":param inputs:", f.__doc__)
+        self.assertTrue(f.is_function)
+        onx = f.to_onnx(constraints={'X': Float64[None],
+                                     'K': Int64[1],
+                                     (0, False): Float64[None],
+                                     (1, False): Int64[None]})
+        x = numpy.array([[-5, 6, 7],
+                         [5, -6, -7]], dtype=numpy.float64)
+        k = numpy.array([2], dtype=numpy.int64)
+        y = numpy.array([[7, 6], [5, -6]], dtype=numpy.int64)
+        z = numpy.array([[2, 1], [0, 1]], dtype=numpy.int64)
+        ref = ReferenceEvaluator(onx)
+        got = ref.run(None, {'X': x, 'K': k})
+        self.assertEqualArray(y, got[0])
+        self.assertEqualArray(z, got[1])
+
+        f = jit_onnx(topk)
+        res = f(x, k)
+        self.assertIsInstance(res, tuple)
+        self.assertEqual(len(res), 2)
+        self.assertEqualArray(y, res[0])
+        self.assertEqualArray(z, res[1])
+
+    def test_numpy_topk_function_indices_inline(self):
+
+        def mytopk(x, k):
+            f = topk_inline(x, k)
+            return f[1]
+
+        f = mytopk(Input("X"), Input("K"))
+        self.assertIsInstance(f, Var)
+        onx = f.to_onnx(constraints={'X': Float64[None],
+                                     'K': Int64[1],
+                                     (0, False): Int64[None]})
+        x = numpy.array([[-5, 6, 7],
+                         [5, -6, -7]], dtype=numpy.float64)
+        k = numpy.array([2], dtype=numpy.int64)
+        z = numpy.array([[2, 1], [0, 1]], dtype=numpy.int64)
+        ref = ReferenceEvaluator(onx)
+        got = ref.run(None, {'X': x, 'K': k})
+        self.assertEqual(len(got), 1)
+        self.assertEqualArray(z, got[0])
+
+        f = jit_onnx(mytopk)
+        res = f(x, k)
+        self.assertEqualArray(z, res)
+
+    def test_numpy_min_max(self):
+
+        def myf(x):
+            f = _min_max(x)
+            return f
+
+        f = myf(Input("X"))
+        self.assertIsInstance(f, Var)
+        onx = f.to_onnx(constraints={'X': Float64[None],
+                                     (0, False): Float64[None],
+                                     (1, False): Float64[None]})
+        x = numpy.array([[-5, 6, 7],
+                         [5, -6, -7]], dtype=numpy.float64)
+        z1 = numpy.array([-7], dtype=numpy.int64)
+        z2 = numpy.array([7], dtype=numpy.int64)
+        ref = ReferenceEvaluator(onx)
+        got = ref.run(None, {'X': x})
+        self.assertEqual(len(got), 2)
+        self.assertEqualArray(z1, got[0])
+        self.assertEqualArray(z2, got[1])
+
+        f = jit_onnx(myf)
+        res = f(x)
+        self.assertIsInstance(res, tuple)
+        self.assertEqual(len(res), 2)
+        self.assertEqualArray(z1, res[0])
+        self.assertEqualArray(z2, res[1])
+
+    def test_numpy_min_max_inline(self):
+
+        def myf(x):
+            f = _min_max_inline(x)
+            return f
+
+        f = myf(Input("X"))
+        self.assertIsInstance(f, Var)
+        onx = f.to_onnx(constraints={'X': Float64[None],
+                                     (0, False): Float64[None],
+                                     (1, False): Float64[None]})
+        x = numpy.array([[-5, 6, 7],
+                         [5, -6, -7]], dtype=numpy.float64)
+        z1 = numpy.array([-7], dtype=numpy.int64)
+        z2 = numpy.array([7], dtype=numpy.int64)
+        ref = ReferenceEvaluator(onx)
+        got = ref.run(None, {'X': x})
+        self.assertEqual(len(got), 2)
+        self.assertEqualArray(z1, got[0])
+        self.assertEqualArray(z2, got[1])
+
+        f = jit_onnx(myf)
+        res = f(x)
+        self.assertIsInstance(res, tuple)
+        self.assertEqual(len(res), 2)
+        self.assertEqualArray(z1, res[0])
+        self.assertEqualArray(z2, res[1])
+
+    def _test_eager(self):
+        def impl(A, B):
+            return absolute_inline(identity_inline(A) + B)
+
+        f = impl(Input("A"), Input("B"))
+
+        onx = f.to_onnx(constraints={'A': Float64[None],
+                                     'B': Float64[None],
+                                     (0, False): Float64[None]})
+        x = numpy.array([-5, 6], dtype=numpy.float64)
+        y = numpy.array([15, -16], dtype=numpy.float64)
+        z = numpy.abs(x + y)
+        ref = ReferenceEvaluator(onx)
+        got = ref.run(None, {'A': x, 'B': y})
+        self.assertEqualArray(z, got[0])
+
+        f = jit_onnx(impl)
+
+        # Float64
+        res = f(x, y)
+        self.assertEqualArray(z, res)
+        self.assertEqual(res.dtype, numpy.float64)
+
+        # Int64
+        res = f(x.astype(numpy.int64), y.astype(numpy.int64))
+        self.assertEqualArray(z.astype(numpy.int64), res)
+        self.assertEqual(res.dtype, numpy.int64)
+
+        e = eager_onnx(impl)
+
+        # Float64
+        res = e(x, y)
+        self.assertEqualArray(z, res)
+        self.assertEqual(res.dtype, numpy.float64)
+
+        # Int64
+        res = e(x.astype(numpy.int64), y.astype(numpy.int64))
+        self.assertEqualArray(z.astype(numpy.int64), res)
+        self.assertEqual(res.dtype, numpy.int64)
+
     # merging multiple outputs
     # opset: no test
     # eager mode + jit
 
 
 if __name__ == "__main__":
-    TestNumpyx().test_shape_inference()
-    TestNumpyx().test_numpy_topk_function()
+    TestNumpyx().test_numpy_min_max_inline()
     unittest.main(verbosity=2)

@@ -20,7 +20,7 @@ from onnx.shape_inference import infer_shapes
 from .numpyx_types import (
     ElemType, OptParType, ParType, SequenceType,
     TensorType, TupleType)
-from .numpyx_var import Cst, Input, Par, Var
+from .numpyx_var import Cst, Input, ManyIdentity, Par, Var
 
 
 class _FunctionIO:
@@ -403,9 +403,12 @@ class _GraphBuilder:
         self.functions_[key] = (onx, input_types, output_types, attributes)
         return onx, input_types, output_types, attributes
 
-    def to_onnx(self):
+    def to_onnx(self, output_vars: Optional[List[Var]] = None):
         """
         Conversion to onnx.
+
+        :param output_vars: list of :class:`Var` holding the final outputs
+        :return: onnx graph
         """
         # _GraphBuilder.to_onnx
         self._reset()
@@ -434,7 +437,14 @@ class _GraphBuilder:
                 continue
 
             out_types = None
-            if var.onnx_op[0] is None:
+            if isinstance(var, ManyIdentity):
+                # an operator
+                domop = ('', 'Identity')
+                att_types = None
+                for v, ind in zip(var.inputs, var.input_indices):
+                    inp = v, ind
+                    possible_types.append((var, 0, inp))
+            elif var.onnx_op[0] is None:
                 # a function is converted into FunctionProto
                 # and then a node is inserted in the main graph
                 packed = self._function_to_onnx(
@@ -506,13 +516,24 @@ class _GraphBuilder:
                             f"of function {domop[1]!r} and domain "
                             f"{domop[0]!r}.")
                     kwargs[par.name] = par.value
-            self.make_node(domop[1], node_inputs, node_outputs,
-                           domain=domop[0], opset=var.opset, **kwargs)
+            if domop == ('', 'Identity') and len(node_inputs) > 1:
+                if len(node_inputs) != len(node_outputs):
+                    raise RuntimeError(
+                        f"Mismatch between {node_inputs} and {node_outputs}.")
+                for ni, no in zip(node_inputs, node_outputs):
+                    self.make_node(domop[1], [ni], [no],
+                                   domain=domop[0], opset=var.opset,
+                                   **kwargs)
+            else:
+                self.make_node(domop[1], node_inputs, node_outputs,
+                               domain=domop[0], opset=var.opset, **kwargs)
 
         # the output is the last variable
-        last_var = self._vars[-1]
-        possible_outputs = [(last_var, i, None)
-                            for i in range(last_var.n_var_outputs)]
+        last_vars = output_vars or [self._vars[-1]]
+        possible_outputs = []
+        for var in last_vars:
+            possible_outputs.extend(
+                [(var, i, None) for i in range(var.n_var_outputs)])
         if len(possible_types) > 0:
             # converts possibles types into a dictionary
             map_types = {}

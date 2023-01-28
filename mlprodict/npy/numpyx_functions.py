@@ -4,19 +4,21 @@
 
 .. versionadded:: 0.10
 """
-from .numpyx_core_api import cst, var, xapi  # pylint: disable=W0611
+from .numpyx_core_api import (  # pylint: disable=W0611
+    cst, make_tuple, var, xapi_inline)
 from .numpyx_types import (  # pylint: disable=W0611
-    ElemType, OptParType, ParType, SequenceType, TensorType)
+    ElemType, OptParType, ParType, SequenceType, TensorType,
+    TupleType)
 
 
-@xapi
+@xapi_inline
 def absolute(x: TensorType(ElemType.numerics, name="T")
              ) -> TensorType(ElemType.numerics, name="T"):
     "See :func:`numpy.abs`."
     return var(x, op='Abs')
 
 
-@xapi
+@xapi_inline
 def argmin(x: TensorType(ElemType.numerics, name="T"),
            axis: OptParType[int] = 0,
            keepdims: OptParType[int] = 0
@@ -27,7 +29,7 @@ def argmin(x: TensorType(ElemType.numerics, name="T"),
     return var(x, op='ArgMin', axis=axis, keepdims=keepdims)
 
 
-@xapi
+@xapi_inline
 def concat(*x: SequenceType[TensorType(ElemType.numerics, name="T")],
            axis: ParType[int] = 0
            ) -> TensorType(ElemType.numerics, name="T"):
@@ -41,8 +43,22 @@ def concat(*x: SequenceType[TensorType(ElemType.numerics, name="T")],
     return var(*x, op='Concat', axis=axis)
 
 
-@xapi
+@xapi_inline
 def identity(x: TensorType(ElemType.numerics, name="T")
              ) -> TensorType(ElemType.numerics, name="T"):
     "Makes a copy."
     return var(x, op='Identity')
+
+
+@xapi_inline
+def topk(x: TensorType(ElemType.numerics, name="T"),
+         k: TensorType(ElemType.int64, name="I", shape=[1]),
+         axis: OptParType[int] = -1,
+         largest: OptParType[int] = 1,
+         sorted: OptParType[int] = 1
+         ) -> TupleType[TensorType(ElemType.numerics, name="T"),
+                        TensorType(ElemType.int64, name="I")]:
+    "See :func:`numpy.argsort`."
+    return make_tuple(2, x, k, op="TopK",
+                      axis=axis, largest=largest,
+                      sorted=sorted)
