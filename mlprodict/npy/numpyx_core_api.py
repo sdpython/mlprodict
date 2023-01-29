@@ -5,9 +5,11 @@
 .. versionadded:: 0.10
 """
 from inspect import signature
+from typing import Callable
 import numpy
-from .numpyx_types import ParType, TupleType
+from .numpyx_types import ParType, TupleType, WrapperType
 from .numpyx_var import Cst, Input, ManyIdentity, Par, Var
+from .numpyx_tensors import EagerTensor
 
 
 def cst(*args, **kwargs):
@@ -39,19 +41,27 @@ def var(*args, **kwargs):
     return Var(*args, **kwargs)
 
 
-def _xapi(fn, inline):
+def _xapi(fn: Callable, inline: bool, eager: bool):
     """
     Decorator to use before any function using part of the numpy API.
     The function inspects the input and decides which version of the function
     to call.
+
+    :param fn: function
+    :param inline: inline the function instead of creating
+        a function
+    :param eager: enables eager mode or convert it into onnx
     """
     cst_types = (Var, numpy.ndarray)
     sig = signature(fn)
 
     # It has the same signature
-    def wrapper(*inputs, eager=False, **kwargs):
-        if eager:
-            raise NotImplementedError("eager mode does not work yet.")
+    def wrapper(*inputs, **kwargs):
+        if eager or any(map(lambda x: isinstance(x, EagerTensor), inputs)):
+            # TODO: fix eager / jit
+            # eager mode, let's try,
+            # if eager is False, jit should be used
+            return fn(*inputs, **kwargs)
 
         if any(map(lambda i: not isinstance(i, cst_types), inputs)):
             # TODO: remove that test when the code is stable
@@ -59,6 +69,7 @@ def _xapi(fn, inline):
                 f"Inconsistency in types "
                 f"{','.join(map(lambda t: str(type(t)), inputs))}.")
 
+        # conversion to onnx
         new_inputs = []
         new_pars = {}
         for ind, i in enumerate(inputs):
@@ -111,7 +122,7 @@ def xapi_function(fn):
     The function inspects the input and decides which version of the function
     to call.
     """
-    return _xapi(fn, inline=False)
+    return _xapi(fn, inline=False, eager=False)
 
 
 def xapi_inline(fn):
@@ -120,4 +131,4 @@ def xapi_inline(fn):
     The function inspects the input and decides which version of the function
     to call.
     """
-    return _xapi(fn, inline=True)
+    return _xapi(fn, inline=True, eager=False)

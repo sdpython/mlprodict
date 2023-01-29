@@ -891,7 +891,7 @@ class TestNumpyx(ExtTestCase):
     def test_eager(self):
 
         def impl(A):
-            print("A", type(A))
+            print("A")
             b = absolute(A)
             print("B")
             c = b - A
@@ -926,24 +926,27 @@ class TestNumpyx(ExtTestCase):
         e = eager_onnx(impl)
 
         # Float64
-        e(x)
         s = StringIO()
-        with redirect_stdout(x):
+        with redirect_stdout(s):
             res = e(x)
+        text = s.getvalue()
         self.assertEqualArray(z, res)
         self.assertEqual(res.dtype, numpy.float64)
-        self.assertEqual("A\nB\nC\n", s.getvalue())
+        self.assertStartsWith("A\nB\nC\n", text)
 
         # Int64
-        res = e(x.astype(numpy.int64))
+        s = StringIO()
+        with redirect_stdout(s):
+            res = e(x.astype(numpy.int64))
+        text = s.getvalue()
         self.assertEqualArray(z.astype(numpy.int64), res)
         self.assertEqual(res.dtype, numpy.int64)
+        self.assertEqual("A\nB\nC\n", text)
 
     # opset: no test
     # eager mode + jit
 
 
 if __name__ == "__main__":
-    TestNumpyx().test_backend_parameters_no_inline_xapi()
     # TestNumpyx().test_eager()
     unittest.main(verbosity=2)

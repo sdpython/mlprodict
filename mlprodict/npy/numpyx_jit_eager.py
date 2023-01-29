@@ -7,7 +7,7 @@
 from inspect import signature
 from typing import Any, Callable, Dict, List, Optional, Tuple, Union
 import numpy
-from .numpyx_var import Input
+from .numpyx_var import Input, Var
 from .numpyx_tensors import (
     BackendNumpyTensor, EagerNumpyTensor, BackendEagerTensor)
 from .numpyx_types import TensorType
@@ -106,6 +106,25 @@ class JitEager:
             return tuple(r.value for r in results)
         return results.value
 
+    def jit_call(self, *values, **kwargs):
+        """
+        The method builds a key which identifies the signature
+        (input types + parameters value).
+        It then checks if the function was already converted into ONNX
+        from a previous. If not, it converts it and caches the results
+        indexed by the previous key. Finally, it executes the onnx graph
+        and returns the result or the results in a tuple if there are several.
+        """
+        key = self.make_key(*values, **kwargs)
+        if key in self.versions:
+            fct = self.versions[key]
+        else:
+            onx, fct = self.to_jit(*values, **kwargs)
+            self.versions[key] = fct
+            self.onxs[key] = onx
+        res = fct.run(*values)
+        return res
+
 
 class JitOnnx(JitEager):
     """
@@ -139,16 +158,11 @@ class JitOnnx(JitEager):
         from a previous. If not, it converts it and caches the results
         indexed by the previous key. Finally, it executes the onnx graph
         and returns the result or the results in a tuple if there are several.
+        The method first wraps the inputs with `self.tensor_class`
+        and converts them into python types just after.
         """
         values = self.cast_to_tensor_class(args)
-        key = self.make_key(*values, **kwargs)
-        if key in self.versions:
-            fct = self.versions[key]
-        else:
-            onx, fct = self.to_jit(*values, **kwargs)
-            self.versions[key] = fct
-            self.onxs[key] = onx
-        res = fct.run(*values)
+        res = self.jit_call(*values, **kwargs)
         return self.cast_from_tensor_class(res)
 
 
@@ -177,6 +191,7 @@ class EagerOnnx(JitEager):
                           output_types=output_types)
         self.has_eager_parameter = "eager" in set(
             p for p in signature(f).parameters)
+        self._eager_cache = False
 
     def __call__(self, *args, **kwargs):
         """
@@ -188,10 +203,28 @@ class EagerOnnx(JitEager):
         and returns the result or the results in a tuple if there are several.
         """
         values = self.cast_to_tensor_class(args)
-        if self.has_eager_parameter:
-            res = self.f(*values, eager=True)
+        
+        if self._eager_cache:
+            # The function was already converted into onnx
+            # reuse it or create a new one for different types.
+            res = self.jit_call(*values, **kwargs)
         else:
-            res = self.f(*values)
+            # tries to call the version
+            try:
+                res = self.f(*values)
+            except (AttributeError, TypeError) as e:
+                inp1 = ", ".join(map(str, map(type, args)))
+                inp2 = ", ".join(map(str, map(type, values)))
+                raise TypeError(
+                    f"Unexpected types, input types is {inp1} "
+                    f"and {inp2}.") from e
+            if (isinstance(res, Var) or
+                    any(map(lambda x: isinstance(x, Var), res))):
+                # The function returns instance of type Var.
+                # It does not support eager mode and needs
+                # to be converted into onnx.
+                res = self.jit_call(*values, **kwargs)                
+                self._eager_cache = True
         return self.cast_from_tensor_class(res)
 
 

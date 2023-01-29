@@ -9,6 +9,10 @@ import numpy
 from onnx import AttributeProto
 
 
+class WrapperType:
+    pass
+
+
 class ElemTypeCstInner:
     """
     Defines all possible types and tensor element type.

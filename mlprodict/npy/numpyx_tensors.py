@@ -11,7 +11,7 @@ from onnx.reference import ReferenceEvaluator
 from .numpyx_types import TensorType
 
 
-class _NumpyTensor:
+class NumpyTensor:
     """
     Default backend based on
     :func:`onnx.reference.ReferenceEvaluator`.
@@ -114,14 +114,14 @@ class EagerTensor(BackendEagerTensor):
     pass
 
 
-class BackendNumpyTensor(_NumpyTensor, BackendTensor):
+class BackendNumpyTensor(NumpyTensor, BackendTensor):
     """
     Defines a value for a specific backend.
     """
     pass
 
 
-class EagerNumpyTensor(_NumpyTensor, EagerTensor):
+class EagerNumpyTensor(NumpyTensor, EagerTensor):
     """
     Defines a value for a specific backend.
     """
