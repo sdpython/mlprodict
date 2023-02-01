@@ -9,6 +9,14 @@ import numpy
 from onnx import AttributeProto
 
 
+class EagerNotAllowedError(RuntimeError):
+    """
+    Raised when eager should not be evaluated
+    with this kind of inputs.
+    """
+    pass
+
+
 class WrapperType:
     pass
 

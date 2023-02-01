@@ -10,7 +10,7 @@ import numpy
 from .numpyx_var import Input, Var
 from .numpyx_tensors import (
     BackendNumpyTensor, EagerNumpyTensor, BackendEagerTensor)
-from .numpyx_types import TensorType
+from .numpyx_types import EagerNotAllowedError, TensorType
 
 
 class JitEager:
@@ -28,6 +28,7 @@ class JitEager:
         if not specified, the class assumes there is only one output
         of the same type as the input
     """
+
     def __init__(self, f: Callable, tensor_class: type,
                  target_opsets: Optional[Dict[str, int]] = None,
                  output_types: Optional[Dict[Any, TensorType]] = None):
@@ -37,7 +38,7 @@ class JitEager:
         self.onxs = {}
         self.target_opsets = target_opsets
         self.output_types = output_types
-    
+
     @staticmethod
     def make_key(*values, **kwargs):
         """
@@ -85,15 +86,15 @@ class JitEager:
         """
         values = []
         for i, a in enumerate(inputs):
-            if not isinstance(a, numpy.ndarray):
+            try:
+                values.append(self.tensor_class(a))
+            except TypeError as e:
                 raise TypeError(
-                    f"Argument {i} must be a numpy array but is of type "
-                    f"{type(a)}. Function parameters must be named.")
-            values.append(self.tensor_class(a))
+                    f"Unable to convert input {i}, with type {type(a)}.") from e
         return values
 
     def cast_from_tensor_class(self, results: List[BackendEagerTensor]
-                              ) -> Union[Any, Tuple[Any]]:
+                               ) -> Union[Any, Tuple[Any]]:
         """
         Wraps input from `self.tensor_class` to python types.
 
@@ -148,7 +149,7 @@ class JitOnnx(JitEager):
         if tensor_class is None:
             tensor_class = BackendNumpyTensor
         JitEager.__init__(self, f, tensor_class, target_opsets=target_opsets,
-                          output_types=output_types)  
+                          output_types=output_types)
 
     def __call__(self, *args, **kwargs):
         """
@@ -203,27 +204,31 @@ class EagerOnnx(JitEager):
         and returns the result or the results in a tuple if there are several.
         """
         values = self.cast_to_tensor_class(args)
-        
+
         if self._eager_cache:
             # The function was already converted into onnx
             # reuse it or create a new one for different types.
             res = self.jit_call(*values, **kwargs)
         else:
             # tries to call the version
+            jit_call = False
             try:
                 res = self.f(*values)
+            except EagerNotAllowedError:
+                jit_call = True
             except (AttributeError, TypeError) as e:
                 inp1 = ", ".join(map(str, map(type, args)))
                 inp2 = ", ".join(map(str, map(type, values)))
                 raise TypeError(
                     f"Unexpected types, input types is {inp1} "
                     f"and {inp2}.") from e
-            if (isinstance(res, Var) or
+
+            if (jit_call or isinstance(res, Var) or
                     any(map(lambda x: isinstance(x, Var), res))):
                 # The function returns instance of type Var.
                 # It does not support eager mode and needs
                 # to be converted into onnx.
-                res = self.jit_call(*values, **kwargs)                
+                res = self.jit_call(*values, **kwargs)
                 self._eager_cache = True
         return self.cast_from_tensor_class(res)
 

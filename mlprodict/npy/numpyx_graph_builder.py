@@ -425,7 +425,7 @@ class _GraphBuilder:
                 self._id_vars[key, 0] = name
                 self.make_node("Constant", [], [name],
                                value=from_array(var.inputs[0]),
-                               opset=var.opset)
+                               opset=self.target_opsets[''])
                 self.onnx_names_[name] = var
                 continue
 
@@ -521,12 +521,15 @@ class _GraphBuilder:
                     raise RuntimeError(
                         f"Mismatch between {node_inputs} and {node_outputs}.")
                 for ni, no in zip(node_inputs, node_outputs):
-                    self.make_node(domop[1], [ni], [no],
-                                   domain=domop[0], opset=var.opset,
-                                   **kwargs)
+                    self.make_node(
+                        domop[1], [ni], [no],
+                        domain=domop[0], opset=self.target_opsets[''],
+                        **kwargs)
             else:
-                self.make_node(domop[1], node_inputs, node_outputs,
-                               domain=domop[0], opset=var.opset, **kwargs)
+                self.make_node(
+                    domop[1], node_inputs, node_outputs,
+                    domain=domop[0], opset=self.target_opsets[domop[0] or ''],
+                    **kwargs)
 
         # the output is the last variable
         last_vars = output_vars or [self._vars[-1]]

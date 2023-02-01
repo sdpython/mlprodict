@@ -52,7 +52,7 @@ class NumpyTensor:
         if isinstance(tensor, numpy.int64):
             tensor = numpy.array(tensor, dtype=numpy.int64)
         if not isinstance(tensor, numpy.ndarray):
-            raise ValueError(f"A numpy array is expected not {type(tensor)}.")
+            raise TypeError(f"A numpy array is expected not {type(tensor)}.")
         self._tensor = tensor
 
     @property
@@ -126,5 +126,3 @@ class EagerNumpyTensor(NumpyTensor, EagerTensor):
     Defines a value for a specific backend.
     """
     pass
-
-

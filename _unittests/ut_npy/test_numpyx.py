@@ -21,7 +21,7 @@ from mlprodict.npy.numpyx import ElemType, TensorType, jit_onnx, eager_onnx
 from mlprodict.npy.numpyx_types import (
     Float32, Float64, Int64, OptParType, TensorType)
 from mlprodict.npy.numpyx_var import Input, Var
-from mlprodict.npy.numpyx_core_api import xapi_function, xapi_inline
+from mlprodict.npy.numpyx_core_api import xapi_function, xapi_inline, cst
 from mlprodict.npy.numpyx_functions_test import (
     _min_max, _min_max_inline,
     absolute, addition, argmin, concat, identity,
@@ -32,6 +32,8 @@ from mlprodict.npy.numpyx_functions import (
     concat as concat_inline,
     identity as identity_inline,
     topk as topk_inline)
+from mlprodict.npy.numpyx_tensors_ort import (
+    BackendOrtTensor, EagerOrtTensor, OrtTensor)
 
 
 DEFAULT_OPSET = onnx_opset_version()
@@ -888,7 +890,7 @@ class TestNumpyx(ExtTestCase):
         self.assertEqualArray(z1, res[0])
         self.assertEqualArray(z2, res[1])
 
-    def test_eager(self):
+    def test_eager_numpy(self):
 
         def impl(A):
             print("A")
@@ -922,7 +924,7 @@ class TestNumpyx(ExtTestCase):
             res = f(x.astype(numpy.int64))
         self.assertEqualArray(z.astype(numpy.int64), res)
         self.assertEqual(res.dtype, numpy.int64)
-        
+
         e = eager_onnx(impl)
 
         # Float64
@@ -932,7 +934,7 @@ class TestNumpyx(ExtTestCase):
         text = s.getvalue()
         self.assertEqualArray(z, res)
         self.assertEqual(res.dtype, numpy.float64)
-        self.assertStartsWith("A\nB\nC\n", text)
+        self.assertStartsWith("A\nA\nB\nC\n", text)
 
         # Int64
         s = StringIO()
@@ -943,10 +945,71 @@ class TestNumpyx(ExtTestCase):
         self.assertEqual(res.dtype, numpy.int64)
         self.assertEqual("A\nB\nC\n", text)
 
+    def test_eager_ort(self):
+
+        def impl(A):
+            print("A")
+            b = absolute(A)
+            print("B")
+            c = b - A + cst(1)
+            print("C")
+            return c
+
+        with redirect_stdout(StringIO()):
+            f = impl(Input("A"))
+            onx = f.to_onnx(constraints={'A': Float64[None],
+                                         (0, False): Float64[None]})
+        x = numpy.array([-5, 6], dtype=numpy.float64)
+        y = numpy.array([15, -16], dtype=numpy.float64)
+        z = numpy.abs(x) - x + 1
+        ref = ReferenceEvaluator(onx)
+        got = ref.run(None, {'A': x})
+        self.assertEqualArray(z, got[0])
+
+        f = jit_onnx(impl, BackendOrtTensor, target_opsets={'': 17})
+
+        # Float64
+        xort = OrtTensor.from_array(x)
+        with redirect_stdout(StringIO()):
+            res = f(xort)
+        self.assertEqualArray(z, res.numpy())
+        self.assertEqual(res.numpy().dtype, numpy.float64)
+
+        # Int64
+        ix = x.astype(numpy.int64)
+        xiort = OrtTensor.from_array(ix)
+        with redirect_stdout(StringIO()):
+            res = f(xiort)
+        self.assertEqualArray(z.astype(numpy.int64), res.numpy())
+        self.assertEqual(res.numpy().dtype, numpy.int64)
+
+        e = eager_onnx(impl, EagerOrtTensor, target_opsets={'': 17})
+
+        # Float64
+        s = StringIO()
+        with redirect_stdout(s):
+            res = e(xort)
+        text = s.getvalue()
+        self.assertEqualArray(z, res.numpy())
+        self.assertEqual(res.numpy().dtype, numpy.float64)
+        self.assertEqual(tuple(res.shape()), z.shape)
+        self.assertStartsWith("A\nA\nB\nC\n", text)
+
+        # Int64
+        print(ix, xiort.numpy())
+        s = StringIO()
+        with redirect_stdout(s):
+            res = e(xiort)
+        text = s.getvalue()
+        self.assertEqual(res.numpy(), numpy.int64)
+        self.assertEqual("A\nB\nC\n", text)
+        self.assertEqualArray(z.astype(numpy.int64), res.numpy())
+        self.assertEqual(ix.shape, tuple(res.shape()))
+
     # opset: no test
     # eager mode + jit
 
 
 if __name__ == "__main__":
-    # TestNumpyx().test_eager()
+    # TestNumpyx().test_eager_ort()
     unittest.main(verbosity=2)

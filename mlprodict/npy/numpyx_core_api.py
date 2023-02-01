@@ -7,7 +7,8 @@
 from inspect import signature
 from typing import Callable
 import numpy
-from .numpyx_types import ParType, TupleType, WrapperType
+from .numpyx_types import (
+    EagerNotAllowedError, ParType, TupleType, WrapperType)
 from .numpyx_var import Cst, Input, ManyIdentity, Par, Var
 from .numpyx_tensors import EagerTensor
 
@@ -57,10 +58,15 @@ def _xapi(fn: Callable, inline: bool, eager: bool):
 
     # It has the same signature
     def wrapper(*inputs, **kwargs):
-        if eager or any(map(lambda x: isinstance(x, EagerTensor), inputs)):
+        if any(map(lambda x: isinstance(x, EagerTensor), inputs)):
             # TODO: fix eager / jit
             # eager mode, let's try,
             # if eager is False, jit should be used
+            if not eager:
+                raise EagerNotAllowedError(
+                    f"Eager mode is not allowed for function {fn}.")
+            return fn(*inputs, **kwargs)
+        if eager:
             return fn(*inputs, **kwargs)
 
         if any(map(lambda i: not isinstance(i, cst_types), inputs)):

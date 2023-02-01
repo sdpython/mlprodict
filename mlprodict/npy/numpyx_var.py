@@ -95,7 +95,6 @@ class ManyIdentity:
         self.n_var_outputs = len(self.inputs)
         self.onnx_op_kwargs = {}
         self._prefix = "ManyIdentity_"
-        self.opset = inputs[0].opset
 
     def __repr__(self) -> str:
         "usual"
@@ -174,7 +173,6 @@ class Var:
 
     :param inputs: list of inputs
     :param op: apply on operator on the inputs
-    :param opset: the signature used fits this specific opset (18 by default)
     :param inline: True to reduce the use of function and inline
         small functions, this only applies if *op* is a function
     :param n_var_outputs: number of the operator outputs
@@ -190,7 +188,6 @@ class Var:
     def __init__(self, *inputs: List[Any],
                  op: Union[Callable, str, Tuple[str, str]] = None,
                  dtype: TensorType = None,
-                 opset: Optional[int] = None,
                  inline: bool = False,
                  n_var_outputs: Optional[int] = 1,
                  input_indices: Optional[List[int]] = None,
@@ -206,13 +203,6 @@ class Var:
             self.onnx_op = ('', op)  # operator name
         else:
             self.onnx_op = (None, op)  # function to call
-        if opset is None:
-            if self.onnx_op is None:
-                self.opset = 1
-            else:
-                self.opset = DEFAULT_OPSETS.get(self.onnx_op[0], 1)
-        else:
-            self.opset = opset
         self.onnx_op_kwargs = kwargs
         self._prefix = None
         self.dtype = dtype
@@ -252,7 +242,6 @@ class Var:
         new_var = Var(*new_inputs,
                       op=self.onnx_op,
                       dtype=self.dtype,
-                      opset=self.opset,
                       inline=self.inline,
                       input_indices=input_indices,
                       n_var_outputs=self.n_var_outputs,
@@ -401,6 +390,8 @@ class Var:
         from .numpyx_graph_builder import _GraphBuilder
 
         # Var.to_onnx
+        if target_opsets is None:
+            target_opsets = DEFAULT_OPSETS
         g = _GraphBuilder(target_opsets, as_function=as_function,
                           name=name, domain=domain, attributes=attributes,
                           constraints=constraints)
@@ -414,21 +405,25 @@ class Var:
 
     # Operators
 
+    def _binary_op(self, ov, op_name):
+        from .numpyx_core_api import var
+        if isinstance(ov, (int, float, numpy.ndarray, Cst)):
+            return var(self, var(ov, self, op='CastLike'), op=op_name)
+        return var(self, ov, op=op_name)
+
     def __add__(self, ov):
         """
         Automatically adds operator `Add` to the graph.
         It does not cast automatically.
         """
-        from .numpyx_core_api import var
-        return var(self, ov, op='Add')
+        return self._binary_op(ov, 'Add')
 
     def __sub__(self, ov):
         """
         Automatically adds operator `Add` to the graph.
         It does not cast automatically.
         """
-        from .numpyx_core_api import var
-        return var(self, ov, op='Sub')
+        return self._binary_op(ov, 'Sub')
 
     def __getitem__(self, index: Any) -> "Var":
         """
