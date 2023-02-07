@@ -24,6 +24,7 @@ def main(args, fLOG=print):
         from .cli.replay import benchmark_replay
         from .cli.einsum import einsum_test
         from .cli.onnx_code import onnx_code, dynamic_doc, plot_onnx
+        from .cli.tools import replace_initializer
     except ImportError:  # pragma: no cover
         from mlprodict.cli.validate import (
             validate_runtime, latency, benchmark_doc)
@@ -34,6 +35,7 @@ def main(args, fLOG=print):
         from mlprodict.cli.replay import benchmark_replay
         from mlprodict.cli.einsum import einsum_test
         from mlprodict.cli.onnx_code import onnx_code, dynamic_doc, plot_onnx
+        from mlprodict.cli.tools import replace_initializer
 
     fcts = dict(validate_runtime=validate_runtime,
                 convert_validate=convert_validate,
@@ -47,7 +49,8 @@ def main(args, fLOG=print):
                 latency=latency,
                 dynamic_doc=dynamic_doc,
                 plot_onnx=plot_onnx,
-                benchmark_doc=benchmark_doc)
+                benchmark_doc=benchmark_doc,
+                replace_initializer=replace_initializer)
     try:
         from pyquickhelper.cli import cli_main_helper
     except ImportError:  # pragma: no cover

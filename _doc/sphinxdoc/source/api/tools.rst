@@ -74,6 +74,8 @@ Functions to help understand models or modify them.
 
 .. autosignature:: mlprodict.testing.verify_code.verify_code
 
+.. autosignature:: mlprodict.onnx_tools.onnx_manipulations.replace_initializer_by_constant_of_shape
+
 .. autosignature:: mlprodict.testing.script_testing.verify_script
 
 Onnx Optimization
