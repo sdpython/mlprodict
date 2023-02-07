@@ -10,13 +10,15 @@ from on an :epkg:`ONNX` model.
 import hashlib
 from collections import Counter
 import pprint
+import numpy
 from onnx import (
     shape_inference, ModelProto, FunctionProto, GraphProto,
     AttributeProto)
 from onnx.helper import (
     make_tensor_value_info, ValueInfoProto, set_model_props,
     make_graph, make_function, make_model, make_node,
-    make_operatorsetid, make_attribute, make_value_info)
+    make_operatorsetid, make_attribute, make_value_info,
+    tensor_dtype_to_np_dtype)
 from .onnx2py_helper import (
     guess_proto_dtype, from_array, get_tensor_shape,
     get_tensor_elem_type)
@@ -1688,3 +1690,104 @@ def onnx_inline_function(obj, protos=None, existing_names=None, verbose=0, fLOG=
             modified_nodes)
     raise TypeError(  # pragma: no cover
         f"Unexpected type for obj {type(obj)!r}.")
+
+
+def replace_initializer_by_constant_of_shape(onx, threshold=128):
+    """
+    Replaces initializers by nodes *ConstantOfShape* to reduce
+    the size and still write a unit test.
+
+    :param onx: ModelProto
+    :param threshold: every initializer under
+        this threshold is not impacted
+    :return: onx, modified ModelProto
+    """
+    if isinstance(onx, FunctionProto):
+        for node in onx.node:
+            if node.op_type == "Constant":
+                raise NotImplementedError(
+                    f"Node {node.op_type!r} is not handled yet.")
+        return onx
+    if isinstance(onx, ModelProto):
+        new_graph = replace_initializer_by_constant_of_shape(onx.graph)
+        new_functions = [replace_initializer_by_constant_of_shape(
+            f, threshold=threshold)
+            for f in onx.functions]
+        model = make_model(
+            new_graph,
+            functions=new_functions,
+            producer_name=onx.producer_name,
+            producer_version=onx.producer_version,
+            ir_version=onx.ir_version,
+            doc_string=onx.doc_string,
+            domain=onx.domain,
+            model_version=onx.model_version)
+        if len(onx.metadata_props) > 0:  # pragma: no cover
+            values = {p.key: p.value for p in onx.metadata_props}
+            set_model_props(model, values)
+
+        del model.opset_import[:]  # pylint: disable=E1101
+        for oimp in onx.opset_import:
+            op_set = model.opset_import.add()  # pylint: disable=E1101
+            op_set.domain = oimp.domain
+            op_set.version = oimp.version
+        return model
+
+    if not isinstance(onx, GraphProto):
+        raise TypeError(
+            f"onx should be a GraphProto as this stage not {type(onx)}.")
+
+    new_nodes = []
+
+    new_inits = []
+    for init in onx.initializer:
+        dims = tuple(init.dims)
+        size = numpy.prod(dims)
+        if size <= threshold:
+            new_inits.append(init)
+            continue
+        new_name = f"{init.name}_replacement_shape"
+        new_inits.append(
+            from_array(numpy.array(list(dims), dtype=numpy.int64),
+                       name=new_name))
+        dtype = tensor_dtype_to_np_dtype(init.data_type)
+        node = make_node("ConstantOfShape", [new_name], [init.name],
+                         value=from_array(numpy.array([0.5], dtype=dtype)))
+        new_nodes.append(node)
+
+    new_sparse_inits = []
+    for init in onx.sparse_initializer:
+        dims = tuple(init.dims)
+        size = numpy.prod(dims)
+        if size <= threshold:
+            new_sparse_inits.append(init)
+            continue
+        raise NotImplementedError(
+            f"This feature is not yet implemented for sparse initializer"
+            f"(name={init.name!r}).")
+
+    for node in onx.node:
+        if node.op_type == "Constant":
+            raise NotImplementedError(
+                f"Node {node.op_type!r} is not handled yet.")
+        modified = False
+        atts = []
+        for att in node.attribute:
+            if (att.type == AttributeProto.GRAPH and
+                    hasattr(att, 'g') and att.g is not None):
+                modified = True
+                g = replace_initializer_by_constant_of_shape(
+                    att.g, threshold=threshold)
+                att = make_attribute(att.name, g)
+            atts.append(att)
+        if modified:
+            new_node = make_node(node.op_type, node.input, node.output)
+            new_node.attribute.extend(atts)
+            new_nodes.append(node)
+        else:
+            new_nodes.append(node)
+
+    graph = make_graph(new_nodes, onx.name, onx.input, onx.output,
+                       initializer=new_inits,
+                       sparse_initializer=new_sparse_inits)
+    return graph
