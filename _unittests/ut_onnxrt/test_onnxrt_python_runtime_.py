@@ -90,7 +90,7 @@ from skl2onnx.algebra.onnx_ops import (  # pylint: disable=E0611
     OnnxSize, OnnxSlice,
     OnnxSoftmax, OnnxSoftmaxCrossEntropyLoss,
     OnnxSoftplus, OnnxSoftsign,
-    OnnxSpaceToDepth, OnnxSplit, OnnxSplitApi11,
+    OnnxSpaceToDepth, OnnxSplit, OnnxSplitApi18,
     OnnxSqrt, OnnxSub, OnnxSum,
     OnnxSqueeze, OnnxSqueezeApi11,
     OnnxSTFT,
@@ -5002,7 +5002,7 @@ class TestOnnxrtPythonRuntime(ExtTestCase):  # pylint: disable=R0904
                 y = [numpy.array([1., 2.]).astype(numpy.float32),
                      numpy.array([3., 4.]).astype(numpy.float32),
                      numpy.array([5., 6.]).astype(numpy.float32)]
-                onx = OnnxSplitApi11(
+                onx = OnnxSplitApi18(
                     'X', axis=0, split=[2, 2, 2], output_names=['Y1', 'Y2', 'Y3'],
                     op_version=opset)
                 model_def = onx.to_onnx(
@@ -5015,7 +5015,7 @@ class TestOnnxrtPythonRuntime(ExtTestCase):  # pylint: disable=R0904
                 self.common_expected_shapes_types(
                     oinf, {'X': x}, got, OnnxSplit, model_def)
 
-                onx = OnnxSplitApi11(
+                onx = OnnxSplitApi18(
                     'X', axis=0, output_names=['Y1', 'Y2', 'Y3'],
                     op_version=opset)
                 model_def = onx.to_onnx(
@@ -5029,7 +5029,7 @@ class TestOnnxrtPythonRuntime(ExtTestCase):  # pylint: disable=R0904
                                  [7., 8., 9., 10., 11., 12.]]).astype(numpy.float32)
                 y = [numpy.array([[1., 2.], [7., 8.]]).astype(numpy.float32),
                      numpy.array([[3., 4., 5., 6.], [9., 10., 11., 12.]]).astype(numpy.float32)]
-                onx = OnnxSplitApi11(
+                onx = OnnxSplitApi18(
                     'X', axis=1, split=[2, 4], output_names=['Y1', 'Y2'],
                     op_version=opset)
                 model_def = onx.to_onnx(
