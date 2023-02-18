@@ -45,7 +45,6 @@ def OnnxReduceSumApi11(*x, axes=None, keepdims=1, op_version=None,
                            op_version=op_version, output_names=output_names)
 
 
-
 def OnnxSplitApi18(*x, axis=0, split=None, num_outputs=None,
                    op_version=None, output_names=None):
     """

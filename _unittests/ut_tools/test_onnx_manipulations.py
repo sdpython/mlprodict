@@ -1534,7 +1534,7 @@ class TestOptimOnnxManipulations(ExtTestCase):
         node_types = set(n.op_type for n in repl.graph.node)
         self.assertIn("ConstantOfShape", node_types)
         oinf2 = OnnxInference(repl)
-        y2 = oinf1.run({'X': x})['y']
+        y2 = oinf2.run({'X': x})['y']
         self.assertEqualArray(y1, y2)
 
 

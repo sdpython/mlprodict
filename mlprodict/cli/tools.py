@@ -31,7 +31,7 @@ def replace_initializer(filename, output=None, verbose=0, threshold=128,
     """
     from onnx import load
     from onnx.checker import check_model
-    from onnx.onnx_cpp2py_export.checker import ValidationError
+    from onnx.onnx_cpp2py_export.checker import ValidationError  # pylint: disable=E0611, E0401
     from ..onnx_tools.onnx_manipulations import (  # pylint: disable=E0402
         replace_initializer_by_constant_of_shape,
         onnx_rename_names)
@@ -61,4 +61,4 @@ def replace_initializer(filename, output=None, verbose=0, threshold=128,
         with open(output, "wb") as f:
             f.write(new_onx.SerializeToString())
     else:
-        fLOG(code)  # pragma: no cover
+        fLOG(new_onnx)  # pragma: no cover

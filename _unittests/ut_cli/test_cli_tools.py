@@ -1,10 +1,9 @@
 """
 @brief      test tree node (time=4s)
 """
-import os
 import unittest
 from pyquickhelper.loghelper import BufferedPrint
-from pyquickhelper.pycode import ExtTestCase, get_temp_folder
+from pyquickhelper.pycode import ExtTestCase
 from mlprodict.__main__ import main
 
 
