@@ -546,8 +546,13 @@ class _GraphBuilder:
         last_vars = output_vars or [self._vars[-1]]
         possible_outputs = []
         for var in last_vars:
-            possible_outputs.extend(
-                [(var, i, None) for i in range(var.n_var_outputs)])
+            if isinstance(var, ManyIdentity):
+                for i in range(len(var)):
+                    possible_outputs.append(
+                        (var[i], var.input_indices[i], None))
+            else:
+                possible_outputs.extend(
+                    [(var, i, None) for i in range(var.n_var_outputs)])
         if len(possible_types) > 0:
             # converts possibles types into a dictionary
             map_types = {}
@@ -573,6 +578,8 @@ class _GraphBuilder:
             new_possible_outputs = []
             for var, index, dt in possible_outputs:
                 if dt is None and not self.as_function:
+                    if isinstance(var, ManyIdentity):
+                        raise RuntimeError("Cannot add multiple variables.")
                     if isinstance(var, Var):
                         k = id(var), index
                         if k in map_types:  # pylint: disable=R1715

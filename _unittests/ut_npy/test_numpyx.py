@@ -28,8 +28,16 @@ from mlprodict.npy.numpyx_functions_test import (
     log1p, negative, relu, topk)
 from mlprodict.npy.numpyx_functions import (
     absolute as absolute_inline,
+    arccos as arccos_inline,
+    arccosh as arccosh_inline,
     argmin as argmin_inline,
-    concat as concat_inline,
+    arcsin as arcsin_inline,
+    arcsinh as arcsinh_inline,
+    arctan as arctan_inline,
+    arctanh as arctanh_inline,
+    ceil as ceil_inline,
+    clip as clip_inline,
+    concat as concat_inline,    
     identity as identity_inline,
     topk as topk_inline)
 from mlprodict.npy.numpyx_tensors_ort import (
@@ -1014,13 +1022,13 @@ class TestNumpyx(ExtTestCase):
             dtype = numpy.float64
             otype = Int64
         with self.subTest(msg=msg, op=fct):
-            f = absolute(fct(identity(Input("A")), Input("B")))
+            f = identity(fct(identity(Input("A")), Input("B")))
             self.assertIsInstance(f, Var)
             onx = f.to_onnx(constraints={'A': otype[None],
                                          'B': otype[None]})
             x = numpy.array([-5, 6], dtype=dtype)
             y = numpy.array([15, -16], dtype=dtype)
-            z = numpy.abs(fct(x, y))
+            z = fct(x, y)
             ref = ReferenceEvaluator(onx)
             got = ref.run(None, {'A': x, 'B': y})
             try:
@@ -1144,12 +1152,90 @@ class TestNumpyx(ExtTestCase):
     def test_numpy_op_bin_reduce(self):
         self.common_numpy_op(
             "and",
-            lambda x, y: (x.sum() == y.sum()) and ((-x.sum()) == y.sum()))
+            lambda x, y: (x.sum() == y.sum()) and (((-x).sum()) == y.sum()))
         self.common_numpy_op(
             "or",
-            lambda x, y: (x.sum() == y.sum()) or ((-x.sum()) == y.sum()))
+            lambda x, y: (x.sum() == y.sum()) or (((-x).sum()) == y.sum()))
+
+    def common_test_inline(self, fonx, fnp, cst=0):
+        f = fonx(Input("A"))
+        self.assertIsInstance(f, Var)
+        onx = f.to_onnx(constraints={0: Float64[None],
+                                     (0, False): Float64[None]})
+        x = numpy.array([0.1, 0.2], dtype=numpy.float64)
+        x += cst
+        y = fnp(x)
+        ref = ReferenceEvaluator(onx)
+        got = ref.run(None, {'A': x})
+        self.assertEqualArray(y, got[0])
+
+    def test_arccos(self):
+        self.common_test_inline(arccos_inline, numpy.arccos)
+
+    def test_arccosh(self):
+        self.common_test_inline(arccosh_inline, numpy.arccosh, cst=1)
+
+    def test_arcsin(self):
+        self.common_test_inline(arcsin_inline, numpy.arcsin)
+
+    def test_arcsinh(self):
+        self.common_test_inline(arcsinh_inline, numpy.arcsinh)
+
+    def test_arctan(self):
+        self.common_test_inline(arctan_inline, numpy.arctan)
+
+    def test_arctanh(self):
+        self.common_test_inline(arctanh_inline, numpy.arctanh)
+
+    def test_ceil(self):
+        self.common_test_inline(ceil_inline, numpy.ceil)
+
+    def test_clip(self):
+        # 1
+        f = clip_inline(Input("A"), cst(0), cst(1))
+        self.assertIsInstance(f, Var)
+        onx = f.to_onnx(constraints={0: Float64[None],
+                                     (0, False): Float64[None]})
+        x = numpy.array([0.1, -0.2, 1.5], dtype=numpy.float64)
+        y = numpy.clip(x, 0, 1)
+        ref = ReferenceEvaluator(onx)
+        got = ref.run(None, {'A': x})
+        self.assertEqualArray(y, got[0])
+
+        # 2
+        f = clip_inline(Input("A"), cst(0))
+        self.assertIsInstance(f, Var)
+        onx = f.to_onnx(constraints={0: Float64[None],
+                                     (0, False): Float64[None]})
+        x = numpy.array([0.1, -0.2, 1.5], dtype=numpy.float64)
+        y = numpy.clip(x, 0, None)
+        ref = ReferenceEvaluator(onx)
+        got = ref.run(None, {'A': x})
+        self.assertEqualArray(y, got[0])
+
+    def test_clip_int(self):
+        f = clip_inline(Input("A"), 0, 1)
+        self.assertIsInstance(f, Var)
+        onx = f.to_onnx(constraints={0: Float64[None],
+                                     (0, False): Float64[None]})
+        x = numpy.array([0.1, -0.2, 1.5], dtype=numpy.float64)
+        y = numpy.clip(x, 0, 1)
+        ref = ReferenceEvaluator(onx)
+        got = ref.run(None, {'A': x})
+        self.assertEqualArray(y, got[0])
+
+    def test_clip_none(self):
+        f = clip_inline(Input("A"), None, cst(0))
+        self.assertIsInstance(f, Var)
+        onx = f.to_onnx(constraints={0: Float64[None],
+                                     (0, False): Float64[None]})
+        x = numpy.array([0.1, -0.2, 1.5], dtype=numpy.float64)
+        y = numpy.clip(x, None, 0)
+        ref = ReferenceEvaluator(onx)
+        got = ref.run(None, {'A': x})
+        self.assertEqualArray(y, got[0])
 
 
 if __name__ == "__main__":
-    # TestNumpyx().test_flatten()
+    TestNumpyx().test_clip_int()
     unittest.main(verbosity=2)

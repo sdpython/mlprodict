@@ -606,8 +606,9 @@ class Var:
             return var(self, op="ReduceSum", keepdims=keepdims)
         if isinstance(axis, int):
             axis = [axis]
-        if isinstance(axis, (tuple, list)):
-            axis = numpy.array(axis, dtype=numpy.int64)
+        if isinstance(axis, (tuple, list)):            
+            from .numpyx_core_api import cst
+            axis = cst(numpy.array(axis, dtype=numpy.int64))
         return var(self, axis, op="ReduceSum", keepdims=keepdims)
 
     def copy(self):
