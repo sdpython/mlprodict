@@ -7,7 +7,8 @@
 from typing import Any, Callable, Dict, List, Optional, Tuple, Union
 import numpy
 from onnx import (  # pylint: disable=E0611
-    FunctionProto, ModelProto)
+    FunctionProto, ModelProto, TensorProto)
+from onnx.helper import np_dtype_to_tensor_dtype
 from .numpyx_types import (
     ParType, SequenceType, TensorType)
 
@@ -274,20 +275,6 @@ class Var:
         """
         self._prefix = prefix
 
-    def get(self, index: int) -> "Var":
-        """
-        If an operator or a function returns more than one output,
-        this takes only one.
-
-        :param index: index of the output to select
-        :return: Var
-        """
-        if index < 0 or index >= self.n_var_outputs:
-            raise ValueError(
-                f"index={index} must be positive and < {self.n_var_outputs} "
-                f"for var={self!r}.")
-        return Var(self, input_indices=[index], op="Identity")
-
     def _get_vars(self):
         vs = []
         stack = [self]
@@ -405,11 +392,27 @@ class Var:
 
     # Operators
 
-    def _binary_op(self, ov, op_name):
+    def _binary_op(self, ov, op_name, **kwargs):
         from .numpyx_core_api import var
         if isinstance(ov, (int, float, numpy.ndarray, Cst)):
             return var(self, var(ov, self, op='CastLike'), op=op_name)
-        return var(self, ov, op=op_name)
+        return var(self, ov, op=op_name, **kwargs)
+
+    def __neg__(self):
+        """
+        Automatically adds operator `Neg` to the graph.
+        It does not cast automatically.
+        """
+        from .numpyx_core_api import var
+        return var(self, op="Neg")
+
+    def __invert__(self):
+        """
+        Automatically adds operator `BitwiseNot` to the graph.
+        It does not cast automatically.
+        """
+        from .numpyx_core_api import var
+        return var(self, op="BitwiseNot")
 
     def __add__(self, ov):
         """
@@ -420,10 +423,223 @@ class Var:
 
     def __sub__(self, ov):
         """
-        Automatically adds operator `Add` to the graph.
+        Automatically adds operator `Sub` to the graph.
         It does not cast automatically.
         """
         return self._binary_op(ov, 'Sub')
+
+    def __mul__(self, ov):
+        """
+        Automatically adds operator `Mul` to the graph.
+        It does not cast automatically.
+        """
+        return self._binary_op(ov, 'Mul')
+
+    def __matmul__(self, ov):
+        """
+        Automatically adds operator `MatMul` to the graph.
+        It does not cast automatically.
+        """
+        return self._binary_op(ov, 'MatMul')
+
+    def __truediv__(self, ov):
+        """
+        Automatically adds operator `Div` to the graph.
+        It does not cast automatically.
+        """
+        return self._binary_op(ov, 'Div')
+
+    def __mod__(self, ov):
+        """
+        Automatically adds operator `Mod` to the graph.
+        It does not cast automatically.
+        """
+        return self._binary_op(ov, 'Mod')
+
+    def __pow__(self, ov):
+        """
+        Automatically adds operator `Pow` to the graph.
+        It does not cast automatically.
+        """
+        return self._binary_op(ov, 'Pow')
+
+    def __lt__(self, ov):
+        """
+        Automatically adds operator `Less` to the graph.
+        It does not cast automatically.
+        """
+        return self._binary_op(ov, 'Less')
+
+    def __le__(self, ov):
+        """
+        Automatically adds operator `LessOrEqual` to the graph.
+        It does not cast automatically.
+        """
+        return self._binary_op(ov, 'LessOrEqual')
+
+    def __gt__(self, ov):
+        """
+        Automatically adds operator `Greater` to the graph.
+        It does not cast automatically.
+        """
+        return self._binary_op(ov, 'Greater')
+
+    def __ge__(self, ov):
+        """
+        Automatically adds operator `GreaterOrEqual` to the graph.
+        It does not cast automatically.
+        """
+        return self._binary_op(ov, 'GreaterOrEqual')
+
+    def __eq__(self, ov):
+        """
+        Automatically adds operator `Equal` to the graph.
+        It does not cast automatically.
+        """
+        return self._binary_op(ov, 'Equal')
+
+    def __ne__(self, ov):
+        """
+        Automatically adds operator `Not + Equal` to the graph.
+        It does not cast automatically.
+        """
+        from .numpyx_core_api import var
+        return var(self._binary_op(ov, 'Equal'), op="Not")
+
+    def __lshift__(self, ov):
+        """
+        Automatically adds operator `BitShift` to the graph.
+        It does not cast automatically.
+        """
+        return self._binary_op(ov, 'BitShift', direction="LEFT")
+
+    def __rshift__(self, ov):
+        """
+        Automatically adds operator `BitShift` to the graph.
+        It does not cast automatically.
+        """
+        return self._binary_op(ov, 'BitShift', direction="RIGHT")
+
+    def __and__(self, ov):
+        """
+        Automatically adds operator `BitwiseAnd` to the graph.
+        It does not cast automatically.
+        """
+        return self._binary_op(ov, 'BitwiseAnd')
+
+    def __or__(self, ov):
+        """
+        Automatically adds operator `BitwiseOr` to the graph.
+        It does not cast automatically.
+        """
+        return self._binary_op(ov, 'BitwiseOr')
+
+    def __xor__(self, ov):
+        """
+        Automatically adds operator `BitwiseXor` to the graph.
+        It does not cast automatically.
+        """
+        return self._binary_op(ov, 'BitwiseXor')
+
+    @property
+    def T(self):
+        "Transpose."
+        from .numpyx_core_api import var
+        return var(self, op='Transpose', perm=[1, 0])
+
+    def astype(self, dtype):
+        "Cast"
+        from .numpyx_core_api import var
+        if not isinstance(dtype, int):
+            try:
+                dtype = np_dtype_to_tensor_dtype(dtype)
+            except KeyError:  # pylint: disable=E1101
+                if dtype == numpy.float32:
+                    dtype = TensorProto.FLOAT
+                elif dtype == numpy.float64:
+                    dtype = TensorProto.DOUBLE
+                elif dtype == numpy.int64:
+                    dtype = TensorProto.INT64
+                elif dtype == numpy.int32:
+                    dtype = TensorProto.INT32
+                elif dtype == numpy.int16:
+                    dtype = TensorProto.INT16
+                elif dtype == numpy.int8:
+                    dtype = TensorProto.INT8
+                elif dtype == numpy.uint64:
+                    dtype = TensorProto.UINT64
+                elif dtype == numpy.uint32:
+                    dtype = TensorProto.UINT32
+                elif dtype == numpy.uint16:
+                    dtype = TensorProto.UINT16
+                elif dtype == numpy.uint8:
+                    dtype = TensorProto.UINT8
+                elif dtype == numpy.float16:
+                    dtype = TensorProto.FLOAT16
+                elif dtype in (bool, numpy.bool_):
+                    dtype = TensorProto.BOOL
+                elif dtype in (str, numpy.str_):
+                    dtype = TensorProto.STRING
+                else:
+                    raise RuntimeError(  # pragma: no cover
+                        f"Unable to guess type for dtype={dtype}.")
+
+        return var(self, op="Cast", to=dtype)
+
+    @property
+    def shape(self):
+        "Shape"
+        from .numpyx_core_api import var
+        return var(self, op='Shape')
+
+    def reshape(self, shape):
+        "Reshape"
+        from .numpyx_core_api import var
+        if isinstance(shape, (tuple, list)):
+            shape = numpy.array(shape, dtype=numpy.int64)
+        return var(self, shape, op="Reshape")
+
+    def sum(self, axis=None, keepdims=0):
+        "See :func:`numpy.sum`."
+        from .numpyx_core_api import var
+        if axis is None:
+            return var(self, op="ReduceSum", keepdims=keepdims)
+        if isinstance(axis, int):
+            axis = [axis]
+        if isinstance(axis, (tuple, list)):
+            axis = numpy.array(axis, dtype=numpy.int64)
+        return var(self, axis, op="ReduceSum", keepdims=keepdims)
+
+    def copy(self):
+        """
+        Returns a copy of self (use of Identity node).
+        """
+        from .numpyx_core_api import var
+        return var(self, op="Identity")
+
+    def flatten(self):
+        """
+        Flattens a matrix (see :epkg:`numpy:ndarray:flatten`).
+
+        :param axis: only flatten from axis to the end.
+        :return: :class:`Var`
+        """
+        from .numpyx_core_api import var
+        return var(self, op="Flatten")
+
+    def get(self, index: int) -> "Var":
+        """
+        If an operator or a function returns more than one output,
+        this takes only one.
+
+        :param index: index of the output to select
+        :return: Var
+        """
+        if index < 0 or index >= self.n_var_outputs:
+            raise ValueError(
+                f"index={index} must be positive and < {self.n_var_outputs} "
+                f"for var={self!r}.")
+        return Var(self, input_indices=[index], op="Identity")
 
     def __getitem__(self, index: Any) -> "Var":
         """

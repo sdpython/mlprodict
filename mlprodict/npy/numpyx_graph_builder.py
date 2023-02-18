@@ -17,6 +17,8 @@ from onnx.helper import (
     make_opsetid, make_tensor_value_info)
 from onnx.numpy_helper import from_array
 from onnx.shape_inference import infer_shapes
+from onnx.onnx_cpp2py_export.checker import ValidationError
+from onnx.onnx_cpp2py_export.shape_inference import InferenceError
 from .numpyx_types import (
     ElemType, OptParType, ParType, SequenceType,
     TensorType, TupleType)
@@ -259,8 +261,10 @@ class _GraphBuilder:
             raise RuntimeError(
                 f"Empty input name in function {self.function_name!r} "
                 f"from domain {self.function_domain!r}.")
-        self.inputs_.append(
-            self._io(len(self.inputs_), name, tensor_type, True))
+        existing_names = {i.name for i in self.inputs_}
+        if name not in existing_names:
+            self.inputs_.append(
+                self._io(len(self.inputs_), name, tensor_type, True))
         self.onnx_names_[name] = None
 
     def make_output(self, name: str, tensor_type: TensorType):
@@ -313,12 +317,19 @@ class _GraphBuilder:
         graph = make_graph(self.nodes_, 'numpyx', self.inputs_, self.outputs_)
         model = make_model(graph, opset_imports=opset_imports,
                            functions=list(f[0] for f in self.functions_.values()))
-        check_model(model)
+        try:
+            check_model(model)
+        except ValidationError as e:
+            raise RuntimeError(f"Model is not valid\n{model}") from e
         has_undefined = 0 in set(o.type.tensor_type.elem_type
                                  for o in model.graph.output)
         if has_undefined:
             # an output has undefined type, run shape inference to fix it
-            shapes = infer_shapes(model)
+            try:
+                shapes = infer_shapes(model)
+            except InferenceError as e:
+                raise RuntimeError(
+                    f"Unable to determine output shape of\n{model}") from e
             model = shapes
             if model.graph.value_info:
                 # let's remove unnecessary information

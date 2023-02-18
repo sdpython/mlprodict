@@ -1006,10 +1006,150 @@ class TestNumpyx(ExtTestCase):
         self.assertEqualArray(z.astype(numpy.int64), res.numpy())
         self.assertEqual(ix.shape, tuple(res.shape()))
 
-    # opset: no test
-    # eager mode + jit
+    def common_numpy_op(self, msg, fct, use_int=False):
+        if use_int:
+            dtype = numpy.int64
+            otype = Float64
+        else:
+            dtype = numpy.float64
+            otype = Int64
+        with self.subTest(msg=msg, op=fct):
+            f = absolute(fct(identity(Input("A")), Input("B")))
+            self.assertIsInstance(f, Var)
+            onx = f.to_onnx(constraints={'A': otype[None],
+                                         'B': otype[None]})
+            x = numpy.array([-5, 6], dtype=dtype)
+            y = numpy.array([15, -16], dtype=dtype)
+            z = numpy.abs(fct(x, y))
+            ref = ReferenceEvaluator(onx)
+            got = ref.run(None, {'A': x, 'B': y})
+            try:
+                self.assertEqualArray(z, got[0])
+            except AssertionError as e:
+                raise AssertionError(f"Discrepancies with\n{onx}") from e
+
+    def test_numpy_op_op(self):
+        self.common_numpy_op("+", lambda x, y: x + y)
+        self.common_numpy_op("-", lambda x, y: x - y)
+        self.common_numpy_op("*", lambda x, y: x * y)
+        self.common_numpy_op("/", lambda x, y: x / y)
+        self.common_numpy_op("@", lambda x, y: x @ y)
+        self.common_numpy_op("%", lambda x, y: x % y, True)
+
+    def test_numpy_op_cmp(self):
+        self.common_numpy_op("<", lambda x, y: x < y)
+        self.common_numpy_op("<=", lambda x, y: x <= y)
+        self.common_numpy_op(">", lambda x, y: x > y)
+        self.common_numpy_op(">=", lambda x, y: x >= y)
+        self.common_numpy_op("==", lambda x, y: x == y)
+        self.common_numpy_op("!=", lambda x, y: x != y)
+
+    def test_numpy_op_neg(self):
+        self.common_numpy_op("-", lambda x, y: (-x) != y)
+
+    def test_numpy_op_shift(self):
+        self.common_numpy_op("<<", lambda x, y: x << y, True)
+        self.common_numpy_op(">>", lambda x, y: x >> y, True)
+
+    def test_numpy_op_bit(self):
+        self.common_numpy_op("&", lambda x, y: x & y, True)
+        self.common_numpy_op("|", lambda x, y: x | y, True)
+        self.common_numpy_op("|", lambda x, y: x ^ y, True)
+        self.common_numpy_op("~", lambda x, y: (~x) | y, True)
+
+    def test_shape(self):
+        f = absolute_inline(
+            Input("A").reshape(identity_inline(Input("A")).shape))
+        self.assertIsInstance(f, Var)
+        onx = f.to_onnx(constraints={'A': Float64[None]})
+        x = numpy.array([-5, 6], dtype=numpy.float64)
+        z = numpy.abs(x.reshape(x.shape))
+        ref = ReferenceEvaluator(onx)
+        got = ref.run(None, {'A': x})
+        self.assertEqualArray(z, got[0])
+
+    def test_shape_t(self):
+        f = absolute_inline(
+            Input("A").reshape(identity_inline(Input("A")).T.shape))
+        self.assertIsInstance(f, Var)
+        onx = f.to_onnx(constraints={'A': Float64[None]})
+        x = numpy.array([[-5, 6]], dtype=numpy.float64)
+        z = numpy.abs(x.reshape(x.T.shape))
+        ref = ReferenceEvaluator(onx)
+        got = ref.run(None, {'A': x})
+        self.assertEqualArray(z, got[0])
+
+    def test_astype(self):
+        f = absolute_inline(
+            identity_inline(Input("A")).astype(numpy.float32))
+        self.assertIsInstance(f, Var)
+        onx = f.to_onnx(constraints={'A': Float64[None]})
+        x = numpy.array([[-5, 6]], dtype=numpy.float64)
+        z = numpy.abs(x.astype(numpy.float32))
+        ref = ReferenceEvaluator(onx)
+        got = ref.run(None, {'A': x})
+        self.assertEqualArray(z, got[0])
+
+    def test_astype_int(self):
+        f = absolute_inline(identity_inline(Input("A")).astype(1))
+        self.assertIsInstance(f, Var)
+        onx = f.to_onnx(constraints={'A': Float64[None]})
+        x = numpy.array([[-5, 6]], dtype=numpy.float64)
+        z = numpy.abs(x.astype(numpy.float32))
+        ref = ReferenceEvaluator(onx)
+        got = ref.run(None, {'A': x})
+        self.assertEqualArray(z, got[0])
+
+    def test_sum(self):
+        f = absolute_inline(identity_inline(Input("A")).sum())
+        self.assertIsInstance(f, Var)
+        onx = f.to_onnx(constraints={'A': Float64[None]})
+        x = numpy.array([[-5, 6]], dtype=numpy.float64)
+        z = numpy.abs(x.sum())
+        ref = ReferenceEvaluator(onx)
+        got = ref.run(None, {'A': x})
+        self.assertEqualArray(z, got[0])
+
+    def test_copy(self):
+        f = absolute_inline(Input("A").copy())
+        self.assertIsInstance(f, Var)
+        onx = f.to_onnx(constraints={'A': Float64[None]})
+        x = numpy.array([[-5, 6]], dtype=numpy.float64)
+        z = numpy.abs(x)
+        ref = ReferenceEvaluator(onx)
+        got = ref.run(None, {'A': x})
+        self.assertEqualArray(z, got[0])
+
+    def test_flatten(self):
+        f = absolute_inline(Input("A").flatten())
+        self.assertIsInstance(f, Var)
+        onx = f.to_onnx(constraints={'A': Float64[None]})
+        x = numpy.array([[-5, 6]], dtype=numpy.float64)
+        z = numpy.abs(x.flatten())
+        ref = ReferenceEvaluator(onx)
+        got = ref.run(None, {'A': x})
+        self.assertEqualArray(z, got[0])
+
+    def test_sum_axis(self):
+        f = absolute_inline(identity_inline(
+            Input("A")).sum(axis=1, keepdims=1))
+        self.assertIsInstance(f, Var)
+        onx = f.to_onnx(constraints={'A': Float64[None]})
+        x = numpy.array([[-5, 6]], dtype=numpy.float64)
+        z = numpy.abs(x.sum(axis=1, keepdims=1))
+        ref = ReferenceEvaluator(onx)
+        got = ref.run(None, {'A': x})
+        self.assertEqualArray(z, got[0])
+
+    def test_numpy_op_bin_reduce(self):
+        self.common_numpy_op(
+            "and",
+            lambda x, y: (x.sum() == y.sum()) and ((-x.sum()) == y.sum()))
+        self.common_numpy_op(
+            "or",
+            lambda x, y: (x.sum() == y.sum()) or ((-x.sum()) == y.sum()))
 
 
 if __name__ == "__main__":
-    # TestNumpyx().test_eager_ort()
+    # TestNumpyx().test_flatten()
     unittest.main(verbosity=2)

@@ -1534,10 +1534,12 @@ class TestOptimOnnxManipulations(ExtTestCase):
         node_types = set(n.op_type for n in repl.graph.node)
         self.assertIn("ConstantOfShape", node_types)
         oinf2 = OnnxInference(repl)
+        y1[:, :] = 3.5
+        y1[0, :] = 0.5
         y2 = oinf2.run({'X': x})['y']
         self.assertEqualArray(y1, y2)
 
 
 if __name__ == "__main__":
-    # TestOptimOnnxManipulations().test_onnx_inline_function_fft()
+    # TestOptimOnnxManipulations().test_replace_initializer()
     unittest.main(verbosity=2)
