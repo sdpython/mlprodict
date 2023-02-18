@@ -18,7 +18,7 @@ from mlprodict.npy.xop_variable import (
     numpy_type_prototype, is_numpy_dtype,
     InputDetectedVariable, OutputDetectedVariable)
 from mlprodict.npy.xop_opset import (
-    OnnxReduceSumApi11, OnnxSplitApi11, OnnxSqueezeApi11,
+    OnnxReduceSumApi11, OnnxSplitApi18, OnnxSqueezeApi11,
     OnnxUnsqueezeApi11, OnnxReduceL2_typed, OnnxReshapeApi13)
 
 
@@ -912,7 +912,7 @@ class TestXOps(ExtTestCase):
         for dtype in [numpy.float32, numpy.float64]:
             for opv in range(10, max_supported_opset() + 1):
                 with self.subTest(opv=opv, dtype=dtype):
-                    node_split = OnnxSplitApi11(
+                    node_split = OnnxSplitApi18(
                         'X', split=numpy.array([1, 1], dtype=numpy.int64),
                         axis=1, op_version=opv)
                     node1 = node_split[0]
@@ -940,7 +940,7 @@ class TestXOps(ExtTestCase):
         for dtype in [numpy.float32, numpy.float64]:
             for opv in range(10, max_supported_opset() + 1):
                 with self.subTest(opv=opv, dtype=dtype):
-                    node_split = OnnxSplitApi11(
+                    node_split = OnnxSplitApi18(
                         'X', axis=1, op_version=opv)
                     node1 = node_split[0]
                     node2 = node_split[1]

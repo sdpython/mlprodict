@@ -238,6 +238,8 @@ class TestOnnxrtPythonRuntimeCustom(ExtTestCase):
                     elif dim == 2:
                         X = numpy.arange(48).astype(
                             numpy.float32).reshape((3, -1))
+                    else:
+                        continue
                     Y = numpy.fft.fft2(X.astype(numpy.float32), axes=axis)
 
                     if axis is not None:
