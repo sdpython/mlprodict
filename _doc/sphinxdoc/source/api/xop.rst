@@ -36,17 +36,23 @@ Main classes
 Helpers to handle API changing with opsets
 ++++++++++++++++++++++++++++++++++++++++++
 
-.. autosignature:: mlprodict.npy.xop_opset.OnnxReduceSumApi11
-
-.. autosignature:: mlprodict.npy.xop_opset.OnnxSplitApi11
-
-.. autosignature:: mlprodict.npy.xop_opset.OnnxSqueezeApi11
-
-.. autosignature:: mlprodict.npy.xop_opset.OnnxUnsqueezeApi11
+.. autosignature:: mlprodict.npy.xop_opset.OnnxReduceL218
 
 .. autosignature:: mlprodict.npy.xop_opset.OnnxReduceL2_typed
 
+.. autosignature:: mlprodict.npy.xop_opset.OnnxReduceMeanApi18
+
+.. autosignature:: mlprodict.npy.xop_opset.OnnxReduceSumApi11
+
+.. autosignature:: mlprodict.npy.xop_opset.OnnxReduceSumSquareApi18
+
+.. autosignature:: mlprodict.npy.xop_opset.OnnxSplitApi18
+
+.. autosignature:: mlprodict.npy.xop_opset.OnnxSqueezeApi11
+
 .. autosignature:: mlprodict.npy.xop_opset.OnnxReshapeApi13
+
+.. autosignature:: mlprodict.npy.xop_opset.OnnxUnsqueezeApi11
 
 Available ONNX operators
 ========================

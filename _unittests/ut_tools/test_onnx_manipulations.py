@@ -28,7 +28,8 @@ from mlprodict.onnx_tools.onnx_manipulations import (
     onnx_rename_names, insert_results_into_onnx, onnx_model_to_function,
     onnx_inline_function, onnx_function_to_model, change_input_type,
     change_subgraph_io_type_shape, onnx_rename_inputs_outputs,
-    onnx_replace_functions, get_opsets)
+    onnx_replace_functions, get_opsets,
+    replace_initializer_by_constant_of_shape)
 from mlprodict import __max_supported_opset__ as TARGET_OPSET
 from mlprodict.plotting.text_plot import onnx_simple_text_plot
 from mlprodict.onnxrt.excs import MissingOperatorError
@@ -1515,6 +1516,26 @@ class TestOptimOnnxManipulations(ExtTestCase):
             'fft2', log=log, skip_inline={
                 'stft': {('this', 'dft')},
                 'istft': {('this', 'dft')}})
+
+    def test_replace_initializer(self):
+        OnnxMatMul, OnnxSub = loadop('MatMul', 'Sub')
+        dtype = numpy.float32
+        x = numpy.array([1, 2, 4, 5, 5, 4]).astype(
+            numpy.float32).reshape((3, 2))
+        cop = OnnxMatMul('X', numpy.random.randn(2, 100).astype(dtype),
+                         op_version=TARGET_OPSET)
+        cop2 = OnnxSub(cop, numpy.array([1], dtype=dtype),
+                       op_version=TARGET_OPSET,
+                       output_names=['y'])
+        model_def = cop2.to_onnx({'X': x})
+        oinf1 = OnnxInference(model_def)
+        y1 = oinf1.run({'X': x})['y']
+        repl = replace_initializer_by_constant_of_shape(model_def)
+        node_types = set(n.op_type for n in repl.graph.node)
+        self.assertIn("ConstantOfShape", node_types)
+        oinf2 = OnnxInference(repl)
+        y2 = oinf2.run({'X': x})['y']
+        self.assertEqualArray(y1, y2)
 
 
 if __name__ == "__main__":
