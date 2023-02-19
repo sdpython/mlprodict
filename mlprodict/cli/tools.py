@@ -61,4 +61,4 @@ def replace_initializer(filename, output=None, verbose=0, threshold=128,
         with open(output, "wb") as f:
             f.write(new_onx.SerializeToString())
     else:
-        fLOG(new_onnx)  # pragma: no cover
+        fLOG(new_onx)  # pragma: no cover

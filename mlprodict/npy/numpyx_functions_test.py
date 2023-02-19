@@ -14,41 +14,41 @@ from .numpyx_types import (
 
 
 @xapi_function
-def _min_max(x: TensorType(ElemType.numerics, name="T")
-             ) -> TupleType[TensorType(ElemType.numerics, name="T"),
-                            TensorType(ElemType.numerics, name="T")]:
+def _min_max(x: TensorType[ElemType.numerics, "T"]
+             ) -> TupleType[TensorType[ElemType.numerics, "T"],
+                            TensorType[ElemType.numerics, "T"]]:
     "See :func:`numpy.abs`."
     return tuple_var(var(x, op='ReduceMin'), var(x, op='ReduceMax'))
 
 
 @xapi_inline
-def _min_max_inline(x: TensorType(ElemType.numerics, name="T")
-                    ) -> TupleType[TensorType(ElemType.numerics, name="T"),
-                                   TensorType(ElemType.numerics, name="T")]:
+def _min_max_inline(x: TensorType[ElemType.numerics, "T"]
+                    ) -> TupleType[TensorType[ElemType.numerics, "T"],
+                                   TensorType[ElemType.numerics, "T"]]:
     "See :func:`numpy.abs`."
     return tuple_var(var(x, op='ReduceMin'), var(x, op='ReduceMax'))
 
 
 @xapi_function
-def absolute(x: TensorType(ElemType.numerics, name="T")
-             ) -> TensorType(ElemType.numerics, name="T"):
+def absolute(x: TensorType[ElemType.numerics, "T"]
+             ) -> TensorType[ElemType.numerics, "T"]:
     "See :func:`numpy.abs`."
     return var(x, op='Abs')
 
 
 @xapi_function
-def addition(x: TensorType(ElemType.numerics, name="T"),
-             y: TensorType(ElemType.numerics, name="T")
-             ) -> TensorType(ElemType.numerics, name="T"):
+def addition(x: TensorType[ElemType.numerics, "T"],
+             y: TensorType[ElemType.numerics, "T"]
+             ) -> TensorType[ElemType.numerics, "T"]:
     "See :func:`numpy.addition`."
     return var(x, y, op='Add')
 
 
 @xapi_function
-def argmin(x: TensorType(ElemType.numerics, name="T"),
+def argmin(x: TensorType[ElemType.numerics, "T"],
            axis: OptParType[int] = 0,
            keepdims: OptParType[int] = 0
-           ) -> TensorType(ElemType.numerics, name="T"):
+           ) -> TensorType[ElemType.numerics, "T"]:
     """
     See :func:`numpy.argmin`.
     """
@@ -56,9 +56,9 @@ def argmin(x: TensorType(ElemType.numerics, name="T"),
 
 
 @xapi_function
-def concat(*x: SequenceType[TensorType(ElemType.numerics, name="T")],
+def concat(*x: SequenceType[TensorType[ElemType.numerics, "T"]],
            axis: ParType[int] = 0
-           ) -> TensorType(ElemType.numerics, name="T"):
+           ) -> TensorType[ElemType.numerics, "T"]:
     """
     Operator concat, handle :func:`numpy.vstack` and
     :func:`numpy.hstack`.
@@ -70,15 +70,15 @@ def concat(*x: SequenceType[TensorType(ElemType.numerics, name="T")],
 
 
 @xapi_function
-def identity(x: TensorType(ElemType.numerics, name="T")
-             ) -> TensorType(ElemType.numerics, name="T"):
+def identity(x: TensorType[ElemType.numerics, "T"]
+             ) -> TensorType[ElemType.numerics, "T"]:
     "Makes a copy."
     return var(x, op='Identity')
 
 
 @xapi_function
-def log1p(x: TensorType(ElemType.floats, name="T")
-          ) -> TensorType(ElemType.floats, name="T"):
+def log1p(x: TensorType[ElemType.floats, "T"]
+          ) -> TensorType[ElemType.floats, "T"]:
     "See :func:`numpy.log1p`."
     x1 = var(
         x,
@@ -89,28 +89,28 @@ def log1p(x: TensorType(ElemType.floats, name="T")
 
 
 @xapi_function
-def negative(x: TensorType(ElemType.numerics, name="T")
-             ) -> TensorType(ElemType.numerics, name="T"):
+def negative(x: TensorType[ElemType.numerics, "T"]
+             ) -> TensorType[ElemType.numerics, "T"]:
     "See :func:`numpy.abs`."
     return var(x, op='Neg')
 
 
 @xapi_function
-def relu(x: TensorType(ElemType.numerics, name="T"),
-         ) -> TensorType(ElemType.numerics, name="T"):
+def relu(x: TensorType[ElemType.numerics, "T"],
+         ) -> TensorType[ElemType.numerics, "T"]:
     "See :func:`numpy.addition`."
     return var(var(absolute(x), x, op='Add'),
                var(cst(2), x, op='CastLike'), op='Div')
 
 
 @xapi_function
-def topk(x: TensorType(ElemType.numerics, name="T"),
-         k: TensorType(ElemType.int64, name="I", shape=[1]),
+def topk(x: TensorType[ElemType.numerics, "T"],
+         k: TensorType[ElemType.int64, "I", (1,)],
          axis: OptParType[int] = -1,
          largest: OptParType[int] = 1,
          sorted: OptParType[int] = 1
-         ) -> TupleType[TensorType(ElemType.numerics, name="T"),
-                        TensorType(ElemType.int64, name="I")]:
+         ) -> TupleType[TensorType[ElemType.numerics, "T"],
+                        TensorType[ElemType.int64, "I"]]:
     "See :func:`numpy.argsort`."
     return make_tuple(2, x, k, op="TopK",
                       axis=axis, largest=largest,
@@ -118,8 +118,8 @@ def topk(x: TensorType(ElemType.numerics, name="T"),
 
 
 @xapi_function
-def transpose(x: TensorType(ElemType.numerics, name="T"),
-              perm: Tuple[int] = (1, 0)
-              ) -> TensorType(ElemType.numerics, name="T"):
+def transpose(x: TensorType[ElemType.numerics, "T"],
+              perm: ParType[Tuple[int]] = (1, 0)
+              ) -> TensorType[ElemType.numerics, "T"]:
     "See :func:`numpy.transpose`."
     return var(x, op='Transpose', perm=list(perm))

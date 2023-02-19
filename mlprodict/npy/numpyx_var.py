@@ -28,10 +28,10 @@ class Par:
 
     def __init__(self, name: str, dtype: ParType, value: Optional[Any] = None,
                  parent_op: Optional[Tuple[str, str, int]] = None):
-        if not isinstance(dtype, ParType):
+        if not issubclass(dtype, ParType):
             raise TypeError(
                 f"dtype for parameter {name!r} must be of "
-                f"ParType not {type(dtype)}.")
+                f"ParType not {dtype}.")
         if parent_op is None:
             raise ValueError(
                 f"parent_op must be filled for paramenter {name!r}.")
@@ -44,17 +44,17 @@ class Par:
         "usual"
         if self.value is None:
             return (
-                f"{self.__class__.__name__}({self.name!r}, {self.dtype!r}, "
+                f"{self.__class__.__name__}({self.name!r}, {self.dtype.type_name()}, "
                 f"parent_op={self.parent_op!r})")
         return (
             f"{self.__class__.__name__}"
-            f"({self.name!r}, {self.dtype!r}, {self.value!r}, "
+            f"({self.name!r}, {self.dtype.type_name()}, {self.value!r}, "
             f"parent_op={self.parent_op!r})")
 
     @property
     def onnx_type(self):
         "Returns the corresponding onnx type."
-        return self.dtype.onnx_type
+        return self.dtype.onnx_type()
 
     def __eq__(self, x):
         "Should not be used."
@@ -581,7 +581,7 @@ class Var:
                 elif dtype in (str, numpy.str_):
                     dtype = TensorProto.STRING
                 else:
-                    raise RuntimeError(  # pragma: no cover
+                    raise RuntimeError(  # pylint: disable=W0707
                         f"Unable to guess type for dtype={dtype}.")
 
         return var(self, op="Cast", to=dtype)
@@ -606,7 +606,7 @@ class Var:
             return var(self, op="ReduceSum", keepdims=keepdims)
         if isinstance(axis, int):
             axis = [axis]
-        if isinstance(axis, (tuple, list)):            
+        if isinstance(axis, (tuple, list)):
             from .numpyx_core_api import cst
             axis = cst(numpy.array(axis, dtype=numpy.int64))
         return var(self, axis, op="ReduceSum", keepdims=keepdims)
@@ -653,7 +653,8 @@ class Var:
                     f"Only indices are allowed when selecting an output, "
                     f"not {type(index)}).")
             return self.get(index)
-        raise NotImplementedError("indexing is not implemented yet.")
+        raise NotImplementedError(
+            "indexing is not implemented yet, index={index!r}.")
 
 
 class Input(Var):

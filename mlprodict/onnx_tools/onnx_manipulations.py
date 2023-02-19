@@ -1,6 +1,6 @@
 # Copyright (c) Microsoft Corporation. All rights reserved.
 # Licensed under the MIT License.
-# pylint: disable=E1101, C0302
+# pylint: disable=E1101, C0302, R1718
 
 """
 @file

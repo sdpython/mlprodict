@@ -4,11 +4,11 @@
 
 .. versionadded:: 0.10
 """
-from inspect import signature
+from inspect import _empty, signature
 from typing import Callable
 import numpy
 from .numpyx_types import (
-    EagerNotAllowedError, ParType, TupleType, WrapperType)
+    EagerNotAllowedError, ParType, TupleType)
 from .numpyx_var import Cst, Input, ManyIdentity, Par, Var
 from .numpyx_tensors import EagerTensor
 
@@ -121,8 +121,19 @@ def _xapi(fn: Callable, inline: bool, eager: bool):
 
     rows = ["", "", "Signature:", "", "::", "", "    ("]
     for p in sig.parameters.values():
-        rows.append(f"        {p.name}: {str(p.annotation)},")
-    rows.append(f"    ) -> {sig.return_annotation}:")
+        if p.annotation == _empty:
+            rows.append(f"        {p.name},")
+        else:
+            try:
+                a_name = p.annotation.type_name()
+            except AttributeError as e:
+                raise AttributeError(
+                    f"Unexpected annotation type {p.annotation!r}.") from e
+            rows.append(f"        {p.name}: {a_name},")
+    if sig.return_annotation == _empty:
+        rows.append("    ):")
+    else:
+        rows.append(f"    ) -> {sig.return_annotation.type_name()}:")
     wrapper.__doc__ = (fn.__doc__ or "") + "\n" + "\n".join(rows)
     return wrapper
 

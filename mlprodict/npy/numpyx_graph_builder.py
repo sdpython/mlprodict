@@ -17,8 +17,10 @@ from onnx.helper import (
     make_opsetid, make_tensor_value_info)
 from onnx.numpy_helper import from_array
 from onnx.shape_inference import infer_shapes
-from onnx.onnx_cpp2py_export.checker import ValidationError
-from onnx.onnx_cpp2py_export.shape_inference import InferenceError
+from onnx.onnx_cpp2py_export.checker import (  # pylint: disable=E0611,E0401
+    ValidationError)
+from onnx.onnx_cpp2py_export.shape_inference import (  # pylint: disable=E0611,E0401
+    InferenceError)
 from .numpyx_types import (
     ElemType, OptParType, ParType, SequenceType,
     TensorType, TupleType)
@@ -146,7 +148,11 @@ class _GraphBuilder:
                     att = AttributeProto()
                     att.name = k
                     att.ref_attr_name = v.name
-                    att.type = v.onnx_type
+                    try:
+                        att.type = v.onnx_type
+                    except TypeError as e:
+                        raise TypeError(
+                            f"Unexected type {v.onnx_type}: {v}.") from e
                     protos.append(att)
                 elif v.value is not None:
                     new_kwargs[k] = v.value
@@ -188,9 +194,9 @@ class _GraphBuilder:
         if self.as_function:
             return _FunctionIO(name)
         if (tensor_type is not None and
-                not isinstance(tensor_type, TensorType)):
+                not issubclass(tensor_type, TensorType)):
             raise TypeError(
-                f"Unexpected type {type(tensor_type)} for tensor_type. "
+                f"Unexpected type {tensor_type.type_name()} for tensor_type. "
                 f"This may happen if you specialised the function based on "
                 f"contraints and not on input.")
         if self.constraints is not None:
@@ -233,7 +239,7 @@ class _GraphBuilder:
                     f"tensor_type cannot be None for name={name!r} and "
                     f"input or output {index}.")
             else:
-                tensor_type = TensorType("undefined")
+                tensor_type = TensorType["undefined"]
         if len(tensor_type.dtypes) != 1:
             raise RuntimeError(
                 f"tensor_type is not specific enough ({str(tensor_type)} "
@@ -345,7 +351,7 @@ class _GraphBuilder:
             there is an undefined number of inputs
         """
         sig = signature(fct)
-        if any(map(lambda t: isinstance(t.annotation, SequenceType),
+        if any(map(lambda t: issubclass(t.annotation, SequenceType),
                    sig.parameters.values())):
             # onnx does not allow undefined number of inputs
             key = fct.__module__, fct.__name__, n_inputs
@@ -362,13 +368,13 @@ class _GraphBuilder:
         for idx, (name, par) in enumerate(sig.parameters.items()):
             value = par.default
             anno = par.annotation
-            if not isinstance(anno, (ElemType, OptParType,
+            if not issubclass(anno, (ElemType, OptParType,
                                      ParType, SequenceType,
-                                     TensorType)):
+                                     TensorType, TupleType)):
                 raise TypeError(
                     f"Annotation must of a known not {type(anno)} for "
                     f"parameter {name!r} in function {fct.__name__!r}.")
-            if isinstance(anno, SequenceType):
+            if issubclass(anno, SequenceType):
                 # undefined number of parameters
                 for i in range(idx, n_inputs):
                     new_name = f"{name}:{i - idx}"
@@ -384,10 +390,10 @@ class _GraphBuilder:
                 attributes.append(p)
             input_types.append(anno)
 
-        if isinstance(sig.return_annotation, TupleType):
-            if len(sig.return_annotation) != n_outputs:
+        if issubclass(sig.return_annotation, TupleType):
+            if sig.return_annotation.len() != n_outputs:
                 raise TypeError(
-                    f"Mismatched number of outputs {len(sig.return_annotation)} "
+                    f"Mismatched number of outputs {sig.return_annotation.len()} "
                     f"!= n_outputs={n_outputs} for fct={fct}.")
             output_types = [sig.return_annotation[i] for i in range(n_outputs)]
         elif n_outputs != 1:
@@ -547,7 +553,7 @@ class _GraphBuilder:
         possible_outputs = []
         for var in last_vars:
             if isinstance(var, ManyIdentity):
-                for i in range(len(var)):
+                for i in range(len(var)):  # pylint: disable=C0200
                     possible_outputs.append(
                         (var[i], var.input_indices[i], None))
             else:

@@ -4,7 +4,8 @@
 
 .. versionadded:: 0.10
 """
-from typing import Any, Optional, Tuple, Union
+# pylint: disable=E1101
+from typing import Any, Tuple, Union
 import numpy
 from onnx import AttributeProto
 
@@ -18,6 +19,9 @@ class EagerNotAllowedError(RuntimeError):
 
 
 class WrapperType:
+    """
+    WrapperType.
+    """
     pass
 
 
@@ -53,7 +57,7 @@ class ElemTypeCstSet(ElemTypeCstInner):
 
     allowed = set(range(1, 17))
 
-    ints = (
+    ints = {
         ElemTypeCstInner.int8,
         ElemTypeCstInner.int16,
         ElemTypeCstInner.int32,
@@ -62,16 +66,16 @@ class ElemTypeCstSet(ElemTypeCstInner):
         ElemTypeCstInner.uint16,
         ElemTypeCstInner.uint32,
         ElemTypeCstInner.uint64,
-    )
+    }
 
-    floats = (
+    floats = {
         ElemTypeCstInner.float16,
         ElemTypeCstInner.bfloat16,
         ElemTypeCstInner.float32,
         ElemTypeCstInner.float64,
-    )
+    }
 
-    numerics = (
+    numerics = {
         ElemTypeCstInner.int8,
         ElemTypeCstInner.int16,
         ElemTypeCstInner.int32,
@@ -84,7 +88,7 @@ class ElemTypeCstSet(ElemTypeCstInner):
         ElemTypeCstInner.bfloat16,
         ElemTypeCstInner.float32,
         ElemTypeCstInner.float64,
-    )
+    }
 
     @staticmethod
     def combined(type_set):
@@ -132,20 +136,17 @@ class ElemType(ElemTypeCst):
     names_int = {
         att: getattr(ElemTypeCstInner, att)
         for att in dir(ElemTypeCstInner)
-        if isinstance(getattr(ElemTypeCstInner, att), int)
-    }
+        if isinstance(getattr(ElemTypeCstInner, att), int)}
 
     int_names = {
         getattr(ElemTypeCstInner, att): att
         for att in dir(ElemTypeCstInner)
-        if isinstance(getattr(ElemTypeCstInner, att), int)
-    }
+        if isinstance(getattr(ElemTypeCstInner, att), int)}
 
     set_names = {
         getattr(ElemTypeCst, att): att
         for att in dir(ElemTypeCst)
-        if isinstance(getattr(ElemTypeCst, att), int) and "A" <= att[0] <= "Z"
-    }
+        if isinstance(getattr(ElemTypeCst, att), int) and "A" <= att[0] <= "Z"}
 
     numpy_map = {
         **{getattr(numpy, att): getattr(ElemTypeCst, att)
@@ -153,29 +154,50 @@ class ElemType(ElemTypeCst):
            if isinstance(getattr(ElemTypeCst, att), int) and hasattr(numpy, att)},
         **{numpy.dtype(att): getattr(ElemTypeCst, att)
            for att in dir(ElemTypeCst)
-           if isinstance(getattr(ElemTypeCst, att), int) and hasattr(numpy, att)},
-    }
+           if isinstance(getattr(ElemTypeCst, att), int) and hasattr(numpy, att)}}
 
     __slots__ = ['dtype']
 
-    def __init__(self, dtype: Union[str, int]):
+    @classmethod
+    def __class_getitem__(cls, dtype: Union[str, int]):
         if isinstance(dtype, str):
             dtype = ElemType.names_int[dtype]
         elif dtype in ElemType.numpy_map:
             dtype = ElemType.numpy_map[dtype]
+        elif dtype == 0:
+            pass
         elif dtype not in ElemType.allowed:
             raise ValueError(
                 f"Unexpected dtype {dtype} not in {ElemType.allowed}.")
-        self.dtype: int = dtype
-
-    def __repr__(self) -> str:
-        "usual"
-        s = ElemType.int_names[self.dtype]
-        return f"{self.__class__.__name__}(ElemType.{s})"
+        newt = type(f"{cls.__name__}{dtype}", (cls,), dict(dtype=dtype))
+        if "<" in newt.__name__:
+            raise NameError(f"Name is wrong {newt.__name__!r}.")
+        return newt
 
     def __eq__(self, t):
         "Compares types."
         return self.dtype == t.dtype
+
+    @classmethod
+    def type_name(cls) -> str:
+        "Returns its fullname."
+        s = ElemType.int_names[cls.dtype]
+        return s
+
+    @classmethod
+    def get_set_name(cls, dtypes):
+        "Returns the set name."
+        tt = []
+        for dt in dtypes:
+            if isinstance(dt, int):
+                tt.append(dt)
+            else:
+                tt.append(dt.dtype)
+        dtypes = set(tt)
+        for d in dir(cls):
+            if dtypes == getattr(cls, d):
+                return d
+        return None
 
 
 class ParType:
@@ -186,37 +208,31 @@ class ParType:
     :param optional: is optional or not
     """
 
-    __slots__ = ["dtype", "optional"]
-
     map_names = {int: "int", float: "float", str: "str"}
 
     @classmethod
     def __class_getitem__(cls, dtype):
-        return ParType(dtype)
+        if isinstance(dtype, (int, float)):
+            msg = str(dtype)
+        else:
+            msg = dtype.__name__
+        newt = type(f"{cls.__name__}{msg}", (cls,), dict(dtype=dtype))
+        if "<" in newt.__name__:
+            raise NameError(f"Name is wrong {newt.__name__!r}.")
+        return newt
 
-    def __init__(self, dtype: type, optional: bool = False):
-        self.dtype = dtype
-        self.optional = optional
+    @classmethod
+    def type_name(cls) -> str:
+        "Returns its full name."
+        if cls.dtype in ParType.map_names:
+            newt = f"ParType[{ParType.map_names[cls.dtype]}]"
+        else:
+            newt = f"ParType[{cls.dtype}]"
+        if "<" in newt or "{" in newt:
+            raise NameError(f"Name is wrong {newt!r}.")
+        return newt
 
-    def __repr__(self) -> str:
-        "usual"
-        if self.optional:
-            return (
-                f"{self.__class__.__name__}"
-                f"({ParType.map_names[self.dtype]}, optional=True)")
-        return (
-            f"{self.__class__.__name__}"
-            f"[{ParType.map_names[self.dtype]}]")
-
-    def __str__(self) -> str:
-        "usual"
-        if self.optional:
-            return (
-                f"{self.__class__.__name__}"
-                f"{ParType.map_names[self.dtype]}, optional=True)")
-        return f"{self.__class__.__name__}[{ParType.map_names[self.dtype]}]"
-
-    @property
+    @classmethod
     def onnx_type(self):
         "Returns the onnx corresponding type."
         if self.dtype == int:
@@ -236,21 +252,48 @@ class OptParType(ParType):
 
     :param dtype: parameter type
     """
-
     @classmethod
     def __class_getitem__(cls, dtype):
-        return OptParType(dtype)
+        if isinstance(dtype, (int, float)):
+            msg = str(dtype)
+        else:
+            msg = dtype.__name__
+        newt = type(f"{cls.__name__}{msg}", (cls,), dict(dtype=dtype))
+        if "<" in newt.__name__:
+            raise NameError(f"Name is wrong {newt.__name__!r}.")
+        return newt
 
-    def __init__(self, dtype):
-        ParType.__init__(self, dtype, True)
+    @classmethod
+    def type_name(cls) -> str:
+        "Returns its full name."
+        newt = f"OptParType[{ParType.map_names[cls.dtype]}]"
+        if "<" in newt or "{" in newt:
+            raise NameError(f"Name is wrong {newt!r}.")
+        return newt
+
+
+class ShapeType(Tuple[int, ...]):
+    """
+    Defines a shape type.
+    """
+    @classmethod
+    def __class_getitem__(cls, *args):
+        if any(map(lambda t: not isinstance(t, (int, str)), args)):
+            raise TypeError(
+                f"Unexpected value for args={args}, every element should int or str.")
+        ext = "_".join(map(str, args))
+        newt = type(f"{cls.__name__}{ext}", (cls,), dict(shape=args))
+        if "<" in newt.__name__:
+            raise NameError(f"Name is wrong {newt.__name__!r}.")
+        return newt
 
     def __repr__(self) -> str:
         "usual"
-        return f"{self.__class__.__name__}[{ParType.map_names[self.dtype]}]"
+        return f"{self.__class__.__name__}[{self.shape}]"
 
     def __str__(self) -> str:
         "usual"
-        return f"{self.__class__.__name__}[{ParType.map_names[self.dtype]}]"
+        return f"{self.__class__.__name__}[{self.shape}]"
 
 
 class TensorType:
@@ -262,49 +305,99 @@ class TensorType:
     :param name: name of the type
     """
 
-    __slots__ = ['dtypes', 'shape', 'name']
-
     @classmethod
-    def __class_getitem__(cls, dtypes):
-        return TensorType(dtypes)
+    def __class_getitem__(cls, *args):
+        if (isinstance(args, tuple) and len(args) == 1 and
+                isinstance(args[0], tuple)):
+            args = args[0]
+        name = None
+        dtypes = None
+        shape = None
+        for a in args:
+            if isinstance(a, str):
+                if hasattr(ElemType, a):
+                    if dtypes is not None:
+                        raise TypeError(
+                            f"Unexpected type {type(a)} in {args}.")
+                    v = getattr(ElemType, a)
+                    dtypes = tuple(v) if isinstance(v, set) else (v, )
+                else:
+                    name = a
+            elif isinstance(a, set):
+                dtypes = tuple(a)
+            elif isinstance(a, tuple):
+                shape = a
+            elif isinstance(a, int):
+                if dtypes is not None:
+                    raise TypeError(f"Unexpected type {type(a)} in {args}.")
+                dtypes = (a, )
+            elif a in ElemType.numpy_map:
+                if dtypes is not None:
+                    raise TypeError(f"Unexpected type {type(a)} in {args}.")
+                dtypes = (ElemType.numpy_map[a], )
+            elif a is not None:
+                raise TypeError(f"Unexpected type {type(a)} in {args}.")
 
-    def __init__(self, dtypes: Tuple[ElemType],
-                 shape: Optional[Union[int, Tuple[int, ...]]] = None,
-                 name: str = ""):
         if isinstance(dtypes, ElemType):
             dtypes = (dtypes,)
         elif (isinstance(dtypes, str) or dtypes in ElemType.allowed or
               dtypes in ElemType.numpy_map):
-            dtypes = (ElemType(dtypes), )
+            dtypes = (ElemType[dtypes], )
         if not isinstance(dtypes, tuple):
-            raise TypeError(f"dtypes must be a tuple not {type(dtypes)}.")
+            raise TypeError(
+                f"dtypes must be a tuple not {type(dtypes)}, args={args}.")
         check = []
         for dt in dtypes:
             if isinstance(dt, ElemType):
                 check.append(dt)
             elif dt in ElemType.allowed:
-                check.append(ElemType(dt))
+                check.append(ElemType[dt])
+            elif isinstance(dt, int):
+                check.append(ElemType[dt])
             else:
-                raise TypeError(f"Unexpected type {type(dt)} in {dtypes}.")
-        self.dtypes = tuple(check)
+                raise TypeError(
+                    f"Unexpected type {type(dt)} in {dtypes}, args={args}.")
+
+        dtypes = tuple(check)
         if isinstance(shape, int):
             shape = (shape,)
-        self.shape = shape
-        self.name = name
+        msg = []
+        if name:
+            msg.append(name)
+        if dtypes is not None:
+            msg.append("_".join(map(lambda t: str(t.dtype), dtypes)))
+        if shape is not None:
+            msg.append("_".join(map(str, shape)))
+        final = "__".join(msg)
+        if final:
+            final = "_" + final
+        newt = type(f"{cls.__name__}{final}", (cls,),
+                    dict(name=name, dtypes=dtypes, shape=shape))
+        if "<" in newt.__name__:
+            raise NameError(f"Name is wrong {newt.__name__!r}.")
+        return newt
 
-    def __repr__(self) -> str:
-        "usual"
-        if len(self.dtypes) == 1:
-            st = repr(self.dtypes[0])
+    @classmethod
+    def type_name(cls) -> str:
+        "Returns its full name."
+        set_name = ElemType.get_set_name(cls.dtypes)
+        if not set_name:
+            st = (
+                cls.dtypes[0].type_name() if len(cls.dtypes) == 1
+                else set(t.type_name() for t in cls.dtypes))
+            set_name = repr(st)
+        if cls.shape:
+            if cls.name:
+                newt = f"TensorType[{set_name}, {cls.shape!r}, {cls.name!r}]"
+            else:
+                newt = f"TensorType[{set_name}, {cls.shape!r}]"
+        elif cls.name:
+            newt = f"TensorType[{set_name}, {cls.name!r}]"
         else:
-            st = repr(self.dtypes)
-        if self.shape:
-            if self.name:
-                return f"{self.__class__.__name__}({st}, {self.shape!r}, {self.name!r})"
-            return f"{self.__class__.__name__}({st}, {self.shape!r})"
-        if self.name:
-            return f"{self.__class__.__name__}({st}, {self.name!r})"
-        return f"{self.__class__.__name__}({st})"
+            newt = f"TensorType[{set_name}]"
+        if "<" in newt or "{" in newt:
+            raise NameError(f"Name is wrong {newt!r}.")
+        return newt
 
     def _name_set(self):
         s = 0
@@ -317,35 +410,22 @@ class TensorType:
                 f"Unable to guess element type name for {s}: "
                 f"{repr(self)} in {ElemType.set_names}.")
 
-    def __str__(self) -> str:
+    @classmethod
+    def issuperset(cls, tensor_type: "TensorType") -> bool:
         """
-        Simplified display.
+        Tells if *cls* is a superset of *tensor_type*.
         """
-        name = self._name_set()
-        if self.shape:
-            sh = str(self.shape).strip("()[]").replace(" ", "")
-            sig = f"{name}[{sh}]"
-        else:
-            sig = f"{name}[]"
-        if self.name:
-            return f"{sig}({self.name})"
-        return sig
-
-    def issuperset(self, tensor_type: "TensorType") -> bool:
-        """
-        Tells if *self* is a superset of *tensor_type*.
-        """
-        set1 = set(t.dtype for t in self.dtypes)
+        set1 = set(t.dtype for t in cls.dtypes)
         set2 = set(t.dtype for t in tensor_type.dtypes)
         if not set1.issuperset(set2):
             return False
-        if self.shape is None:
+        if cls.shape is None:
             return True
         if tensor_type.shape is None:
             return False
-        if len(self.shape) != len(tensor_type.shape):
+        if len(cls.shape) != len(tensor_type.shape):
             return False
-        for a, b in zip(self.shape, tensor_type.shape):
+        for a, b in zip(cls.shape, tensor_type.shape):
             if isinstance(a, int):
                 if a != b:
                     return False
@@ -357,20 +437,32 @@ class SequenceType:
     Defines a sequence of tensors.
     """
     @classmethod
-    def __class_getitem__(cls, elem_type: Any) -> "SequenceType":
-        return SequenceType(elem_type)
+    def __class_getitem__(cls, elem_type: Any, *args) -> "SequenceType":
+        name = None
+        if len(args) == 1:
+            name = args[0]
+        elif len(args) > 1:
+            raise ValueError(f"Unexected value {args}.")
+        if name:
+            newt = type(f"{cls.__name__}_{name}_{elem_type.__name__}", (cls,),
+                        dict(name=name, elem_type=elem_type))
+        else:
+            newt = type(f"{cls.__name__}{elem_type.__name__}", (cls,),
+                        dict(name=name, elem_type=elem_type))
+        if "<" in newt.__name__:
+            raise NameError(f"Name is wrong {newt.__name__!r}.")
+        return newt
 
-    def __init__(self, elem_type: Any, name: str = ""):
-        self.elem_type = elem_type
-        self.name = name
-
-    def __repr__(self) -> str:
-        "usual"
-        if self.name:
-            return (
-                f"{self.__class__.__name__}({self.elem_type!r}, "
-                f"{self.name!r})")
-        return f"{self.__class__.__name__}[{self.elem_type!r}]"
+    @classmethod
+    def type_name(cls) -> str:
+        "Returns its full name."
+        if cls.name:
+            newt = f"SequenceType[{cls.elem_type.type_name()}], {cls.name!r})"
+        else:
+            newt = f"SequenceType[{cls.elem_type.type_name()!r}]"
+        if "<" in newt or "{" in newt:
+            raise NameError(f"Name is wrong {newt!r}.")
+        return newt
 
 
 class TupleType:
@@ -378,29 +470,49 @@ class TupleType:
     Defines a sequence of tensors.
     """
     @classmethod
-    def __class_getitem__(cls, elem_types: Tuple[Any, ...]) -> "TupleType":
-        return TupleType(elem_types)
+    def __class_getitem__(cls, *args) -> "TupleType":
+        if len(args) == 1 and isinstance(args[0], int):
+            return cls.elem_types[args[0]]
+        if (isinstance(args, tuple) and len(args) == 1 and
+                isinstance(args[0], tuple)):
+            args = args[0]
+        name = None
+        elem_types = []
+        for a in args:
+            if isinstance(a, str):
+                name = a
+            elif isinstance(a, type) and issubclass(a, TensorType):
+                elem_types.append(a)
+            else:
+                raise TypeError(f"Unexpected value {a} in {args}.")
+        msg = []
+        if name:
+            msg.append(name)
+        for t in elem_types:
+            msg.append(t.__name__)
+        final = "_".join(msg)
+        newt = type(f"{cls.__name__}_{final}", (cls,),
+                    dict(name=name, elem_types=tuple(elem_types)))
+        if "<" in newt.__name__:
+            raise NameError(f"Name is wrong {newt.__name__!r}.")
+        return newt
 
-    def __init__(self, elem_types: Tuple[Any, ...], name: str = ""):
-        self.elem_types = elem_types
-        self.name = name
-
-    def __len__(self):
+    @classmethod
+    def len(cls):
         "Returns the number of types."
-        return len(self.elem_types)
+        return len(cls.elem_types)
 
-    def __repr__(self) -> str:
-        "usual"
-        if self.name:
-            return (
-                f"{self.__class__.__name__}({self.elem_types!r}, "
-                f"{self.name!r})")
-        s = ", ".join(map(str, self.elem_types))
-        return f"{self.__class__.__name__}[{s}]"
-
-    def __getitem__(self, i):
-        "Returns the ith type."
-        return self.elem_types[i]
+    @classmethod
+    def type_name(cls) -> str:
+        "Returns its full name."
+        dts = ", ".join(map(lambda s: s.type_name(), cls.elem_types))
+        if cls.name:
+            newt = f"TupleType[{dts}, {cls.name!r}]"
+        else:
+            newt = f"TupleType[{dts}]"
+        if "<" in newt or "{" in newt:
+            raise NameError(f"Name is wrong {newt!r}.")
+        return newt
 
 
 class Float32:
@@ -408,8 +520,10 @@ class Float32:
     For simpler annotation.
     """
     @classmethod
-    def __class_getitem__(cls, shape):
-        return TensorType(ElemType.float32, shape=shape)
+    def __class_getitem__(cls, shape: Union[int, ShapeType]) -> TensorType:
+        if isinstance(shape, int):
+            shape = (shape,)
+        return TensorType[ElemType.float32, shape]
 
 
 class Float64:
@@ -417,8 +531,10 @@ class Float64:
     For simpler annotation.
     """
     @classmethod
-    def __class_getitem__(cls, shape):
-        return TensorType(ElemType.float64, shape=shape)
+    def __class_getitem__(cls, shape: Union[int, ShapeType]) -> TensorType:
+        if isinstance(shape, int):
+            shape = (shape,)
+        return TensorType[ElemType.float64, shape]
 
 
 class Int64:
@@ -426,5 +542,7 @@ class Int64:
     For simpler annotation.
     """
     @classmethod
-    def __class_getitem__(cls, shape):
-        return TensorType(ElemType.int64, shape=shape)
+    def __class_getitem__(cls, shape: Union[int, ShapeType]) -> TensorType:
+        if isinstance(shape, int):
+            shape = (shape,)
+        return TensorType[ElemType.int64, shape]

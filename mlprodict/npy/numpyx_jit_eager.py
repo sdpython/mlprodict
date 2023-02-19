@@ -6,7 +6,6 @@
 """
 from inspect import signature
 from typing import Any, Callable, Dict, List, Optional, Tuple, Union
-import numpy
 from .numpyx_var import Input, Var
 from .numpyx_tensors import (
     BackendNumpyTensor, EagerNumpyTensor, BackendEagerTensor)
@@ -56,7 +55,7 @@ class JitEager:
             else:
                 raise TypeError(
                     f"Type {type(v)} is not yet supported, "
-                    f"f={self.f} and parameter {k!r}.")
+                    f"v={v} and parameter {k!r}.")
         return tuple(res)
 
     def to_jit(self, *values, **kwargs):

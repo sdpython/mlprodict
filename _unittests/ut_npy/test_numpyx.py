@@ -17,7 +17,7 @@ from onnx.reference import ReferenceEvaluator
 from onnx.shape_inference import infer_shapes
 from pyquickhelper.pycode import ExtTestCase
 from mlprodict.onnxrt import OnnxInference
-from mlprodict.npy.numpyx import ElemType, TensorType, jit_onnx, eager_onnx
+from mlprodict.npy.numpyx import ElemType, jit_onnx, eager_onnx
 from mlprodict.npy.numpyx_types import (
     Float32, Float64, Int64, OptParType, TensorType)
 from mlprodict.npy.numpyx_var import Input, Var
@@ -37,7 +37,7 @@ from mlprodict.npy.numpyx_functions import (
     arctanh as arctanh_inline,
     ceil as ceil_inline,
     clip as clip_inline,
-    concat as concat_inline,    
+    concat as concat_inline,
     identity as identity_inline,
     topk as topk_inline)
 from mlprodict.npy.numpyx_tensors_ort import (
@@ -71,29 +71,29 @@ class TestNumpyx(ExtTestCase):
         self.assertEqual(output.type.tensor_type.elem_type, TensorProto.FLOAT)
 
     def test_tensor(self):
-        dt = TensorType("float32")
-        self.assertEqual(len(dt.dtypes), 1)
-        self.assertEqual(dt.dtypes[0].dtype, ElemType.float32)
-        self.assertEmpty(dt.shape)
-        self.assertEqual(repr(dt), "TensorType(ElemType(ElemType.float32))")
         dt = TensorType["float32"]
         self.assertEqual(len(dt.dtypes), 1)
         self.assertEqual(dt.dtypes[0].dtype, ElemType.float32)
-        self.assertEqual(repr(dt), "TensorType(ElemType(ElemType.float32))")
+        self.assertEmpty(dt.shape)
+        self.assertEqual(dt.type_name(), "TensorType['float32']")
+        dt = TensorType["float32"]
+        self.assertEqual(len(dt.dtypes), 1)
+        self.assertEqual(dt.dtypes[0].dtype, ElemType.float32)
+        self.assertEqual(dt.type_name(), "TensorType['float32']")
         dt = TensorType[numpy.float32]
         self.assertEqual(len(dt.dtypes), 1)
         self.assertEqual(dt.dtypes[0].dtype, ElemType.float32)
-        self.assertEqual(repr(dt), "TensorType(ElemType(ElemType.float32))")
+        self.assertEqual(dt.type_name(), "TensorType['float32']")
         self.assertEmpty(dt.shape)
 
-        self.assertRaise(lambda: TensorType([]), TypeError)
-        self.assertRaise(lambda: TensorType(numpy.str_), TypeError)
-        self.assertRaise(lambda: TensorType(
-            (numpy.float32, numpy.str_)), TypeError)
+        self.assertRaise(lambda: TensorType[None], TypeError)
+        self.assertRaise(lambda: TensorType[numpy.str_], TypeError)
+        self.assertRaise(lambda: TensorType[
+            {numpy.float32, numpy.str_}], TypeError)
 
     def test_superset(self):
         t1 = TensorType[ElemType.numerics]
-        t2 = TensorType(ElemType.float64)
+        t2 = TensorType[ElemType.float64]
         self.assertTrue(t1.issuperset(t2))
         t1 = Float32[None]
         t2 = Float32[None]
@@ -107,7 +107,7 @@ class TestNumpyx(ExtTestCase):
         t1 = Float32["N"]
         t2 = Float32[5]
         self.assertTrue(t1.issuperset(t2))
-        t1 = TensorType(ElemType.int64)
+        t1 = TensorType[ElemType.int64]
         t2 = Int64[1]
         self.assertTrue(t1.issuperset(t2))
 
@@ -116,7 +116,7 @@ class TestNumpyx(ExtTestCase):
         def local1(x: TensorType[ElemType.floats]) -> TensorType[ElemType.floats]:
             return x
 
-        def local2(x: TensorType(ElemType.floats, name="T")) -> TensorType(ElemType.floats, name="T"):
+        def local2(x: TensorType[ElemType.floats, "T"]) -> TensorType[ElemType.floats, "T"]:
             return x
 
         def local3(x: Float32["N", 1]) -> Float32["N", 1]:
@@ -135,8 +135,8 @@ class TestNumpyx(ExtTestCase):
         self.assertIsInstance(f, Var)
         self.assertIn(":param inputs:", f.__doc__)
         self.assertIn("Signature", absolute.__doc__)
-        self.assertIn("x: Numerics[](T)", absolute.__doc__)
-        self.assertIn("-> Numerics[]", absolute.__doc__)
+        self.assertIn("x: TensorType[numerics, 'T']", absolute.__doc__)
+        self.assertIn("-> TensorType[numerics, 'T']", absolute.__doc__)
         self.assertTrue(f.is_function)
         onx = f.to_onnx(constraints={'T': Float64[None]})
         x = numpy.array([-5, 6], dtype=numpy.float64)
@@ -184,9 +184,9 @@ class TestNumpyx(ExtTestCase):
         f = absolute(addition(Input(), Input()))
         self.assertIsInstance(f, Var)
         self.assertIn("Signature", addition.__doc__)
-        self.assertIn("x: Numerics[](T)", addition.__doc__)
-        self.assertIn("y: Numerics[](T)", addition.__doc__)
-        self.assertIn("-> Numerics[](T)", addition.__doc__)
+        self.assertIn("x: TensorType[numerics, 'T']", addition.__doc__)
+        self.assertIn("y: TensorType[numerics, 'T']", addition.__doc__)
+        self.assertIn("-> TensorType[numerics, 'T']", addition.__doc__)
         self.assertRaise(lambda: f.to_onnx(), RuntimeError)
         onx = f.to_onnx(constraints={'T': Float64[None]})
         x = numpy.array([-5, 6], dtype=numpy.float64)
@@ -200,8 +200,8 @@ class TestNumpyx(ExtTestCase):
         f = argmin(Input())
         self.assertIsInstance(f, Var)
         self.assertIn("Signature", argmin.__doc__)
-        self.assertIn("x: Numerics[](T),", argmin.__doc__)
-        self.assertIn("-> Numerics[](T)", argmin.__doc__)
+        self.assertIn("x: TensorType[numerics, 'T'],", argmin.__doc__)
+        self.assertIn("-> TensorType[numerics, 'T']", argmin.__doc__)
         self.assertIn("axis: OptParType[int],", argmin.__doc__)
         onx = f.to_onnx(constraints={'T': Float64[None]})
         x = numpy.array([[-5, 6], [15, 3]], dtype=numpy.float64)
@@ -359,8 +359,8 @@ class TestNumpyx(ExtTestCase):
         self.assertIsInstance(f, Var)
         self.assertIn(":param inputs:", f.__doc__)
         self.assertIn("Signature", absolute.__doc__)
-        self.assertIn("x: Numerics[](T)", absolute.__doc__)
-        self.assertIn("-> Numerics[]", absolute.__doc__)
+        self.assertIn("x: TensorType[numerics, 'T']", absolute.__doc__)
+        self.assertIn("-> TensorType[numerics, 'T']", absolute.__doc__)
         self.assertTrue(f.is_function)
         onx = f.to_onnx(constraints={0: Float64[None],
                                      (0, False): Float64[None]})
@@ -625,9 +625,9 @@ class TestNumpyx(ExtTestCase):
     def test_backend_parameters_no_inline_xapi(self):
 
         @xapi_function
-        def impl(A: TensorType(ElemType.numerics, name="T"),
+        def impl(A: TensorType[ElemType.numerics, "T"],
                  axis: OptParType[int] = 1
-                 ) -> TensorType(ElemType.numerics, name="T"):
+                 ) -> TensorType[ElemType.numerics, "T"]:
             return argmin(A, axis=axis)
 
         f = impl(Input("A"))
@@ -689,10 +689,11 @@ class TestNumpyx(ExtTestCase):
         self.assertIsInstance(f, Var)
         self.assertIn(":param inputs:", f.__doc__)
         self.assertIn("Signature", topk.__doc__)
-        self.assertIn("x: Numerics[](T)", topk.__doc__)
-        self.assertIn("k: Int64[1](I)", topk.__doc__)
+        self.assertIn("x: TensorType[numerics, 'T']", topk.__doc__)
+        self.assertIn("k: TensorType['int64', (1,), 'I']", topk.__doc__)
         self.assertIn(
-            ") -> TupleType[Numerics[](T), Int64[](I)]", topk.__doc__)
+            ") -> TupleType[TensorType[numerics, 'T'], TensorType['int64', 'I']]",
+            topk.__doc__)
         self.assertTrue(f.is_function)
         onx = f.to_onnx(constraints={'X': Float64[None],
                                      'K': Int64[1],
@@ -768,10 +769,11 @@ class TestNumpyx(ExtTestCase):
         self.assertIsInstance(f, Var)
         self.assertIn(":param inputs:", f.__doc__)
         self.assertIn("Signature", topk.__doc__)
-        self.assertIn("x: Numerics[](T)", topk.__doc__)
-        self.assertIn("k: Int64[1](I)", topk.__doc__)
+        self.assertIn("x: TensorType[numerics, 'T']", topk.__doc__)
+        self.assertIn("k: TensorType['int64', (1,), 'I']", topk.__doc__)
         self.assertIn(
-            ") -> TupleType[Numerics[](T), Int64[](I)]", topk.__doc__)
+            ") -> TupleType[TensorType[numerics, 'T'], TensorType['int64', 'I']]",
+            topk.__doc__)
         self.assertTrue(f.is_function)
         onx = f.to_onnx(constraints={'X': Float64[None],
                                      'K': Int64[1],
@@ -913,7 +915,6 @@ class TestNumpyx(ExtTestCase):
             onx = f.to_onnx(constraints={'A': Float64[None],
                                          (0, False): Float64[None]})
         x = numpy.array([-5, 6], dtype=numpy.float64)
-        y = numpy.array([15, -16], dtype=numpy.float64)
         z = numpy.abs(x) - x
         ref = ReferenceEvaluator(onx)
         got = ref.run(None, {'A': x})
@@ -968,7 +969,6 @@ class TestNumpyx(ExtTestCase):
             onx = f.to_onnx(constraints={'A': Float64[None],
                                          (0, False): Float64[None]})
         x = numpy.array([-5, 6], dtype=numpy.float64)
-        y = numpy.array([15, -16], dtype=numpy.float64)
         z = numpy.abs(x) - x + 1
         ref = ReferenceEvaluator(onx)
         got = ref.run(None, {'A': x})
@@ -1157,13 +1157,13 @@ class TestNumpyx(ExtTestCase):
             "or",
             lambda x, y: (x.sum() == y.sum()) or (((-x).sum()) == y.sum()))
 
-    def common_test_inline(self, fonx, fnp, cst=0):
+    def common_test_inline(self, fonx, fnp, tcst=0):
         f = fonx(Input("A"))
         self.assertIsInstance(f, Var)
         onx = f.to_onnx(constraints={0: Float64[None],
                                      (0, False): Float64[None]})
         x = numpy.array([0.1, 0.2], dtype=numpy.float64)
-        x += cst
+        x += tcst
         y = fnp(x)
         ref = ReferenceEvaluator(onx)
         got = ref.run(None, {'A': x})
@@ -1173,7 +1173,7 @@ class TestNumpyx(ExtTestCase):
         self.common_test_inline(arccos_inline, numpy.arccos)
 
     def test_arccosh(self):
-        self.common_test_inline(arccosh_inline, numpy.arccosh, cst=1)
+        self.common_test_inline(arccosh_inline, numpy.arccosh, tcst=1)
 
     def test_arcsin(self):
         self.common_test_inline(arcsin_inline, numpy.arcsin)
@@ -1237,5 +1237,5 @@ class TestNumpyx(ExtTestCase):
 
 
 if __name__ == "__main__":
-    TestNumpyx().test_clip_int()
+    TestNumpyx().test_tensor()
     unittest.main(verbosity=2)
