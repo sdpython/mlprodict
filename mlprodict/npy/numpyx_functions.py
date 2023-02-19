@@ -4,6 +4,7 @@
 
 .. versionadded:: 0.10
 """
+import numpy
 from .numpyx_core_api import (  # pylint: disable=W0611
     cst, make_tuple, var, xapi_inline)
 from .numpyx_types import (  # pylint: disable=W0611

@@ -53,7 +53,7 @@ def _xapi(fn: Callable, inline: bool, eager: bool):
         a function
     :param eager: enables eager mode or convert it into onnx
     """
-    cst_types = (Var, numpy.ndarray)
+    cst_types = (Var, numpy.ndarray, int, float)
     sig = signature(fn)
 
     # It has the same signature
@@ -81,6 +81,11 @@ def _xapi(fn: Callable, inline: bool, eager: bool):
         for ind, i in enumerate(inputs):
             if isinstance(i, (Var, numpy.ndarray)):
                 new_inputs.append(i)
+            elif isinstance(i, (int, float)):
+                new_inputs.append(
+                    numpy.array(
+                        [i], dtype=numpy.int64
+                        if isinstance(i, int) else numpy.float32))
             elif isinstance(i, str):
                 new_inputs.append(Input(i))
             else:
