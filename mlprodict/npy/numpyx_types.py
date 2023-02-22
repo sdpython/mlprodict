@@ -278,7 +278,7 @@ class ShapeType(Tuple[int, ...]):
     """
     @classmethod
     def __class_getitem__(cls, *args):
-        if any(map(lambda t: not isinstance(t, (int, str)), args)):
+        if any(map(lambda t: not isinstance(t, (int, str, None)), args)):
             raise TypeError(
                 f"Unexpected value for args={args}, every element should int or str.")
         ext = "_".join(map(str, args))

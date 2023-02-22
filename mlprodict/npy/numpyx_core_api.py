@@ -69,12 +69,6 @@ def _xapi(fn: Callable, inline: bool, eager: bool):
         if eager:
             return fn(*inputs, **kwargs)
 
-        if any(map(lambda i: not isinstance(i, cst_types), inputs)):
-            # TODO: remove that test when the code is stable
-            raise TypeError(
-                f"Inconsistency in types "
-                f"{','.join(map(lambda t: str(type(t)), inputs))}.")
-
         # conversion to onnx
         new_inputs = []
         new_pars = {}
@@ -88,6 +82,9 @@ def _xapi(fn: Callable, inline: bool, eager: bool):
                         if isinstance(i, int) else numpy.float32))
             elif isinstance(i, str):
                 new_inputs.append(Input(i))
+            elif i is None:
+                # optional input
+                new_inputs.append(None)
             else:
                 raise TypeError(
                     f"Unexpected type for input {ind}, type={type(i)}.")

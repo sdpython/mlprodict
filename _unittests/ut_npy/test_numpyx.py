@@ -310,7 +310,6 @@ class TestNumpyx(ExtTestCase):
         x5 = numpy.array([[100, 200]], dtype=numpy.float64)
         z = numpy.vstack([x1, x2, x3, x4, x5])
         ref = ReferenceEvaluator(onx)
-        # print(onx)
         feeds = {'A': x1, 'B': x2, 'C': x3, 'D': x4, 'E': x5}
         try:
             got = ref.run(None, feeds)
@@ -960,7 +959,7 @@ class TestNumpyx(ExtTestCase):
             print("A")
             b = absolute(A)
             print("B")
-            c = b - A + cst(1)
+            c = b - A + cst([1])
             print("C")
             return c
 
@@ -974,7 +973,8 @@ class TestNumpyx(ExtTestCase):
         got = ref.run(None, {'A': x})
         self.assertEqualArray(z, got[0])
 
-        f = jit_onnx(impl, BackendOrtTensor, target_opsets={'': 17})
+        f = jit_onnx(impl, BackendOrtTensor,
+                     target_opsets={'': 17}, ir_version=8)
 
         # Float64
         xort = OrtTensor.from_array(x)
@@ -1004,12 +1004,11 @@ class TestNumpyx(ExtTestCase):
         self.assertStartsWith("A\nA\nB\nC\n", text)
 
         # Int64
-        print(ix, xiort.numpy())
         s = StringIO()
         with redirect_stdout(s):
             res = e(xiort)
         text = s.getvalue()
-        self.assertEqual(res.numpy(), numpy.int64)
+        self.assertEqual(res.numpy().dtype, numpy.int64)
         self.assertEqual("A\nB\nC\n", text)
         self.assertEqualArray(z.astype(numpy.int64), res.numpy())
         self.assertEqual(ix.shape, tuple(res.shape()))
@@ -1237,5 +1236,5 @@ class TestNumpyx(ExtTestCase):
 
 
 if __name__ == "__main__":
-    TestNumpyx().test_tensor()
+    # TestNumpyx().test_numpy_min_max()
     unittest.main(verbosity=2)

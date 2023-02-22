@@ -26,17 +26,20 @@ class JitEager:
         the onnx graph is created and type is needed to do such,
         if not specified, the class assumes there is only one output
         of the same type as the input
+    :param ir_version: defines the IR version to use
     """
 
     def __init__(self, f: Callable, tensor_class: type,
                  target_opsets: Optional[Dict[str, int]] = None,
-                 output_types: Optional[Dict[Any, TensorType]] = None):
+                 output_types: Optional[Dict[Any, TensorType]] = None,
+                 ir_version: Optional[int] = None):
         self.f = f
         self.tensor_class = tensor_class
         self.versions = {}
         self.onxs = {}
         self.target_opsets = target_opsets
         self.output_types = output_types
+        self.ir_version = ir_version
 
     @staticmethod
     def make_key(*values, **kwargs):
@@ -46,32 +49,37 @@ class JitEager:
         key (or signature) must use the same compiled ONNX.
         """
         if len(kwargs) == 0:
-            return tuple(v.key for v in values)
-        res = [v.key for v in values]
-        for k, v in sorted(kwargs.items()):
-            if isinstance(v, (int, float, str)):
-                res.append(k)
-                res.append(v)
-            else:
-                raise TypeError(
-                    f"Type {type(v)} is not yet supported, "
-                    f"v={v} and parameter {k!r}.")
-        return tuple(res)
+            key = tuple(v.key for v in values)
+        else:
+            res = [v.key for v in values]
+            for k, v in sorted(kwargs.items()):
+                if isinstance(v, (int, float, str)):
+                    res.append(k)
+                    res.append(v)
+                else:
+                    raise TypeError(
+                        f"Type {type(v)} is not yet supported, "
+                        f"v={v} and parameter {k!r}.")
+            key = tuple(res)
+        return key
 
     def to_jit(self, *values, **kwargs):
         """
         Converts the function into ONNX based on the provided inputs
         and parameters. It then wraps it by calling
         `self.tensor_class.create_function`.
+        The onnx graph built by the function defines the input
+        types and the expected number of dimensions.
         """
-        constraints = {f"x{i}": v.tensor_type
+        constraints = {f"x{i}": v.tensor_type_dims
                        for i, v in enumerate(values)}
         if self.output_types is not None:
             constraints.update(self.output_types)
         inputs = [Input(f"x{i}") for i in range(len(values))]
         var = self.f(*inputs, **kwargs)
         onx = var.to_onnx(constraints=constraints,
-                          target_opsets=self.target_opsets)
+                          target_opsets=self.target_opsets,
+                          ir_version=self.ir_version)
         names = [f"x{i}" for i in range(len(values))]
         exe = self.tensor_class.create_function(names, onx)
         return onx, exe
@@ -140,11 +148,13 @@ class JitOnnx(JitEager):
         the onnx graph is created and type is needed to do such,
         if not specified, the class assumes there is only one output
         of the same type as the input
+    :param ir_version: defines the IR version to use
     """
 
     def __init__(self, f: Callable, tensor_class: type = None,
                  target_opsets: Optional[Dict[str, int]] = None,
-                 output_types: Optional[Dict[Any, TensorType]] = None):
+                 output_types: Optional[Dict[Any, TensorType]] = None,
+                 ir_version: Optional[int] = None):
         if tensor_class is None:
             tensor_class = BackendNumpyTensor
         JitEager.__init__(self, f, tensor_class, target_opsets=target_opsets,
@@ -180,11 +190,13 @@ class EagerOnnx(JitEager):
         the onnx graph is created and type is needed to do such,
         if not specified, the class assumes there is only one output
         of the same type as the input
+    :param ir_version: defines the IR version to use
     """
 
     def __init__(self, f: Callable, tensor_class: type = None,
                  target_opsets: Optional[Dict[str, int]] = None,
-                 output_types: Optional[Dict[Any, TensorType]] = None):
+                 output_types: Optional[Dict[Any, TensorType]] = None,
+                 ir_version: Optional[int] = None):
         if tensor_class is None:
             tensor_class = EagerNumpyTensor
         JitEager.__init__(self, f, tensor_class, target_opsets=target_opsets,

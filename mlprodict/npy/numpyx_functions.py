@@ -136,6 +136,8 @@ def clip(x: TensorType[ElemType.numerics, "T"],
     args = [x]
     if a_min is not None:
         args.append(_cstv(a_min))
+    else:
+        args.append(None)
     if a_max is not None:
         args.append(_cstv(a_max))
     return var(*args, op='Clip')

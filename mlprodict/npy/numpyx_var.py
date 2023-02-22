@@ -118,7 +118,8 @@ class ManyIdentity:
                 name: Optional[str] = None,
                 domain: Optional[str] = None,
                 attributes: Optional[List[str]] = None,
-                constraints: Optional[Dict[Any, TensorType]] = None
+                constraints: Optional[Dict[Any, TensorType]] = None,
+                ir_version: Optional[int] = None,
                 ) -> Union[ModelProto, FunctionProto, List[Any]]:
         """
         Converts the recursive graph to ONNX.
@@ -139,7 +140,7 @@ class ManyIdentity:
         # Var.to_onnx
         g = _GraphBuilder(target_opsets, as_function=as_function,
                           name=name, domain=domain, attributes=attributes,
-                          constraints=constraints)
+                          constraints=constraints, ir_version=ir_version)
         done = set()
         outputs = []
         for var in self.inputs:
@@ -338,9 +339,13 @@ class Var:
             if isinstance(r, (Cst, Input)):
                 continue
             for ind, i in enumerate(r.inputs):
+                if i is None:
+                    # optional input
+                    continue
                 if id(i) not in known:
                     raise RuntimeError(
-                        f"An input {ind} ({id(i)}) from {id(r)}-{r} "
+                        f"An input {ind} ({id(i)}, type={type(i)}) "
+                        f"from {id(r)}-{r} "
                         f"is not known, it is not produced by a "
                         f"previous var (scheduled for replacement: "
                         f"{id(i) in replacement}).")
@@ -358,7 +363,8 @@ class Var:
                 name: Optional[str] = None,
                 domain: Optional[str] = None,
                 attributes: Optional[List[str]] = None,
-                constraints: Optional[Dict[Any, TensorType]] = None
+                constraints: Optional[Dict[Any, TensorType]] = None,
+                ir_version: Optional[int] = None
                 ) -> Union[ModelProto, FunctionProto, List[Any]]:
         """
         Converts the recursive graph to ONNX.
@@ -381,7 +387,7 @@ class Var:
             target_opsets = DEFAULT_OPSETS
         g = _GraphBuilder(target_opsets, as_function=as_function,
                           name=name, domain=domain, attributes=attributes,
-                          constraints=constraints)
+                          constraints=constraints, ir_version=ir_version)
         vs = self._get_vars()
         for var in vs:
             g.append(var)
@@ -687,6 +693,17 @@ class Cst(Var):
         elif isinstance(cst, float):
             Var.__init__(self, numpy.array([cst], dtype=numpy.float32),
                          op="Identity")
+        elif isinstance(cst, list):
+            if all(map(lambda t: isinstance(t, int), cst)):
+                Var.__init__(self, numpy.array(cst, dtype=numpy.int64),
+                             op="Identity")
+            elif all(map(lambda t: isinstance(t, (float, int)), cst)):
+                Var.__init__(self, numpy.array(cst, dtype=numpy.float64),
+                             op="Identity")
+            else:
+                raise ValueError(
+                    f"Unable to convert cst (type={type(cst)}), "
+                    f"value={cst}.")
         else:
             raise NotImplementedError(
                 f"Constant of type {type(cst)} are not implemented yet.")

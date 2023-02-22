@@ -68,7 +68,7 @@ class NumpyTensor:
     @property
     def key(self) -> Any:
         "Unique key for a tensor of the same type."
-        return self.dtype
+        return (self.dtype, len(self.shape))
 
     @property
     def value(self) -> numpy.ndarray:
@@ -79,6 +79,11 @@ class NumpyTensor:
     def tensor_type(self) -> TensorType:
         "Returns the tensor type of this tensor."
         return TensorType[self.dtype]
+
+    @property
+    def tensor_type_dims(self) -> TensorType:
+        "Returns the tensor type of this tensor."
+        return TensorType[self.dtype, (None, ) * len(self.shape)]
 
     @classmethod
     def create_function(cls: Any, input_names: List[str],

@@ -27,6 +27,16 @@ from .numpyx_types import (
 from .numpyx_var import Cst, Input, ManyIdentity, Par, Var
 
 
+_OPSET_TO_IR_VERSION = {
+    14: 7,
+    15: 8,
+    16: 8,
+    17: 8,
+    18: 8,
+    19: 9,
+}
+
+
 class _FunctionIO:
     """
     Wrapper around a string.
@@ -57,6 +67,8 @@ class _GraphBuilder:
     :param constraints: specifies a precise type for the type
         constraints when a function allows more than one type,
         this works if there is only one variable to be converted
+    :param ir_version: defines the IR version to use ot build
+        the ONNX graph
     """
 
     def __init__(self, target_opsets: Optional[Dict[str, int]] = None,
@@ -64,8 +76,19 @@ class _GraphBuilder:
                  name: Optional[str] = None,
                  domain: Optional[str] = None,
                  attributes: Optional[List[str]] = None,
-                 constraints: Optional[Dict[Any, TensorType]] = None):
+                 constraints: Optional[Dict[Any, TensorType]] = None,
+                 ir_version: Optional[int] = None):
+        if ir_version is None:
+            if target_opsets is not None and "" in target_opsets and target_opsets[""] in _OPSET_TO_IR_VERSION:
+                ir_version = _OPSET_TO_IR_VERSION[target_opsets[""]]
+        if ir_version is None:
+            raise ValueError(
+                f"Not default value for ir_version and "
+                f"target_opsets={target_opsets}. "
+                f"ir_version must be defined.")
+
         self.target_opsets = target_opsets
+        self.ir_version = ir_version
 
         check_opsets = target_opsets or {"": onnx_opset_version()}
         main_opset = check_opsets.get("", None)
@@ -250,13 +273,14 @@ class _GraphBuilder:
             tensor_type_proto.elem_type = tensor_type.dtypes[0].dtype
             value_info_proto = ValueInfoProto()
             value_info_proto.name = name
-            tensor_type_proto.shape.dim.extend([])
+            # tensor_type_proto.shape.dim.extend([])
             value_info_proto.type.CopyFrom(type_proto)
             info = value_info_proto
         else:
             info = make_tensor_value_info(name, tensor_type.dtypes[0].dtype,
                                           tensor_type.shape)
-        check_value_info(info, self.check_context)
+            # check_value_info fails if the shape is left undefined
+            check_value_info(info, self.check_context)
         return info
 
     def make_input(self, name: str, tensor_type: TensorType):
@@ -322,11 +346,17 @@ class _GraphBuilder:
 
         graph = make_graph(self.nodes_, 'numpyx', self.inputs_, self.outputs_)
         model = make_model(graph, opset_imports=opset_imports,
-                           functions=list(f[0] for f in self.functions_.values()))
+                           functions=list(f[0]
+                                          for f in self.functions_.values()),
+                           ir_version=self.ir_version)
         try:
             check_model(model)
         except ValidationError as e:
-            raise RuntimeError(f"Model is not valid\n{model}") from e
+            if "Field 'shape' of 'type' is required but missing" in str(e):
+                # checker does like undefined shape
+                pass
+            else:
+                raise RuntimeError(f"Model is not valid\n{model}") from e
         has_undefined = 0 in set(o.type.tensor_type.elem_type
                                  for o in model.graph.output)
         if has_undefined:
@@ -491,6 +521,10 @@ class _GraphBuilder:
             node_inputs = []
             node_outputs = []
             for i, index in zip(var.inputs, var.input_indices):
+                if i is None:
+                    # optional input
+                    node_inputs.append("")
+                    continue
                 if isinstance(i, Var):
                     kv = id(i)
                     if (kv, index) not in self._id_vars or self._id_vars[kv, index] is None:
