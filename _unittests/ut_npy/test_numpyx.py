@@ -1236,5 +1236,5 @@ class TestNumpyx(ExtTestCase):
 
 
 if __name__ == "__main__":
-    # TestNumpyx().test_numpy_min_max()
+    TestNumpyx().test_numpy_topk_function()
     unittest.main(verbosity=2)

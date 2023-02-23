@@ -110,8 +110,8 @@ def _xapi(fn: Callable, inline: bool, eager: bool):
             raise TypeError(
                 f"Unexpected type for parameter {k!r}, type={type(v)}.")
 
-        if isinstance(sig.return_annotation, TupleType):
-            n_var_outputs = len(sig.return_annotation)
+        if issubclass(sig.return_annotation, TupleType):
+            n_var_outputs = sig.return_annotation.len()
             return Var(*new_inputs, op=fn, inline=inline,
                        n_var_outputs=n_var_outputs, **new_pars)
         return Var(*new_inputs, op=fn, inline=inline, **new_pars)
