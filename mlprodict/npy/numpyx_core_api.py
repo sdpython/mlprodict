@@ -8,7 +8,7 @@ from inspect import _empty, signature
 from typing import Callable, Optional
 import numpy
 from .numpyx_types import (
-    EagerNotAllowedError, ParType, TupleType)
+    EagerNotAllowedError, OptParType, ParType, TupleType)
 from .numpyx_var import Cst, Input, ManyIdentity, Par, Var
 from .numpyx_tensors import EagerTensor
 from .numpyx_types import ElemType
@@ -90,7 +90,8 @@ def _xapi(fn: Callable, inline: bool, eager: bool):
                 raise TypeError(
                     f"Unexpected type for input {ind}, type={type(i)}.")
         for k, v in kwargs.items():
-            if v is None and len(new_pars) == 0:
+            annotation = sig.parameters[k].annotation if k in sig.parameters else None
+            if v is None and len(new_pars) == 0 and annotation is None:
                 # It could be an optional input or a parameter.
                 raise NotImplementedError(
                     f"Unable to decide between an optional input or a "
@@ -120,8 +121,11 @@ def _xapi(fn: Callable, inline: bool, eager: bool):
                 raise TypeError(
                     f"Parameter {k!r} is a tensor ({type(v)}), it is not "
                     f"supported for a named parameter.")
+            if v is None and issubclass(annotation, OptParType):
+                continue
             raise TypeError(
-                f"Unexpected type for parameter {k!r}, type={type(v)}.")
+                f"Unexpected type for parameter {k!r}, type={type(v)}, "
+                f"annotation={annotation}.")
 
         if issubclass(sig.return_annotation, TupleType):
             n_var_outputs = sig.return_annotation.len()

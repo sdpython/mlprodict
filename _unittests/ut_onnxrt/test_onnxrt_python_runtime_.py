@@ -90,7 +90,7 @@ from skl2onnx.algebra.onnx_ops import (  # pylint: disable=E0611
     OnnxSize, OnnxSlice,
     OnnxSoftmax, OnnxSoftmaxCrossEntropyLoss,
     OnnxSoftplus, OnnxSoftsign,
-    OnnxSpaceToDepth, OnnxSplit, OnnxSplitApi18,
+    OnnxSpaceToDepth, OnnxSplit,
     OnnxSqrt, OnnxSub, OnnxSum,
     OnnxSqueeze, OnnxSqueezeApi11,
     OnnxSTFT,

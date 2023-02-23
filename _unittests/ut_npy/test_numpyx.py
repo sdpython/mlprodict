@@ -19,7 +19,7 @@ from pyquickhelper.pycode import ExtTestCase
 from mlprodict.onnxrt import OnnxInference
 from mlprodict.npy.numpyx import ElemType, jit_onnx, eager_onnx
 from mlprodict.npy.numpyx_types import (
-    Float32, Float64, Int64, OptParType, TensorType)
+    Bool, Float32, Float64, Int64, OptParType, TensorType)
 from mlprodict.npy.numpyx_var import Input, Var
 from mlprodict.npy.numpyx_core_api import xapi_function, xapi_inline, cst
 from mlprodict.npy.numpyx_functions_test import (
@@ -38,7 +38,10 @@ from mlprodict.npy.numpyx_functions import (
     arctanh as arctanh_inline,
     ceil as ceil_inline,
     clip as clip_inline,
+    compress as compress_inline,
     concat as concat_inline,
+    cos as cos_inline,
+    cosh as cosh_inline,
     identity as identity_inline,
     topk as topk_inline)
 from mlprodict.npy.numpyx_tensors_ort import (
@@ -1293,7 +1296,28 @@ class TestNumpyx(ExtTestCase):
         self.assertEqual(y.dtype, got[0].dtype)
         self.assertEqualArray(y, got[0])
 
+    def test_cos(self):
+        self.common_test_inline(cos_inline, numpy.cos)
+
+    def test_cosh(self):
+        self.common_test_inline(cosh_inline, numpy.cosh)
+
+    def test_compress_float32(self):
+        x = numpy.array([[-6.1, 5, 6], [-3.5, 7.8, 5]], dtype=numpy.float32)
+        cond = numpy.array([False, True])
+
+        axes = [0, 1, None]
+        for axis in axes:
+            with self.subTest(axis=axis):
+                z = numpy.compress(cond, x, axis=axis)
+                f = compress_inline(Input("A"), Input("B"), axis=axis)
+                onx = f.to_onnx(constraints={'A': Bool[None],
+                                             'B': Float32[None]})
+                ref = ReferenceEvaluator(onx)
+                got = ref.run(None, {'A': cond, 'B': x})
+                self.assertEqualArray(z, got[0])
+
 
 if __name__ == "__main__":
-    TestNumpyx().test_arange_inline_dtype()
+    TestNumpyx().test_compress_float32()
     unittest.main(verbosity=2)

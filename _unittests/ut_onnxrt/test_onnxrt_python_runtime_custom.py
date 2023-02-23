@@ -240,7 +240,8 @@ class TestOnnxrtPythonRuntimeCustom(ExtTestCase):
                             numpy.float32).reshape((3, -1))
                     else:
                         continue
-                    Y = numpy.fft.fft2(X.astype(numpy.float32), axes=axis)
+                    Y = numpy.fft.fft2(X.astype(numpy.float32),
+                                       axes=axis)  # pylint: disable=E0601
 
                     if axis is not None:
                         onx = OnnxFFT2D('X', output_names=['Y'],

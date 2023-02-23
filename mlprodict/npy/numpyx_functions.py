@@ -170,6 +170,20 @@ def clip(x: TensorType[ElemType.numerics, "T"],
 
 
 @xapi_inline
+def compress(condition: TensorType[ElemType.bool_, "B"],
+             x: TensorType[ElemType.numerics, "T"],
+             axis: OptParType[int] = None
+             ) -> TensorType[ElemType.numerics, "T"]:
+    """
+    See :func:`numpy.compress`.
+    `numpy.compress(condition, x)` or `npnx.compress(x, condition)`.
+    """
+    if axis is None:
+        return var(x, condition, op="Compress")
+    return var(x, condition, op="Compress", axis=axis)
+
+
+@xapi_inline
 def concat(*x: SequenceType[TensorType[ElemType.numerics, "T"]],
            axis: ParType[int] = 0
            ) -> TensorType[ElemType.numerics, "T"]:
@@ -181,6 +195,18 @@ def concat(*x: SequenceType[TensorType[ElemType.numerics, "T"]],
         raise RuntimeError(
             f"N={len(x)}<=1 elements to concatenate.")
     return var(*x, op='Concat', axis=axis)
+
+
+@xapi_inline
+def cos(x: TensorType[ElemType.numerics, "T"]) -> TensorType[ElemType.numerics, "T"]:
+    "See :func:`numpy.cos`."
+    return var(x, op="Cos")
+
+
+@xapi_inline
+def cosh(x: TensorType[ElemType.numerics, "T"]) -> TensorType[ElemType.numerics, "T"]:
+    "See :func:`numpy.cosh`."
+    return var(x, op="Cosh")
 
 
 @xapi_inline

@@ -521,6 +521,17 @@ class TupleType:
         return newt
 
 
+class Bool:
+    """
+    For simpler annotation.
+    """
+    @classmethod
+    def __class_getitem__(cls, shape: Union[int, ShapeType]) -> TensorType:
+        if isinstance(shape, int):
+            shape = (shape,)
+        return TensorType[ElemType.bool_, shape]
+
+
 class Float32:
     """
     For simpler annotation.
