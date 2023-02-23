@@ -189,7 +189,7 @@ class Var:
 
     def __init__(self, *inputs: List[Any],
                  op: Union[Callable, str, Tuple[str, str]] = None,
-                 dtype: TensorType = None,
+                 dtype: type = None,
                  inline: bool = False,
                  n_var_outputs: Optional[int] = 1,
                  input_indices: Optional[List[int]] = None,
@@ -205,9 +205,19 @@ class Var:
             self.onnx_op = ('', op)  # operator name
         else:
             self.onnx_op = (None, op)  # function to call
+
         self.onnx_op_kwargs = kwargs
         self._prefix = None
-        self.dtype = dtype
+        if hasattr(dtype, "type_name"):
+            self.dtype = dtype
+        elif isinstance(dtype, int):
+            # regular parameter
+            self.onnx_op_kwargs["dtype"] = dtype
+        elif dtype is None:
+            self.dtype = None
+        else:
+            raise TypeError(f"Unexpected type {type(dtype)} for dtype.")
+
         for i, inp in enumerate(self.inputs):
             if isinstance(inp, type):
                 raise TypeError(f"Unexpected type for input {i} - {inp}.")

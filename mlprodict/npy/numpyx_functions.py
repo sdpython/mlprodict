@@ -4,6 +4,7 @@
 
 .. versionadded:: 0.10
 """
+from typing import Optional
 import numpy
 from .numpyx_core_api import (  # pylint: disable=W0611
     cst, make_tuple, var, xapi_inline)
@@ -69,6 +70,31 @@ def amin(x: TensorType[ElemType.numerics, "T"],
     See :func:`numpy.amin`.
     """
     return var(x, op='ArgMin', axis=axis, keepdims=keepdims)
+
+
+@xapi_inline
+def arange(start_or_stop: TensorType[ElemType.int64, "I", (1,)],
+           stop_or_step: Optional[TensorType[ElemType.int64,
+                                             "I", (1,)]] = None,
+           step: Optional[TensorType[ElemType.int64, "I", (1,)]] = None,
+           dtype=None
+           ) -> TensorType[ElemType.numerics, "T"]:
+    "See :func:`numpy.arccos`."
+    if stop_or_step is None:
+        v = var(cst(numpy.array(0, dtype=numpy.int64)),
+                start_or_stop,
+                cst(numpy.array(1, dtype=numpy.int64)),
+                op='Range')
+    elif step is None:
+        v = var(start_or_stop, stop_or_step,
+                cst(numpy.array(1, dtype=numpy.int64)),
+                op='Range')
+    else:
+        v = var(start_or_stop, stop_or_step, step,
+                op='Range')
+    if dtype is not None:
+        return var(v, op="Cast", to=dtype)
+    return v
 
 
 @xapi_inline

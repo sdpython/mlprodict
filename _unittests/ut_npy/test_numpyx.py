@@ -28,6 +28,7 @@ from mlprodict.npy.numpyx_functions_test import (
     log1p, negative, relu, topk)
 from mlprodict.npy.numpyx_functions import (
     absolute as absolute_inline,
+    arange as arange_inline,
     arccos as arccos_inline,
     arccosh as arccosh_inline,
     argmin as argmin_inline,
@@ -1157,6 +1158,9 @@ class TestNumpyx(ExtTestCase):
         self.common_numpy_op(
             "or",
             lambda x, y: (x.sum() == y.sum()) | (((-x).sum()) == y.sum()))
+        self.common_numpy_op(
+            "xor",
+            lambda x, y: (x.sum() == y.sum()) ^ (((-x).sum()) == y.sum()))
 
     def common_test_inline(self, fonx, fnp, tcst=0):
         f = fonx(Input("A"))
@@ -1236,7 +1240,60 @@ class TestNumpyx(ExtTestCase):
         got = ref.run(None, {'A': x})
         self.assertEqualArray(y, got[0])
 
+    def test_arange_inline(self):
+        # arange(5)
+        f = arange_inline(Input("A"))
+        self.assertIsInstance(f, Var)
+        onx = f.to_onnx(constraints={0: Int64[None],
+                                     (0, False): Int64[None]})
+        x = numpy.array(5, dtype=numpy.int64)
+        y = numpy.arange(x)
+        ref = ReferenceEvaluator(onx)
+        got = ref.run(None, {'A': x})
+        self.assertEqualArray(y, got[0])
+
+        # arange(1, 5)
+        f = arange_inline(Input("A"), Input("B"))
+        self.assertIsInstance(f, Var)
+        onx = f.to_onnx(constraints={0: Int64[1], 1: Int64[1],
+                                     (0, False): Int64[None]})
+        x1 = numpy.array(1, dtype=numpy.int64)
+        x2 = numpy.array(5, dtype=numpy.int64)
+        y = numpy.arange(x1, x2)
+        ref = ReferenceEvaluator(onx)
+        got = ref.run(None, {'A': x1, 'B': x2})
+        self.assertEqualArray(y, got[0])
+
+        # arange(1, 5, 2)
+        f = arange_inline(Input("A"), Input("B"), Input("C"))
+        self.assertIsInstance(f, Var)
+        onx = f.to_onnx(constraints={0: Int64[1], 1: Int64[1], 2: Int64[1],
+                                     (0, False): Int64[None]})
+        x1 = numpy.array(1, dtype=numpy.int64)
+        x2 = numpy.array(5, dtype=numpy.int64)
+        x3 = numpy.array(2, dtype=numpy.int64)
+        y = numpy.arange(x1, x2, x3)
+        ref = ReferenceEvaluator(onx)
+        got = ref.run(None, {'A': x1, 'B': x2, 'C': x3})
+        self.assertEqualArray(y, got[0])
+
+    def test_arange_inline_dtype(self):
+        # arange(1, 5, 2), dtype
+        f = arange_inline(Input("A"), Input(
+            "B"), Input("C"), dtype=numpy.float64)
+        self.assertIsInstance(f, Var)
+        onx = f.to_onnx(constraints={0: Int64[1], 1: Int64[1], 2: Int64[1],
+                                     (0, False): Int64[None]})
+        x1 = numpy.array(1, dtype=numpy.int64)
+        x2 = numpy.array(5, dtype=numpy.int64)
+        x3 = numpy.array(2, dtype=numpy.int64)
+        y = numpy.arange(x1, x2, x3, dtype=numpy.float64)
+        ref = ReferenceEvaluator(onx)
+        got = ref.run(None, {'A': x1, 'B': x2, 'C': x3})
+        self.assertEqual(y.dtype, got[0].dtype)
+        self.assertEqualArray(y, got[0])
+
 
 if __name__ == "__main__":
-    TestNumpyx().test_numpy_op_bin_reduce()
+    TestNumpyx().test_arange_inline_dtype()
     unittest.main(verbosity=2)

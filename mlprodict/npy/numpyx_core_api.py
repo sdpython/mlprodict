@@ -5,12 +5,13 @@
 .. versionadded:: 0.10
 """
 from inspect import _empty, signature
-from typing import Callable
+from typing import Callable, Optional
 import numpy
 from .numpyx_types import (
     EagerNotAllowedError, ParType, TupleType)
 from .numpyx_var import Cst, Input, ManyIdentity, Par, Var
 from .numpyx_tensors import EagerTensor
+from .numpyx_types import ElemType
 
 
 def cst(*args, **kwargs):
@@ -100,6 +101,14 @@ def _xapi(fn: Callable, inline: bool, eager: bool):
                 else:
                     new_pars[k] = v
                 continue
+            if isinstance(v, type) and k == "dtype":
+                vto = ElemType.numpy_map[v]
+                if inline:
+                    new_pars[k] = vto
+                else:
+                    new_pars[k] = Par(k, dtype=ParType[int], value=vto,
+                                      parent_op=(fn.__module__, fn.__name__, 0))
+                continue
             if isinstance(v, (int, float, str)):
                 if inline:
                     new_pars[k] = v
@@ -107,6 +116,10 @@ def _xapi(fn: Callable, inline: bool, eager: bool):
                     new_pars[k] = Par(k, dtype=ParType[type(v)], value=v,
                                       parent_op=(fn.__module__, fn.__name__, 0))
                 continue
+            if isinstance(v, (Cst, Var)):
+                raise TypeError(
+                    f"Parameter {k!r} is a tensor ({type(v)}), it is not "
+                    f"supported for a named parameter.")
             raise TypeError(
                 f"Unexpected type for parameter {k!r}, type={type(v)}.")
 
@@ -121,8 +134,20 @@ def _xapi(fn: Callable, inline: bool, eager: bool):
         if p.annotation == _empty:
             rows.append(f"        {p.name},")
         else:
+            if hasattr(p.annotation, "__args__"):
+                args = p.annotation.__args__
+                if (isinstance(args, tuple) and len(args) == 2 and
+                        args[1] == type(None)):
+                    # optional
+                    annot = args[0]
+                else:
+                    raise TypeError(
+                        f"Unable to interpret annotation for parameter "
+                        f"{p.name!r} with {p.annotation} and args={args}.")
+            else:
+                annot = p.annotation
             try:
-                a_name = p.annotation.type_name()
+                a_name = annot.type_name()
             except AttributeError as e:
                 raise AttributeError(
                     f"Unexpected annotation type {p.annotation!r}.") from e
