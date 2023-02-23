@@ -323,20 +323,26 @@ class TensorType:
                     dtypes = tuple(v) if isinstance(v, set) else (v, )
                 else:
                     name = a
-            elif isinstance(a, set):
+                continue
+            if isinstance(a, set):
                 dtypes = tuple(a)
-            elif isinstance(a, tuple):
+                continue
+            if isinstance(a, tuple):
                 shape = a
-            elif isinstance(a, int):
+                continue
+            if isinstance(a, int):
                 if dtypes is not None:
                     raise TypeError(f"Unexpected type {type(a)} in {args}.")
                 dtypes = (a, )
-            elif a in ElemType.numpy_map:
+                continue
+            if a is None:
+                continue           
+            if a in ElemType.numpy_map:
                 if dtypes is not None:
                     raise TypeError(f"Unexpected type {type(a)} in {args}.")
                 dtypes = (ElemType.numpy_map[a], )
-            elif a is not None:
-                raise TypeError(f"Unexpected type {type(a)} in {args}.")
+                continue
+            raise TypeError(f"Unexpected type {type(a)} in {args}.")
 
         if isinstance(dtypes, ElemType):
             dtypes = (dtypes,)
@@ -411,7 +417,7 @@ class TensorType:
                 f"{repr(self)} in {ElemType.set_names}.")
 
     @classmethod
-    def issuperset(cls, tensor_type: "TensorType") -> bool:
+    def issuperset(cls, tensor_type: type) -> bool:
         """
         Tells if *cls* is a superset of *tensor_type*.
         """

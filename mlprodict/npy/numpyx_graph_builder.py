@@ -202,7 +202,7 @@ class _GraphBuilder:
         check_node(node, context)
         self.nodes_.append(node)
 
-    def _io(self, index: int, name: str, tensor_type: Optional[TensorType],
+    def _io(self, index: int, name: str, tensor_type: Optional[type],
             is_input: bool) -> ValueInfoProto:
         """
         Converts an input or outut into :class:`onnx.ValueInfoProto`.
@@ -283,7 +283,7 @@ class _GraphBuilder:
             check_value_info(info, self.check_context)
         return info
 
-    def make_input(self, name: str, tensor_type: TensorType):
+    def make_input(self, name: str, tensor_type: type):
         """
         Inserts a node in the graph.
         """
@@ -297,7 +297,7 @@ class _GraphBuilder:
                 self._io(len(self.inputs_), name, tensor_type, True))
         self.onnx_names_[name] = None
 
-    def make_output(self, name: str, tensor_type: TensorType):
+    def make_output(self, name: str, tensor_type: type):
         """
         Inserts a node in the graph.
         """

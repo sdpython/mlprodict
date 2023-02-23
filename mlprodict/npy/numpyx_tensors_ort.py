@@ -120,9 +120,28 @@ class OrtTensor:
         return TensorType[self.dtype]
 
     @property
+    def dims(self):
+        """
+        Returns the dimensions of the tensor.
+        First dimension is the batch dimension if the tensor
+        has more than one dimension.
+        """
+        if len(self.shape) == 0:
+            return (0,)
+        if len(self.shape) == 1:
+            return tuple(self.shape)
+        return (None, ) + tuple(self.shape[1:])
+
+    @property
     def tensor_type_dims(self) -> TensorType:
-        "Returns the tensor type of this tensor."
-        return TensorType[self.dtype, (None, ) * len(self.shape)]
+        """
+        Returns the tensor type of this tensor.
+        This property is used to define a key used to cache a jitted function.
+        Same keys keys means same ONNX graph.
+        Different keys usually means same ONNX graph but different
+        input shapes.
+        """
+        return TensorType[self.dtype, self.dims]
 
     @classmethod
     def create_function(cls: Any, input_names: List[str],
