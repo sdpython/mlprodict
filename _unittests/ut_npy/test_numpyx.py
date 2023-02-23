@@ -1033,6 +1033,8 @@ class TestNumpyx(ExtTestCase):
             try:
                 self.assertEqualArray(z, got[0])
             except AssertionError as e:
+                with open("debug_bin.onnx", "wb") as f:
+                    f.write(onx.SerializeToString())
                 raise AssertionError(f"Discrepancies with\n{onx}") from e
 
     def test_numpy_op_op(self):
@@ -1151,10 +1153,10 @@ class TestNumpyx(ExtTestCase):
     def test_numpy_op_bin_reduce(self):
         self.common_numpy_op(
             "and",
-            lambda x, y: (x.sum() == y.sum()) and (((-x).sum()) == y.sum()))
+            lambda x, y: (x.sum() == y.sum()) & (((-x).sum()) == y.sum()))
         self.common_numpy_op(
             "or",
-            lambda x, y: (x.sum() == y.sum()) or (((-x).sum()) == y.sum()))
+            lambda x, y: (x.sum() == y.sum()) | (((-x).sum()) == y.sum()))
 
     def common_test_inline(self, fonx, fnp, tcst=0):
         f = fonx(Input("A"))
@@ -1236,5 +1238,5 @@ class TestNumpyx(ExtTestCase):
 
 
 if __name__ == "__main__":
-    TestNumpyx().test_numpy_topk_function()
+    TestNumpyx().test_numpy_op_bin_reduce()
     unittest.main(verbosity=2)

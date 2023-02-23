@@ -336,7 +336,7 @@ class TensorType:
                 dtypes = (a, )
                 continue
             if a is None:
-                continue           
+                continue
             if a in ElemType.numpy_map:
                 if dtypes is not None:
                     raise TypeError(f"Unexpected type {type(a)} in {args}.")
