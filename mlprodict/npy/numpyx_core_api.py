@@ -5,7 +5,7 @@
 .. versionadded:: 0.10
 """
 from inspect import _empty, signature
-from typing import Callable, Optional
+from typing import Callable, Optional, _UnionGenericAlias
 import numpy
 from .numpyx_types import (
     EagerNotAllowedError, OptParType, ParType, TupleType)
@@ -43,6 +43,45 @@ def var(*args, **kwargs):
     return Var(*args, **kwargs)
 
 
+def _process_parameter(fn, sig, k, v, new_pars, inline):
+    annotation = sig.parameters[k].annotation if k in sig.parameters else None
+    if v is None and len(new_pars) == 0 and annotation is None:
+        # It could be an optional input or a parameter.
+        raise NotImplementedError(
+            f"Unable to decide between an optional input or a "
+            f"parameter for name={k!r}.")
+    if isinstance(v, Par):
+        if inline:
+            new_pars[k] = v.value
+        else:
+            new_pars[k] = v
+        return
+    if isinstance(v, type) and k == "dtype":
+        vto = ElemType.numpy_map[v]
+        if inline:
+            new_pars[k] = vto
+        else:
+            new_pars[k] = Par(k, dtype=ParType[int], value=vto,
+                              parent_op=(fn.__module__, fn.__name__, 0))
+        return
+    if isinstance(v, (int, float, str)):
+        if inline:
+            new_pars[k] = v
+        else:
+            new_pars[k] = Par(k, dtype=ParType[type(v)], value=v,
+                              parent_op=(fn.__module__, fn.__name__, 0))
+        return
+    if isinstance(v, (Cst, Var)):
+        raise TypeError(
+            f"Parameter {k!r} is a tensor ({type(v)}), it is not "
+            f"supported for a named parameter.")
+    if v is None and issubclass(annotation, OptParType):
+        return
+    raise TypeError(
+        f"Unexpected type for parameter {k!r}, type={type(v)}, "
+        f"annotation={annotation}.")
+
+
 def _xapi(fn: Callable, inline: bool, eager: bool):
     """
     Decorator to use before any function using part of the numpy API.
@@ -73,7 +112,27 @@ def _xapi(fn: Callable, inline: bool, eager: bool):
         # conversion to onnx
         new_inputs = []
         new_pars = {}
+        parnames = {}
+        pos = 0
+        for name, par in sig.parameters.items():
+            if par.kind == par.VAR_POSITIONAL:
+                break
+            if par.kind in (par.POSITIONAL_ONLY, par.POSITIONAL_OR_KEYWORD):
+                parnames[pos] = name
+                pos += 1
+                continue
+        annot0 = len(sig.parameters) > 0
+        last_input = -1
         for ind, i in enumerate(inputs):
+            annotation = (
+                sig.parameters[parnames[ind]].annotation
+                if ind in parnames else None)
+            if (annotation is not None and
+                    isinstance(annotation, type) and
+                    issubclass(annotation, ParType)):
+                # no more inputs
+                break
+            last_input = ind
             if isinstance(i, (Var, numpy.ndarray)):
                 new_inputs.append(i)
             elif isinstance(i, (int, float)):
@@ -89,43 +148,13 @@ def _xapi(fn: Callable, inline: bool, eager: bool):
             else:
                 raise TypeError(
                     f"Unexpected type for input {ind}, type={type(i)}.")
+        for ind in range(last_input + 1, len(inputs)):
+            k = parnames[ind]
+            if k in kwargs:
+                break
+            _process_parameter(fn, sig, k, inputs[ind], new_pars, inline)
         for k, v in kwargs.items():
-            annotation = sig.parameters[k].annotation if k in sig.parameters else None
-            if v is None and len(new_pars) == 0 and annotation is None:
-                # It could be an optional input or a parameter.
-                raise NotImplementedError(
-                    f"Unable to decide between an optional input or a "
-                    f"parameter for name={k!r}.")
-            if isinstance(v, Par):
-                if inline:
-                    new_pars[k] = v.value
-                else:
-                    new_pars[k] = v
-                continue
-            if isinstance(v, type) and k == "dtype":
-                vto = ElemType.numpy_map[v]
-                if inline:
-                    new_pars[k] = vto
-                else:
-                    new_pars[k] = Par(k, dtype=ParType[int], value=vto,
-                                      parent_op=(fn.__module__, fn.__name__, 0))
-                continue
-            if isinstance(v, (int, float, str)):
-                if inline:
-                    new_pars[k] = v
-                else:
-                    new_pars[k] = Par(k, dtype=ParType[type(v)], value=v,
-                                      parent_op=(fn.__module__, fn.__name__, 0))
-                continue
-            if isinstance(v, (Cst, Var)):
-                raise TypeError(
-                    f"Parameter {k!r} is a tensor ({type(v)}), it is not "
-                    f"supported for a named parameter.")
-            if v is None and issubclass(annotation, OptParType):
-                continue
-            raise TypeError(
-                f"Unexpected type for parameter {k!r}, type={type(v)}, "
-                f"annotation={annotation}.")
+            _process_parameter(fn, sig, k, v, new_pars, inline)
 
         if issubclass(sig.return_annotation, TupleType):
             n_var_outputs = sig.return_annotation.len()

@@ -70,8 +70,8 @@ def concat(*x: SequenceType[TensorType[ElemType.numerics, "T"]],
 
 
 @xapi_function
-def identity(x: TensorType[ElemType.numerics, "T"]
-             ) -> TensorType[ElemType.numerics, "T"]:
+def copy(x: TensorType[ElemType.numerics, "T"]
+         ) -> TensorType[ElemType.numerics, "T"]:
     "Makes a copy."
     return var(x, op='Identity')
 

@@ -192,7 +192,7 @@ def concat(*x: SequenceType[TensorType[ElemType.numerics, "T"]],
     :func:`numpy.hstack`.
     """
     if len(x) <= 1:
-        raise RuntimeError(
+        raise RuntimeError(  # pragma: no cover
             f"N={len(x)}<=1 elements to concatenate.")
     return var(*x, op='Concat', axis=axis)
 
@@ -210,10 +210,128 @@ def cosh(x: TensorType[ElemType.numerics, "T"]) -> TensorType[ElemType.numerics,
 
 
 @xapi_inline
-def identity(x: TensorType[ElemType.numerics, "T"]
-             ) -> TensorType[ElemType.numerics, "T"]:
+def cumsum(x: TensorType[ElemType.numerics, "T"],
+           axis: Optional[TensorType[ElemType.int64, "I"]] = None
+           ) -> TensorType[ElemType.numerics, "T"]:
+    "See :func:`numpy.cumsum`."
+    if axis is None:
+        m1 = cst(numpy.array([-1], dtype=numpy.int64))
+        flat = var(x, m1, op="Reshape")
+        axis = cst(numpy.array([0], dtype=numpy.int64))
+        return var(flat, axis, op="CumSum")
+    if isinstance(axis, int):
+        axis = [axis]
+    if isinstance(axis, (tuple, list)):
+        axis = cst(numpy.array(axis, dtype=numpy.int64))
+    return var(x, axis, op="CumSum")
+
+
+@xapi_inline
+def det(x: TensorType[ElemType.numerics, "T"]) -> TensorType[ElemType.numerics, "T"]:
+    "See :func:`numpy.linalg:det`."
+    return var(x, op="Det")
+
+
+@xapi_inline
+def dot(a: TensorType[ElemType.numerics, "T"],
+        b: TensorType[ElemType.numerics, "T"]
+        ) -> TensorType[ElemType.numerics, "T"]:
+    """
+    See :func:`numpy.dot`
+    dot is equivalent to `numpyx.matmul == numpy.matmul != numpy.dot`
+    with arrays with more than 3D dimensions.
+    """
+    return var(a, b, op="MatMul")
+
+
+@xapi_inline
+def einsum(*x: SequenceType[TensorType[ElemType.numerics, "T"]],
+           equation: ParType[str]
+           ) -> TensorType[ElemType.numerics, "T"]:
+    "See :func:`numpy.einsum`."
+    return var(*x, op="Einsum", equation=equation)
+
+
+@xapi_inline
+def erf(x: TensorType[ElemType.numerics, "T"]
+        ) -> TensorType[ElemType.numerics, "T"]:
+    "See :epkg:`scipy:special:erf`."
+    return var(x, op="Erf")
+
+
+@xapi_inline
+def exp(x: TensorType[ElemType.numerics, "T"]
+        ) -> TensorType[ElemType.numerics, "T"]:
+    "See :func:`numpy.exp`."
+    return var(x, op="Exp")
+
+
+@xapi_inline
+def expand_dims(x: TensorType[ElemType.numerics, "T"],
+                axis: TensorType[ElemType.int64, "I"]
+                ) -> TensorType[ElemType.numerics, "T"]:
+    "See :func:`numpy.expand_dims`."
+    if isinstance(axis, int):
+        axis = (axis,)
+    if isinstance(axis, tuple):
+        axis = cst(numpy.array(axis, dtype=numpy.int64))
+    return var(x, axis, op="Unsqueeze")
+
+
+@xapi_inline
+def expit(x: TensorType[ElemType.numerics, "T"]
+          ) -> TensorType[ElemType.numerics, "T"]:
+    "See :epkg:`scipy:special:expit`."
+    return var(x, op="Sigmoid")
+
+
+@xapi_inline
+def floor(x: TensorType[ElemType.numerics, "T"]
+          ) -> TensorType[ElemType.numerics, "T"]:
+    "See :func:`numpy.floor`."
+    return var(x, op="Floor")
+
+
+@xapi_inline
+def hstack(*x: SequenceType[TensorType[ElemType.numerics, "T"]]
+           ) -> TensorType[ElemType.numerics, "T"]:
+    "See :func:`numpy.hstack`."
+    if len(x) <= 1:
+        raise RuntimeError(  # pragma: no cover
+            f"N={len(x)}<=1 elements to concatenate.")
+    return var(*x, op="Concat", axis=-1)
+
+
+@xapi_inline
+def copy(x: TensorType[ElemType.numerics, "T"]
+         ) -> TensorType[ElemType.numerics, "T"]:
     "Makes a copy."
     return var(x, op='Identity')
+
+
+@xapi_inline
+def identity(n: ParType[int], dtype=None) -> TensorType[ElemType.numerics, "T"]:
+    "Makes a copy."
+    val = numpy.array([n, n], dtype=numpy.int64)
+    shape = cst(val)
+    model = var(shape, op="ConstantOfShape")
+    v = var(model, dtype=dtype, op="EyeLike")
+    return v
+
+
+@xapi_inline
+def isnan(x: TensorType[ElemType.numerics, "T"]
+          ) -> TensorType[ElemType.bool_, "T"]:
+    "See :func:`numpy.isnan`."
+    return var(x, op="IsNaN")
+
+
+@xapi_inline
+def matmul(a: TensorType[ElemType.numerics, "T"],
+           b: TensorType[ElemType.numerics, "T"]
+           ) -> TensorType[ElemType.numerics, "T"]:
+    "See :func:`numpy.matmul`."
+    return var(a, b, op="MatMul")
 
 
 @xapi_inline

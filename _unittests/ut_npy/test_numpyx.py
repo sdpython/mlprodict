@@ -7,6 +7,7 @@ from io import StringIO
 import unittest
 import warnings
 import numpy
+import scipy
 from onnx import ModelProto, TensorProto
 from onnx.checker import check_model
 from onnx.defs import onnx_opset_version
@@ -24,7 +25,7 @@ from mlprodict.npy.numpyx_var import Input, Var
 from mlprodict.npy.numpyx_core_api import xapi_function, xapi_inline, cst
 from mlprodict.npy.numpyx_functions_test import (
     _min_max, _min_max_inline,
-    absolute, addition, argmin, concat, identity,
+    absolute, addition, argmin, concat, copy,
     log1p, negative, relu, topk)
 from mlprodict.npy.numpyx_functions import (
     absolute as absolute_inline,
@@ -40,9 +41,22 @@ from mlprodict.npy.numpyx_functions import (
     clip as clip_inline,
     compress as compress_inline,
     concat as concat_inline,
+    copy as copy_inline,
     cos as cos_inline,
     cosh as cosh_inline,
+    cumsum as cumsum_inline,
+    det as det_inline,
+    dot as dot_inline,
+    einsum as einsum_inline,
+    erf as erf_inline,
+    exp as exp_inline,
+    expand_dims as expand_dims_inline,
+    expit as expit_inline,
+    floor as floor_inline,
+    hstack as hstack_inline,
     identity as identity_inline,
+    isnan as isnan_inline,
+    matmul as matmul_inline,
     topk as topk_inline)
 from mlprodict.npy.numpyx_tensors_ort import (
     BackendOrtTensor, EagerOrtTensor, OrtTensor)
@@ -375,7 +389,7 @@ class TestNumpyx(ExtTestCase):
         self.assertEqualArray(y, got[0])
 
     def test_numpy_addition_op(self):
-        f = absolute(addition(identity(Input("A")), Input("B")))
+        f = absolute(addition(copy(Input("A")), Input("B")))
         self.assertIsInstance(f, Var)
         onx = f.to_onnx(constraints={'T': Float64[None]})
         x = numpy.array([-5, 6], dtype=numpy.float64)
@@ -386,7 +400,7 @@ class TestNumpyx(ExtTestCase):
         self.assertEqualArray(z, got[0])
 
     def test_numpy_operator_inline(self):
-        f = absolute_inline(identity_inline(Input("A")) + Input("B"))
+        f = absolute_inline(copy_inline(Input("A")) + Input("B"))
         self.assertIsInstance(f, Var)
         onx = f.to_onnx(constraints={'A': Float64[None],
                                      'B': Float64[None],
@@ -399,7 +413,7 @@ class TestNumpyx(ExtTestCase):
         self.assertEqualArray(z, got[0])
 
     def test_numpy_operator(self):
-        f = absolute(identity(Input("A")) + Input("B"))
+        f = absolute(copy(Input("A")) + Input("B"))
         self.assertIsInstance(f, Var)
         onx = f.to_onnx(constraints={'A': Float64[None],
                                      'B': Float64[None],
@@ -439,7 +453,7 @@ class TestNumpyx(ExtTestCase):
 
     def test_backend_0(self):
         def impl(A, B):
-            return absolute_inline(identity_inline(A) + B)
+            return absolute_inline(copy_inline(A) + B)
 
         f = impl(Input("A"), Input("B"))
 
@@ -467,7 +481,7 @@ class TestNumpyx(ExtTestCase):
 
     def test_backend_1(self):
         def impl(A, B):
-            return absolute(identity(A) + B)
+            return absolute(copy(A) + B)
 
         f = impl(Input("A"), Input("B"))
 
@@ -1025,7 +1039,7 @@ class TestNumpyx(ExtTestCase):
             dtype = numpy.float64
             otype = Int64
         with self.subTest(msg=msg, op=fct):
-            f = identity(fct(identity(Input("A")), Input("B")))
+            f = copy(fct(copy(Input("A")), Input("B")))
             self.assertIsInstance(f, Var)
             onx = f.to_onnx(constraints={'A': otype[None],
                                          'B': otype[None]})
@@ -1072,7 +1086,7 @@ class TestNumpyx(ExtTestCase):
 
     def test_shape(self):
         f = absolute_inline(
-            Input("A").reshape(identity_inline(Input("A")).shape))
+            Input("A").reshape(copy_inline(Input("A")).shape))
         self.assertIsInstance(f, Var)
         onx = f.to_onnx(constraints={'A': Float64[None]})
         x = numpy.array([-5, 6], dtype=numpy.float64)
@@ -1083,7 +1097,7 @@ class TestNumpyx(ExtTestCase):
 
     def test_shape_t(self):
         f = absolute_inline(
-            Input("A").reshape(identity_inline(Input("A")).T.shape))
+            Input("A").reshape(copy_inline(Input("A")).T.shape))
         self.assertIsInstance(f, Var)
         onx = f.to_onnx(constraints={'A': Float64[None]})
         x = numpy.array([[-5, 6]], dtype=numpy.float64)
@@ -1094,7 +1108,7 @@ class TestNumpyx(ExtTestCase):
 
     def test_astype(self):
         f = absolute_inline(
-            identity_inline(Input("A")).astype(numpy.float32))
+            copy_inline(Input("A")).astype(numpy.float32))
         self.assertIsInstance(f, Var)
         onx = f.to_onnx(constraints={'A': Float64[None]})
         x = numpy.array([[-5, 6]], dtype=numpy.float64)
@@ -1104,7 +1118,7 @@ class TestNumpyx(ExtTestCase):
         self.assertEqualArray(z, got[0])
 
     def test_astype_int(self):
-        f = absolute_inline(identity_inline(Input("A")).astype(1))
+        f = absolute_inline(copy_inline(Input("A")).astype(1))
         self.assertIsInstance(f, Var)
         onx = f.to_onnx(constraints={'A': Float64[None]})
         x = numpy.array([[-5, 6]], dtype=numpy.float64)
@@ -1114,7 +1128,7 @@ class TestNumpyx(ExtTestCase):
         self.assertEqualArray(z, got[0])
 
     def test_sum(self):
-        f = absolute_inline(identity_inline(Input("A")).sum())
+        f = absolute_inline(copy_inline(Input("A")).sum())
         self.assertIsInstance(f, Var)
         onx = f.to_onnx(constraints={'A': Float64[None]})
         x = numpy.array([[-5, 6]], dtype=numpy.float64)
@@ -1144,7 +1158,7 @@ class TestNumpyx(ExtTestCase):
         self.assertEqualArray(z, got[0])
 
     def test_sum_axis(self):
-        f = absolute_inline(identity_inline(
+        f = absolute_inline(copy_inline(
             Input("A")).sum(axis=1, keepdims=1))
         self.assertIsInstance(f, Var)
         onx = f.to_onnx(constraints={'A': Float64[None]})
@@ -1171,11 +1185,24 @@ class TestNumpyx(ExtTestCase):
         onx = f.to_onnx(constraints={0: Float64[None],
                                      (0, False): Float64[None]})
         x = numpy.array([0.1, 0.2], dtype=numpy.float64)
-        x += tcst
+        x = x + tcst
         y = fnp(x)
         ref = ReferenceEvaluator(onx)
         got = ref.run(None, {'A': x})
         self.assertEqualArray(y, got[0])
+
+    def common_test_inline_bin(self, fonx, fnp, tcst=0):
+        f = fonx(Input("A"), Input("B"))
+        self.assertIsInstance(f, Var)
+        onx = f.to_onnx(constraints={0: Float64[None], 1: Float64[None],
+                                     (0, False): Float64[None]})
+        x = numpy.array([[0.1, 0.2], [0.6, 10]], dtype=numpy.float64)
+        y = numpy.array([[-1, 2], [-0.7, 0.1]], dtype=numpy.float64)
+        x = x + tcst
+        z = fnp(x, y)
+        ref = ReferenceEvaluator(onx)
+        got = ref.run(None, {'A': x, 'B': y})
+        self.assertEqualArray(z, got[0])
 
     def test_arccos(self):
         self.common_test_inline(arccos_inline, numpy.arccos)
@@ -1317,7 +1344,100 @@ class TestNumpyx(ExtTestCase):
                 got = ref.run(None, {'A': cond, 'B': x})
                 self.assertEqualArray(z, got[0])
 
+    def test_cumsum(self):
+        x = numpy.array([[-6.1, 5, 6], [-3.5, 7.8, 5]], dtype=numpy.float32)
+        axis = numpy.array([1])
+
+        z = numpy.cumsum(x, axis[0])
+        f = cumsum_inline(Input("A"), Input("B"))
+        onx = f.to_onnx(constraints={'A': Float32[None],
+                                     'B': Int64[None]})
+        ref = ReferenceEvaluator(onx)
+        got = ref.run(None, {'A': x, 'B': axis})
+        self.assertEqualArray(z, got[0])
+
+    def test_cumsum_no_axis(self):
+        x = numpy.array([[-6.1, 5, 6], [-3.5, 7.8, 5]], dtype=numpy.float32)
+
+        z = numpy.cumsum(x)
+        f = cumsum_inline(Input("A"))
+        onx = f.to_onnx(constraints={'A': Float32[None]})
+        ref = ReferenceEvaluator(onx)
+        got = ref.run(None, {'A': x})
+        self.assertEqualArray(z, got[0])
+
+    def test_det(self):
+        self.common_test_inline(det_inline, numpy.linalg.det,
+                                tcst=numpy.identity(2))
+
+    def test_dot(self):
+        self.common_test_inline_bin(dot_inline, numpy.dot)
+
+    def test_einsum(self):
+        equation = "ij,jk->ik"
+        self.common_test_inline_bin(
+            lambda x, y: einsum_inline(x, y, equation=equation),
+            lambda x, y: numpy.einsum(equation, x, y))
+
+    def test_erf(self):
+        self.common_test_inline(erf_inline, scipy.special.erf)
+
+    def test_exp(self):
+        self.common_test_inline(exp_inline, numpy.exp)
+
+    def test_expand_dims(self):
+        f = expand_dims_inline(Input("A"), Input("B"))
+        self.assertIsInstance(f, Var)
+        onx = f.to_onnx(constraints={0: Float64[None], 1: Int64[None],
+                                     (0, False): Float64[None]})
+        x = numpy.array([[0.1, 0.2], [0.6, 10]], dtype=numpy.float64)
+        y = numpy.array([0, 1], dtype=numpy.int64)
+        z = numpy.expand_dims(x, tuple(y))
+        ref = ReferenceEvaluator(onx)
+        got = ref.run(None, {'A': x, 'B': y})
+        self.assertEqualArray(z, got[0])
+
+    def test_expit(self):
+        self.common_test_inline(expit_inline, scipy.special.expit)
+
+    def test_floor(self):
+        self.common_test_inline(floor_inline, numpy.floor)
+
+    def test_hstack(self):
+        f = hstack_inline(Input("A"), Input("B"))
+        onx = f.to_onnx(constraints={'A': Float64[None],
+                                     'B': Float64[None],
+                                     (0, False): Float64[None]})
+        x1 = numpy.array([[-5, 6], [15, 3]], dtype=numpy.float64)
+        x2 = numpy.array([[1, 2], [10, 20]], dtype=numpy.float64)
+        z = numpy.hstack([x1, x2])
+        ref = ReferenceEvaluator(onx)
+        feeds = {'A': x1, 'B': x2}
+        try:
+            got = ref.run(None, feeds)
+        except TypeError as e:
+            self._warns.append(f"ReferenceEvaluator:test_numpy_concat2: {e}")
+            oinf = OnnxInference(onx)
+            got = oinf.run(feeds)
+            got = [got['r__2']]
+        self.assertEqualArray(z, got[0])
+
+    def test_identity(self):
+        f = identity_inline(2, dtype=numpy.float64)
+        onx = f.to_onnx(constraints={(0, False): Float64[None]})
+        z = numpy.identity(2)
+        ref = ReferenceEvaluator(onx)
+        feeds = {}
+        got = ref.run(None, feeds)
+        self.assertEqualArray(z, got[0])
+
+    def test_isnan(self):
+        self.common_test_inline(isnan_inline, numpy.isnan)
+
+    def test_matmul(self):
+        self.common_test_inline_bin(matmul_inline, numpy.matmul)
+
 
 if __name__ == "__main__":
-    TestNumpyx().test_compress_float32()
+    TestNumpyx().test_cumsum()
     unittest.main(verbosity=2)

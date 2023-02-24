@@ -183,18 +183,6 @@ def compress(condition, x, axis=None):
     return OnnxVar(x, condition, op=OnnxCompress, axis=axis)
 
 
-def cos(x):
-    "See :func:`numpy.cos`."
-    OnnxCos = loadop('Cos')
-    return OnnxVar(x, op=OnnxCos)
-
-
-def cosh(x):
-    "See :func:`numpy.cosh`."
-    OnnxCosh = loadop('Cosh')
-    return OnnxVar(x, op=OnnxCosh)
-
-
 def concat(*x, axis=0):
     """
     Operator concat, handle :func:`numpy.vstack` and
@@ -205,6 +193,18 @@ def concat(*x, axis=0):
         raise RuntimeError(  # pragma: no cover
             f"N={len(x)}<=1 elements to concatenate.")
     return OnnxVar(*x, op=OnnxConcat, axis=axis)
+
+
+def cos(x):
+    "See :func:`numpy.cos`."
+    OnnxCos = loadop('Cos')
+    return OnnxVar(x, op=OnnxCos)
+
+
+def cosh(x):
+    "See :func:`numpy.cosh`."
+    OnnxCosh = loadop('Cosh')
+    return OnnxVar(x, op=OnnxCosh)
 
 
 def cumsum(x, axis):
