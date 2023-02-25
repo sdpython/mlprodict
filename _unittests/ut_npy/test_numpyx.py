@@ -1,7 +1,7 @@
 """
 @brief      test log(time=3s)
 """
-# pylint: disable=W0703
+# pylint: disable=R0904,W0703
 from contextlib import redirect_stdout
 from io import StringIO
 import unittest
@@ -1546,9 +1546,10 @@ class TestNumpyx(ExtTestCase):
 
     def test_reduce_prod(self):
         self.common_reduce(lambda x: x.prod())
-        
+
     def test_relu(self):
-        self.common_test_inline(relu_inline, lambda x: numpy.where(x > 0, x, 0))
+        self.common_test_inline(
+            relu_inline, lambda x: numpy.where(x > 0, x, 0))
 
     def test_reciprocal(self):
         self.common_test_inline(reciprocal_inline, numpy.reciprocal)
@@ -1573,7 +1574,7 @@ class TestNumpyx(ExtTestCase):
 
     def test_squeeze(self):
         axis = numpy.array([1], dtype=numpy.int64)
-        f = squeeze_inline(copy_inline(Input("A")), cst(axis)) 
+        f = squeeze_inline(copy_inline(Input("A")), cst(axis))
         self.assertIsInstance(f, Var)
         onx = f.to_onnx(constraints={'A': Float64[None]})
         x = numpy.array([[-5, 6]], dtype=numpy.float64).T

@@ -168,7 +168,7 @@ def _xapi(fn: Callable, inline: bool, eager: bool):
         else:
             if hasattr(p.annotation, "__args__"):
                 args = p.annotation.__args__
-                if (isinstance(args, tuple) and len(args) == 2 and
+                if (isinstance(args, tuple) and len(args) == 2 and  # pylint: disable=E721
                         args[1] == type(None)):
                     # optional
                     annot = args[0]
