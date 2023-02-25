@@ -657,6 +657,12 @@ class Var:
         "See :func:`numpy.max`."
         return self.reduce_function("ReduceMax", axis=axis, keepdims=keepdims)
 
+    def prod(self,
+             axis: OptParType[TupleType[int]] = None,
+             keepdims: ParType[int] = 0):
+        "See :func:`numpy.prod`."
+        return self.reduce_function("ReduceProd", axis=axis, keepdims=keepdims)
+
     def copy(self):
         """
         Returns a copy of self (use of Identity node).
@@ -746,5 +752,6 @@ class Cst(Var):
                     f"value={cst}.")
         else:
             raise NotImplementedError(
-                f"Constant of type {type(cst)} are not implemented yet.")
+                f"Constant of type {type(cst)} are not implemented yet. "
+                f"You should not use 'float32(x)' but 'array(x, dtype=float32)'.")
         self._prefix = "cst"

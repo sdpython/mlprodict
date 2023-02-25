@@ -352,6 +352,113 @@ def matmul(a: TensorType[ElemType.numerics, "T"],
 
 
 @xapi_inline
+def pad(x: TensorType[ElemType.numerics, "T"],
+        pads: TensorType[ElemType.int64, "I"],
+        constant_value: Optional[TensorType[ElemType.numerics, "T"]] = None,
+        axes: Optional[TensorType[ElemType.int64, "I"]] = None,
+        mode: ParType[str] = 'constant'):
+    """
+    It does not implement :func:`numpy.pad` but the ONNX version
+    :func:`onnx_pad <mlprodict.onnxrt.ops_cpu.op_pad.onnx_pad>`.
+    """
+    if constant_value is None:
+        if axes is None:
+            return var(x, pads, op="Pad", mode=mode)
+        return var(x, pads, None, axes, op="Pad", mode=mode)
+    if axes is None:
+        return var(x, pads, constant_value, op="Pad", mode=mode)
+    return var(x, pads, constant_value, axes, op="Pad", mode=mode)
+
+
+@xapi_inline
+def relu(x: TensorType[ElemType.numerics, "T"]
+         ) -> TensorType[ElemType.numerics, "T"]:
+    "relu"
+    return var(x, op="Relu")
+
+
+@xapi_inline
+def reciprocal(x: TensorType[ElemType.numerics, "T"]
+               ) -> TensorType[ElemType.numerics, "T"]:
+    "See :func:`numpy.reciprocal`."
+    return var(x, op="Reciprocal")
+
+
+@xapi_inline
+def round(x: TensorType[ElemType.numerics, "T"]
+          ) -> TensorType[ElemType.numerics, "T"]:
+    "See :func:`numpy.round`."
+    return var(x, op="Round")
+
+
+@xapi_inline
+def sigmoid(x: TensorType[ElemType.numerics, "T"]
+            ) -> TensorType[ElemType.numerics, "T"]:
+    "See :epkg:`scipy:special:expit`."
+    return var(x, op="Sigmoid")
+
+
+@xapi_inline
+def sign(x: TensorType[ElemType.numerics, "T"]
+         ) -> TensorType[ElemType.numerics, "T"]:
+    "See :func:`numpy.sign`."
+    return var(x, op="Sign")
+
+
+@xapi_inline
+def sin(x: TensorType[ElemType.numerics, "T"]
+        ) -> TensorType[ElemType.numerics, "T"]:
+    "See :func:`numpy.sin`."
+    return var(x, op="Sin")
+
+
+@xapi_inline
+def sinh(x: TensorType[ElemType.numerics, "T"]
+         ) -> TensorType[ElemType.numerics, "T"]:
+    "See :func:`numpy.sinh`."
+    return var(x, op="Sinh")
+
+
+@xapi_inline
+def sqrt(x: TensorType[ElemType.numerics, "T"]
+         ) -> TensorType[ElemType.numerics, "T"]:
+    "See :func:`numpy.sqrt`."
+    return var(x, op="Sqrt")
+
+
+@xapi_inline
+def squeeze(x: TensorType[ElemType.numerics, "T"],
+            axis: Optional[TensorType[ElemType.int64, "I"]] = None
+            ) -> TensorType[ElemType.numerics, "T"]:
+    "See :func:`numpy.squeeze`."
+    if axis is None:
+        shape = x.shape
+        zero = cst(numpy.array([0], dtype=numpy.int64))
+        one = cst(numpy.array([1], dtype=numpy.int64))
+        ind = var(zero, shape.shape, one, op="Range")
+        axis = var(ind, shape == one, op="Compress")
+    if isinstance(axis, int):
+        axis = [axis]
+    if isinstance(axis, (tuple, list)):
+        axis = cst(numpy.array(axis, dtype=numpy.int64))
+    return var(x, axis, op="Squeeze")
+
+
+@xapi_inline
+def tan(x: TensorType[ElemType.numerics, "T"]
+        ) -> TensorType[ElemType.numerics, "T"]:
+    "See :func:`numpy.tan`."
+    return var(x, op="Tan")
+
+
+@xapi_inline
+def tanh(x: TensorType[ElemType.numerics, "T"]
+         ) -> TensorType[ElemType.numerics, "T"]:
+    "See :func:`numpy.tanh`."
+    return var(x, op="Tanh")
+
+
+@xapi_inline
 def topk(x: TensorType[ElemType.numerics, "T"],
          k: TensorType[ElemType.int64, "I", (1,)],
          axis: OptParType[int] = -1,

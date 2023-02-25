@@ -145,7 +145,8 @@ def _xapi(fn: Callable, inline: bool, eager: bool):
                 new_inputs.append(None)
             else:
                 raise TypeError(
-                    f"Unexpected type for input {ind}, type={type(i)}.")
+                    f"Unexpected type for input {ind}, type={type(i)}. "
+                    f"Did you forget to wrap the constant with 'cst(.)'?")
         for ind in range(last_input + 1, len(inputs)):
             k = parnames[ind]
             if k in kwargs:

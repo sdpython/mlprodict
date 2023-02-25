@@ -199,7 +199,11 @@ class _GraphBuilder:
             context = onnxC.CheckerContext()
             context.opset_imports = d
             context.ir_version = self.check_context.ir_version
-        check_node(node, context)
+        try:
+            check_node(node, context)
+        except ValidationError as e:
+            raise RuntimeError(
+                f"Node type {node.op_type!r} is wrong.") from e
         self.nodes_.append(node)
 
     def _io(self, index: int, name: str, tensor_type: Optional[type],

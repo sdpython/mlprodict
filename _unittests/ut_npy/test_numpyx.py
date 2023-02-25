@@ -9,6 +9,7 @@ import warnings
 import numpy
 import scipy
 from onnx import ModelProto, TensorProto
+from onnx.backend.test.case.node.pad import pad_impl
 from onnx.checker import check_model
 from onnx.defs import onnx_opset_version
 from onnx.helper import (
@@ -59,6 +60,18 @@ from mlprodict.npy.numpyx_functions import (
     log as log_inline,
     log1p as log1p_inline,
     matmul as matmul_inline,
+    pad as pad_inline,
+    relu as relu_inline,
+    reciprocal as reciprocal_inline,
+    round as round_inline,
+    sigmoid as sigmoid_inline,
+    sign as sign_inline,
+    sin as sin_inline,
+    sinh as sinh_inline,
+    sqrt as sqrt_inline,
+    squeeze as squeeze_inline,
+    tan as tan_inline,
+    tanh as tanh_inline,
     topk as topk_inline)
 from mlprodict.npy.numpyx_tensors_ort import (
     BackendOrtTensor, EagerOrtTensor, OrtTensor)
@@ -1445,6 +1458,70 @@ class TestNumpyx(ExtTestCase):
     def test_matmul(self):
         self.common_test_inline_bin(matmul_inline, numpy.matmul)
 
+    def test_pad_1(self):
+        x = numpy.random.randn(1, 3, 4, 5).astype(numpy.float64)
+        pads = numpy.array([0, 0, 1, 3, 0, 0, 2, 4]).astype(numpy.int64)
+        value = numpy.array(1.2, dtype=numpy.float64)
+
+        for mode in ["constant", "reflect", "edge", "wrap"]:
+            with self.subTest(mode=mode):
+                z = pad_impl(x, pads, mode, 1.2)
+                f = pad_inline(
+                    copy_inline(Input("A")),
+                    cst(pads), cst(value), mode=mode)
+                self.assertIsInstance(f, Var)
+                onx = f.to_onnx(constraints={'A': Float64[None]})
+                ref = ReferenceEvaluator(onx)
+                got = ref.run(None, {'A': x})
+                self.assertEqualArray(z, got[0])
+
+    def test_pad_2(self):
+        x = numpy.random.randn(1, 2, 3, 4, 5).astype(numpy.float64)
+        pads = numpy.array([0, 0, 1, 3, 0, 0, 2, 4]).astype(numpy.int64)
+        value = numpy.array(1.2, dtype=numpy.float64)
+        axes = numpy.array([1, 2, 3, 4], dtype=numpy.int64)
+
+        for mode in ["constant", "reflect", "edge"]:
+            with self.subTest(mode=mode):
+                z = pad_impl(x, pads, mode, value, axes)
+                f = pad_inline(
+                    copy_inline(Input("A")),
+                    cst(pads), cst(value), cst(axes), mode=mode)
+                self.assertIsInstance(f, Var)
+                onx = f.to_onnx(constraints={'A': Float64[None]})
+                ref = ReferenceEvaluator(onx)
+                got = ref.run(None, {'A': x})
+                try:
+                    self.assertEqualArray(z, got[0])
+                except AssertionError:
+                    ref = OnnxInference(onx, runtime="onnxruntime1")
+                    got = ref.run({'A': x})
+                    name = onx.graph.output[0].name
+                    self.assertEqualArray(z, got[name])
+
+    def test_pad_3(self):
+        x = numpy.random.randn(1, 2, 3, 4, 5).astype(numpy.float64)
+        pads = numpy.array([0, 0, 1, 3, 0, 0, 2, 4]).astype(numpy.int64)
+        axes = numpy.array([1, 2, 3, 4], dtype=numpy.int64)
+
+        for mode in ["constant", "reflect", "edge"]:
+            with self.subTest(mode=mode):
+                z = pad_impl(x, pads, mode, 0, axes)
+                f = pad_inline(
+                    copy_inline(Input("A")),
+                    cst(pads), None, cst(axes), mode=mode)
+                self.assertIsInstance(f, Var)
+                onx = f.to_onnx(constraints={'A': Float64[None]})
+                ref = ReferenceEvaluator(onx)
+                got = ref.run(None, {'A': x})
+                try:
+                    self.assertEqualArray(z, got[0])
+                except AssertionError:
+                    ref = OnnxInference(onx, runtime="onnxruntime1")
+                    got = ref.run({'A': x})
+                    name = onx.graph.output[0].name
+                    self.assertEqualArray(z, got[name])
+
     def common_reduce(self, fct):
         f = absolute_inline(fct(copy_inline(Input("A"))))
         self.assertIsInstance(f, Var)
@@ -1466,8 +1543,62 @@ class TestNumpyx(ExtTestCase):
 
     def test_reduce_max(self):
         self.common_reduce(lambda x: x.max())
+
+    def test_reduce_prod(self):
+        self.common_reduce(lambda x: x.prod())
         
+    def test_relu(self):
+        self.common_test_inline(relu_inline, lambda x: numpy.where(x > 0, x, 0))
+
+    def test_reciprocal(self):
+        self.common_test_inline(reciprocal_inline, numpy.reciprocal)
+
+    def test_round(self):
+        self.common_test_inline(round_inline, numpy.round)
+
+    def test_sigmoid(self):
+        self.common_test_inline(sigmoid_inline, scipy.special.expit)
+
+    def test_sign(self):
+        self.common_test_inline(sign_inline, numpy.sign)
+
+    def test_sin(self):
+        self.common_test_inline(sin_inline, numpy.sin)
+
+    def test_sinh(self):
+        self.common_test_inline(sinh_inline, numpy.sinh)
+
+    def test_sqrt(self):
+        self.common_test_inline(sqrt_inline, numpy.sqrt)
+
+    def test_squeeze(self):
+        axis = numpy.array([1], dtype=numpy.int64)
+        f = squeeze_inline(copy_inline(Input("A")), cst(axis)) 
+        self.assertIsInstance(f, Var)
+        onx = f.to_onnx(constraints={'A': Float64[None]})
+        x = numpy.array([[-5, 6]], dtype=numpy.float64).T
+        z = numpy.squeeze(x, 1)
+        ref = ReferenceEvaluator(onx)
+        got = ref.run(None, {'A': x})
+        self.assertEqualArray(z, got[0])
+
+    def test_squeeze_noaxis(self):
+        f = squeeze_inline(copy_inline(Input("A")))
+        self.assertIsInstance(f, Var)
+        onx = f.to_onnx(constraints={'A': Float64[None]})
+        x = numpy.array([[-5, 6]], dtype=numpy.float64)
+        z = numpy.squeeze(x)
+        ref = ReferenceEvaluator(onx)
+        got = ref.run(None, {'A': x})
+        self.assertEqualArray(z, got[0])
+
+    def test_tan(self):
+        self.common_test_inline(tan_inline, numpy.tan)
+
+    def test_tanh(self):
+        self.common_test_inline(tanh_inline, numpy.tanh)
+
 
 if __name__ == "__main__":
-    TestNumpyx().test_log1p()
+    TestNumpyx().test_squeeze_noaxis()
     unittest.main(verbosity=2)
