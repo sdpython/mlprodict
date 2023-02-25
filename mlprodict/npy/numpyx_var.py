@@ -10,7 +10,7 @@ from onnx import (  # pylint: disable=E0611
     FunctionProto, ModelProto, TensorProto)
 from onnx.helper import np_dtype_to_tensor_dtype
 from .numpyx_types import (
-    ParType, SequenceType, TensorType)
+    OptParType, ParType, SequenceType, TensorType, TupleType)
 
 
 DEFAULT_OPSETS = {'': 18, 'ai.onnx.ml': 3}
@@ -358,7 +358,8 @@ class Var:
                         f"from {id(r)}-{r} "
                         f"is not known, it is not produced by a "
                         f"previous var (scheduled for replacement: "
-                        f"{id(i) in replacement}).")
+                        f"{id(i) in replacement}). This happens if "
+                        f"a constant is not wrapped by 'cst(.)'.")
         return new_res
 
     @property
@@ -395,10 +396,13 @@ class Var:
         # Var.to_onnx
         if target_opsets is None:
             target_opsets = DEFAULT_OPSETS
+
+        vs = self._get_vars()
+
         g = _GraphBuilder(target_opsets, as_function=as_function,
                           name=name, domain=domain, attributes=attributes,
                           constraints=constraints, ir_version=ir_version)
-        vs = self._get_vars()
+
         for var in vs:
             g.append(var)
         onx = g.to_onnx()
@@ -615,17 +619,43 @@ class Var:
             shape = numpy.array(shape, dtype=numpy.int64)
         return var(self, shape, op="Reshape")
 
-    def sum(self, axis=None, keepdims=0):
-        "See :func:`numpy.sum`."
+    def reduce_function(self, reduce_op,
+                        axis: OptParType[TupleType[int]] = None,
+                        keepdims: ParType[int] = 0):
+        "See :func:`numpy.sum` or any other reduce function."
         from .numpyx_core_api import var
         if axis is None:
-            return var(self, op="ReduceSum", keepdims=keepdims)
+            return var(self, op=reduce_op, keepdims=keepdims)
         if isinstance(axis, int):
             axis = [axis]
         if isinstance(axis, (tuple, list)):
             from .numpyx_core_api import cst
             axis = cst(numpy.array(axis, dtype=numpy.int64))
-        return var(self, axis, op="ReduceSum", keepdims=keepdims)
+        return var(self, axis, op=reduce_op, keepdims=keepdims)
+
+    def sum(self,
+            axis: OptParType[TupleType[int]] = None,
+            keepdims: ParType[int] = 0):
+        "See :func:`numpy.sum`."
+        return self.reduce_function("ReduceSum", axis=axis, keepdims=keepdims)
+
+    def mean(self,
+             axis: OptParType[TupleType[int]] = None,
+             keepdims: ParType[int] = 0):
+        "See :func:`numpy.mean`."
+        return self.reduce_function("ReduceMean", axis=axis, keepdims=keepdims)
+
+    def min(self,
+            axis: OptParType[TupleType[int]] = None,
+            keepdims: ParType[int] = 0):
+        "See :func:`numpy.min`."
+        return self.reduce_function("ReduceMin", axis=axis, keepdims=keepdims)
+
+    def max(self,
+            axis: OptParType[TupleType[int]] = None,
+            keepdims: ParType[int] = 0):
+        "See :func:`numpy.max`."
+        return self.reduce_function("ReduceMax", axis=axis, keepdims=keepdims)
 
     def copy(self):
         """

@@ -6,6 +6,7 @@
 """
 from typing import Optional
 import numpy
+from onnx.numpy_helper import from_array
 from .numpyx_core_api import (  # pylint: disable=W0611
     cst, make_tuple, var, xapi_inline)
 from .numpyx_types import (  # pylint: disable=W0611
@@ -314,7 +315,8 @@ def identity(n: ParType[int], dtype=None) -> TensorType[ElemType.numerics, "T"]:
     "Makes a copy."
     val = numpy.array([n, n], dtype=numpy.int64)
     shape = cst(val)
-    model = var(shape, op="ConstantOfShape")
+    model = var(shape, op="ConstantOfShape",
+                value=from_array(numpy.array([0], dtype=numpy.int64)))
     v = var(model, dtype=dtype, op="EyeLike")
     return v
 
@@ -324,6 +326,21 @@ def isnan(x: TensorType[ElemType.numerics, "T"]
           ) -> TensorType[ElemType.bool_, "T"]:
     "See :func:`numpy.isnan`."
     return var(x, op="IsNaN")
+
+
+@xapi_inline
+def log(x: TensorType[ElemType.numerics, "T"]
+        ) -> TensorType[ElemType.numerics, "T"]:
+    "See :func:`numpy.log`."
+    return var(x, op="Log")
+
+
+@xapi_inline
+def log1p(x: TensorType[ElemType.numerics, "T"]
+          ) -> TensorType[ElemType.numerics, "T"]:
+    "See :func:`numpy.log1p`."
+    x1 = var(x, var(cst(numpy.array([1])), x, op="CastLike"), op="Add")
+    return var(x1, op="Log")
 
 
 @xapi_inline

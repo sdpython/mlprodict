@@ -56,6 +56,8 @@ from mlprodict.npy.numpyx_functions import (
     hstack as hstack_inline,
     identity as identity_inline,
     isnan as isnan_inline,
+    log as log_inline,
+    log1p as log1p_inline,
     matmul as matmul_inline,
     topk as topk_inline)
 from mlprodict.npy.numpyx_tensors_ort import (
@@ -1434,10 +1436,38 @@ class TestNumpyx(ExtTestCase):
     def test_isnan(self):
         self.common_test_inline(isnan_inline, numpy.isnan)
 
+    def test_log(self):
+        self.common_test_inline(log_inline, numpy.log)
+
+    def test_log1p(self):
+        self.common_test_inline(log1p_inline, numpy.log1p)
+
     def test_matmul(self):
         self.common_test_inline_bin(matmul_inline, numpy.matmul)
 
+    def common_reduce(self, fct):
+        f = absolute_inline(fct(copy_inline(Input("A"))))
+        self.assertIsInstance(f, Var)
+        onx = f.to_onnx(constraints={'A': Float64[None]})
+        x = numpy.array([[-5, 6]], dtype=numpy.float64)
+        z = numpy.abs(fct(x))
+        ref = ReferenceEvaluator(onx)
+        got = ref.run(None, {'A': x})
+        self.assertEqualArray(z, got[0])
+
+    def test_reduce_sum(self):
+        self.common_reduce(lambda x: x.sum())
+
+    def test_reduce_mean(self):
+        self.common_reduce(lambda x: x.mean())
+
+    def test_reduce_min(self):
+        self.common_reduce(lambda x: x.min())
+
+    def test_reduce_max(self):
+        self.common_reduce(lambda x: x.max())
+        
 
 if __name__ == "__main__":
-    TestNumpyx().test_cumsum()
+    TestNumpyx().test_log1p()
     unittest.main(verbosity=2)

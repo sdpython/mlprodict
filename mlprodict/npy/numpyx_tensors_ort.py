@@ -4,13 +4,12 @@
 
 .. versionadded:: 0.10
 """
-from typing import Any, Callable, List, Optional, Tuple, Union
 import numpy
+from typing import Any, Callable, List, Optional, Tuple, Union
 from onnx import ModelProto
 from onnxruntime import InferenceSession, RunOptions
 from onnxruntime.capi._pybind_state import (  # pylint: disable=E0611
     OrtValue as C_OrtValue, OrtDevice as C_OrtDevice, OrtMemType)
-from onnxruntime.capi.onnxruntime_pybind11_state import InvalidArgument
 from .numpyx_types import TensorType
 from .numpyx_tensors import BackendTensor, EagerTensor
 

@@ -5,7 +5,7 @@
 .. versionadded:: 0.10
 """
 from inspect import _empty, signature
-from typing import Callable, Optional, _UnionGenericAlias
+from typing import Callable
 import numpy
 from .numpyx_types import (
     EagerNotAllowedError, OptParType, ParType, TupleType)
@@ -93,7 +93,6 @@ def _xapi(fn: Callable, inline: bool, eager: bool):
         a function
     :param eager: enables eager mode or convert it into onnx
     """
-    cst_types = (Var, numpy.ndarray, int, float)
     sig = signature(fn)
 
     # It has the same signature
@@ -121,7 +120,6 @@ def _xapi(fn: Callable, inline: bool, eager: bool):
                 parnames[pos] = name
                 pos += 1
                 continue
-        annot0 = len(sig.parameters) > 0
         last_input = -1
         for ind, i in enumerate(inputs):
             annotation = (

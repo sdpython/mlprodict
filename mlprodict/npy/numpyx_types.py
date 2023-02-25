@@ -233,17 +233,17 @@ class ParType:
         return newt
 
     @classmethod
-    def onnx_type(self):
+    def onnx_type(cls):
         "Returns the onnx corresponding type."
-        if self.dtype == int:
+        if cls.dtype == int:
             return AttributeProto.INT
-        if self.dtype == float:
+        if cls.dtype == float:
             return AttributeProto.FLOAT
-        if self.dtype == str:
+        if cls.dtype == str:
             return AttributeProto.STRING
         raise RuntimeError(
-            f"Unsupported attribute type {self.dtype!r} "
-            f"for parameter {self!r}.")
+            f"Unsupported attribute type {cls.dtype!r} "
+            f"for parameter {cls!r}.")
 
 
 class OptParType(ParType):
@@ -278,7 +278,7 @@ class ShapeType(Tuple[int, ...]):
     """
     @classmethod
     def __class_getitem__(cls, *args):
-        if any(map(lambda t: not isinstance(t, (int, str, None)), args)):
+        if any(map(lambda t: t is not None and not isinstance(t, (int, str)), args)):
             raise TypeError(
                 f"Unexpected value for args={args}, every element should int or str.")
         ext = "_".join(map(str, args))
@@ -489,8 +489,11 @@ class TupleType:
                 name = a
             elif isinstance(a, type) and issubclass(a, TensorType):
                 elem_types.append(a)
+            elif a in (int, float, str):
+                elem_types.append(a)
             else:
-                raise TypeError(f"Unexpected value {a} in {args}.")
+                raise TypeError(
+                    f"Unexpected value type={type(a)}, value={a} in {args}.")
         msg = []
         if name:
             msg.append(name)
