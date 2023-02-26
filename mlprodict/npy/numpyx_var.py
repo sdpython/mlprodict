@@ -261,7 +261,7 @@ class Var:
         new_var._prefix = self._prefix
         return new_var
 
-    def __repr__(self):
+    def __repr__(self) -> str:
         "usual"
         args = []
         for inp in self.inputs:
@@ -290,6 +290,7 @@ class Var:
         vs = []
         stack = [self]
         replacement = {}
+        replacement_cst = {}
         deleted = []
         while len(stack) > 0:
             var = stack.pop()
@@ -315,9 +316,27 @@ class Var:
             for i in reversed(var.inputs):
                 if isinstance(i, Var):
                     stack.insert(0, i)
+                    continue
+                if isinstance(i, numpy.ndarray):
+                    from .numpyx_core_api import cst
+                    replacement_cst[id(i)] = cst(i)
+                    continue
+                if isinstance(i, (int, float)):
+                    from .numpyx_core_api import cst
+                    replacement_cst[id(i)] = cst(numpy.array(i))
+                    continue
+                if i is None:
+                    continue
+                raise TypeError(
+                    f"Unexpected type {type(i)} for an input of node {var}.")
         res = list(reversed(vs))
 
-        # replacement
+        # replacement: a node calling a function can either
+        # remains as a call to a local function or the code
+        # of the function can replace the call inline.
+        # replacement keeps a map of function call to replace
+        # by the return itself to avoid calling the same function
+        # twice.
         new_res = []
         for r in res:
             new_inputs = []
@@ -352,11 +371,13 @@ class Var:
                 if i is None:
                     # optional input
                     continue
+                if id(i) in replacement_cst:
+                    # constant to replace
+                    continue
                 if id(i) not in known:
                     raise RuntimeError(
-                        f"An input {ind} ({id(i)}, type={type(i)}) "
-                        f"from {id(r)}-{r} "
-                        f"is not known, it is not produced by a "
+                        f"An input {ind} ({id(i)}, type={type(i)}) from "
+                        f"{id(r)}-{r} is not known, it is not produced by a "
                         f"previous var (scheduled for replacement: "
                         f"{id(i) in replacement}). This also happens if "
                         f"a constant is not wrapped by 'cst(.)'.")

@@ -6,6 +6,7 @@
 """
 from inspect import Parameter, signature
 from typing import Any, Callable, Dict, List, Optional
+import numpy
 from onnx import (  # pylint: disable=E0611
     IR_VERSION, AttributeProto, ValueInfoProto, TypeProto)
 from onnx.checker import (
@@ -79,7 +80,8 @@ class _GraphBuilder:
                  constraints: Optional[Dict[Any, TensorType]] = None,
                  ir_version: Optional[int] = None):
         if ir_version is None:
-            if target_opsets is not None and "" in target_opsets and target_opsets[""] in _OPSET_TO_IR_VERSION:
+            if (target_opsets is not None and "" in target_opsets and
+                    target_opsets[""] in _OPSET_TO_IR_VERSION):
                 ir_version = _OPSET_TO_IR_VERSION[target_opsets[""]]
         if ir_version is None:
             raise ValueError(
@@ -203,7 +205,7 @@ class _GraphBuilder:
             check_node(node, context)
         except ValidationError as e:
             raise RuntimeError(
-                f"Node type {node.op_type!r} is wrong.") from e
+                f"Node type {node.op_type!r} is wrong ({node})") from e
         self.nodes_.append(node)
 
     def _io(self, index: int, name: str, tensor_type: Optional[type],
@@ -531,15 +533,42 @@ class _GraphBuilder:
                     continue
                 if isinstance(i, Var):
                     kv = id(i)
-                    if (kv, index) not in self._id_vars or self._id_vars[kv, index] is None:
+                    if ((kv, index) not in self._id_vars or
+                            self._id_vars[kv, index] is None):
                         raise RuntimeError(
                             f"A variable of type {type(i)} id={kv} "
                             f"index={index} was not registered, i={i}.")
                     input_name = self._id_vars[kv, index]
                     node_inputs.append(input_name)
-                else:
-                    raise NotImplementedError(
-                        f"Unexpected type {type(i)} for node={domop}.")
+                    continue
+
+                if isinstance(i, numpy.ndarray):
+                    c = Cst(i)
+                    input_name = self._unique(var._prefix)
+                    self._id_vars[id(i), index] = input_name
+                    self._id_vars[id(c), index] = input_name
+                    self.make_node("Constant", [], [input_name],
+                                   value=from_array(i),
+                                   opset=self.target_opsets[''])
+                    self.onnx_names_[input_name] = c
+                    node_inputs.append(input_name)
+                    continue
+
+                if isinstance(i, (int, float)):
+                    ni = numpy.array(i)
+                    c = Cst(ni)
+                    input_name = self._unique(var._prefix)
+                    self._id_vars[id(i), index] = input_name
+                    self._id_vars[id(c), index] = input_name
+                    self.make_node("Constant", [], [input_name],
+                                   value=from_array(ni),
+                                   opset=self.target_opsets[''])
+                    self.onnx_names_[input_name] = c
+                    node_inputs.append(input_name)
+                    continue
+
+                raise NotImplementedError(
+                    f"Unexpected type {type(i)} for node={domop}.")
 
             # preprocess the argument
             kwargs = var.onnx_op_kwargs
@@ -571,6 +600,7 @@ class _GraphBuilder:
                             f"of function {domop[1]!r} and domain "
                             f"{domop[0]!r}.")
                     kwargs[par.name] = par.value
+
             if domop == ('', 'Identity') and len(node_inputs) > 1:
                 if len(node_inputs) != len(node_outputs):
                     raise RuntimeError(
@@ -597,6 +627,7 @@ class _GraphBuilder:
             else:
                 possible_outputs.extend(
                     [(var, i, None) for i in range(var.n_var_outputs)])
+
         if len(possible_types) > 0:
             # converts possibles types into a dictionary
             map_types = {}

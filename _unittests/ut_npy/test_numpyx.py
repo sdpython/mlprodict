@@ -1665,7 +1665,85 @@ class TestNumpyx(ExtTestCase):
         got = ref.run(None, {'A': x})
         self.assertEqualArray(z, got[0])
 
+    def test_numpy_operator_types(self):
+        one = numpy.array([1], dtype=numpy.float64)
+
+        def impl(x):
+            return absolute_inline(copy_inline(x) + cst(one))
+
+        onx = impl(Input("A")).to_onnx(
+            constraints={'A': Float64[None], (0, False): Float64[None]})
+        x = numpy.array([-5, 6], dtype=numpy.float64)
+        z = numpy.abs(x + 1)
+        ref = ReferenceEvaluator(onx)
+        got = ref.run(None, {'A': x})
+        self.assertEqualArray(z, got[0])
+
+        f = jit_onnx(impl)
+
+        # Float64
+        res = f(x)
+        self.assertEqualArray(z, res)
+        self.assertEqual(res.dtype, numpy.float64)
+
+        # Int64
+        res = f(x.astype(numpy.int64))
+        self.assertEqualArray(z.astype(numpy.int64), res)
+        self.assertEqual(res.dtype, numpy.int64)
+
+    def test_numpy_operator_types_array(self):
+        one = numpy.array([1], dtype=numpy.float64)
+
+        def impl(x):
+            return absolute_inline(copy_inline(x) + one)
+
+        onx = impl(Input("A")).to_onnx(
+            constraints={'A': Float64[None], (0, False): Float64[None]})
+        x = numpy.array([-5, 6], dtype=numpy.float64)
+        z = numpy.abs(x + 1)
+        ref = ReferenceEvaluator(onx)
+        got = ref.run(None, {'A': x})
+        self.assertEqualArray(z, got[0])
+
+        f = jit_onnx(impl)
+
+        # Float64
+        res = f(x)
+        self.assertEqualArray(z, res)
+        self.assertEqual(res.dtype, numpy.float64)
+
+        # Int64
+        res = f(x.astype(numpy.int64))
+        self.assertEqualArray(z.astype(numpy.int64), res)
+        self.assertEqual(res.dtype, numpy.int64)
+
+    def test_numpy_operator_types_int(self):
+        one = 1
+
+        def impl(x):
+            return absolute_inline(copy_inline(x) + one)
+
+        onx = impl(Input("A")).to_onnx(
+            constraints={'A': Float64[None], (0, False): Float64[None]})
+        x = numpy.array([-5, 6], dtype=numpy.float64)
+        z = numpy.abs(x + 1)
+        ref = ReferenceEvaluator(onx)
+        got = ref.run(None, {'A': x})
+        self.assertEqualArray(z, got[0])
+
+        f = jit_onnx(impl)
+
+        # Float64
+        res = f(x)
+        self.assertEqualArray(z, res)
+        self.assertEqual(res.dtype, numpy.float64)
+
+        # Int64
+        res = f(x.astype(numpy.int64))
+        self.assertEqualArray(z.astype(numpy.int64), res)
+        self.assertEqual(res.dtype, numpy.int64)
+
 
 if __name__ == "__main__":
-    TestNumpyx().test_squeeze_noaxis()
+    TestNumpyx().test_numpy_operator_types_int()
     unittest.main(verbosity=2)
