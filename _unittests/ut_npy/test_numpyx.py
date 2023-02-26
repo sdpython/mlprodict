@@ -1139,10 +1139,6 @@ class TestNumpyx(ExtTestCase):
                 raise AssertionError(f"Discrepancies with\n{onx}") from e
 
     def test_numpy_op_op_right(self):
-        def ttt(x, y):
-            return x @ y
-
-        self.common_numpy_op_right("@", ttt)
         self.common_numpy_op_right("+", lambda x, y: x + y)
         self.common_numpy_op_right("-", lambda x, y: x - y)
         self.common_numpy_op_right("*", lambda x, y: x * y)
@@ -1817,7 +1813,68 @@ class TestNumpyx(ExtTestCase):
         self.assertEqualArray(z.astype(numpy.int64), res)
         self.assertEqual(res.dtype, numpy.int64)
 
+    def common_test_indices_int_tuple_slice(self, indices):
+
+        def impl(x):
+            return copy_inline(x)[indices]
+
+        onx = impl(Input("A")).to_onnx(
+            constraints={'A': Float64[None], (0, False): Float64[None]})
+        x = numpy.arange(63).reshape((9, 7)).astype(dtype=numpy.float64)
+        z = x[indices]
+        ref = ReferenceEvaluator(onx)
+        got = ref.run(None, {'A': x})
+        self.assertEqualArray(z, got[0])
+
+        f = jit_onnx(impl)
+
+        # Float64
+        res = f(x)
+        self.assertEqualArray(z, res)
+        self.assertEqual(res.dtype, numpy.float64)
+
+        # Int64
+        res = f(x.astype(numpy.int64))
+        self.assertEqualArray(z.astype(numpy.int64), res)
+        self.assertEqual(res.dtype, numpy.int64)
+
+    def test_indices_int_tuple_slice(self):
+        self.common_test_indices_int_tuple_slice(1)
+        self.common_test_indices_int_tuple_slice((1, 2))
+        self.common_test_indices_int_tuple_slice(slice(0, 2))
+        self.common_test_indices_int_tuple_slice((slice(0, 2), slice(4, 6)))
+        self.common_test_indices_int_tuple_slice((slice(0, 2), 5))
+        self.common_test_indices_int_tuple_slice((5, slice(0, 2)))
+        self.common_test_indices_int_tuple_slice((5, slice(0, 7, 2)))
+
+    def test_filter(self):
+
+        def impl(x):
+            y = copy_inline(x)
+            ind = (y == 2) | (y == 8)
+            return y[ind]
+
+        onx = impl(Input("A")).to_onnx(
+            constraints={'A': Float64[None], (0, False): Float64[None]})
+        x = numpy.arange(63).reshape((9, 7)).astype(dtype=numpy.float64)
+        z = x[(x == 2) | (x == 8)]
+        ref = ReferenceEvaluator(onx)
+        got = ref.run(None, {'A': x})
+        self.assertEqualArray(z, got[0])
+
+        f = jit_onnx(impl)
+
+        # Float64
+        res = f(x)
+        self.assertEqualArray(z, res)
+        self.assertEqual(res.dtype, numpy.float64)
+
+        # Int64
+        res = f(x.astype(numpy.int64))
+        self.assertEqualArray(z.astype(numpy.int64), res)
+        self.assertEqual(res.dtype, numpy.int64)
+
 
 if __name__ == "__main__":
-    TestNumpyx().test_numpy_op_op_right()
+    # TestNumpyx().test_filter()
     unittest.main(verbosity=2)

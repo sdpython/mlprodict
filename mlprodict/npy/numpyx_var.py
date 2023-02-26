@@ -788,8 +788,18 @@ class Var:
 
     def __getitem__(self, index: Any) -> "Var":
         """
-        Implements indexing.
+        Deals with multiple scenarios.
+
+        * *index* is an integer and the object produces multiple
+          outputs and this returns one of them (**scenario 0**)
+        * *index* is an integer or a slice, a tuple of integers and slices,
+          example: `[0, 1]`, `[:5, :6]`, `[::2]` (**scenario 1**)
+        * *index* is an *ONNX* object (more precisely an instance of
+          :class:`Var`), then the method assumes it is an array of
+          boolean to select a subset of the tensor along the first axis,
+          example: `mat[mat == 0]` (**scenario 2**)
         """
+        from .numpyx_core_api import cst, var
         if self.n_var_outputs != 1:
             # Multioutut
             if not isinstance(index, int):
@@ -797,8 +807,122 @@ class Var:
                     f"Only indices are allowed when selecting an output, "
                     f"not {type(index)}).")
             return self.get(index)
-        raise NotImplementedError(
-            "indexing is not implemented yet, index={index!r}.")
+
+        if isinstance(index, Var):
+            # scenario 2
+            new_shape = cst(numpy.array([-1], dtype=numpy.int64))
+            new_self = self.reshape(new_shape)
+            new_index = index.reshape(new_shape)
+            return var(new_self, new_index, op="Compress")
+
+        if isinstance(index, int):
+            # Use Gather instead.
+            return var(
+                self, cst(numpy.array(index, dtype=numpy.int64)),
+                axis=0, op="Gather")
+
+        if not isinstance(index, tuple):
+            index = (index, )
+
+        # only one integer?
+        ni = None
+        ax = None
+        for i, a in enumerate(index):
+            if isinstance(a, int):
+                if ni is None:
+                    ni = i
+                    ax = a
+                else:
+                    ax = None
+                    ni = None
+                    break
+            if (isinstance(a, slice) and a.start is None and
+                    a.stop is None and a.step is None):
+                continue
+            ax = None
+            ni = None
+            break
+
+        if ni is not None and ax is not None:
+            # Use Gather instead.
+            return var(
+                self, cst(numpy.array(ni, dtype=numpy.int64)),
+                axis=ax, op="Gather")
+
+        # scenario 1
+        starts = []
+        ends = []
+        axes = []
+        steps = []
+        axis_squeeze = []
+        needs_shape = []
+        for i, ind in enumerate(index):
+            if isinstance(ind, int):
+                starts.append(ind)
+                ends.append(ind + 1)
+                axes.append(i)
+                steps.append(1)
+                axis_squeeze.append(i)
+                continue
+            if isinstance(ind, slice):
+                if ind.start is None and ind.stop is None and ind.step is None:
+                    continue
+                start = 0 if ind.start is None else ind.start
+                end = (None, i) if ind.stop is None else ind.stop
+                step = 1 if ind.step is None else ind.step
+                starts.append(start)
+                ends.append(end)
+                axes.append(i)
+                steps.append(step)
+                if isinstance(end, tuple):
+                    needs_shape.append(len(ends) - 1)
+                elif isinstance(end, Var):
+                    needs_shape.append(end)
+                continue
+            raise NotImplementedError(  # pragma: no cover
+                f"Not implemented for type {type(ind)!r}.")
+
+        if max(steps) == min(steps) == 1:
+            steps = None
+        else:
+            steps = numpy.array(steps, dtype=numpy.int64)
+
+        starts = numpy.array(starts, dtype=numpy.int64)
+        axes = numpy.array(axes, dtype=numpy.int64)
+
+        if len(needs_shape) > 0:
+            shape = self.shape
+            conc = []
+            for e in ends:
+                if isinstance(e, tuple):
+                    conc.append(
+                        var(shape, cst(numpy.array([e[1]], numpy.int64)),
+                            op="Gather"))
+                elif isinstance(e, Var):
+                    conc.append(
+                        e.reshape(numpy.array([-1], dtype=numpy.int64)))
+                else:
+                    conc.append(numpy.array([e], dtype=numpy.int64))
+            if len(conc) > 1:
+                conc_cst = [v if isinstance(v, Var) else cst(v)
+                            for v in conc]
+                ends = var(*conc_cst, op="Concat", axis=0)
+            else:
+                ends = conc[0]
+        else:
+            ends = numpy.array(ends, dtype=numpy.int64)
+
+        sliced_args = [starts, ends, axes]
+        if steps is not None:
+            sliced_args.append(steps)
+        sliced_args_cst = [v if isinstance(v, Var) else cst(v)
+                           for v in sliced_args]
+        sliced = var(self, *sliced_args_cst, op="Slice")
+        if len(axis_squeeze) > 0:
+            return var(
+                sliced, cst(numpy.array(axis_squeeze, dtype=numpy.int64)),
+                op="Squeeze")
+        return sliced
 
 
 class Input(Var):
