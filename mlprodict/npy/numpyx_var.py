@@ -10,7 +10,7 @@ from onnx import (  # pylint: disable=E0611
     FunctionProto, ModelProto, TensorProto)
 from onnx.helper import np_dtype_to_tensor_dtype
 from .numpyx_types import (
-    OptParType, ParType, SequenceType, TensorType, TupleType)
+    OptParType, ParType, TensorType, TupleType)
 
 
 DEFAULT_OPSETS = {'': 18, 'ai.onnx.ml': 3}
@@ -358,7 +358,7 @@ class Var:
                         f"from {id(r)}-{r} "
                         f"is not known, it is not produced by a "
                         f"previous var (scheduled for replacement: "
-                        f"{id(i) in replacement}). This happens if "
+                        f"{id(i) in replacement}). This also happens if "
                         f"a constant is not wrapped by 'cst(.)'.")
         return new_res
 

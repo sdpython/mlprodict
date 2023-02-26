@@ -4,7 +4,7 @@
 
 .. versionadded:: 0.10
 """
-from typing import Optional
+from typing import Optional, Tuple
 import numpy
 from onnx.numpy_helper import from_array
 from .numpyx_core_api import (  # pylint: disable=W0611
@@ -470,3 +470,42 @@ def topk(x: TensorType[ElemType.numerics, "T"],
     return make_tuple(2, x, k, op="TopK",
                       axis=axis, largest=largest,
                       sorted=sorted)
+
+
+@xapi_inline
+def transpose(x: TensorType[ElemType.numerics, "T"],
+              perm: ParType[Tuple[int, ...]] = (1, 0)
+              ) -> TensorType[ElemType.numerics, "T"]:
+    "See :func:`numpy.transpose`."
+    return var(x, op="Transpose", perm=list(perm))
+
+
+@xapi_inline
+def unsqueeze(x: TensorType[ElemType.numerics, "T"],
+              axis: TensorType[ElemType.int64, "I"]
+              ) -> TensorType[ElemType.numerics, "T"]:
+    "See :func:`numpy.expand_dims`."
+    if isinstance(axis, int):
+        axis = (axis,)
+    if isinstance(axis, tuple):
+        axis = cst(numpy.array(axis, dtype=numpy.int64))
+    return var(x, axis, op="Unsqueeze")
+
+
+@xapi_inline
+def vstack(*x: SequenceType[TensorType[ElemType.numerics, "T"]]
+           ) -> TensorType[ElemType.numerics, "T"]:
+    "See :func:`numpy.vstack`."
+    if len(x) <= 1:
+        raise RuntimeError(  # pragma: no cover
+            f"N={len(x)}<=1 elements to concatenate.")
+    return var(*x, op="Concat", axis=0)
+
+
+@xapi_inline
+def where(cond: TensorType[ElemType.bool_, "B"],
+          x: TensorType[ElemType.numerics, "T"],
+          y: TensorType[ElemType.numerics, "T"]
+          ) -> TensorType[ElemType.numerics, "T"]:
+    "See :func:`numpy.where`."
+    return var(cond, x, y, op="Where")

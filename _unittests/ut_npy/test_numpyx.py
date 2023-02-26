@@ -72,7 +72,12 @@ from mlprodict.npy.numpyx_functions import (
     squeeze as squeeze_inline,
     tan as tan_inline,
     tanh as tanh_inline,
-    topk as topk_inline)
+    topk as topk_inline,
+    transpose as transpose_inline,
+    unsqueeze as unsqueeze_inline,
+    vstack as vstack_inline,
+    where as where_inline,
+)
 from mlprodict.npy.numpyx_tensors_ort import (
     BackendOrtTensor, EagerOrtTensor, OrtTensor)
 
@@ -289,7 +294,8 @@ class TestNumpyx(ExtTestCase):
         try:
             got = ref.run(None, feeds)
         except TypeError as e:
-            self._warns.append(f"ReferenceEvaluator:test_numpy_concat2: {e}")
+            self._warns.append(
+                f"ReferenceEvaluator:test_numpy_concat2_inline: {e}")
             oinf = OnnxInference(onx)
             got = oinf.run(feeds)
             got = [got['r__2']]
@@ -541,6 +547,8 @@ class TestNumpyx(ExtTestCase):
             if DEFAULT_OPSET >= 19:
                 raise e
             # onnx==1.13
+            self._warns.append(
+                f"ReferenceEvaluator:test_backend_parameters: {e}")
             got2 = OnnxInference(onx).run({'A': x})
             self.assertEqualArray(z1, got2[list(got2)[0]])
             z1 = got[0]
@@ -586,6 +594,8 @@ class TestNumpyx(ExtTestCase):
             if DEFAULT_OPSET >= 19:
                 raise e
             # onnx==1.13
+            self._warns.append(
+                f"ReferenceEvaluator:test_backend_parameters_xapi: {e}")
             got2 = OnnxInference(onx).run({'A': x})
             self.assertEqualArray(z1, got2[list(got2)[0]])
             z1 = got[0]
@@ -630,6 +640,7 @@ class TestNumpyx(ExtTestCase):
             if DEFAULT_OPSET >= 19:
                 raise e
             # onnx==1.13
+            self._warns.append(f"ReferenceEvaluator:test_backend: {e}")
             got2 = OnnxInference(onx).run({'A': x})
             self.assertEqualArray(z1, got2[list(got2)[0]])
             z1 = got[0]
@@ -678,6 +689,7 @@ class TestNumpyx(ExtTestCase):
             if DEFAULT_OPSET >= 19:
                 raise e
             # onnx==1.13
+            self._warns.append(f"ReferenceEvaluator:test_backend: {e}")
             got2 = OnnxInference(onx).run({'A': x})
             self.assertEqualArray(z1, got2[list(got2)[0]])
             z1 = got[0]
@@ -1431,7 +1443,7 @@ class TestNumpyx(ExtTestCase):
         try:
             got = ref.run(None, feeds)
         except TypeError as e:
-            self._warns.append(f"ReferenceEvaluator:test_numpy_concat2: {e}")
+            self._warns.append(f"ReferenceEvaluator:test_hstack: {e}")
             oinf = OnnxInference(onx)
             got = oinf.run(feeds)
             got = [got['r__2']]
@@ -1493,7 +1505,8 @@ class TestNumpyx(ExtTestCase):
                 got = ref.run(None, {'A': x})
                 try:
                     self.assertEqualArray(z, got[0])
-                except AssertionError:
+                except AssertionError as e:
+                    self._warns.append(f"ReferenceEvaluator:test_pad: {e}")
                     ref = OnnxInference(onx, runtime="onnxruntime1")
                     got = ref.run({'A': x})
                     name = onx.graph.output[0].name
@@ -1516,7 +1529,8 @@ class TestNumpyx(ExtTestCase):
                 got = ref.run(None, {'A': x})
                 try:
                     self.assertEqualArray(z, got[0])
-                except AssertionError:
+                except AssertionError as e:
+                    self._warns.append(f"ReferenceEvaluator:test_pad: {e}")
                     ref = OnnxInference(onx, runtime="onnxruntime1")
                     got = ref.run({'A': x})
                     name = onx.graph.output[0].name
@@ -1598,6 +1612,58 @@ class TestNumpyx(ExtTestCase):
 
     def test_tanh(self):
         self.common_test_inline(tanh_inline, numpy.tanh)
+
+    def test_transpose(self):
+        f = transpose_inline(copy_inline(Input("A")), perm=(1, 0))
+        self.assertIsInstance(f, Var)
+        onx = f.to_onnx(constraints={'A': Float64[None]})
+        x = numpy.array([[-5, 6]], dtype=numpy.float64).T
+        z = numpy.transpose(x, (1, 0))
+        ref = ReferenceEvaluator(onx)
+        got = ref.run(None, {'A': x})
+        self.assertEqualArray(z, got[0])
+
+    def test_unsqueeze(self):
+        axis = numpy.array([1], dtype=numpy.int64)
+        f = unsqueeze_inline(copy_inline(Input("A")), cst(axis))
+        self.assertIsInstance(f, Var)
+        onx = f.to_onnx(constraints={'A': Float64[None]})
+        x = numpy.array([[-5, 6]], dtype=numpy.float64).T
+        z = numpy.expand_dims(x, 1)
+        ref = ReferenceEvaluator(onx)
+        got = ref.run(None, {'A': x})
+        self.assertEqualArray(z, got[0])
+
+    def test_vstack(self):
+        f = vstack_inline(Input("A"), Input("B"))
+        onx = f.to_onnx(constraints={'A': Float64[None],
+                                     'B': Float64[None],
+                                     (0, False): Float64[None]})
+        x1 = numpy.array([[-5, 6], [15, 3]], dtype=numpy.float64)
+        x2 = numpy.array([[1, 2], [10, 20]], dtype=numpy.float64)
+        z = numpy.vstack([x1, x2])
+        ref = ReferenceEvaluator(onx)
+        feeds = {'A': x1, 'B': x2}
+        try:
+            got = ref.run(None, feeds)
+        except TypeError as e:
+            self._warns.append(f"ReferenceEvaluator:test_numpy_vstack: {e}")
+            oinf = OnnxInference(onx)
+            got = oinf.run(feeds)
+            got = [got['r__2']]
+        self.assertEqualArray(z, got[0])
+
+    def test_where(self):
+        zero = numpy.array([0], dtype=numpy.float64)
+        f = where_inline(copy_inline(Input("A")) >= cst(zero),
+                         Input("A"), cst(zero))
+        self.assertIsInstance(f, Var)
+        onx = f.to_onnx(constraints={'A': Float64[None]})
+        x = numpy.array([-5, 6], dtype=numpy.float64).T
+        z = numpy.where(x >= 0, x, 0)
+        ref = ReferenceEvaluator(onx)
+        got = ref.run(None, {'A': x})
+        self.assertEqualArray(z, got[0])
 
 
 if __name__ == "__main__":

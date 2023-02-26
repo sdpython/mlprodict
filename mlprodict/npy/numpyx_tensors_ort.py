@@ -4,7 +4,7 @@
 
 .. versionadded:: 0.10
 """
-import numpy
+import numpy  # pylint: disable=W0611
 from typing import Any, Callable, List, Optional, Tuple, Union
 from onnx import ModelProto
 from onnxruntime import InferenceSession, RunOptions

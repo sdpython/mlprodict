@@ -64,7 +64,7 @@ def _process_parameter(fn, sig, k, v, new_pars, inline):
             new_pars[k] = Par(k, dtype=ParType[int], value=vto,
                               parent_op=(fn.__module__, fn.__name__, 0))
         return
-    if isinstance(v, (int, float, str)):
+    if isinstance(v, (int, float, str, tuple)):
         if inline:
             new_pars[k] = v
         else:
@@ -98,7 +98,6 @@ def _xapi(fn: Callable, inline: bool, eager: bool):
     # It has the same signature
     def wrapper(*inputs, **kwargs):
         if any(map(lambda x: isinstance(x, EagerTensor), inputs)):
-            # TODO: fix eager / jit
             # eager mode, let's try,
             # if eager is False, jit should be used
             if not eager:
@@ -168,8 +167,8 @@ def _xapi(fn: Callable, inline: bool, eager: bool):
         else:
             if hasattr(p.annotation, "__args__"):
                 args = p.annotation.__args__
-                if (isinstance(args, tuple) and len(args) == 2 and  # pylint: disable=E721
-                        args[1] == type(None)):
+                if (isinstance(args, tuple) and len(args) == 2 and
+                        isinstance(None, args[1])):  # args[1] == type(None)
                     # optional
                     annot = args[0]
                 else:
