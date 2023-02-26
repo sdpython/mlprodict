@@ -1111,6 +1111,54 @@ class TestNumpyx(ExtTestCase):
         self.common_numpy_op("|", lambda x, y: x ^ y, True)
         self.common_numpy_op("~", lambda x, y: (~x) | y, True)
 
+    def common_numpy_op_right(self, msg, fct, use_int=False):
+        if use_int:
+            dtype = numpy.int64
+            otype = Float64
+        else:
+            dtype = numpy.float64
+            otype = Int64
+        if msg == "@":
+            ccc = numpy.array([[1, 1]], dtype=dtype).T
+            x = numpy.array([[-5, 6]], dtype=dtype)
+        else:
+            ccc = 1
+            x = numpy.array([-5, 6], dtype=dtype)
+        with self.subTest(msg=msg, op=fct):
+            z = fct(ccc, x)
+            f = copy(fct(ccc, copy(Input("A"))))
+            self.assertIsInstance(f, Var)
+            onx = f.to_onnx(constraints={'A': otype[None]})
+            ref = ReferenceEvaluator(onx)
+            got = ref.run(None, {'A': x})
+            try:
+                self.assertEqualArray(z, got[0])
+            except AssertionError as e:
+                with open("debug_bin.onnx", "wb") as f:
+                    f.write(onx.SerializeToString())
+                raise AssertionError(f"Discrepancies with\n{onx}") from e
+
+    def test_numpy_op_op_right(self):
+        def ttt(x, y):
+            return x @ y
+
+        self.common_numpy_op_right("@", ttt)
+        self.common_numpy_op_right("+", lambda x, y: x + y)
+        self.common_numpy_op_right("-", lambda x, y: x - y)
+        self.common_numpy_op_right("*", lambda x, y: x * y)
+        self.common_numpy_op_right("/", lambda x, y: x / y)
+        self.common_numpy_op_right("%", lambda x, y: x % y, True)
+        self.common_numpy_op_right("<", lambda x, y: x < y)
+        self.common_numpy_op_right("<=", lambda x, y: x <= y)
+        self.common_numpy_op_right(">", lambda x, y: x > y)
+        self.common_numpy_op_right(">=", lambda x, y: x >= y)
+        self.common_numpy_op_right("==", lambda x, y: x == y)
+        self.common_numpy_op_right("!=", lambda x, y: x != y)
+        self.common_numpy_op_right("&", lambda x, y: x & y, True)
+        self.common_numpy_op_right("|", lambda x, y: x | y, True)
+        self.common_numpy_op_right("|", lambda x, y: x ^ y, True)
+        self.common_numpy_op_right("~", lambda x, y: (~x) | y, True)
+
     def test_shape(self):
         f = absolute_inline(
             Input("A").reshape(copy_inline(Input("A")).shape))
@@ -1743,7 +1791,33 @@ class TestNumpyx(ExtTestCase):
         self.assertEqualArray(z.astype(numpy.int64), res)
         self.assertEqual(res.dtype, numpy.int64)
 
+    def test_numpy_operator_types_int_right(self):
+        one = 1
+
+        def impl(x):
+            return absolute_inline(one + copy_inline(x))
+
+        onx = impl(Input("A")).to_onnx(
+            constraints={'A': Float64[None], (0, False): Float64[None]})
+        x = numpy.array([-5, 6], dtype=numpy.float64)
+        z = numpy.abs(x + 1)
+        ref = ReferenceEvaluator(onx)
+        got = ref.run(None, {'A': x})
+        self.assertEqualArray(z, got[0])
+
+        f = jit_onnx(impl)
+
+        # Float64
+        res = f(x)
+        self.assertEqualArray(z, res)
+        self.assertEqual(res.dtype, numpy.float64)
+
+        # Int64
+        res = f(x.astype(numpy.int64))
+        self.assertEqualArray(z.astype(numpy.int64), res)
+        self.assertEqual(res.dtype, numpy.int64)
+
 
 if __name__ == "__main__":
-    TestNumpyx().test_numpy_operator_types_int()
+    TestNumpyx().test_numpy_op_op_right()
     unittest.main(verbosity=2)

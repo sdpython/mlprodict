@@ -439,6 +439,12 @@ class Var:
             return var(self, var(ov, self, op='CastLike'), op=op_name)
         return var(self, ov, op=op_name, **kwargs)
 
+    def _binary_op_right(self, ov, op_name, **kwargs):
+        from .numpyx_core_api import var
+        if isinstance(ov, (int, float, numpy.ndarray, Cst)):
+            return var(var(ov, self, op='CastLike'), self, op=op_name)
+        return var(ov, self, op=op_name, **kwargs)
+
     def __neg__(self):
         """
         Automatically adds operator `Neg` to the graph.
@@ -462,12 +468,26 @@ class Var:
         """
         return self._binary_op(ov, 'Add')
 
+    def __radd__(self, ov):
+        """
+        Automatically adds operator `Add` to the graph.
+        It does not cast automatically.
+        """
+        return self._binary_op_right(ov, 'Add')
+
     def __sub__(self, ov):
         """
         Automatically adds operator `Sub` to the graph.
         It does not cast automatically.
         """
         return self._binary_op(ov, 'Sub')
+
+    def __rsub__(self, ov):
+        """
+        Automatically adds operator `Sub` to the graph.
+        It does not cast automatically.
+        """
+        return self._binary_op_right(ov, 'Sub')
 
     def __mul__(self, ov):
         """
@@ -476,10 +496,19 @@ class Var:
         """
         return self._binary_op(ov, 'Mul')
 
+    def __rmul__(self, ov):
+        """
+        Automatically adds operator `Mul` to the graph.
+        It does not cast automatically.
+        """
+        return self._binary_op_right(ov, 'Mul')
+
     def __matmul__(self, ov):
         """
         Automatically adds operator `MatMul` to the graph.
         It does not cast automatically.
+        `__rmatmul__` would not be called as a numpy array
+        overwrites `__matmul__` on its side.
         """
         return self._binary_op(ov, 'MatMul')
 
@@ -490,6 +519,13 @@ class Var:
         """
         return self._binary_op(ov, 'Div')
 
+    def __rtruediv__(self, ov):
+        """
+        Automatically adds operator `Div` to the graph.
+        It does not cast automatically.
+        """
+        return self._binary_op_right(ov, 'Div')
+
     def __mod__(self, ov):
         """
         Automatically adds operator `Mod` to the graph.
@@ -497,12 +533,26 @@ class Var:
         """
         return self._binary_op(ov, 'Mod')
 
+    def __rmod__(self, ov):
+        """
+        Automatically adds operator `Mod` to the graph.
+        It does not cast automatically.
+        """
+        return self._binary_op_right(ov, 'Mod')
+
     def __pow__(self, ov):
         """
         Automatically adds operator `Pow` to the graph.
         It does not cast automatically.
         """
         return self._binary_op(ov, 'Pow')
+
+    def __rpow__(self, ov):
+        """
+        Automatically adds operator `Pow` to the graph.
+        It does not cast automatically.
+        """
+        return self._binary_op_right(ov, 'Pow')
 
     def __lt__(self, ov):
         """
@@ -568,6 +618,13 @@ class Var:
         """
         return self._binary_op(ov, 'BitwiseAnd')
 
+    def __rand__(self, ov):
+        """
+        Automatically adds operator `BitwiseAnd` to the graph.
+        It does not cast automatically.
+        """
+        return self._binary_op_right(ov, 'BitwiseAnd')
+
     def __or__(self, ov):
         """
         Automatically adds operator `BitwiseOr` to the graph.
@@ -575,12 +632,26 @@ class Var:
         """
         return self._binary_op(ov, 'BitwiseOr')
 
+    def __ror__(self, ov):
+        """
+        Automatically adds operator `BitwiseOr` to the graph.
+        It does not cast automatically.
+        """
+        return self._binary_op_right(ov, 'BitwiseOr')
+
     def __xor__(self, ov):
         """
         Automatically adds operator `BitwiseXor` to the graph.
         It does not cast automatically.
         """
         return self._binary_op(ov, 'BitwiseXor')
+
+    def __rxor__(self, ov):
+        """
+        Automatically adds operator `BitwiseXor` to the graph.
+        It does not cast automatically.
+        """
+        return self._binary_op_right(ov, 'BitwiseXor')
 
     @property
     def T(self):
