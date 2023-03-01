@@ -186,6 +186,56 @@ class Var:
 
     :param onnx_input_type_: names given to the variables
     """
+    class _setter_do:
+        def __init__(self, parent: "Var", *args):
+            self.parent = parent
+            self.args = args
+
+        def __call__(self, new_values):
+            """
+            Returns a copy of `self.parent` where values
+            whose indices are indicated by `args` and new
+            values by `new_values`.
+            """
+            if len(self.args) == 1:
+                return self._setitem1(self.args[0], new_values)
+            raise NotImplementedError(
+                f"This expression is not yet implemented for args={args}.")
+
+        def _setitem1(self, index, new_values):
+            from .numpyx_core_api import cst, var
+            sl = None
+            if isinstance(index, slice):
+                start = 0 if index.start is None else index.start
+                stop = index.stop
+                step = index.step
+            elif isinstance(index, int):
+                start, stop, step = index, index + 1, 1
+            else:
+                raise NotImplementedError(  # pragma: no cover
+                    f"Unable to assign new values due to unexpected type {type(index)!r}.")
+
+            inp = self.parent
+            if stop is None and isinstance(new_values, numpy.ndarray):
+                stop = start + value.size
+            if stop is None:
+                raise NotImplementedError(  # pragma: no cover
+                    f"No implementation if stop is  {stop}.")
+            indices = numpy.arange(start, stop, step or 1).astype(numpy.int64)
+            if isinstance(new_values, numpy.ndarray):
+                values = new_values
+            else:
+                values = numpy.full(indices.shape, new_values)
+            return var(inp, cst(indices), cst(values),
+                       op="ScatterElements", axis=0)
+
+    class _setter:
+
+        def __init__(self, parent: "Var"):
+            self.parent = parent
+
+        def __getitem__(self, *args):
+            return Var._setter_do(self.parent, *args)
 
     def __init__(self, *inputs: List[Any],
                  op: Union[Callable, str, Tuple[str, str]] = None,
@@ -244,6 +294,7 @@ class Var:
         if self.onnx_op is None:
             if not isinstance(self, (Input, Cst)):
                 raise RuntimeError(f"This case is not allowed: {self!r}.")
+        self.set = Var._setter(self)
 
     def replace_inputs(self, new_inputs: List["Var"],
                        input_indices: Optional[List[int]] = None) -> "Var":
@@ -923,6 +974,11 @@ class Var:
                 sliced, cst(numpy.array(axis_squeeze, dtype=numpy.int64)),
                 op="Squeeze")
         return sliced
+
+    def __setitem__(self):
+        raise RuntimeError(
+            "onnx does not support inplace modification. "
+            "Expression `M = M.set[indices](new_values)` must be used.")
 
 
 class Input(Var):
