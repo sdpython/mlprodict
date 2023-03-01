@@ -1928,6 +1928,33 @@ class TestNumpyx(ExtTestCase):
         self.assertEqualArray(z.astype(numpy.int64), res)
         self.assertEqual(res.dtype, numpy.int64)
 
+    def test_set_where(self):
+
+        def impl(x):
+            y = copy_inline(x)
+            return y.set[x == 5](-7)
+
+        onx = impl(Input("A")).to_onnx(
+            constraints={'A': Float64[None], (0, False): Float64[None]})
+        x = numpy.arange(10).astype(dtype=numpy.float64)
+        z = x.copy()
+        z[x == 5] = -7
+        ref = ReferenceEvaluator(onx)
+        got = ref.run(None, {'A': x})
+        self.assertEqualArray(z, got[0])
+
+        f = jit_onnx(impl)
+
+        # Float64
+        res = f(x)
+        self.assertEqualArray(z, res)
+        self.assertEqual(res.dtype, numpy.float64)
+
+        # Int64
+        res = f(x.astype(numpy.int64))
+        self.assertEqualArray(z.astype(numpy.int64), res)
+        self.assertEqual(res.dtype, numpy.int64)
+
 
 if __name__ == "__main__":
     # TestNumpyx().test_set()

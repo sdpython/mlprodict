@@ -197,12 +197,27 @@ class Var:
             whose indices are indicated by `args` and new
             values by `new_values`.
             """
-            if len(self.args) == 1:
-                return self._setitem1(self.args[0], new_values)
+            if len(self.args) == 1 and isinstance(self.args[0], (int, slice)):
+                return self._setitem1_slice(self.args[0], new_values)
+            if len(self.args) == 1 and isinstance(self.args[0], Var):
+                return self._setitem1_where(self.args[0], new_values)
             raise NotImplementedError(
                 f"This expression is not yet implemented for args={args}.")
 
-        def _setitem1(self, index, new_values):
+        def _setitem1_where(self, index, new_values):
+            from .numpyx_core_api import cst, var
+            if isinstance(new_values, (int, float)):
+                new_values = numpy.array(new_values)
+            if isinstance(new_values, numpy.ndarray):
+                value = var(cst(new_values), self.parent, op="CastLike")
+            elif isinstance(new_values, Var):
+                value = new_values
+            else:
+                raise TypeError(
+                    f"Unexpected type for new_values: {type(new_values)}.")
+            return var(index, value, self.parent, op="Where")
+
+        def _setitem1_slice(self, index, new_values):
             from .numpyx_core_api import cst, var
             sl = None
             if isinstance(index, slice):
