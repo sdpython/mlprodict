@@ -1955,7 +1955,68 @@ class TestNumpyx(ExtTestCase):
         self.assertEqualArray(z.astype(numpy.int64), res)
         self.assertEqual(res.dtype, numpy.int64)
 
+    def test_set_where_set(self):
+
+        def impl(x):
+            y = copy_inline(x)
+            y[x == 5] = -7
+            return y()
+
+        self.assertEmpty(Input("A").current_var_)
+        i = Input("A")
+        self.assertEqual(id(i), id(i.self_var))
+        onx = impl(Input("A")).to_onnx(
+            constraints={'A': Float64[None], (0, False): Float64[None]})
+        x = numpy.arange(10).astype(dtype=numpy.float64)
+        z = x.copy()
+        z[x == 5] = -7
+        ref = ReferenceEvaluator(onx)
+        got = ref.run(None, {'A': x})
+        self.assertEqualArray(z, got[0])
+
+        f = jit_onnx(impl)
+
+        # Float64
+        res = f(x)
+        self.assertEqualArray(z, res)
+        self.assertEqual(res.dtype, numpy.float64)
+
+        # Int64
+        res = f(x.astype(numpy.int64))
+        self.assertEqualArray(z.astype(numpy.int64), res)
+        self.assertEqual(res.dtype, numpy.int64)
+
+    def test_set_where_set_2(self):
+
+        def impl(x):
+            y = copy_inline(x)
+            y[x == 5] = -7
+            return y
+
+        self.assertEmpty(Input("A").current_var_)
+        i = Input("A")
+        self.assertEqual(id(i), id(i.self_var))
+        onx = impl(Input("A")).to_onnx(
+            constraints={'A': Float64[None], (0, False): Float64[None]})
+        x = numpy.arange(10).astype(dtype=numpy.float64)
+        z = x.copy()
+        z[x == 5] = -7
+        ref = ReferenceEvaluator(onx)
+        got = ref.run(None, {'A': x})
+        self.assertEqualArray(z, got[0])
+
+        f = jit_onnx(impl)
+
+        # Float64
+        res = f(x)
+        self.assertEqualArray(z, res)
+        self.assertEqual(res.dtype, numpy.float64)
+
+        # Int64
+        res = f(x.astype(numpy.int64))
+        self.assertEqualArray(z.astype(numpy.int64), res)
+        self.assertEqual(res.dtype, numpy.int64)
 
 if __name__ == "__main__":
-    # TestNumpyx().test_set()
+    TestNumpyx().test_set_where_set_2()
     unittest.main(verbosity=2)

@@ -188,7 +188,7 @@ class Var:
     """
     class _setter_do:
         def __init__(self, parent: "Var", *args):
-            self.parent = parent
+            self.parent = parent.self_var
             self.args = args
 
         def __call__(self, new_values):
@@ -259,7 +259,7 @@ class Var:
                  n_var_outputs: Optional[int] = 1,
                  input_indices: Optional[List[int]] = None,
                  **kwargs):
-        self.inputs = inputs
+        self.inputs = list(inputs)
         self.n_var_outputs = n_var_outputs
         self.inline = inline
         if op is None:
@@ -283,9 +283,12 @@ class Var:
         else:
             raise TypeError(f"Unexpected type {type(dtype)} for dtype.")
 
+        updates = {}
         for i, inp in enumerate(self.inputs):
             if isinstance(inp, type):
                 raise TypeError(f"Unexpected type for input {i} - {inp}.")
+            if isinstance(inp, Var):
+                updates[i] = inp.self_var
             if not isinstance(inp, numpy.ndarray):
                 continue
             if (inp.size > 0 and
@@ -293,6 +296,11 @@ class Var:
                 raise TypeError(  # pragma: no cover
                     f"Unexpected type for input {i}: {type(inp)}, "
                     f"{inp.ravel()[0]}, op={op!r}")
+        # This step is needed when Var.__setitem__ was called to
+        # modify the variable.
+        for i, v in updates.items():
+            self.inputs[i] = v
+        self.inputs = tuple(self.inputs)
         if input_indices is None:
             self.input_indices = [0 for i in self.inputs]
         elif not isinstance(input_indices, list):
@@ -310,6 +318,16 @@ class Var:
             if not isinstance(self, (Input, Cst)):
                 raise RuntimeError(f"This case is not allowed: {self!r}.")
         self.set = Var._setter(self)
+        self.current_var_ = None
+
+    @property
+    def self_var(self):
+        if not hasattr(self, "current_var_"):
+            raise AttributeError(f"Class {type(self)} is missing attribute 'current_var_'.")
+        return self if self.current_var_ is None else self.current_var_
+
+    def __call__(self):
+        return self.self_var
 
     def replace_inputs(self, new_inputs: List["Var"],
                        input_indices: Optional[List[int]] = None) -> "Var":
@@ -502,14 +520,14 @@ class Var:
     def _binary_op(self, ov, op_name, **kwargs):
         from .numpyx_core_api import var
         if isinstance(ov, (int, float, numpy.ndarray, Cst)):
-            return var(self, var(ov, self, op='CastLike'), op=op_name)
-        return var(self, ov, op=op_name, **kwargs)
+            return var(self.self_var, var(ov, self.self_var, op='CastLike'), op=op_name)
+        return var(self.self_var, ov, op=op_name, **kwargs)
 
     def _binary_op_right(self, ov, op_name, **kwargs):
         from .numpyx_core_api import var
         if isinstance(ov, (int, float, numpy.ndarray, Cst)):
-            return var(var(ov, self, op='CastLike'), self, op=op_name)
-        return var(ov, self, op=op_name, **kwargs)
+            return var(var(ov, self.self_var, op='CastLike'), self.self_var, op=op_name)
+        return var(ov, self.self_var, op=op_name, **kwargs)
 
     def __neg__(self):
         """
@@ -517,7 +535,7 @@ class Var:
         It does not cast automatically.
         """
         from .numpyx_core_api import var
-        return var(self, op="Neg")
+        return var(self.self_var, op="Neg")
 
     def __invert__(self):
         """
@@ -525,7 +543,7 @@ class Var:
         It does not cast automatically.
         """
         from .numpyx_core_api import var
-        return var(self, op="BitwiseNot")
+        return var(self.self_var, op="BitwiseNot")
 
     def __add__(self, ov):
         """
@@ -723,7 +741,7 @@ class Var:
     def T(self):
         "Transpose."
         from .numpyx_core_api import var
-        return var(self, op='Transpose', perm=[1, 0])
+        return var(self.self_var, op='Transpose', perm=[1, 0])
 
     def astype(self, dtype):
         "Cast"
@@ -762,20 +780,20 @@ class Var:
                     raise RuntimeError(  # pylint: disable=W0707
                         f"Unable to guess type for dtype={dtype}.")
 
-        return var(self, op="Cast", to=dtype)
+        return var(self.self_var, op="Cast", to=dtype)
 
     @property
     def shape(self):
         "Shape"
         from .numpyx_core_api import var
-        return var(self, op='Shape')
+        return var(self.self_var, op='Shape')
 
     def reshape(self, shape):
         "Reshape"
         from .numpyx_core_api import var
         if isinstance(shape, (tuple, list)):
             shape = numpy.array(shape, dtype=numpy.int64)
-        return var(self, shape, op="Reshape")
+        return var(self.self_var, shape, op="Reshape")
 
     def reduce_function(self, reduce_op,
                         axis: OptParType[TupleType[int]] = None,
@@ -783,13 +801,13 @@ class Var:
         "See :func:`numpy.sum` or any other reduce function."
         from .numpyx_core_api import var
         if axis is None:
-            return var(self, op=reduce_op, keepdims=keepdims)
+            return var(self.self_var, op=reduce_op, keepdims=keepdims)
         if isinstance(axis, int):
             axis = [axis]
         if isinstance(axis, (tuple, list)):
             from .numpyx_core_api import cst
             axis = cst(numpy.array(axis, dtype=numpy.int64))
-        return var(self, axis, op=reduce_op, keepdims=keepdims)
+        return var(self.self_var, axis, op=reduce_op, keepdims=keepdims)
 
     def sum(self,
             axis: OptParType[TupleType[int]] = None,
@@ -826,7 +844,7 @@ class Var:
         Returns a copy of self (use of Identity node).
         """
         from .numpyx_core_api import var
-        return var(self, op="Identity")
+        return var(self.self_var, op="Identity")
 
     def flatten(self):
         """
@@ -836,7 +854,7 @@ class Var:
         :return: :class:`Var`
         """
         from .numpyx_core_api import var
-        return var(self, op="Flatten")
+        return var(self.self_var, op="Flatten")
 
     def get(self, index: int) -> "Var":
         """
@@ -850,7 +868,7 @@ class Var:
             raise ValueError(
                 f"index={index} must be positive and < {self.n_var_outputs} "
                 f"for var={self!r}.")
-        return Var(self, input_indices=[index], op="Identity")
+        return Var(self.self_var, input_indices=[index], op="Identity")
 
     def __getitem__(self, index: Any) -> "Var":
         """
@@ -983,17 +1001,17 @@ class Var:
             sliced_args.append(steps)
         sliced_args_cst = [v if isinstance(v, Var) else cst(v)
                            for v in sliced_args]
-        sliced = var(self, *sliced_args_cst, op="Slice")
+        sliced = var(self.self_var, *sliced_args_cst, op="Slice")
         if len(axis_squeeze) > 0:
             return var(
                 sliced, cst(numpy.array(axis_squeeze, dtype=numpy.int64)),
                 op="Squeeze")
         return sliced
 
-    def __setitem__(self):
-        raise RuntimeError(
-            "onnx does not support inplace modification. "
-            "Expression `M = M.set[indices](new_values)` must be used.")
+    def __setitem__(self, index, values):
+        new_op = self.set[index](values)
+        self.current_var_ = new_op
+        self.input_indices = None
 
 
 class Input(Var):
