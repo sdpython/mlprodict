@@ -2017,6 +2017,7 @@ class TestNumpyx(ExtTestCase):
         self.assertEqualArray(z.astype(numpy.int64), res)
         self.assertEqual(res.dtype, numpy.int64)
 
+
 if __name__ == "__main__":
     TestNumpyx().test_set_where_set_2()
     unittest.main(verbosity=2)

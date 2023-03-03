@@ -323,7 +323,8 @@ class Var:
     @property
     def self_var(self):
         if not hasattr(self, "current_var_"):
-            raise AttributeError(f"Class {type(self)} is missing attribute 'current_var_'.")
+            raise AttributeError(
+                f"Class {type(self)} is missing attribute 'current_var_'.")
         return self if self.current_var_ is None else self.current_var_
 
     def __call__(self):
