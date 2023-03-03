@@ -77,7 +77,7 @@ class OrtTensor:
             if len(inputs) != len(self.input_names):
                 raise ValueError(
                     f"Expected {len(self.input_names)} inputs but got "
-                    f"len(inputs).")
+                    f"len(inputs)={len(inputs)}.")
             feeds = {}
             for name, inp in zip(self.input_names, inputs):
                 feeds[name] = inp.value

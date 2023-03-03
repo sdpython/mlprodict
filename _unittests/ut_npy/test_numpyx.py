@@ -8,6 +8,7 @@ import unittest
 import warnings
 import numpy
 import scipy
+from scipy.spatial.distance import cdist as scipy_cdist
 from onnx import ModelProto, TensorProto
 from onnx.backend.test.case.node.pad import pad_impl
 from onnx.checker import check_model
@@ -17,6 +18,7 @@ from onnx.helper import (
     make_tensor_value_info)
 from onnx.reference import ReferenceEvaluator
 from onnx.shape_inference import infer_shapes
+from onnxruntime import InferenceSession
 from pyquickhelper.pycode import ExtTestCase
 from mlprodict.onnxrt import OnnxInference
 from mlprodict.npy.numpyx import ElemType, jit_onnx, eager_onnx
@@ -38,6 +40,7 @@ from mlprodict.npy.numpyx_functions import (
     arcsinh as arcsinh_inline,
     arctan as arctan_inline,
     arctanh as arctanh_inline,
+    cdist as cdist_inline,
     ceil as ceil_inline,
     clip as clip_inline,
     compress as compress_inline,
@@ -2017,7 +2020,74 @@ class TestNumpyx(ExtTestCase):
         self.assertEqualArray(z.astype(numpy.int64), res)
         self.assertEqual(res.dtype, numpy.int64)
 
+    def test_cdist_com_microsoft(self):
+        metric = "euclidean"
+
+        def impl(xa, xb):
+            return cdist_inline(xa, xb, metric=metric)
+
+        target_opsets = {'': 18, 'com.microsoft': 1}
+        onx = impl(Input("A"), Input("B")).to_onnx(
+            constraints={'A': Float32[None], 'B': Float32[None],
+                         (0, False): Float32[None]},
+            target_opsets=target_opsets)
+        x = numpy.arange(10).reshape((5, 2)).astype(dtype=numpy.float32)
+        y = numpy.arange(10).reshape((5, 2)).astype(dtype=numpy.float32) * 10
+        z = scipy_cdist(x, y, metric=metric)
+        ref = InferenceSession(onx.SerializeToString())
+        got = ref.run(None, {'A': x, 'B': y})
+        self.assertEqualArray(z, got[0], atol=1e-5)
+
+        f = jit_onnx(impl, BackendOrtTensor, target_opsets=target_opsets)
+
+        xort = OrtTensor.from_array(x)
+        yort = OrtTensor.from_array(y)
+
+        # JIT does not work because shape inference does not work
+        # on custom nodes.
+        return
+
+        # float32
+        # res = f(xort, yort)
+        # self.assertEqualArray(z, res.numpy())
+        # self.assertEqual(res.dtype, numpy.float32)
+
+        # Int64
+        # xort = OrtTensor.from_array(x.astype(numpy.int64))
+        # yort = OrtTensor.from_array(y.astype(numpy.int64))
+        # res = f(xort, yort)
+        # self.assertEqualArray(z.astype(numpy.int64), res.numpy())
+        # self.assertEqual(res.dtype, numpy.int64)
+
+    def test_cdist(self):
+        metric = "euclidean"
+
+        def impl(xa, xb):
+            return cdist_inline(xa, xb, metric=metric)
+
+        onx = impl(Input("A"), Input("B")).to_onnx(
+            constraints={'A': Float64[None], 'B': Float64[None],
+                         (0, False): Float64[None]})
+        x = numpy.arange(10).reshape((5, 2)).astype(dtype=numpy.float64)
+        y = numpy.arange(10).reshape((5, 2)).astype(dtype=numpy.float64) * 10
+        z = scipy_cdist(x, y, metric=metric)
+        ref = ReferenceEvaluator(onx)
+        got = ref.run(None, {'A': x, 'B': y})
+        self.assertEqualArray(z, got[0])
+
+        f = jit_onnx(impl)
+
+        # Float64
+        res = f(x, y)
+        self.assertEqualArray(z, res)
+        self.assertEqual(res.dtype, numpy.float64)
+
+        # Int64
+        res = f(x.astype(numpy.int64), y.astype(numpy.int64))
+        self.assertEqualArray(z.astype(numpy.int64), res)
+        self.assertEqual(res.dtype, numpy.int64)
+
 
 if __name__ == "__main__":
-    TestNumpyx().test_set_where_set_2()
+    TestNumpyx().test_cdist()
     unittest.main(verbosity=2)

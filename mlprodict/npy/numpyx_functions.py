@@ -12,7 +12,7 @@ from .numpyx_core_api import (  # pylint: disable=W0611
 from .numpyx_types import (  # pylint: disable=W0611
     ElemType, OptParType, ParType, SequenceType, TensorType,
     TupleType)
-from .numpyx_var import Var
+from .numpyx_var import FUNCTION_DOMAIN, Var
 
 
 def _cstv(x):
@@ -146,6 +146,17 @@ def arctanh(x: TensorType[ElemType.numerics, "T"]
             ) -> TensorType[ElemType.numerics, "T"]:
     "See :func:`numpy.arctanh`."
     return var(x, op='Atanh')
+
+
+@xapi_inline
+def cdist(xa: TensorType[ElemType.numerics, "T"],
+          xb: TensorType[ElemType.numerics, "T"],
+          metric: OptParType[str] = "euclidean"
+          ) -> TensorType[ElemType.numerics, "T"]:
+    """
+    See :func:`scipy.special.distance.cdist`.
+    """
+    return var(xa, xb, op=(FUNCTION_DOMAIN, 'CDist'), metric=metric)
 
 
 @xapi_inline
