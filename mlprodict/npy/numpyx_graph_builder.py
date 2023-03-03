@@ -25,7 +25,8 @@ from onnx.onnx_cpp2py_export.shape_inference import (  # pylint: disable=E0611,E
 from .numpyx_types import (
     ElemType, OptParType, ParType, SequenceType,
     TensorType, TupleType)
-from .numpyx_var import Cst, Input, ManyIdentity, Par, Var
+from .numpyx_var import Cst, Input, ManyIdentity, Par, FUNCTION_DOMAIN, Var
+from .numpyx_function_implementation import get_function_implementation
 
 
 _OPSET_TO_IR_VERSION = {
@@ -610,6 +611,18 @@ class _GraphBuilder:
                         domop[1], [ni], [no],
                         domain=domop[0], opset=self.target_opsets[''],
                         **kwargs)
+            if domop[0] == FUNCTION_DOMAIN:
+                proto = get_function_implementation(
+                    domop, node_inputs, node_outputs,
+                    self.target_opsets, **kwargs)
+                self.functions_[domop] = (
+                    proto,
+                    (None for i in node_inputs),
+                    (None for i in node_outputs),
+                    list(sorted(kwargs)))
+                self.make_node(
+                    proto.name, node_inputs, node_outputs,
+                    domain=proto.domain, opset=1, **kwargs)
             else:
                 self.make_node(
                     domop[1], node_inputs, node_outputs,

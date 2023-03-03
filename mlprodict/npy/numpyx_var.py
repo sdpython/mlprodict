@@ -4,6 +4,7 @@
 
 .. versionadded:: 0.10
 """
+# pylint: disable=C0302
 from typing import Any, Callable, Dict, List, Optional, Tuple, Union
 import numpy
 from onnx import (  # pylint: disable=E0611
@@ -14,6 +15,7 @@ from .numpyx_types import (
 
 
 DEFAULT_OPSETS = {'': 18, 'ai.onnx.ml': 3}
+FUNCTION_DOMAIN = "FUNCTION-DOMAIN"
 
 
 class Par:
@@ -202,7 +204,7 @@ class Var:
             if len(self.args) == 1 and isinstance(self.args[0], Var):
                 return self._setitem1_where(self.args[0], new_values)
             raise NotImplementedError(
-                f"This expression is not yet implemented for args={args}.")
+                f"This expression is not yet implemented for args={self.args}.")
 
         def _setitem1_where(self, index, new_values):
             from .numpyx_core_api import cst, var
@@ -219,7 +221,6 @@ class Var:
 
         def _setitem1_slice(self, index, new_values):
             from .numpyx_core_api import cst, var
-            sl = None
             if isinstance(index, slice):
                 start = 0 if index.start is None else index.start
                 stop = index.stop
@@ -232,7 +233,7 @@ class Var:
 
             inp = self.parent
             if stop is None and isinstance(new_values, numpy.ndarray):
-                stop = start + value.size
+                stop = start + new_values.size
             if stop is None:
                 raise NotImplementedError(  # pragma: no cover
                     f"No implementation if stop is  {stop}.")
@@ -322,8 +323,13 @@ class Var:
 
     @property
     def self_var(self):
+        """
+        Returns itself or the variable corresponding to its
+        state after a call to `__setitem__`.
+        """
         if not hasattr(self, "current_var_"):
-            raise AttributeError(f"Class {type(self)} is missing attribute 'current_var_'.")
+            raise AttributeError(
+                f"Class {type(self)} is missing attribute 'current_var_'.")
         return self if self.current_var_ is None else self.current_var_
 
     def __call__(self):
@@ -372,7 +378,7 @@ class Var:
 
     def _get_vars(self):
         vs = []
-        stack = [self]
+        stack = [self.self_var]
         replacement = {}
         replacement_cst = {}
         deleted = []
