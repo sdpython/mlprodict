@@ -6,8 +6,9 @@
 """
 import numpy  # pylint: disable=W0611
 from typing import Any, Callable, List, Optional, Tuple, Union
-from onnx import ModelProto
+from onnx import ModelProto, TensorProto
 from onnxruntime import InferenceSession, RunOptions
+from onnxruntime.capi.onnxruntime_pybind11_state import InvalidArgument
 from onnxruntime.capi._pybind_state import (  # pylint: disable=E0611
     OrtValue as C_OrtValue, OrtDevice as C_OrtDevice, OrtMemType)
 from .numpyx_types import TensorType
@@ -36,6 +37,14 @@ class OrtTensor:
         Relies on `ortvalue_from_numpy`.
         A copy of the data in the Numpy object is held by the
         :class:`C_OrtValue` only if the device is **not cpu**.
+        Any expression such as `from_array(x.copy())`, or
+        `from_array(x.astype(numpy.float32))`, ... creates an intermediate
+        variable scheduled to be deleted by the garbage collector
+        as soon as the function returns. In that case, the buffer
+        holding the values is deleted and the instance `OrtTenor`
+        is no longer equal to the original value:
+        `assert_allclose(value, tensor.numpy())` is false.
+        `value` must remain alive as long as the `OrtTensor` is.
 
         :param value: value
         :param device: CPU, GPU, value such as `OrtTensor.CPU`,
@@ -60,7 +69,21 @@ class OrtTensor:
 
         def __init__(self, tensor_class: type, input_names: List[str],
                      onx: ModelProto):
-            self.ref = InferenceSession(onx.SerializeToString())
+            try:
+                self.ref = InferenceSession(onx.SerializeToString())
+            except InvalidArgument as e:
+                if (len(onx.graph.output) == 1 and
+                        onx.graph.output[0].type.tensor_type.elem_type == TensorProto.UNDEFINED):
+                    # ShapeInference cannot use python function for unknown node type.
+                    # Let's give the only output the same type as the first input.
+                    onx.graph.output[0].type.tensor_type.elem_type = (
+                        onx.graph.input[0].type.tensor_type.elem_type)
+                    self.ref = InferenceSession(onx.SerializeToString())
+                else:
+                    if len(onx.graph.node) <= 3:
+                        raise RuntimeError(
+                            f"Unable to create an InferenceSession with model {onx}.") from e
+                    raise e
             self.input_names = input_names
             self.tensor_class = tensor_class
             self.output_names = [output.name

@@ -2033,31 +2033,37 @@ class TestNumpyx(ExtTestCase):
             target_opsets=target_opsets)
         x = numpy.arange(10).reshape((5, 2)).astype(dtype=numpy.float32)
         y = numpy.arange(10).reshape((5, 2)).astype(dtype=numpy.float32) * 10
-        z = scipy_cdist(x, y, metric=metric)
+        z = scipy_cdist(x.copy(), y.copy(), metric=metric)
         ref = InferenceSession(onx.SerializeToString())
-        got = ref.run(None, {'A': x, 'B': y})
+        got = ref.run(None, {'A': x.copy(), 'B': y.copy()})
         self.assertEqualArray(z, got[0], atol=1e-5)
 
         f = jit_onnx(impl, BackendOrtTensor, target_opsets=target_opsets)
 
+        # float32
         xort = OrtTensor.from_array(x)
         yort = OrtTensor.from_array(y)
+        self.assertEqualArray(x, xort.numpy())
+        self.assertEqualArray(y, yort.numpy())
+        res = f(xort, yort)
+        self.assertEqual(res.numpy().dtype, numpy.float32)
+        self.assertEqualArray(z, res.numpy(), atol=1e-4)
 
-        # JIT does not work because shape inference does not work
-        # on custom nodes.
-        return
+        # float64
+        x = x.astype(numpy.float64)
+        y = y.astype(numpy.float64)
+        xort = OrtTensor.from_array(x)
+        yort = OrtTensor.from_array(y)
+        self.assertEqualArray(x.astype(numpy.float64), xort.numpy())
+        self.assertEqualArray(y.astype(numpy.float64), yort.numpy())
+        res = f(xort, yort)
+        self.assertEqual(res.numpy().dtype, numpy.float64)
+        self.assertEqualArray(z.astype(numpy.float64), res.numpy())
 
-        # float32
-        # res = f(xort, yort)
-        # self.assertEqualArray(z, res.numpy())
-        # self.assertEqual(res.dtype, numpy.float32)
-
-        # Int64
-        # xort = OrtTensor.from_array(x.astype(numpy.int64))
-        # yort = OrtTensor.from_array(y.astype(numpy.int64))
-        # res = f(xort, yort)
-        # self.assertEqualArray(z.astype(numpy.int64), res.numpy())
-        # self.assertEqual(res.dtype, numpy.int64)
+        pieces = str(onx).split('s: "euclidean"')
+        if len(pieces) > 2:
+            raise AssertionError(
+                f"Function is not using argument:\n{onx}")
 
     def test_cdist(self):
         metric = "euclidean"
@@ -2089,5 +2095,5 @@ class TestNumpyx(ExtTestCase):
 
 
 if __name__ == "__main__":
-    TestNumpyx().test_cdist()
+    TestNumpyx().test_cdist_com_microsoft()
     unittest.main(verbosity=2)
