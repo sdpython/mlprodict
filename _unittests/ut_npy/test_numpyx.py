@@ -2095,5 +2095,5 @@ class TestNumpyx(ExtTestCase):
 
 
 if __name__ == "__main__":
-    TestNumpyx().test_cdist_com_microsoft()
+    TestNumpyx().test_cdist()
     unittest.main(verbosity=2)
