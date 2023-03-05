@@ -99,4 +99,6 @@ def _get_cdist_implementation(
     return make_function(
         "numpyx", "CDist", ["xa", "xb"], ["z"],
         [cst, le, cst1, eq, node],
-        [make_opsetid("", opsets[""])], ["metric"])
+        [make_opsetid("", opsets[""]),
+         make_opsetid("ai.onnx.ml", opsets.get("ai.onnx.ml", 2))],
+        ["metric"])
