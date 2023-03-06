@@ -2091,10 +2091,10 @@ class TestNumpyx(ExtTestCase):
                 self.assertEqualArray(z, res)
                 self.assertEqual(res.dtype, numpy.float64)
 
-                # Int64
-                res = f(x.astype(numpy.int64), y.astype(numpy.int64))
-                self.assertEqualArray(z.astype(numpy.int64), res)
-                self.assertEqual(res.dtype, numpy.int64)
+                # Float32
+                res = f(x.astype(numpy.float32), y.astype(numpy.float32))
+                self.assertEqualArray(z.astype(numpy.float32), res)
+                self.assertEqual(res.dtype, numpy.float32)
 
 
 if __name__ == "__main__":
