@@ -382,17 +382,17 @@ def pad(x: TensorType[ElemType.numerics, "T"],
 
 
 @xapi_inline
-def relu(x: TensorType[ElemType.numerics, "T"]
-         ) -> TensorType[ElemType.numerics, "T"]:
-    "relu"
-    return var(x, op="Relu")
-
-
-@xapi_inline
 def reciprocal(x: TensorType[ElemType.numerics, "T"]
                ) -> TensorType[ElemType.numerics, "T"]:
     "See :func:`numpy.reciprocal`."
     return var(x, op="Reciprocal")
+
+
+@xapi_inline
+def relu(x: TensorType[ElemType.numerics, "T"]
+         ) -> TensorType[ElemType.numerics, "T"]:
+    "relu"
+    return var(x, op="Relu")
 
 
 @xapi_inline
