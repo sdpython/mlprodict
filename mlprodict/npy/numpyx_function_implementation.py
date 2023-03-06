@@ -46,59 +46,43 @@ def _get_cdist_implementation(
     if set(kwargs) != {'metric'}:
         raise ValueError(
             f"kwargs={kwargs} must contain metric and only metric.")
+    metric = kwargs["metric"]
     if opsets is not None and "com.microsoft" in opsets:
-        node = make_node("CDist", ["xa", "xb"], ["z"], domain="com.microsoft")
-        att = AttributeProto()
-        att.name = "metric"
-        att.ref_attr_name = "metric"
-        att.type = AttributeProto.STRING
-        node.attribute.append(att)
+        node = make_node("CDist", ["xa", "xb"], ["z"],
+                         domain="com.microsoft", metric=metric)
         return make_function(
-            "numpyx", "CDist", ["xa", "xb"], ["z"], [node],
-            [make_opsetid("com.microsoft", 1)], ["metric"])
+            "numpyx", f"CDist_{metric}", ["xa", "xb"], ["z"], [node],
+            [make_opsetid("com.microsoft", 1)])
 
-    # constant
-    cst = make_node("Constant", [], ["metric"])
-    att = AttributeProto()
-    att.name = "value_string"
-    att.ref_attr_name = "metric"
-    att.type = AttributeProto.STRING
-    cst.attribute.append(att)
-    le = make_node("LabelEncoder", ["metric"], ["metric_int"],
-                   keys_strings=["euclidean"],
-                   values_int64s=[1],
-                   domain="ai.onnx.ml")
-    cst1 = make_node("Constant", [], ["one"], value_int=1)
-    eq = make_node("Equal", ["metric_int"], ["euclidean"])
+    if metric in ("euclidean", "sqeuclidean"):
+        # subgraph
+        nodes = [make_node("Sub", ["next", "next_in"], ["diff"]),
+                 make_node("Constant", [], ["axis"], value_ints=[1]),
+                 make_node("ReduceSumSquare", ["diff", "axis"],
+                           ["scan_out"], keepdims=0),
+                 make_node("Identity", ["next_in"], ["next_out"])
+                 ]
 
-    # subgraph
-    nodes = [make_node("Sub", ["next", "next_in"], ["sub"]),
-             make_node("Constant", [], ["axis"], value_floats=[1]),
-             make_node("ReduceSumSquare", ["sub", "axis"], ["scan_out"]),
-             make_node("Identity", ["next_in"], ["next_out"])
-             ]
+        def make_value(name):
+            value = ValueInfoProto()
+            value.name = name
+            return value
 
-    def make_value(name):
-        value = ValueInfoProto()
-        value.name = name
-        return value
+        graph = make_graph(
+            nodes, "loop",
+            [make_value("next_in"), make_value("next")],
+            [make_value("next_out"), make_value("scan_out")])
 
-    graph = make_graph(
-        nodes, "loop",
-        [make_value("next"), make_value("next_in")],
-        [make_value("scan_out"), make_value("next_out")])
+        scan = make_node(
+            "Scan", ["xb", "xa"], ["next_out", "zout"],
+            num_scan_inputs=1, body=graph)
+        if metric == "euclidean":
+            final = make_node("Sqrt", ["zout"], ["z"])
+        else:
+            final = make_node("Identity", ["zout"], ["z"])
+        return make_function(
+            "numpyx", f"CDist_{metric}", ["xa", "xb"], ["z"],
+            [scan, final], [make_opsetid("", opsets[""])])
 
-    scan = make_node(
-        "Scan", ["xa", "xb"], ["z", "next_out"],
-        num_scan_inputs=1, graph=graph)
-    z = make_value("z")
-    then_branch = make_graph([scan], "gr", [], [z])
-
-    node = make_node("If", ["euclidean"], ["z"], then_branch=then_branch,
-                     else_branch=then_branch)
-    return make_function(
-        "numpyx", "CDist", ["xa", "xb"], ["z"],
-        [cst, le, cst1, eq, node],
-        [make_opsetid("", opsets[""]),
-         make_opsetid("ai.onnx.ml", opsets.get("ai.onnx.ml", 2))],
-        ["metric"])
+    raise RuntimeError(
+        f"There is no implementation for cdist and metric={metric!r} yet.")

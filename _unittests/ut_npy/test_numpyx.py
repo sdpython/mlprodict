@@ -2032,10 +2032,10 @@ class TestNumpyx(ExtTestCase):
                          (0, False): Float32[None]},
             target_opsets=target_opsets)
         x = numpy.arange(10).reshape((5, 2)).astype(dtype=numpy.float32)
-        y = numpy.arange(10).reshape((5, 2)).astype(dtype=numpy.float32) * 10
-        z = scipy_cdist(x.copy(), y.copy(), metric=metric)
+        y = numpy.arange(14).reshape((7, 2)).astype(dtype=numpy.float32) * 10
+        z = scipy_cdist(x, y, metric=metric)
         ref = InferenceSession(onx.SerializeToString())
-        got = ref.run(None, {'A': x.copy(), 'B': y.copy()})
+        got = ref.run(None, {'A': x, 'B': y})
         self.assertEqualArray(z, got[0], atol=1e-5)
 
         f = jit_onnx(impl, BackendOrtTensor, target_opsets=target_opsets)
@@ -2066,32 +2066,35 @@ class TestNumpyx(ExtTestCase):
                 f"Function is not using argument:\n{onx}")
 
     def test_cdist(self):
-        metric = "euclidean"
+        for metric in ["euclidean", "sqeuclidean"]:
+            with self.subTest(metric=metric):
 
-        def impl(xa, xb):
-            return cdist_inline(xa, xb, metric=metric)
+                def impl(xa, xb):
+                    return cdist_inline(xa, xb, metric=metric)
 
-        onx = impl(Input("A"), Input("B")).to_onnx(
-            constraints={'A': Float64[None], 'B': Float64[None],
-                         (0, False): Float64[None]})
-        x = numpy.arange(10).reshape((5, 2)).astype(dtype=numpy.float64)
-        y = numpy.arange(10).reshape((5, 2)).astype(dtype=numpy.float64) * 10
-        z = scipy_cdist(x, y, metric=metric)
-        ref = ReferenceEvaluator(onx)
-        got = ref.run(None, {'A': x, 'B': y})
-        self.assertEqualArray(z, got[0])
+                onx = impl(Input("A"), Input("B")).to_onnx(
+                    constraints={'A': Float64[None], 'B': Float64[None],
+                                 (0, False): Float64[None]})
+                x = numpy.arange(10).reshape(
+                    (5, 2)).astype(dtype=numpy.float64)
+                y = numpy.arange(14).reshape(
+                    (7, 2)).astype(dtype=numpy.float64) * 10
+                z = scipy_cdist(x, y, metric=metric)
+                ref = ReferenceEvaluator(onx, verbose=9)
+                got = ref.run(None, {'A': x, 'B': y})
+                self.assertEqualArray(z, got[0])
 
-        f = jit_onnx(impl)
+                f = jit_onnx(impl)
 
-        # Float64
-        res = f(x, y)
-        self.assertEqualArray(z, res)
-        self.assertEqual(res.dtype, numpy.float64)
+                # Float64
+                res = f(x, y)
+                self.assertEqualArray(z, res)
+                self.assertEqual(res.dtype, numpy.float64)
 
-        # Int64
-        res = f(x.astype(numpy.int64), y.astype(numpy.int64))
-        self.assertEqualArray(z.astype(numpy.int64), res)
-        self.assertEqual(res.dtype, numpy.int64)
+                # Int64
+                res = f(x.astype(numpy.int64), y.astype(numpy.int64))
+                self.assertEqualArray(z.astype(numpy.int64), res)
+                self.assertEqual(res.dtype, numpy.int64)
 
 
 if __name__ == "__main__":

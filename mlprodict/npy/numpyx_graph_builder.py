@@ -622,7 +622,9 @@ class _GraphBuilder:
                     list(sorted(kwargs)))
                 self.make_node(
                     proto.name, node_inputs, node_outputs,
-                    domain=proto.domain, opset=1, **kwargs)
+                    domain=proto.domain, opset=1,
+                    **{k: v for k, v in kwargs.items()
+                       if k in proto.attribute})
             else:
                 self.make_node(
                     domop[1], node_inputs, node_outputs,
