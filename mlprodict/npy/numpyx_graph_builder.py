@@ -186,6 +186,10 @@ class _GraphBuilder:
                 new_kwargs[k] = v
 
         # make node
+        if op == "Identity" and (len(inputs) != 1 or len(outputs) != 1):
+            raise RuntimeError(
+                f"Cannot create a node Identity for {len(inputs)} input(s) and "
+                f"{len(outputs)} output(s).")
         node = make_node(op, inputs, outputs, domain=domain, **new_kwargs)
         for p in protos:
             node.attribute.append(p)
@@ -611,7 +615,7 @@ class _GraphBuilder:
                         domop[1], [ni], [no],
                         domain=domop[0], opset=self.target_opsets[''],
                         **kwargs)
-            if domop[0] == FUNCTION_DOMAIN:
+            elif domop[0] == FUNCTION_DOMAIN:
                 proto = get_function_implementation(
                     domop, node_inputs, node_outputs,
                     self.target_opsets, **kwargs)

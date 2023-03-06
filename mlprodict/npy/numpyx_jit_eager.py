@@ -37,9 +37,9 @@ class JitEager:
         self.tensor_class = tensor_class
         self.versions = {}
         self.onxs = {}
-        self.target_opsets = target_opsets
+        self.target_opsets = tensor_class.get_opsets(target_opsets)
         self.output_types = output_types
-        self.ir_version = ir_version
+        self.ir_version = tensor_class.get_ir_version(ir_version)
 
     @staticmethod
     def make_key(*values, **kwargs):

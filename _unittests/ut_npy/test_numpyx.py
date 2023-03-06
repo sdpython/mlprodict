@@ -2098,5 +2098,5 @@ class TestNumpyx(ExtTestCase):
 
 
 if __name__ == "__main__":
-    TestNumpyx().test_cdist()
+    TestNumpyx().test_numpy_min_max_inline()
     unittest.main(verbosity=2)

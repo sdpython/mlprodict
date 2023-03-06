@@ -116,6 +116,24 @@ class NumpyTensor:
         """
         return cls.Evaluator(cls, input_names, onx)
 
+    @classmethod
+    def get_opsets(cls, opsets):
+        """
+        Updates the opsets for a given backend.
+        This method should be overloaded.
+        By default, it returns opsets.
+        """
+        return opsets
+
+    @classmethod
+    def get_ir_version(cls, ir_version):
+        """
+        Updates the IR version.
+        This method should be overloaded.
+        By default, it returns ir_version.
+        """
+        return ir_version
+
 
 class BackendEagerTensor:
     """

@@ -7,6 +7,7 @@
 import numpy  # pylint: disable=W0611
 from typing import Any, Callable, List, Optional, Tuple, Union
 from onnx import ModelProto, TensorProto
+from onnx.defs import onnx_opset_version
 from onnxruntime import InferenceSession, RunOptions
 from onnxruntime.capi.onnxruntime_pybind11_state import InvalidArgument
 from onnxruntime.capi._pybind_state import (  # pylint: disable=E0611
@@ -182,11 +183,37 @@ class BackendOrtTensor(OrtTensor, BackendTensor):
     """
     Defines a value for a specific backend.
     """
-    pass
+
+    @classmethod
+    def get_opsets(cls, opsets):
+        if opsets is None:
+            return {'': onnx_opset_version(), 'com.microsoft': 1}
+        if 'com.microsoft' in opsets:
+            return opsets
+        opsets = opsets.copy()
+        opsets.update({'com.microsoft': 1})
+        return opsets
+
+    @classmethod
+    def get_ir_version(cls, ir_version):
+        return ir_version
 
 
 class EagerOrtTensor(OrtTensor, EagerTensor):
     """
     Defines a value for a specific backend.
     """
-    pass
+
+    @classmethod
+    def get_opsets(cls, opsets):
+        if opsets is None:
+            return {'': onnx_opset_version(), 'com.microsoft': 1}
+        if 'com.microsoft' in opsets:
+            return opsets
+        opsets = opsets.copy()
+        opsets.update({'com.microsoft': 1})
+        return opsets
+
+    @classmethod
+    def get_ir_version(cls, ir_version):
+        return ir_version
