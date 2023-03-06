@@ -7,6 +7,7 @@
 from inspect import _empty, signature
 from typing import Callable
 import numpy
+from onnx import FunctionProto, ModelProto, NodeProto
 from .numpyx_types import (
     EagerNotAllowedError, OptParType, ParType, TupleType)
 from .numpyx_var import Cst, Input, ManyIdentity, Par, Var
@@ -75,6 +76,11 @@ def _process_parameter(fn, sig, k, v, new_pars, inline):
         raise TypeError(
             f"Parameter {k!r} is a tensor ({type(v)}), it is not "
             f"supported for a named parameter.")
+
+    if isinstance(v, (FunctionProto, NodeProto, ModelProto)):
+        new_pars[k] = v
+        return
+
     if v is None and issubclass(annotation, OptParType):
         return
     raise TypeError(

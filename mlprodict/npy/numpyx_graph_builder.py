@@ -8,7 +8,8 @@ from inspect import Parameter, signature
 from typing import Any, Callable, Dict, List, Optional
 import numpy
 from onnx import (  # pylint: disable=E0611
-    IR_VERSION, AttributeProto, ValueInfoProto, TypeProto)
+    IR_VERSION, AttributeProto, FunctionProto, ModelProto,
+    NodeProto, ValueInfoProto, TypeProto)
 from onnx.checker import (
     C as onnxC, check_value_info, check_model, check_node)
 from onnx.defs import onnx_opset_version
@@ -25,7 +26,9 @@ from onnx.onnx_cpp2py_export.shape_inference import (  # pylint: disable=E0611,E
 from .numpyx_types import (
     ElemType, OptParType, ParType, SequenceType,
     TensorType, TupleType)
-from .numpyx_var import Cst, Input, ManyIdentity, Par, FUNCTION_DOMAIN, Var
+from .numpyx_var import (
+    Cst, FUNCTION_DOMAIN, Input, ManyIdentity,
+    ONNX_DOMAIN, Par, Var)
 from .numpyx_function_implementation import get_function_implementation
 
 
@@ -147,7 +150,7 @@ class _GraphBuilder:
         self.onnx_names_ = {}
 
     def make_node(self, op: str, inputs, outputs, domain: str = '',
-                  opset: int = 1, **kwargs):
+                  opset: int = 1, attribute_protos=None, **kwargs):
         """
         Inserts a node in the graph.
         """
@@ -193,6 +196,9 @@ class _GraphBuilder:
         node = make_node(op, inputs, outputs, domain=domain, **new_kwargs)
         for p in protos:
             node.attribute.append(p)
+        if attribute_protos is not None:
+            for att in attribute_protos:
+                node.attribute.append(att)
 
         for out in outputs:
             if out:
@@ -629,6 +635,18 @@ class _GraphBuilder:
                     domain=proto.domain, opset=1,
                     **{k: v for k, v in kwargs.items()
                        if k in proto.attribute})
+            elif domop[0] == ONNX_DOMAIN:
+                if len(kwargs) != 0:
+                    raise RuntimeError(
+                        f"kwargs should be empty but is {kwargs!r}.")
+                if isinstance(domop[1], NodeProto):
+                    node = domop[1]
+                    self.make_node(node.op_type, node_inputs, node_outputs, domain=node.domain,
+                                   attribute_protos=node.attribute)
+                else:
+                    raise TypeError(
+                        f"Unexpected proto type {type(domop[1])!r}.")
+
             else:
                 self.make_node(
                     domop[1], node_inputs, node_outputs,

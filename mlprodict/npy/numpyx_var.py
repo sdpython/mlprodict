@@ -8,7 +8,7 @@
 from typing import Any, Callable, Dict, List, Optional, Tuple, Union
 import numpy
 from onnx import (  # pylint: disable=E0611
-    FunctionProto, ModelProto, TensorProto)
+    FunctionProto, ModelProto, NodeProto, TensorProto)
 from onnx.helper import np_dtype_to_tensor_dtype
 from .numpyx_types import (
     OptParType, ParType, TensorType, TupleType)
@@ -16,6 +16,7 @@ from .numpyx_types import (
 
 DEFAULT_OPSETS = {'': 18, 'ai.onnx.ml': 3}
 FUNCTION_DOMAIN = "FUNCTION-DOMAIN"
+ONNX_DOMAIN = "ONNX-DOMAIN"
 
 
 class Par:
@@ -254,7 +255,8 @@ class Var:
             return Var._setter_do(self.parent, *args)
 
     def __init__(self, *inputs: List[Any],
-                 op: Union[Callable, str, Tuple[str, str]] = None,
+                 op: Union[Callable, str, Tuple[str, str],
+                           FunctionProto, ModelProto, NodeProto] = None,
                  dtype: type = None,
                  inline: bool = False,
                  n_var_outputs: Optional[int] = 1,
@@ -269,6 +271,8 @@ class Var:
             self.onnx_op = op  # domain, operator name
         elif isinstance(op, str):
             self.onnx_op = ('', op)  # operator name
+        elif isinstance(op, (FunctionProto, ModelProto, NodeProto)):
+            self.onnx_op = (ONNX_DOMAIN, op)
         else:
             self.onnx_op = (None, op)  # function to call
 
@@ -752,6 +756,8 @@ class Var:
     def astype(self, dtype):
         "Cast"
         from .numpyx_core_api import var
+        if isinstance(dtype, Var):
+            return var(self.self_var, dtype, op="CastLike")
         if not isinstance(dtype, int):
             try:
                 dtype = np_dtype_to_tensor_dtype(dtype)

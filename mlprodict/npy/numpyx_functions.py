@@ -4,8 +4,9 @@
 
 .. versionadded:: 0.10
 """
-from typing import Optional, Tuple
+from typing import Optional, Tuple, Union
 import numpy
+from onnx import FunctionProto, ModelProto, NodeProto
 from onnx.numpy_helper import from_array
 from .numpyx_core_api import (  # pylint: disable=W0611
     cst, make_tuple, var, xapi_inline)
@@ -193,6 +194,17 @@ def compress(condition: TensorType[ElemType.bool_, "B"],
     if axis is None:
         return var(x, condition, op="Compress")
     return var(x, condition, op="Compress", axis=axis)
+
+
+@xapi_inline
+def compute(*x: SequenceType[TensorType[ElemType.numerics, "T"]],
+            proto: ParType[Union[FunctionProto, ModelProto, NodeProto]] = None
+            ) -> TupleType[TensorType[ElemType.numerics, "T"]]:
+    """
+    Operator concat, handle :func:`numpy.vstack` and
+    :func:`numpy.hstack`.
+    """
+    return var(*x, op=proto)
 
 
 @xapi_inline

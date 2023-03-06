@@ -44,6 +44,7 @@ from mlprodict.npy.numpyx_functions import (
     ceil as ceil_inline,
     clip as clip_inline,
     compress as compress_inline,
+    compute as compute_inline,
     concat as concat_inline,
     copy as copy_inline,
     cos as cos_inline,
@@ -2096,7 +2097,85 @@ class TestNumpyx(ExtTestCase):
                 self.assertEqualArray(z.astype(numpy.float32), res)
                 self.assertEqual(res.dtype, numpy.float32)
 
+    def test_onnx_in_var_node_proto(self):
+        metric = "sqeuclidean"
+
+        def impl(xa, xb):
+            return xa + xb
+
+        onx_base = impl(Input("A"), Input("B")).to_onnx(
+            constraints={'A': Float32[None], 'B': Float32[None],
+                         (0, False): Float32[None]})
+        self.assertIn("Add", str(onx_base))
+
+        def impl2(x):
+            return compute_inline(
+                x, cst(numpy.array([5, 6], dtype=numpy.float32)).astype(x),
+                proto=onx_base.graph.node[0])
+
+        onx = impl2(Input("A")).to_onnx(
+            constraints={'A': Float32[None], (0, False): Float32[None]})
+        self.assertIn("Add", str(onx))
+
+        x = numpy.arange(10).reshape((5, 2)).astype(dtype=numpy.float32)
+        z = x + numpy.array([5, 6], dtype=numpy.float32)
+        ref = ReferenceEvaluator(onx.SerializeToString())
+        got = ref.run(None, {'A': x})
+        self.assertEqualArray(z, got[0], atol=1e-5)
+
+        f = jit_onnx(impl2)
+
+        # float32
+        res = f(x)
+        self.assertEqual(res.dtype, numpy.float32)
+        self.assertEqualArray(z, res, atol=1e-4)
+
+        # float64
+        x = x.astype(numpy.float64)
+        res = f(x)
+        self.assertEqual(res.dtype, numpy.float64)
+        self.assertEqualArray(z.astype(numpy.float64), res)
+
+    def test_onnx_in_var_model_proto(self):
+        metric = "sqeuclidean"
+
+        def impl(xa, xb):
+            return cdist_inline(xa, xb, metric=metric)
+
+        onx_base = impl(Input("A"), Input("B")).to_onnx(
+            constraints={'A': Float32[None], 'B': Float32[None],
+                         (0, False): Float32[None]})
+
+        def impl2(x):
+            return compute_inline(
+                x, cst(numpy.arange(4).reshape(
+                    (2, 2)).astype(numpy.float32)).astype(x),
+                proto=onx_base)
+
+        onx = impl2(Input("A")).to_onnx(
+            constraints={'A': Float32[None], (0, False): Float32[None]})
+
+        x = numpy.arange(10).reshape((5, 2)).astype(dtype=numpy.float32)
+        z = scipy_cdist(x, numpy.arange(4).reshape(
+            (2, 2)).astype(numpy.float32), metric=metric)
+        ref = ReferenceEvaluator(onx.SerializeToString())
+        got = ref.run(None, {'A': x, 'B': y})
+        self.assertEqualArray(z, got[0], atol=1e-5)
+
+        f = jit_onnx(impl, target_opsets=target_opsets)
+
+        # float32
+        res = f(x)
+        self.assertEqual(res.dtype, numpy.float32)
+        self.assertEqualArray(z, res, atol=1e-4)
+
+        # float64
+        x = x.astype(numpy.float64)
+        res = f(x)
+        self.assertEqual(res.dtype, numpy.float64)
+        self.assertEqualArray(z.astype(numpy.float64), res)
+
 
 if __name__ == "__main__":
-    TestNumpyx().test_numpy_min_max_inline()
+    TestNumpyx().test_onnx_in_var_node_proto()
     unittest.main(verbosity=2)
