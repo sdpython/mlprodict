@@ -30,6 +30,10 @@ from .numpyx_var import (
     Cst, FUNCTION_DOMAIN, Input, ManyIdentity,
     ONNX_DOMAIN, Par, Var)
 from .numpyx_function_implementation import get_function_implementation
+from .numpyx_helper import (
+    rename_in_onnx_graph,
+    onnx_convert_model_for_opsets,
+    onnx_model_to_function)
 
 
 _OPSET_TO_IR_VERSION = {
@@ -93,7 +97,9 @@ class _GraphBuilder:
                 f"target_opsets={target_opsets}. "
                 f"ir_version must be defined.")
 
-        self.target_opsets = target_opsets
+        self.target_opsets = (
+            target_opsets if target_opsets is None
+            else target_opsets.copy())
         self.ir_version = ir_version
 
         check_opsets = target_opsets or {"": onnx_opset_version()}
@@ -325,6 +331,17 @@ class _GraphBuilder:
         self.outputs_.append(
             self._io(len(self.outputs_), name, tensor_type, False))
 
+    def _iter_nodes(self, nodes=None):
+        if nodes is None:
+            nodes = self.nodes_
+        for node in self.nodes_:
+            yield node
+            for att in node.attribute:
+                if (att.type == AttributeProto.GRAPH and
+                        hasattr(att, 'g') and att.g is not None):
+                    for n in self._iter_nodes(att.g.node):
+                        yield n
+
     def _make_onnx(self):
         """
         Makes the final onnx.
@@ -340,6 +357,15 @@ class _GraphBuilder:
             if domain not in set_domains:
                 set_domains.add(domain)
                 opset_imports.append(make_opsetid(domain, 1))
+
+        # adds missing domain
+        only_domains = set()
+        for node in self._iter_nodes():
+            only_domains.add(node.domain)
+            if node.domain not in set_domains:
+                set_domains.add(node.domain)
+                opset_imports.append(make_opsetid(node.domain, 1))
+        opset_imports = [d for d in opset_imports if d.domain in only_domains]
 
         if self.as_function:
             inputs = []
@@ -363,8 +389,8 @@ class _GraphBuilder:
 
         graph = make_graph(self.nodes_, 'numpyx', self.inputs_, self.outputs_)
         model = make_model(graph, opset_imports=opset_imports,
-                           functions=list(f[0]
-                                          for f in self.functions_.values()),
+                           functions=list(
+                               f[0] for f in self.functions_.values()),
                            ir_version=self.ir_version)
         try:
             check_model(model)
@@ -466,6 +492,87 @@ class _GraphBuilder:
             onx = onx[1]
         self.functions_[key] = (onx, input_types, output_types, attributes)
         return onx, input_types, output_types, attributes
+
+    def _to_onnx_make_node(self, domop, node_inputs, node_outputs, kwargs):
+        if domop == ('', 'Identity') and len(node_inputs) > 1:
+            if len(node_inputs) != len(node_outputs):
+                raise RuntimeError(
+                    f"Mismatch between {node_inputs} and {node_outputs}.")
+            for ni, no in zip(node_inputs, node_outputs):
+                self.make_node(
+                    domop[1], [ni], [no],
+                    domain=domop[0], opset=self.target_opsets[''],
+                    **kwargs)
+        elif domop[0] == FUNCTION_DOMAIN:
+            proto = get_function_implementation(
+                domop, node_inputs, node_outputs,
+                self.target_opsets, **kwargs)
+            self.functions_[domop] = (
+                proto,
+                (None for i in node_inputs),
+                (None for i in node_outputs),
+                list(sorted(kwargs)))
+            self.make_node(
+                proto.name, node_inputs, node_outputs,
+                domain=proto.domain, opset=1,
+                **{k: v for k, v in kwargs.items()
+                    if k in proto.attribute})
+        elif domop[0] == ONNX_DOMAIN:
+            if isinstance(domop[1], NodeProto):
+                node = domop[1]
+                repls = dict(zip(node.input, node_inputs))
+                atts = []
+                for att in node.attribute:
+                    if (att.type == AttributeProto.GRAPH and
+                            hasattr(att, 'g') and att.g is not None):
+                        new_g = rename_in_onnx_graph(att.g, repls)
+                        if new_g is None:
+                            atts.append(att)
+                            continue
+                        att = make_attribute(att.name, new_g)
+                    atts.append(att)
+
+                self.make_node(node.op_type, node_inputs, node_outputs, domain=node.domain,
+                               attribute_protos=atts)
+            elif isinstance(domop[1], ModelProto):
+                model = onnx_convert_model_for_opsets(
+                    domop[1], target_opsets=self.target_opsets)
+                if "name" not in kwargs or kwargs["name"] is None:
+                    raise ValueError(
+                        f"Parameter 'name' must be specified when "
+                        f"calling function 'compute'.")
+                name = kwargs["name"]
+                domain = kwargs.get("domain", "LOCAL")
+                key = domain, name
+                if key in self.functions_:
+                    raise ValueError(
+                        f"Function {key!r} was already added.")
+                f1, fs = onnx_model_to_function(domop[1], name=name, domain=domain,
+                                                opset_imports=self.target_opsets)
+                # needed functions are added first
+                if fs is not None and len(fs) > 0:
+                    for f in fs:
+                        keyf = f.domain, f.name
+                        if keyf in self.functions_:
+                            raise ValueError(
+                                f"Function {keyf!r} was already added.")
+                        self.functions_[keyf] = (f, (None for i in f.input),
+                                                 (None for i in f.output),
+                                                 list(f.attribute))
+                # then the main function is added
+                self.functions_[key] = (f1, (None for i in node_inputs),
+                                        (None for i in node_outputs), [])
+                self.make_node(name, node_inputs,
+                               node_outputs, domain=domain)
+            else:
+                raise TypeError(
+                    f"Unexpected proto type {type(domop[1])!r}.")
+
+        else:
+            self.make_node(
+                domop[1], node_inputs, node_outputs,
+                domain=domop[0], opset=self.target_opsets[domop[0] or ''],
+                **kwargs)
 
     def to_onnx(self, output_vars: Optional[List[Var]] = None):
         """
@@ -612,46 +719,7 @@ class _GraphBuilder:
                             f"{domop[0]!r}.")
                     kwargs[par.name] = par.value
 
-            if domop == ('', 'Identity') and len(node_inputs) > 1:
-                if len(node_inputs) != len(node_outputs):
-                    raise RuntimeError(
-                        f"Mismatch between {node_inputs} and {node_outputs}.")
-                for ni, no in zip(node_inputs, node_outputs):
-                    self.make_node(
-                        domop[1], [ni], [no],
-                        domain=domop[0], opset=self.target_opsets[''],
-                        **kwargs)
-            elif domop[0] == FUNCTION_DOMAIN:
-                proto = get_function_implementation(
-                    domop, node_inputs, node_outputs,
-                    self.target_opsets, **kwargs)
-                self.functions_[domop] = (
-                    proto,
-                    (None for i in node_inputs),
-                    (None for i in node_outputs),
-                    list(sorted(kwargs)))
-                self.make_node(
-                    proto.name, node_inputs, node_outputs,
-                    domain=proto.domain, opset=1,
-                    **{k: v for k, v in kwargs.items()
-                       if k in proto.attribute})
-            elif domop[0] == ONNX_DOMAIN:
-                if len(kwargs) != 0:
-                    raise RuntimeError(
-                        f"kwargs should be empty but is {kwargs!r}.")
-                if isinstance(domop[1], NodeProto):
-                    node = domop[1]
-                    self.make_node(node.op_type, node_inputs, node_outputs, domain=node.domain,
-                                   attribute_protos=node.attribute)
-                else:
-                    raise TypeError(
-                        f"Unexpected proto type {type(domop[1])!r}.")
-
-            else:
-                self.make_node(
-                    domop[1], node_inputs, node_outputs,
-                    domain=domop[0], opset=self.target_opsets[domop[0] or ''],
-                    **kwargs)
+            self._to_onnx_make_node(domop, node_inputs, node_outputs, kwargs)
 
         # the output is the last variable
         last_vars = output_vars or [self._vars[-1]]

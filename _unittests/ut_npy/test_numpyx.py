@@ -15,7 +15,7 @@ from onnx.checker import check_model
 from onnx.defs import onnx_opset_version
 from onnx.helper import (
     make_model, make_node, make_graph,
-    make_tensor_value_info)
+    make_operatorsetid, make_tensor_value_info)
 from onnx.reference import ReferenceEvaluator
 from onnx.shape_inference import infer_shapes
 from onnxruntime import InferenceSession
@@ -2098,7 +2098,6 @@ class TestNumpyx(ExtTestCase):
                 self.assertEqual(res.dtype, numpy.float32)
 
     def test_onnx_in_var_node_proto(self):
-        metric = "sqeuclidean"
 
         def impl(xa, xb):
             return xa + xb
@@ -2142,15 +2141,16 @@ class TestNumpyx(ExtTestCase):
         def impl(xa, xb):
             return cdist_inline(xa, xb, metric=metric)
 
-        onx_base = impl(Input("A"), Input("B")).to_onnx(
-            constraints={'A': Float32[None], 'B': Float32[None],
+        onx_base = impl(Input("xa"), Input("xb")).to_onnx(
+            constraints={'xa': Float32[None], 'xb': Float32[None],
                          (0, False): Float32[None]})
+        self.assertNotIn("ai.onnx.ml", str(onx_base))
 
         def impl2(x):
             return compute_inline(
                 x, cst(numpy.arange(4).reshape(
                     (2, 2)).astype(numpy.float32)).astype(x),
-                proto=onx_base)
+                proto=onx_base, name="mycdist")
 
         onx = impl2(Input("A")).to_onnx(
             constraints={'A': Float32[None], (0, False): Float32[None]})
@@ -2158,11 +2158,66 @@ class TestNumpyx(ExtTestCase):
         x = numpy.arange(10).reshape((5, 2)).astype(dtype=numpy.float32)
         z = scipy_cdist(x, numpy.arange(4).reshape(
             (2, 2)).astype(numpy.float32), metric=metric)
+        # from mlprodict.plotting.text_plot import onnx_simple_text_plot
+        # print(onnx_simple_text_plot(onx))
         ref = ReferenceEvaluator(onx.SerializeToString())
-        got = ref.run(None, {'A': x, 'B': y})
+        got = ref.run(None, {'A': x})
         self.assertEqualArray(z, got[0], atol=1e-5)
 
-        f = jit_onnx(impl, target_opsets=target_opsets)
+        f = jit_onnx(impl2)
+
+        # float32
+        res = f(x)
+        self.assertEqual(res.dtype, numpy.float32)
+        self.assertEqualArray(z, res, atol=1e-4)
+
+        # float64
+        x = x.astype(numpy.float64)
+        res = f(x)
+        self.assertEqual(res.dtype, numpy.float64)
+        self.assertEqualArray(z.astype(numpy.float64), res)
+
+    def test_onnx_in_var_model_proto_if(self):
+        def _make_model():
+            X = make_tensor_value_info(
+                'X', TensorProto.FLOAT, ['N'])  # pylint: disable=E1101
+            Z = make_tensor_value_info(
+                'Z', TensorProto.UNDEFINED, ['N'])  # pylint: disable=E1101
+            one = make_tensor_value_info(
+                'one', TensorProto.FLOAT, ['N'])  # pylint: disable=E1101
+
+            graph1 = make_graph([], 'then', [], [X])
+            graph2 = make_graph([], 'else', [], [one])
+
+            graph_def = make_graph(
+                [make_node('ReduceSum', ["X"], ["Xred"]),
+                 make_node('Constant', [], ['one'], value_floats=[1.]),
+                 make_node('CastLike', ['one', 'Xred'], ['one_c']),
+                 make_node('Greater', ['Xred', 'one_c'], ['cond']),
+                 make_node('If', ['cond'], ['Z_c'],
+                           then_branch=graph1, else_branch=graph2),
+                 make_node('CastLike', ['Z_c', 'X'], ['Z'])],
+                'test', [X], [Z])
+
+            model_def = make_model(
+                graph_def, producer_name='mlprodict',
+                ir_version=7, producer_version='0.1',
+                opset_imports=[make_operatorsetid('', 15)])
+            return model_def
+
+        def impl2(x):
+            return compute_inline(x, proto=_make_model(), name="myif")
+
+        onx = impl2(Input("A")).to_onnx(
+            constraints={'A': Float32[None], (0, False): Float32[None]})
+
+        x = numpy.arange(10).reshape((5, 2)).astype(dtype=numpy.float32)
+        z = x
+        ref = ReferenceEvaluator(onx.SerializeToString())
+        got = ref.run(None, {'A': x})
+        self.assertEqualArray(z, got[0], atol=1e-5)
+
+        f = jit_onnx(impl2)
 
         # float32
         res = f(x)
@@ -2177,5 +2232,5 @@ class TestNumpyx(ExtTestCase):
 
 
 if __name__ == "__main__":
-    TestNumpyx().test_onnx_in_var_node_proto()
+    TestNumpyx().test_onnx_in_var_model_proto()
     unittest.main(verbosity=2)

@@ -198,13 +198,14 @@ def compress(condition: TensorType[ElemType.bool_, "B"],
 
 @xapi_inline
 def compute(*x: SequenceType[TensorType[ElemType.numerics, "T"]],
-            proto: ParType[Union[FunctionProto, ModelProto, NodeProto]] = None
+            proto: ParType[Union[FunctionProto, ModelProto, NodeProto]] = None,
+            name: ParType[str] = None
             ) -> TupleType[TensorType[ElemType.numerics, "T"]]:
     """
     Operator concat, handle :func:`numpy.vstack` and
     :func:`numpy.hstack`.
     """
-    return var(*x, op=proto)
+    return var(*x, op=proto, name=name)
 
 
 @xapi_inline
