@@ -524,45 +524,29 @@ class TupleType:
         return newt
 
 
-class Bool:
-    """
-    For simpler annotation.
-    """
-    @classmethod
-    def __class_getitem__(cls, shape: Union[int, ShapeType]) -> TensorType:
+def _make_type(name: str, elem_type: int):
+    def class_getitem(cls, shape: Union[int, ShapeType]) -> TensorType:
         if isinstance(shape, int):
             shape = (shape,)
-        return TensorType[ElemType.bool_, shape]
+        return TensorType[elem_type, shape]
+    new_type = type(name, tuple(), {})
+    new_type.__class_getitem__ = classmethod(class_getitem)
+    return new_type
 
 
-class Float32:
-    """
-    For simpler annotation.
-    """
-    @classmethod
-    def __class_getitem__(cls, shape: Union[int, ShapeType]) -> TensorType:
-        if isinstance(shape, int):
-            shape = (shape,)
-        return TensorType[ElemType.float32, shape]
+Bool = _make_type("Bool", ElemType.bool_)
 
+BFloat16 = _make_type("BFloat16", ElemType.bfloat16)
+Float16 = _make_type("Float16", ElemType.float16)
+Float32 = _make_type("Float32", ElemType.float32)
+Float64 = _make_type("Float32", ElemType.float64)
 
-class Float64:
-    """
-    For simpler annotation.
-    """
-    @classmethod
-    def __class_getitem__(cls, shape: Union[int, ShapeType]) -> TensorType:
-        if isinstance(shape, int):
-            shape = (shape,)
-        return TensorType[ElemType.float64, shape]
+Int8 = _make_type("int8", ElemType.int8)
+Int16 = _make_type("int16", ElemType.int16)
+Int32 = _make_type("int32", ElemType.int32)
+Int64 = _make_type("int64", ElemType.int64)
 
-
-class Int64:
-    """
-    For simpler annotation.
-    """
-    @classmethod
-    def __class_getitem__(cls, shape: Union[int, ShapeType]) -> TensorType:
-        if isinstance(shape, int):
-            shape = (shape,)
-        return TensorType[ElemType.int64, shape]
+UInt8 = _make_type("uint8", ElemType.uint8)
+UInt16 = _make_type("uint16", ElemType.uint16)
+UInt32 = _make_type("uint32", ElemType.uint32)
+UInt64 = _make_type("uint64", ElemType.uint64)
