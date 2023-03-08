@@ -377,7 +377,8 @@ class _GraphBuilder:
                 [o.name for o in self.outputs_],
                 self.nodes_,
                 opset_imports,
-                [p.name for p in self.attributes])
+                (None if self.attributes is None
+                 else [p.name for p in self.attributes]))
             return fct
 
         graph = make_graph(self.nodes_, 'numpyx', self.inputs_, self.outputs_)
@@ -528,6 +529,13 @@ class _GraphBuilder:
 
                 self.make_node(node.op_type, node_inputs, node_outputs, domain=node.domain,
                                attribute_protos=atts)
+            elif isinstance(domop[1], FunctionProto):
+                fct = domop[1]
+                key = fct.domain, fct.name
+                self.add_function(key, (fct, (None for i in node_inputs),
+                                        (None for i in node_outputs), []))
+                self.make_node(fct.name, node_inputs,
+                               node_outputs, domain=fct.domain)
             elif isinstance(domop[1], ModelProto):
                 model = onnx_convert_model_for_opsets(
                     domop[1], target_opsets=self.target_opsets)

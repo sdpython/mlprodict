@@ -9,7 +9,7 @@ import warnings
 import numpy
 import scipy
 from scipy.spatial.distance import cdist as scipy_cdist
-from onnx import ModelProto, TensorProto
+from onnx import FunctionProto, ModelProto, TensorProto
 from onnx.backend.test.case.node.pad import pad_impl
 from onnx.checker import check_model
 from onnx.defs import onnx_opset_version
@@ -2175,6 +2175,48 @@ class TestNumpyx(ExtTestCase):
         self.assertEqual(res.dtype, numpy.float64)
         self.assertEqualArray(z.astype(numpy.float64), res)
 
+    def test_onnx_in_var_function_proto(self):
+        metric = "sqeuclidean"
+
+        def impl(xa, xb):
+            return (xa - xb) ** 2
+
+        onx_base = impl(Input("xa"), Input("xb")).to_onnx(
+            constraints={'xa': Float32[None], 'xb': Float32[None],
+                         (0, False): Float32[None]},
+            as_function=True, name="diff_square",
+            domain="local_f")
+        self.assertIsInstance(onx_base, FunctionProto)
+        self.assertNotIn("ai.onnx.ml", str(onx_base))
+
+        def impl2(x):
+            return compute_inline(
+                x, cst(numpy.arange(2).reshape(
+                    (1, 2)).astype(numpy.float32)).astype(x),
+                proto=onx_base, name="mycdist")
+
+        onx = impl2(Input("A")).to_onnx(
+            constraints={'A': Float32[None], (0, False): Float32[None]})
+
+        x = numpy.arange(10).reshape((5, 2)).astype(dtype=numpy.float32)
+        z = (x - numpy.arange(2).reshape((1, 2))) ** 2
+        ref = ReferenceEvaluator(onx.SerializeToString())
+        got = ref.run(None, {'A': x})
+        self.assertEqualArray(z, got[0], atol=1e-5)
+
+        f = jit_onnx(impl2)
+
+        # float32
+        res = f(x)
+        self.assertEqual(res.dtype, numpy.float32)
+        self.assertEqualArray(z, res, atol=1e-4)
+
+        # float64
+        x = x.astype(numpy.float64)
+        res = f(x)
+        self.assertEqual(res.dtype, numpy.float64)
+        self.assertEqualArray(z.astype(numpy.float64), res)
+
     def test_onnx_in_var_model_proto_if(self):
         def _make_model():
             X = make_tensor_value_info(
@@ -2395,5 +2437,5 @@ class TestNumpyx(ExtTestCase):
 
 
 if __name__ == "__main__":
-    TestNumpyx().test_kmeans_distance_calls_args()
+    TestNumpyx().test_onnx_in_var_function_proto()
     unittest.main(verbosity=2)
