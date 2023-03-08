@@ -5,7 +5,7 @@
 .. versionadded:: 0.10
 """
 from inspect import _empty, signature
-from typing import Callable
+from typing import Any, Callable, Dict, Sequence, Union
 import numpy
 from onnx import FunctionProto, ModelProto, NodeProto
 from .numpyx_types import (
@@ -22,22 +22,30 @@ def cst(*args, **kwargs):
     return Cst(*args, **kwargs)
 
 
-def make_tuple(n_elements, *args, **kwargs):
-    """
-    Wraps a call to the building of class :class:`Tuple`.
-    *n_elements* is the number of elements in the tuple.
-    """
-    return Var(*args, n_var_outputs=n_elements, **kwargs)
-
-
-def tuple_var(*args):
+def tuple_var(*args: Sequence[Var]) -> Var:
     """
     Tie many results all together before being returned by a function.
     """
     return ManyIdentity(*args)
 
 
-def var(*args, **kwargs):
+def make_tuple(n_elements_or_first_variable: Union[int, Var],
+               *args: Sequence[Var],
+               **kwargs: Dict[str, Any]) -> Var:
+    """
+    Wraps a call to the building of class :class:`Tuple`.
+    *n_elements_or_first_variable*
+    is the number of elements in the tuple or the number of
+    detected arguments if not specified.
+    """
+    if isinstance(n_elements_or_first_variable, int):
+        n_elements = n_elements_or_first_variable
+        return Var(*args, n_var_outputs=n_elements, **kwargs)
+    args = [n_elements_or_first_variable, *args]
+    return tuple_var(*args, **kwargs)
+
+
+def var(*args: Sequence[Var], **kwargs: Dict[str, Any]) -> Var:
     """
     Wraps a call to the building of class :class:`Var`.
     """

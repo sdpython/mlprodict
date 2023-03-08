@@ -12,11 +12,7 @@ from onnx import (  # pylint: disable=E0611
 from onnx.helper import np_dtype_to_tensor_dtype
 from .numpyx_types import (
     OptParType, ParType, TensorType, TupleType)
-
-
-DEFAULT_OPSETS = {'': 18, 'ai.onnx.ml': 3}
-FUNCTION_DOMAIN = "FUNCTION-DOMAIN"
-ONNX_DOMAIN = "ONNX-DOMAIN"
+from .numpyx_constants import DEFAULT_OPSETS, ONNX_DOMAIN
 
 
 class Par:
@@ -127,7 +123,8 @@ class ManyIdentity:
         """
         Converts the recursive graph to ONNX.
 
-        :param target_opsets: dictionary `{opset: version}`
+        :param target_opsets: dictionary `{opset: version}`, if None,
+            it is replaced by `DEFAULT_OPSETS`
         :param as_function: conversion to :class:`onnx.FunctionProto`
             or :class:`onnx.ModelProto`
         :param name: function name if *as_function* is True
@@ -141,6 +138,8 @@ class ManyIdentity:
         from .numpyx_graph_builder import _GraphBuilder
 
         # Var.to_onnx
+        if target_opsets is None:
+            target_opsets = DEFAULT_OPSETS.copy()
         g = _GraphBuilder(target_opsets, as_function=as_function,
                           name=name, domain=domain, attributes=attributes,
                           constraints=constraints, ir_version=ir_version)

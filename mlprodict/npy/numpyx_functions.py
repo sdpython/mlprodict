@@ -13,7 +13,8 @@ from .numpyx_core_api import (  # pylint: disable=W0611
 from .numpyx_types import (  # pylint: disable=W0611
     ElemType, OptParType, ParType, SequenceType, TensorType,
     TupleType)
-from .numpyx_var import FUNCTION_DOMAIN, Var
+from .numpyx_constants import FUNCTION_DOMAIN
+from .numpyx_var import Var
 
 
 def _cstv(x):

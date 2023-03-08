@@ -9,7 +9,7 @@ from onnx import AttributeProto, FunctionProto, ValueInfoProto
 from onnx.helper import (
     make_function, make_graph, make_node, make_opsetid,
     make_tensor_value_info)
-from .numpyx_var import FUNCTION_DOMAIN
+from .numpyx_constants import FUNCTION_DOMAIN
 
 
 def get_function_implementation(
@@ -43,6 +43,11 @@ def _get_cdist_implementation(
     """
     Returns the CDist implementation as a function.
     """
+    if opsets is None:
+        raise ValueError("opsets cannot be None.")
+    if "" not in opsets:
+        raise ValueError(
+            "Opsets for domain '' must be specified but opsets={opsets!r}.")
     if set(kwargs) != {'metric'}:
         raise ValueError(
             f"kwargs={kwargs} must contain metric and only metric.")

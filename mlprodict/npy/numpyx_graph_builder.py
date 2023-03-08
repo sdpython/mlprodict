@@ -26,23 +26,12 @@ from onnx.onnx_cpp2py_export.shape_inference import (  # pylint: disable=E0611,E
 from .numpyx_types import (
     ElemType, OptParType, ParType, SequenceType,
     TensorType, TupleType)
-from .numpyx_var import (
-    Cst, FUNCTION_DOMAIN, Input, ManyIdentity,
-    ONNX_DOMAIN, Par, Var)
+from .numpyx_constants import FUNCTION_DOMAIN, ONNX_DOMAIN, _OPSET_TO_IR_VERSION
+from .numpyx_var import Cst, Input, ManyIdentity, Par, Var
 from .numpyx_function_implementation import get_function_implementation
 from .numpyx_helper import (
     iter_nodes, rename_in_onnx_graph,
     onnx_convert_model_for_opsets, onnx_model_to_function)
-
-
-_OPSET_TO_IR_VERSION = {
-    14: 7,
-    15: 8,
-    16: 8,
-    17: 8,
-    18: 8,
-    19: 9,
-}
 
 
 class _FunctionIO:
@@ -152,8 +141,13 @@ class _GraphBuilder:
         if len(values) != 4:
             raise TypeError(f"values must have 4 elements not {len(values)}.")
         if key in self.functions_:
+            f1 = self.functions_[key][0].SerializeToString()
+            f2 = values[0].SerializeToString()
+            if f1 == f2:
+                return
             raise KeyError(
-                f"Function {key!r} is already registered in "
+                f"Function {key!r} is already registered and "
+                f"the definition is not the same. Registered functions: "
                 f"{list(sorted(self.functions_))}.")
         self.functions_[key] = values
 
@@ -506,7 +500,7 @@ class _GraphBuilder:
         elif domop[0] == FUNCTION_DOMAIN:
             proto = get_function_implementation(
                 domop, node_inputs, node_outputs,
-                self.target_opsets, **kwargs)
+                opsets=self.target_opsets, **kwargs)
             self.add_function(domop, (
                 proto,
                 (None for i in node_inputs),

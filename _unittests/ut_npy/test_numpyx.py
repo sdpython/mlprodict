@@ -25,7 +25,7 @@ from mlprodict.npy.numpyx import ElemType, jit_onnx, eager_onnx
 from mlprodict.npy.numpyx_types import (
     Bool, Float32, Float64, Int64, OptParType, TensorType)
 from mlprodict.npy.numpyx_var import Input, Var
-from mlprodict.npy.numpyx_core_api import xapi_function, xapi_inline, cst
+from mlprodict.npy.numpyx_core_api import cst, make_tuple, xapi_function, xapi_inline
 from mlprodict.npy.numpyx_functions_test import (
     _min_max, _min_max_inline,
     absolute, addition, argmin, concat, copy,
@@ -2070,10 +2070,10 @@ class TestNumpyx(ExtTestCase):
         for metric in ["euclidean", "sqeuclidean"]:
             with self.subTest(metric=metric):
 
-                def impl(xa, xb):
+                def impl(xa, xb, metric=metric):
                     return cdist_inline(xa, xb, metric=metric)
 
-                onx = impl(Input("A"), Input("B")).to_onnx(
+                onx = impl(Input("A"), Input("B"), metric=metric).to_onnx(
                     constraints={'A': Float64[None], 'B': Float64[None],
                                  (0, False): Float64[None]})
                 x = numpy.arange(10).reshape(
@@ -2228,7 +2228,63 @@ class TestNumpyx(ExtTestCase):
         self.assertEqual(res.dtype, numpy.float64)
         self.assertEqualArray(z.astype(numpy.float64), res)
 
+    def test_kmeans(self):
+
+        def compute_labels(X, centers):
+            dist = cdist_inline(X, centers)
+            return argmin_inline(dist, axis=1)
+
+        onx = compute_labels(Input("X"), Input("centers")).to_onnx(
+            constraints={'X': Float64[None], "centers": Float64[None],
+                         (0, False): Int64[None]})
+
+        x = numpy.random.randn(100, 2)
+        centers = numpy.random.randn(2, 2)
+
+        ref = ReferenceEvaluator(onx.SerializeToString())
+        got = ref.run(None, {'X': x, "centers": centers})
+        self.assertEqual(got[0].dtype, numpy.int64)
+        self.assertEqual(got[0].min(), 0)
+        self.assertEqual(got[0].max(), 1)
+
+        f = jit_onnx(compute_labels)
+
+        # float64
+        res = f(x, centers)
+        self.assertEqual(res.dtype, numpy.int64)
+        self.assertEqualArray(got[0], res)
+
+    def test_kmeans_distance(self):
+
+        def compute_labels(X, centers):
+            dist = cdist_inline(X, centers)
+            labels = argmin_inline(dist, axis=1)
+            return make_tuple(labels, dist)
+
+        onx = compute_labels(Input("X"), Input("centers")).to_onnx(
+            constraints={'X': Float64[None], "centers": Float64[None],
+                         (0, False): Int64[None],
+                         (1, False): Float64[None]})
+
+        x = numpy.random.randn(100, 2)
+        centers = numpy.random.randn(2, 2)
+
+        ref = ReferenceEvaluator(onx.SerializeToString())
+        got = ref.run(None, {'X': x, "centers": centers})
+        self.assertEqual(got[0].dtype, numpy.int64)
+        self.assertEqual(got[0].min(), 0)
+        self.assertEqual(got[0].max(), 1)
+        self.assertEqual(got[1].dtype, numpy.float64)
+
+        f = jit_onnx(compute_labels)
+
+        # float64
+        res, dist = f(x, centers)
+        self.assertEqual(res.dtype, numpy.int64)
+        self.assertEqualArray(got[0], res)
+        self.assertEqualArray(got[1], dist)
+
 
 if __name__ == "__main__":
-    TestNumpyx().test_onnx_in_var_model_proto()
+    TestNumpyx().test_kmeans_distance()
     unittest.main(verbosity=2)
