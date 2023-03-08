@@ -41,6 +41,40 @@ class JitEager:
         self.output_types = output_types
         self.ir_version = tensor_class.get_ir_version(ir_version)
 
+    @property
+    def n_versions(self):
+        """
+        Returns the number of jitted functions.
+        There is one per type and number of dimensions.
+        """
+        return len(self.onxs)
+
+    @property
+    def available_versions(self):
+        """
+        Returns the key used to distinguish between every jitted version.
+        """
+        return list(sorted(self.onxs))
+
+    def get_onnx(self, key: Optional[int] = None):
+        """
+        Returns the jitted function associated to one key.
+        If key is None, the assumes there is only one available jitted function
+        and it returns it.
+        """
+        if key is None:
+            if len(self.onxs) != 1:
+                raise ValueError(
+                    f"There is more than one jitted function. "
+                    f"The key must be specified among "
+                    f"{self.available_versions!r}.")
+            return self.onxs[self.available_versions[0]]
+        if key not in self.onxs:
+            raise ValueError(
+                f"Not jitted function indexed with "
+                f"key={key!r} in {self.available_versions!r}.")
+        return self.onxs[key]
+
     @staticmethod
     def make_key(*values, **kwargs):
         """

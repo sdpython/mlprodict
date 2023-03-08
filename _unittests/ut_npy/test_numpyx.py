@@ -2081,7 +2081,7 @@ class TestNumpyx(ExtTestCase):
                 y = numpy.arange(14).reshape(
                     (7, 2)).astype(dtype=numpy.float64) * 10
                 z = scipy_cdist(x, y, metric=metric)
-                ref = ReferenceEvaluator(onx, verbose=9)
+                ref = ReferenceEvaluator(onx)
                 got = ref.run(None, {'A': x, 'B': y})
                 self.assertEqualArray(z, got[0])
 
@@ -2244,8 +2244,9 @@ class TestNumpyx(ExtTestCase):
         ref = ReferenceEvaluator(onx.SerializeToString())
         got = ref.run(None, {'X': x, "centers": centers})
         self.assertEqual(got[0].dtype, numpy.int64)
-        self.assertEqual(got[0].min(), 0)
-        self.assertEqual(got[0].max(), 1)
+        if DEFAULT_OPSET > 18:
+            self.assertEqual(got[0].min(), 0)
+            self.assertEqual(got[0].max(), 1)
 
         f = jit_onnx(compute_labels)
 
@@ -2272,8 +2273,9 @@ class TestNumpyx(ExtTestCase):
         ref = ReferenceEvaluator(onx.SerializeToString())
         got = ref.run(None, {'X': x, "centers": centers})
         self.assertEqual(got[0].dtype, numpy.int64)
-        self.assertEqual(got[0].min(), 0)
-        self.assertEqual(got[0].max(), 1)
+        if DEFAULT_OPSET > 18:
+            self.assertEqual(got[0].min(), 0)
+            self.assertEqual(got[0].max(), 1)
         self.assertEqual(got[1].dtype, numpy.float64)
 
         f = jit_onnx(compute_labels)
@@ -2284,7 +2286,114 @@ class TestNumpyx(ExtTestCase):
         self.assertEqualArray(got[0], res)
         self.assertEqualArray(got[1], dist)
 
+    def test_kmeans_distance_calls(self):
+
+        def build_distance(X, centers, use_sqrt=False):
+            dist = cdist_inline(X, centers, metric="sqeuclidean")
+            if use_sqrt:
+                return sqrt_inline(dist)
+            return dist
+
+        def compute_labels(X, centers):
+            dist = build_distance(X, centers, True)
+            labels = argmin_inline(dist, axis=1)
+            return make_tuple(labels, dist)
+
+        onx = compute_labels(Input("X"), Input("centers")).to_onnx(
+            constraints={'X': Float64[None], "centers": Float64[None],
+                         (0, False): Int64[None],
+                         (1, False): Float64[None]})
+        self.assertIn('"Sqrt"', str(onx))
+
+        x = numpy.random.randn(100, 2)
+        centers = numpy.random.randn(2, 2)
+
+        ref = ReferenceEvaluator(onx.SerializeToString())
+        got = ref.run(None, {'X': x, "centers": centers})
+        self.assertEqual(got[0].dtype, numpy.int64)
+        if DEFAULT_OPSET > 18:
+            self.assertEqual(got[0].min(), 0)
+            self.assertEqual(got[0].max(), 1)
+        self.assertEqual(got[1].dtype, numpy.float64)
+
+        f = jit_onnx(compute_labels)
+        self.assertEqual(len(f.onxs), 0)
+        self.assertEqual(f.n_versions, 0)
+
+        # float64
+        res, dist = f(x, centers)
+        self.assertEqual(res.dtype, numpy.int64)
+        self.assertEqualArray(got[0], res)
+        self.assertEqualArray(got[1], dist)
+        self.assertEqual(f.n_versions, 1)
+        self.assertEqual(len(f.available_versions), 1)
+        self.assertEqual(f.available_versions, [
+                         ((numpy.float64, 2), (numpy.float64, 2))])
+        key = ((numpy.dtype('float64'), 2), (numpy.dtype('float64'), 2))
+        onx = f.get_onnx(key)
+        self.assertIsInstance(onx, ModelProto)
+        self.assertRaise(lambda: f.get_onnx(2), ValueError)
+        onx = f.get_onnx()
+        self.assertIsInstance(onx, ModelProto)
+
+    def test_kmeans_distance_calls_args(self):
+
+        def build_distance(X, centers, use_sqrt=False):
+            dist = cdist_inline(X, centers, metric="sqeuclidean")
+            if use_sqrt:
+                return sqrt_inline(dist)
+            return dist
+
+        def compute_labels(X, centers, use_sqrt=False):
+            dist = build_distance(X, centers, use_sqrt)
+            labels = argmin_inline(dist, axis=1)
+            return make_tuple(labels, dist)
+
+        onx = compute_labels(Input("X"), Input("centers"), use_sqrt=False).to_onnx(
+            constraints={'X': Float64[None], "centers": Float64[None],
+                         (0, False): Int64[None],
+                         (1, False): Float64[None]})
+        self.assertNotIn('"Sqrt"', str(onx))
+
+        onx = compute_labels(Input("X"), Input("centers"), use_sqrt=True).to_onnx(
+            constraints={'X': Float64[None], "centers": Float64[None],
+                         (0, False): Int64[None],
+                         (1, False): Float64[None]})
+        self.assertIn('"Sqrt"', str(onx))
+
+        x = numpy.random.randn(100, 2)
+        centers = numpy.random.randn(2, 2)
+
+        ref = ReferenceEvaluator(onx.SerializeToString())
+        got = ref.run(None, {'X': x, "centers": centers})
+        self.assertEqual(got[0].dtype, numpy.int64)
+        if DEFAULT_OPSET > 18:
+            self.assertEqual(got[0].min(), 0)
+            self.assertEqual(got[0].max(), 1)
+        self.assertEqual(got[1].dtype, numpy.float64)
+
+        f = jit_onnx(compute_labels)
+        self.assertEqual(len(f.onxs), 0)
+        self.assertEqual(f.n_versions, 0)
+
+        # float64
+        res, dist = f(x, centers, use_sqrt=True)
+        self.assertEqual(res.dtype, numpy.int64)
+        self.assertEqualArray(got[0], res)
+        self.assertEqualArray(got[1], dist)
+        self.assertEqual(f.n_versions, 1)
+        self.assertEqual(len(f.available_versions), 1)
+        key = ((numpy.dtype('float64'), 2),
+               (numpy.dtype('float64'), 2), "use_sqrt", True)
+        self.assertEqual(f.available_versions, [key])
+        onx = f.get_onnx(key)
+        self.assertIsInstance(onx, ModelProto)
+        self.assertRaise(lambda: f.get_onnx(2), ValueError)
+        onx = f.get_onnx()
+        self.assertIsInstance(onx, ModelProto)
+        self.assertIn('"Sqrt"', str(onx))
+
 
 if __name__ == "__main__":
-    TestNumpyx().test_kmeans_distance()
+    TestNumpyx().test_kmeans_distance_calls_args()
     unittest.main(verbosity=2)
