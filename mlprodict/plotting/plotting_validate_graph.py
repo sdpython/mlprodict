@@ -140,7 +140,7 @@ def plot_validate_benchmark(df):
 
     # draw lines between models
     vals = final.iloc[:, 1:].values.ravel()
-    xlim = [min(0.5, min(vals)), max(2, max(vals))]  # pylint: disable=W3301
+    xlim = [min(0.5, *vals), max(2, *vals)]
     while i < final.shape[0] - 1:
         i += 1
         label = final.iloc[i, 0]

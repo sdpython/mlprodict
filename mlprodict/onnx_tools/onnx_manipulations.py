@@ -1,6 +1,6 @@
 # Copyright (c) Microsoft Corporation. All rights reserved.
 # Licensed under the MIT License.
-# pylint: disable=E1101, C0302
+# pylint: disable=E1101, C0302, R1718
 
 """
 @file
@@ -147,7 +147,7 @@ def get_hidden_inputs(nodes):
                     not hasattr(att, 'g') or att.g is None):
                 continue
             hidden = get_hidden_inputs(att.g.node)
-            inits = set(att.g.initializer)
+            inits = set([i.name for i in att.g.initializer])
             inputs |= hidden - (inits & hidden)
     return inputs - (outputs & inputs)
 
