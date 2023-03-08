@@ -2158,8 +2158,6 @@ class TestNumpyx(ExtTestCase):
         x = numpy.arange(10).reshape((5, 2)).astype(dtype=numpy.float32)
         z = scipy_cdist(x, numpy.arange(4).reshape(
             (2, 2)).astype(numpy.float32), metric=metric)
-        # from mlprodict.plotting.text_plot import onnx_simple_text_plot
-        # print(onnx_simple_text_plot(onx))
         ref = ReferenceEvaluator(onx.SerializeToString())
         got = ref.run(None, {'A': x})
         self.assertEqualArray(z, got[0], atol=1e-5)

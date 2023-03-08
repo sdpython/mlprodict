@@ -4,8 +4,9 @@
 
 .. versionadded:: 0.10
 """
-from typing import Dict, List, Optional, Tuple, Union
-from onnx import FunctionProto, GraphProto, ModelProto
+from typing import Dict, Iterator, List, Optional, Sequence, Tuple, Union
+from onnx import (
+    AttributeProto, FunctionProto, GraphProto, ModelProto, NodeProto)
 from onnx.version_converter import convert_version
 from onnx.helper import make_function, make_operatorsetid
 
@@ -107,6 +108,19 @@ def onnx_convert_model_for_opsets(model: ModelProto,
     return new_model
 
 
+def iter_nodes(nodes: Sequence[NodeProto]) -> Iterator[NodeProto]:
+    """
+    Iterates on all nodes within a graph and its subgraphs.
+    """
+    for node in nodes:
+        yield node
+        for att in node.attribute:
+            if (att.type == AttributeProto.GRAPH and
+                    hasattr(att, 'g') and att.g is not None):
+                for n in iter_nodes(att.g.node):
+                    yield n
+
+
 def onnx_model_to_function(onx: ModelProto, name: Optional[str] = None,
                            domain: str = "custom",
                            opset_imports: Optional[Dict[str, int]] = None,
@@ -172,10 +186,14 @@ def onnx_model_to_function(onx: ModelProto, name: Optional[str] = None,
 
     nodes.extend(onx.node)
 
-    if isinstance(opset_imports, dict):
-        ops = [make_operatorsetid(k, v) for k, v in opset_imports.items()]
-        opset_imports = ops
+    # fixes domains
+    opsets = {}
+    for node in iter_nodes(nodes):
+        if node.domain not in opsets:
+            opsets[node.domain] = opset_imports.get(node.domain, 1)
+    ops = [make_operatorsetid(k, v) for k, v in opsets.items()]
+
     return make_function(
         domain, name, inputs, outputs, nodes,
-        opset_imports=opset_imports, doc_string=doc_string or '',
+        opset_imports=ops, doc_string=doc_string or '',
         attributes=attributes), []

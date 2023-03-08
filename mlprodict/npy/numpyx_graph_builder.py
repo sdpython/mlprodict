@@ -5,7 +5,7 @@
 .. versionadded:: 0.10
 """
 from inspect import Parameter, signature
-from typing import Any, Callable, Dict, List, Optional
+from typing import Any, Callable, Dict, List, Optional, Tuple
 import numpy
 from onnx import (  # pylint: disable=E0611
     IR_VERSION, AttributeProto, FunctionProto, ModelProto,
@@ -31,9 +31,8 @@ from .numpyx_var import (
     ONNX_DOMAIN, Par, Var)
 from .numpyx_function_implementation import get_function_implementation
 from .numpyx_helper import (
-    rename_in_onnx_graph,
-    onnx_convert_model_for_opsets,
-    onnx_model_to_function)
+    iter_nodes, rename_in_onnx_graph,
+    onnx_convert_model_for_opsets, onnx_model_to_function)
 
 
 _OPSET_TO_IR_VERSION = {
@@ -146,6 +145,17 @@ class _GraphBuilder:
                 return
             self._id_vars[i, index] = None
         self._vars.append(var)
+
+    def add_function(self, key: Tuple[str, str], values: Tuple[FunctionProto, Any, Any, Any]):
+        if not isinstance(values, tuple):
+            raise TypeError(f"values must be a tuple not {type(values)}.")
+        if len(values) != 4:
+            raise TypeError(f"values must have 4 elements not {len(values)}.")
+        if key in self.functions_:
+            raise KeyError(
+                f"Function {key!r} is already registered in "
+                f"{list(sorted(self.functions_))}.")
+        self.functions_[key] = values
 
     def _reset(self):
         self.inputs_ = []
@@ -331,17 +341,6 @@ class _GraphBuilder:
         self.outputs_.append(
             self._io(len(self.outputs_), name, tensor_type, False))
 
-    def _iter_nodes(self, nodes=None):
-        if nodes is None:
-            nodes = self.nodes_
-        for node in self.nodes_:
-            yield node
-            for att in node.attribute:
-                if (att.type == AttributeProto.GRAPH and
-                        hasattr(att, 'g') and att.g is not None):
-                    for n in self._iter_nodes(att.g.node):
-                        yield n
-
     def _make_onnx(self):
         """
         Makes the final onnx.
@@ -360,7 +359,7 @@ class _GraphBuilder:
 
         # adds missing domain
         only_domains = set()
-        for node in self._iter_nodes():
+        for node in iter_nodes(self.nodes_):
             only_domains.add(node.domain)
             if node.domain not in set_domains:
                 set_domains.add(node.domain)
@@ -488,9 +487,10 @@ class _GraphBuilder:
             if len(onx) != 2:
                 raise RuntimeError(f"onx is a list with {len(onx)} elements.")
             d = onx[0]
-            self.functions_.update(d)
+            for k, v in d.items():
+                self.add_function(k, v)
             onx = onx[1]
-        self.functions_[key] = (onx, input_types, output_types, attributes)
+        self.add_function(key, (onx, input_types, output_types, attributes))
         return onx, input_types, output_types, attributes
 
     def _to_onnx_make_node(self, domop, node_inputs, node_outputs, kwargs):
@@ -507,11 +507,11 @@ class _GraphBuilder:
             proto = get_function_implementation(
                 domop, node_inputs, node_outputs,
                 self.target_opsets, **kwargs)
-            self.functions_[domop] = (
+            self.add_function(domop, (
                 proto,
                 (None for i in node_inputs),
                 (None for i in node_outputs),
-                list(sorted(kwargs)))
+                list(sorted(kwargs))))
             self.make_node(
                 proto.name, node_inputs, node_outputs,
                 domain=proto.domain, opset=1,
@@ -556,12 +556,12 @@ class _GraphBuilder:
                         if keyf in self.functions_:
                             raise ValueError(
                                 f"Function {keyf!r} was already added.")
-                        self.functions_[keyf] = (f, (None for i in f.input),
+                        self.add_function(keyf, (f, (None for i in f.input),
                                                  (None for i in f.output),
-                                                 list(f.attribute))
+                                                 list(f.attribute)))
                 # then the main function is added
-                self.functions_[key] = (f1, (None for i in node_inputs),
-                                        (None for i in node_outputs), [])
+                self.add_function(key, (f1, (None for i in node_inputs),
+                                        (None for i in node_outputs), []))
                 self.make_node(name, node_inputs,
                                node_outputs, domain=domain)
             else:
