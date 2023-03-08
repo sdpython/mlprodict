@@ -1,7 +1,7 @@
 """
 @brief      test log(time=3s)
 """
-# pylint: disable=R0904,W0703
+# pylint: disable=R0904,W0703,E1136
 from contextlib import redirect_stdout
 from io import StringIO
 import unittest
