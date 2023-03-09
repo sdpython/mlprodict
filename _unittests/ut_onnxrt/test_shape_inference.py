@@ -4,6 +4,11 @@
 import unittest
 import numpy
 from onnx.shape_inference import infer_shapes
+from onnx import numpy_helper, TensorProto
+from onnx.helper import (
+    make_model, make_node, set_model_props, make_tensor,
+    make_graph, make_tensor_value_info)
+from onnx.checker import check_model
 from pyquickhelper.pycode import ExtTestCase
 from skl2onnx.algebra.onnx_ops import (  # pylint: disable=E0611
     OnnxAdd, OnnxSub, OnnxDiv, OnnxMul)
@@ -205,6 +210,40 @@ class TestOnnxShapeInference(ExtTestCase):
         # out = rt.run()
         # print(out)
 
+    def test_onnx_onnx_shape_inference(self):
+        def get_dim(d):
+            if hasattr(d, 'dim_param') and d.dim_param not in (None, ''):
+                return d.dim_param
+            return d.dim_value
+
+        X = make_tensor_value_info('X', TensorProto.FLOAT, ['N', None])
+        A = make_tensor_value_info('A', TensorProto.FLOAT, [1])
+        Y = make_tensor_value_info('Y', TensorProto.FLOAT, [1, None])
+        B = numpy_helper.from_array(
+            numpy.random.randn(1, 3).astype(numpy.float32),
+            name='B')
+        node1 = make_node('Sub', ['X', 'A'], ['XA'])
+        node2 = make_node('Add', ['XA', 'B'], ['T'])
+        node3 = make_node('Identity', ['T'], ['Y'])
+        graph = make_graph([node1, node2, node3], 'lr', [X, A], [Y], [B])
+        onnx_model = make_model(graph)
+
+        onnx_shapes = infer_shapes(onnx_model)
+        shapes = {}
+        for v in onnx_shapes.graph.value_info:
+            dims = [get_dim(d) for d in v.type.tensor_type.shape.dim]
+            shapes[v.name] = dims
+        self.assertEqual(shapes, {'XA': ['N', 'unk__0'], 'T': ['N', 3]})
+        oinf = OnnxShapeInference(onnx_model)
+        got = oinf.run()
+        got.resolve()
+        res = got.get()
+        xa = res["XA"].shape
+        t = res["T"].shape
+        self.assertEqual(xa[1], {1, 3})
+        self.assertEqual(xa[0], shapes["XA"][0])
+        self.assertEqual(t, shapes["T"])
+    
 
 if __name__ == "__main__":
     unittest.main(verbosity=2)
