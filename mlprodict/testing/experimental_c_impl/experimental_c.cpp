@@ -6,6 +6,7 @@
 #include "experimental_c_reduce.hpp"
 #include "experimental_c_add.h"
 #include "experimental_c_add.hpp"
+#include "experimental_c_bench.h"
 
 void experimental_ut_einsum() {
     std::vector<float> v{ 1, 2, 3 };
@@ -140,6 +141,11 @@ when the reduced matrix has two dimensions and the reduced axis is the first one
 *x* is the reduced matrix. *nthread* specifies the number of threads used
 to distribute. Negative means OMP default values.
 )pbdoc");
+
+    m.def ("benchmark_cache", &benchmark_cache,
+        py::arg("size"), py::arg("verbose") = true,
+        R"pbdoc(Runs a benchmark to measure the cache performance.)pbdoc");
+
 }
 
 #endif
