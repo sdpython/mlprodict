@@ -33,7 +33,7 @@ float benchmark_cache(const size_t arr_size, bool verbose) {
     long time_d = get_nsec() - time0;
     float performance = float(time_d) / arr_size;
     if (verbose) {
-        printf("perf %.1f [kB]: %ld\n", performance, arr_size / 1024 );
+        printf("perf %.1f [kB]: %d\n", performance, (int)(arr_size / 1024));
     }
 
     free(arr_a);
