@@ -7,6 +7,17 @@
 
 // source: https://stackoverflow.com/questions/9412585/see-the-cache-missess-simple-c-cache-benchmark
 
+#if defined(_WIN32) || defined(WIN32)
+struct timespec { long tv_sec; long tv_nsec; };    //header part
+int clock_gettime(int, struct timespec *spec) {      //C-file part
+   __int64 wintime; GetSystemTimeAsFileTime((FILETIME*)&wintime);
+   wintime      -=116444736000000000i64;  //1jan1601 to 1jan1970
+   spec->tv_sec  =wintime / 10000000i64;           //seconds
+   spec->tv_nsec =wintime % 10000000i64 *100;      //nano-seconds
+   return 0;
+}
+#endif
+
 long get_nsec() {
    timespec ts;
    clock_gettime(CLOCK_REALTIME, &ts);
