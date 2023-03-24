@@ -144,7 +144,9 @@ to distribute. Negative means OMP default values.
 
     m.def ("benchmark_cache", &benchmark_cache,
         py::arg("size"), py::arg("verbose") = true,
-        R"pbdoc(Runs a benchmark to measure the cache performance.)pbdoc");
+        R"pbdoc(Runs a benchmark to measure the cache performance.
+The function measures the time for N random accesses in array of size N
+and returns the time divided by N.)pbdoc");
 
 }
 
