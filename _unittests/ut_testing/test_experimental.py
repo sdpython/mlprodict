@@ -9,7 +9,7 @@ from mlprodict.testing.experimental import custom_pad, custom_einsum
 from mlprodict.testing.experimental_c_impl.experimental_c import (  # pylint: disable=E0611,E0401
     custom_einsum_double, custom_einsum_int64, custom_einsum_float,
     code_optimisation, custom_reducesum_rk_double,
-    custom_reducesum_rk_float, benchmark_cache)
+    custom_reducesum_rk_float, benchmark_cache, benchmark_cache_tree)
 from mlprodict import __max_supported_opset__ as TARGET_OPSET
 from mlprodict.tools.ort_wrapper import InferenceSession
 
@@ -319,8 +319,18 @@ class TestExperimental(ExtTestCase):
         self.assertEqualArray(exp, got)
 
     def test_benchmark_cache(self):
-        res = benchmark_cache(1000, True)
+        res = benchmark_cache(1000, False)
         self.assertGreater(res, 0)
+
+    def test_benchmark_cache_tree(self):
+        res = benchmark_cache_tree(1000)
+        self.assertIsInstance(res, list)
+        self.assertEqual(len(res), 2000)
+
+        res = benchmark_cache_tree(12000)
+        self.assertIsInstance(res, list)
+        self.assertEqual(len(res), 24000)
+        
 
 
 if __name__ == "__main__":

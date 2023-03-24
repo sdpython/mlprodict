@@ -4,28 +4,14 @@
 #include <stdlib.h>
 #include <time.h>
 #include <stdexcept>
+#include <chrono>
+#include <iostream>
 
-// source: https://stackoverflow.com/questions/9412585/see-the-cache-missess-simple-c-cache-benchmark
-
-#if defined(_WIN32) || defined(WIN32)
-struct timespec { long tv_sec; long tv_nsec; };    //header part
-int clock_gettime(int, struct timespec *spec) {      //C-file part
-   __int64 wintime; GetSystemTimeAsFileTime((FILETIME*)&wintime);
-   wintime      -=116444736000000000i64;  //1jan1601 to 1jan1970
-   spec->tv_sec  =wintime / 10000000i64;           //seconds
-   spec->tv_nsec =wintime % 10000000i64 *100;      //nano-seconds
-   return 0;
-}
-#endif
-
-long get_nsec() {
-   timespec ts;
-   clock_gettime(CLOCK_REALTIME, &ts);
-   return long(ts.tv_sec)*1000*1000 + ts.tv_nsec;
-}
+// source: https://stackoverflow.com/questions/9412585/
+// see-the-cache-missess-simple-c-cache-benchmark
 
 
-float benchmark_cache(const size_t arr_size, bool verbose) {
+double benchmark_cache(int64_t arr_size, bool verbose) {
 
     unsigned char* arr_a = (unsigned char*) malloc(sizeof(char) * arr_size);
     unsigned char* arr_b = (unsigned char*) malloc(sizeof(char) * arr_size);
@@ -33,16 +19,16 @@ float benchmark_cache(const size_t arr_size, bool verbose) {
     if (arr_a == nullptr || arr_b == nullptr)
         throw std::runtime_error("An array could not be allocated.");
 
-    long time0 = get_nsec();
+    auto time0 = std::chrono::high_resolution_clock::now();
 
-    for(size_t i = 0; i < arr_size; ++i) {
+    for(int64_t i = 0; i < arr_size; ++i) {
         // index k will jump forth and back, to generate cache misses
-        size_t k = (i / 2) + (i % 2) * arr_size / 2;
+        int64_t k = (i / 2) + (i % 2) * arr_size / 2;
         arr_b[k] = arr_a[k] + 1;
     }
 
-    long time_d = get_nsec() - time0;
-    float performance = float(time_d) / arr_size;
+    double performance = std::chrono::duration<double>(std::chrono::high_resolution_clock::now() - time0).count();
+    performance /= arr_size;
     if (verbose) {
         printf("perf %.1f [kB]: %d\n", performance, (int)(arr_size / 1024));
     }
@@ -50,6 +36,42 @@ float benchmark_cache(const size_t arr_size, bool verbose) {
     free(arr_a);
     free(arr_b);
     return performance;
+}
+
+std::vector<elem_time> benchmark_cache_tree(
+        int64_t n_rows, int64_t n_features, int64_t n_trees, int64_t tree_size,
+        int64_t max_depth, int64_t n_trials) {
+    
+    std::vector<float> X(n_rows * n_features);
+    for(int64_t i=0; i < X.size(); ++i) X[i] = (float)i / (float)X.size();
+    std::vector<float> T(n_trees * tree_size);
+    for(int64_t i=0; i < X.size(); ++i) T[i] = (float)i / (float)T.size();
+    std::vector<float> res(n_trees * n_rows, 0);
+            
+    // std::cout << "X.size()=" << X.size() << " T.size()=" << T.size()
+    //           << " res.size()=" << res.size() << "\n";
+    
+    int64_t seed = n_features * 7 + 1;
+    int64_t fi, ti;
+    std::vector<elem_time> times(n_rows * n_trials);
+    for(int64_t n_trial=0; n_trial < n_trials; ++n_trial) {
+        for(int64_t i=0; i < n_rows; i += 1) {
+            // std::cout << "i=" << i << "\n";
+            auto time0 = std::chrono::high_resolution_clock::now();
+            for (int64_t t=0; t < n_trees; ++t, ++seed) {
+                if (seed > 10037) seed = n_features * 7 + 1;
+                for (int64_t mx=0; mx < max_depth; ++mx) {
+                    fi = i * n_features + ((seed * (t + mx)) % n_features);
+                    ti = t * tree_size + ((seed * (i + mx)) % tree_size);
+                    res[i * n_trees + t] += X[fi] - T[ti];
+                }
+            }
+            double performance = std::chrono::duration<double>(
+                std::chrono::high_resolution_clock::now() - time0).count();            
+            times[n_trial * n_rows + i] = elem_time(n_trial, i, performance);
+        }
+    }
+    return times;
 }
 
 
