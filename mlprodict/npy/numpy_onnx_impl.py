@@ -512,3 +512,14 @@ def where(cond, x, y):
     "See :func:`numpy.where`."
     OnnxWhere = loadop('Where')
     return OnnxVar(cond, x, y, op=OnnxWhere)
+
+
+def zeros(shape, value=None):
+    """
+    See :func:`numpy:zeros`.
+    If value is None, it returns a null matrix for type float32.
+    """
+    OnnxConstantOfShape = loadop('ConstantOfShape')
+    if value is None:
+        value = numpy.zeros((1, ), dtype=numpy.float32)
+    return OnnxVar(shape, op=OnnxConstantOfShape, value=value)

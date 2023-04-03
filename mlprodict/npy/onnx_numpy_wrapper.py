@@ -5,6 +5,9 @@
 .. versionadded:: 0.6
 """
 import warnings
+import numpy
+from onnx import TensorProto
+from onnx.numpy_helper import from_array
 from .onnx_version import FctVersion
 from .onnx_numpy_annotation import get_args_kwargs
 from .onnx_numpy_compiler import OnnxNumpyCompiler
@@ -177,13 +180,29 @@ class wrapper_onnxnumpy_np:
         """
         if not isinstance(dtype, FctVersion):
             raise TypeError(  # pragma: no cover
-                f"dtype must be of type 'FctVersion' not {type(dtype)}: {dtype}.")
-        if dtype not in self.signed_compiled:
+                "dtype must be of type 'FctVersion' not %s: %s." % (
+                    type(dtype), dtype))
+        try:
+            dtype_in = dtype not in self.signed_compiled
+        except TypeError as e:
+            raise TypeError(
+                "Unable to check a type belongs to the signature, "
+                "type(dtype)=%r, signature=%r." % (
+                    type(dtype), self.signed_compiled)) from e
+        if dtype_in:
             self._populate(dtype)
             key = dtype
         else:
             key = dtype
         return self.signed_compiled[key]
+
+    @staticmethod
+    def _hash_value(v):
+        if isinstance(v, TensorProto):
+            return v.SerializeToString()
+        if isinstance(v, numpy.ndarray):
+            return from_array(v).SerializeToString()
+        return v
 
     def __call__(self, *args, **kwargs):
         """
@@ -195,7 +214,9 @@ class wrapper_onnxnumpy_np:
         if len(self.kwargs) == 0:
             others = None
         else:
-            others = tuple(kwargs.get(k, self.kwargs[k]) for k in self.kwargs)
+            others = tuple(
+                wrapper_onnxnumpy_np._hash_value(kwargs.get(k, self.kwargs[k]))
+                for k in self.kwargs)
         try:
             key = FctVersion(  # pragma: no cover
                 tuple(a if (a is None or hasattr(a, 'fit'))

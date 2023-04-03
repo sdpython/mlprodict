@@ -64,6 +64,7 @@ from .numpy_onnx_impl import (
     unsqueeze as nx_unsqueeze,
     vstack as nx_vstack,
     where as nx_where,
+    zeros as nx_zeros,
 )
 from .onnx_numpy_wrapper import onnxnumpy_np
 
@@ -379,3 +380,13 @@ def vstack(*x):
 def where(cond, x, y):
     "where"
     return nx_where(cond, x, y)
+
+
+@onnxnumpy_np(signature=NDArrayType((numpy.int64, ), ("all", )))
+def zeros(shape, value=None):
+    "See :func:`numpy:zeros`."
+    """
+    See :func:`numpy:zeros`.
+    If value is None, it returns a null matrix for type float32.
+    """
+    return nx_zeros(shape, value=value)
