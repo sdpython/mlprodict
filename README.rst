@@ -71,7 +71,7 @@ The package also provides tools to compare
 predictions, to benchmark models converted with
 `sklearn-onnx <https://github.com/onnx/sklearn-onnx/tree/master/skl2onnx>`_.
 
-::
+.. code-block:: python
 
     import numpy
     from sklearn.linear_model import LinearRegression
